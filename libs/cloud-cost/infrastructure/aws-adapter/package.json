@@ -1,0 +1,35 @@
+{
+  "name": "cloud-cost-infrastructure-aws-adapter",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@cloudrift/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "nx": {
+    "targets": {
+      "test": {
+        "executor": "@nx/jest:jest",
+        "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+        "options": {
+          "jestConfig": "libs/cloud-cost/infrastructure/aws-adapter/jest.config.cjs",
+          "passWithNoTests": true
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "shared-kernel": "workspace:*",
+    "cloud-cost-domain": "workspace:*",
+    "tslib": "^2.3.0"
+  }
+}
