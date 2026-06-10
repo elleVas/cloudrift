@@ -47,3 +47,17 @@ Thumbs.db
 .claude/settings.local.json
 .nx/polygraph
 .nx/self-healing
+
+.agents
+.claude
+.codex
+.cursor
+.gemini
+.opencode
+.github/agents
+.github/prompts
+.github/skills
+.vscode/agents
+.vscode/prompts
+.vscode/skills  
+.vscode

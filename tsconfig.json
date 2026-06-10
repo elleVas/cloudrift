@@ -2,5 +2,21 @@
   "extends": "./tsconfig.base.json",
   "compileOnSave": false,
   "files": [],
-  "references": []
+  "references": [
+    {
+      "path": "./apps/cli"
+    },
+    {
+      "path": "./libs/shared/kernel"
+    },
+    {
+      "path": "./libs/cloud-cost/domain"
+    },
+    {
+      "path": "./libs/cloud-cost/application"
+    },
+    {
+      "path": "./libs/cloud-cost/infrastructure/aws-adapter"
+    }
+  ]
 }

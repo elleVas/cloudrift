@@ -1,0 +1,76 @@
+{
+  "_comment": "Monthly USD prices per region. 'default' is used as fallback for unlisted regions. Sources: AWS public pricing pages (last verified 2025-06).",
+  "default": {
+    "ebs-gp2":       0.100,
+    "ebs-gp3":       0.080,
+    "ebs-io1":       0.125,
+    "ebs-io2":       0.125,
+    "ebs-st1":       0.045,
+    "ebs-sc1":       0.018,
+    "ebs-standard":  0.050,
+    "ebs-snapshot":  0.050,
+    "elastic-ip":    3.600,
+    "rds-gp2":       0.115,
+    "rds-gp3":       0.115,
+    "rds-io1":       0.125,
+    "rds-io2":       0.125,
+    "rds-standard":  0.100,
+    "load-balancer": 16.200,
+    "nat-gateway":   32.400
+  },
+  "us-east-1": {
+    "ebs-gp2":       0.100,
+    "ebs-gp3":       0.080,
+    "ebs-snapshot":  0.050,
+    "elastic-ip":    3.600,
+    "rds-gp2":       0.115,
+    "load-balancer": 16.200,
+    "nat-gateway":   32.400
+  },
+  "us-west-2": {
+    "ebs-gp2":       0.100,
+    "ebs-gp3":       0.080,
+    "ebs-snapshot":  0.050,
+    "elastic-ip":    3.600,
+    "rds-gp2":       0.115,
+    "load-balancer": 16.200,
+    "nat-gateway":   32.400
+  },
+  "eu-west-1": {
+    "ebs-gp2":       0.110,
+    "ebs-gp3":       0.088,
+    "ebs-snapshot":  0.053,
+    "elastic-ip":    3.960,
+    "rds-gp2":       0.128,
+    "load-balancer": 18.400,
+    "nat-gateway":   36.720
+  },
+  "eu-central-1": {
+    "ebs-gp2":       0.119,
+    "ebs-gp3":       0.0952,
+    "ebs-snapshot":  0.053,
+    "elastic-ip":    3.960,
+    "rds-gp2":       0.138,
+    "load-balancer": 18.980,
+    "nat-gateway":   38.880
+  },
+  "ap-southeast-1": {
+    "ebs-gp2":       0.114,
+    "ebs-gp3":       0.096,
+    "ebs-io1":       0.131,
+    "ebs-snapshot":  0.055,
+    "elastic-ip":    3.960,
+    "rds-gp2":       0.131,
+    "load-balancer": 18.250,
+    "nat-gateway":   36.792
+  },
+  "ap-northeast-1": {
+    "ebs-gp2":       0.120,
+    "ebs-gp3":       0.096,
+    "ebs-snapshot":  0.053,
+    "elastic-ip":    3.960,
+    "rds-gp2":       0.142,
+    "load-balancer": 19.710,
+    "nat-gateway":   38.880
+  }
+}
