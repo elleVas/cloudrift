@@ -1,6 +1,7 @@
 import { Entity } from 'shared-kernel';
 import { AwsRegion } from '../value-objects/aws-region.value-object';
 import { CostEstimate } from '../value-objects/cost-estimate.value-object';
+import type { WastedResource } from '../wasted-resource';
 
 export type Ec2InstanceState =
   | 'pending'
@@ -24,12 +25,14 @@ export interface Ec2InstanceProps {
   state: Ec2InstanceState;
   launchTime: Date;
   detectedAt: Date;
+  /** Quando l'istanza è stata fermata, se ricostruibile da StateTransitionReason. */
+  stoppedSince?: Date;
   attachedVolumes: AttachedVolume[];
   tags: Record<string, string>;
   monthlyCostUsd: number;
 }
 
-export class Ec2Instance extends Entity<string> {
+export class Ec2Instance extends Entity<string> implements WastedResource {
   private readonly props: Readonly<Ec2InstanceProps>;
 
   constructor(props: Ec2InstanceProps) {
@@ -43,8 +46,12 @@ export class Ec2Instance extends Entity<string> {
   get state(): Ec2InstanceState { return this.props.state; }
   get launchTime(): Date { return this.props.launchTime; }
   get detectedAt(): Date { return this.props.detectedAt; }
+  get stoppedSince(): Date | undefined { return this.props.stoppedSince; }
   get attachedVolumes(): AttachedVolume[] { return this.props.attachedVolumes; }
   get tags(): Record<string, string> { return this.props.tags; }
+
+  get kind(): 'ec2-instance' { return 'ec2-instance'; }
+  get wasteReason(): string { return 'stopped (attached EBS still billed)'; }
 
   isStopped(): boolean {
     return this.props.state === 'stopped';

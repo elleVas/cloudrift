@@ -1,6 +1,13 @@
 import PDFDocument from 'pdfkit';
 import { createWriteStream } from 'fs';
-import type { WastedResourcesSummary } from 'cloud-cost-domain';
+import {
+  RESOURCE_KINDS,
+  RESOURCE_KIND_LABELS,
+  groupByKind,
+} from 'cloud-cost-domain';
+import type { WastedResource, WastedResourcesSummary } from 'cloud-cost-domain';
+import type { WasteReportMeta } from 'cloud-cost-application';
+import { presenterFor } from './resource-presenters';
 
 const C = {
   primary: '#1d4ed8',
@@ -14,19 +21,14 @@ const C = {
 };
 
 const PAGE_W = 595.28;
+const PAGE_H = 841.89;
 const MARGIN = 48;
 const CONTENT_W = PAGE_W - MARGIN * 2;
 const ROW_H = 20;
 
-export interface PdfReportMeta {
-  accountId: string;
-  regions: string[];
-  generatedAt: Date;
-}
-
 export function generateWasteReportPdf(
   summary: WastedResourcesSummary,
-  meta: PdfReportMeta,
+  meta: WasteReportMeta,
   outputPath: string,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -48,7 +50,7 @@ export function generateWasteReportPdf(
 function drawSummaryPage(
   doc: PDFKit.PDFDocument,
   summary: WastedResourcesSummary,
-  meta: PdfReportMeta,
+  meta: WasteReportMeta,
 ): void {
   let y = MARGIN;
 
@@ -65,6 +67,7 @@ function drawSummaryPage(
   ];
   if (meta.accountId !== 'unknown') metaParts.push(`Account: ${meta.accountId}`);
   metaParts.push(`Regions: ${meta.regions.join(', ')}`);
+  metaParts.push(`Prices as of: ${meta.pricesAsOf}`);
   doc.font('Helvetica').fontSize(8.5).fillColor(C.muted)
     .text(metaParts.join('   ·   '), MARGIN, y, { lineBreak: false });
 
@@ -76,7 +79,7 @@ function drawSummaryPage(
   y += 14;
   const monthly = summary.totalMonthlyCostUsd;
   const annual = monthly * 12;
-  const total = allResources(summary).length;
+  const total = summary.findings.length;
   const isIncomplete = summary.scanErrors.length > 0;
 
   const monthlyLabel = isIncomplete ? `$${monthly.toFixed(2)}/mo *` : `$${monthly.toFixed(2)}/mo`;
@@ -109,9 +112,9 @@ function drawSummaryPage(
     doc.font('Helvetica-Bold').fontSize(9).fillColor(C.warning)
       .text('* Scan warnings — partial results:', MARGIN, y, { lineBreak: false });
     y += 14;
-    for (const { resourceType, error } of summary.scanErrors) {
+    for (const { kind, region, error } of summary.scanErrors) {
       doc.font('Helvetica').fontSize(8.5).fillColor(C.warning)
-        .text(`• ${resourceType}: ${error.message}`, MARGIN + 8, y, { width: CONTENT_W - 8 });
+        .text(`• ${RESOURCE_KIND_LABELS[kind]} in ${region}: ${error.message}`, MARGIN + 8, y, { width: CONTENT_W - 8 });
       y += 13;
     }
   }
@@ -133,74 +136,20 @@ function drawMetricBox(
 // ─── Detail pages ─────────────────────────────────────────────────────────────
 
 function drawDetailPages(doc: PDFKit.PDFDocument, summary: WastedResourcesSummary): void {
-  if (summary.ebsVolumes.length > 0) {
-    doc.addPage();
-    const y = sectionHeader(doc, 'EBS Volumes — Unattached');
-    const rows = summary.ebsVolumes.map(v => [
-      v.id, v.region.code, `${v.sizeGb} GB`, v.volumeType,
-      fmt(v.createTime), `$${v.costEstimate.monthlyCostUsd.toFixed(2)}/mo`,
-    ]);
-    drawTable(doc, ['Volume ID', 'Region', 'Size', 'Type', 'Created', 'Cost/mo'], rows, [135, 80, 48, 48, 84, 80], y);
-  }
+  const grouped = groupByKind(summary.findings);
 
-  if (summary.elasticIps.length > 0) {
-    doc.addPage();
-    const y = sectionHeader(doc, 'Elastic IPs — Unassociated');
-    const rows = summary.elasticIps.map(ip => [
-      ip.id, ip.region.code, ip.publicIp, `$${ip.costEstimate.monthlyCostUsd.toFixed(2)}/mo`,
-    ]);
-    drawTable(doc, ['Allocation ID', 'Region', 'Public IP', 'Cost/mo'], rows, [175, 84, 156, 80], y);
-  }
+  for (const kind of RESOURCE_KINDS) {
+    const findings = grouped[kind];
+    if (findings.length === 0) continue;
 
-  if (summary.rdsInstances.length > 0) {
+    const presenter = presenterFor(kind);
     doc.addPage();
-    const y = sectionHeader(doc, 'RDS Instances — Stopped');
-    const rows = summary.rdsInstances.map(db => [
-      db.id, db.region.code, db.dbInstanceClass, db.engine,
-      `${db.allocatedStorageGb} GB ${db.storageType}`, `$${db.costEstimate.monthlyCostUsd.toFixed(2)}/mo`,
+    const y = sectionHeader(doc, presenter.title);
+    const rows = findings.map((finding: WastedResource) => [
+      ...presenter.row(finding),
+      `$${finding.costEstimate.monthlyCostUsd.toFixed(2)}/mo`,
     ]);
-    drawTable(doc, ['Identifier', 'Region', 'Class', 'Engine', 'Storage', 'Cost/mo'], rows, [125, 72, 82, 68, 80, 68], y);
-  }
-
-  if (summary.loadBalancers.length > 0) {
-    doc.addPage();
-    const y = sectionHeader(doc, 'Load Balancers — Idle');
-    const rows = summary.loadBalancers.map(lb => [
-      lb.name, lb.region.code, lb.type, fmt(lb.createdTime), `$${lb.costEstimate.monthlyCostUsd.toFixed(2)}/mo`,
-    ]);
-    drawTable(doc, ['Name', 'Region', 'Type', 'Created', 'Cost/mo'], rows, [175, 84, 64, 90, 82], y);
-  }
-
-  if (summary.stoppedEc2Instances.length > 0) {
-    doc.addPage();
-    const y = sectionHeader(doc, 'EC2 Instances — Stopped (EBS still billed)');
-    const rows = summary.stoppedEc2Instances.map(inst => [
-      inst.id, inst.region.code, inst.instanceType,
-      inst.attachedVolumes.length > 0
-        ? inst.attachedVolumes.map(v => `${v.sizeGb}GB ${v.volumeType}`).join(', ')
-        : '—',
-      fmt(inst.launchTime), `$${inst.costEstimate.monthlyCostUsd.toFixed(2)}/mo`,
-    ]);
-    drawTable(doc, ['Instance ID', 'Region', 'Type', 'Attached volumes', 'Launched', 'Cost/mo'], rows, [110, 72, 62, 115, 80, 56], y);
-  }
-
-  if (summary.orphanSnapshots.length > 0) {
-    doc.addPage();
-    const y = sectionHeader(doc, 'EBS Snapshots — Orphaned (source volume deleted)');
-    const rows = summary.orphanSnapshots.map(snap => [
-      snap.id, snap.region.code, snap.sourceVolumeId, `${snap.sizeGb} GB`,
-      fmt(snap.startTime), `$${snap.costEstimate.monthlyCostUsd.toFixed(2)}/mo`,
-    ]);
-    drawTable(doc, ['Snapshot ID', 'Region', 'Source volume', 'Size', 'Created', 'Cost/mo'], rows, [115, 72, 112, 48, 80, 68], y);
-  }
-
-  if (summary.idleNatGateways.length > 0) {
-    doc.addPage();
-    const y = sectionHeader(doc, 'NAT Gateways — Idle (zero traffic in last 48h)');
-    const rows = summary.idleNatGateways.map(gw => [
-      gw.id, gw.region.code, gw.vpcId, fmt(gw.createTime), `$${gw.costEstimate.monthlyCostUsd.toFixed(2)}/mo`,
-    ]);
-    drawTable(doc, ['NAT Gateway ID', 'Region', 'VPC', 'Created', 'Cost/mo'], rows, [140, 80, 152, 90, 33], y);
+    drawTable(doc, [...presenter.head, 'Cost/mo'], rows, presenter.colWidths, y);
   }
 }
 
@@ -220,24 +169,40 @@ function drawTable(
   startY: number,
 ): number {
   const totalW = colWidths.reduce((a, b) => a + b, 0);
+  let segmentStartY = startY;
   let y = startY;
 
-  // Header row
-  doc.rect(MARGIN, y, totalW, ROW_H).fill(C.tableHeader);
-  renderRow(doc, headers, colWidths, y, true);
-  y += ROW_H;
+  const strokeSegmentBorder = (rowsDrawn: number) => {
+    doc.rect(MARGIN, segmentStartY, totalW, rowsDrawn * ROW_H)
+      .lineWidth(0.5).strokeColor(C.border).stroke();
+  };
 
-  // Data rows
+  const drawHeader = () => {
+    doc.rect(MARGIN, y, totalW, ROW_H).fill(C.tableHeader);
+    renderRow(doc, headers, colWidths, y, true);
+    y += ROW_H;
+  };
+
+  drawHeader();
+  let rowsInSegment = 1;
+
   for (let i = 0; i < rows.length; i++) {
+    // Salto pagina: chiude il bordo del segmento corrente e ridisegna l'header.
+    if (y + ROW_H > PAGE_H - MARGIN) {
+      strokeSegmentBorder(rowsInSegment);
+      doc.addPage();
+      y = MARGIN;
+      segmentStartY = y;
+      drawHeader();
+      rowsInSegment = 1;
+    }
     doc.rect(MARGIN, y, totalW, ROW_H).fill(i % 2 === 0 ? '#ffffff' : C.rowAlt);
     renderRow(doc, rows[i], colWidths, y, false);
     y += ROW_H;
+    rowsInSegment++;
   }
 
-  // Outer border
-  doc.rect(MARGIN, startY, totalW, (rows.length + 1) * ROW_H)
-    .lineWidth(0.5).strokeColor(C.border).stroke();
-
+  strokeSegmentBorder(rowsInSegment);
   return y;
 }
 
@@ -273,38 +238,13 @@ interface QuickWin {
 }
 
 function buildQuickWins(summary: WastedResourcesSummary): QuickWin[] {
-  const wins: QuickWin[] = [
-    ...summary.ebsVolumes.map(v => ({
-      label: `Delete unattached EBS ${v.id} — ${v.sizeGb} GB ${v.volumeType} in ${v.region.code}`,
-      monthlyCostUsd: v.costEstimate.monthlyCostUsd,
-    })),
-    ...summary.elasticIps.map(ip => ({
-      label: `Release unassociated Elastic IP ${ip.publicIp} (${ip.id}) in ${ip.region.code}`,
-      monthlyCostUsd: ip.costEstimate.monthlyCostUsd,
-    })),
-    ...summary.rdsInstances.map(db => ({
-      label: `Terminate or snapshot stopped RDS ${db.id} (${db.dbInstanceClass} ${db.engine}) in ${db.region.code}`,
-      monthlyCostUsd: db.costEstimate.monthlyCostUsd,
-    })),
-    ...summary.loadBalancers.map(lb => ({
-      label: `Delete idle ${lb.type} Load Balancer "${lb.name}" in ${lb.region.code}`,
-      monthlyCostUsd: lb.costEstimate.monthlyCostUsd,
-    })),
-    ...summary.stoppedEc2Instances.map(inst => ({
-      label: `Terminate stopped EC2 ${inst.id} (${inst.instanceType}, ${inst.region.code}) — ${inst.attachedVolumes.length} volume(s) still billed`,
-      monthlyCostUsd: inst.costEstimate.monthlyCostUsd,
-    })),
-    ...summary.orphanSnapshots.map(snap => ({
-      label: `Delete orphan snapshot ${snap.id} (${snap.sizeGb} GB) in ${snap.region.code} — source volume deleted`,
-      monthlyCostUsd: snap.costEstimate.monthlyCostUsd,
-    })),
-    ...summary.idleNatGateways.map(gw => ({
-      label: `Delete idle NAT Gateway ${gw.id} in ${gw.region.code} — zero traffic for 48h`,
-      monthlyCostUsd: gw.costEstimate.monthlyCostUsd,
-    })),
-  ];
-
-  return wins.sort((a, b) => b.monthlyCostUsd - a.monthlyCostUsd).slice(0, 8);
+  return summary.findings
+    .map((finding) => ({
+      label: presenterFor(finding.kind).recommend(finding),
+      monthlyCostUsd: finding.costEstimate.monthlyCostUsd,
+    }))
+    .sort((a, b) => b.monthlyCostUsd - a.monthlyCostUsd)
+    .slice(0, 8);
 }
 
 function drawRecommendations(doc: PDFKit.PDFDocument, wins: QuickWin[], startY: number): number {
@@ -348,36 +288,17 @@ function drawRecommendations(doc: PDFKit.PDFDocument, wins: QuickWin[], startY: 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function buildBreakdownRows(summary: WastedResourcesSummary): string[][] {
-  const sum = (items: Array<{ costEstimate: { monthlyCostUsd: number } }>) =>
-    items.reduce((t, i) => t + i.costEstimate.monthlyCostUsd, 0);
+  const grouped = groupByKind(summary.findings);
 
-  const types = [
-    { label: 'EBS Volumes (unattached)', items: summary.ebsVolumes },
-    { label: 'Elastic IPs (unassociated)', items: summary.elasticIps },
-    { label: 'RDS Instances (stopped)', items: summary.rdsInstances },
-    { label: 'Load Balancers (idle)', items: summary.loadBalancers },
-    { label: 'EC2 Instances (stopped)', items: summary.stoppedEc2Instances },
-    { label: 'EBS Snapshots (orphaned)', items: summary.orphanSnapshots },
-    { label: 'NAT Gateways (idle)', items: summary.idleNatGateways },
-  ] as const;
-
-  return types
-    .filter(t => t.items.length > 0)
-    .map(t => [t.label, String(t.items.length), `$${sum(t.items).toFixed(2)}/mo`]);
-}
-
-function allResources(summary: WastedResourcesSummary): unknown[] {
-  return [
-    ...summary.ebsVolumes,
-    ...summary.elasticIps,
-    ...summary.rdsInstances,
-    ...summary.loadBalancers,
-    ...summary.stoppedEc2Instances,
-    ...summary.orphanSnapshots,
-    ...summary.idleNatGateways,
-  ];
-}
-
-function fmt(date: Date): string {
-  return date.toISOString().split('T')[0];
+  return RESOURCE_KINDS
+    .filter((kind) => grouped[kind].length > 0)
+    .map((kind) => {
+      const findings: WastedResource[] = grouped[kind];
+      const cost = findings.reduce((sum, f) => sum + f.costEstimate.monthlyCostUsd, 0);
+      return [
+        `${RESOURCE_KIND_LABELS[kind]} (${findings[0].wasteReason})`,
+        String(findings.length),
+        `$${cost.toFixed(2)}/mo`,
+      ];
+    });
 }

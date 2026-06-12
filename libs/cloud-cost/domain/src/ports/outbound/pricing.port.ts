@@ -7,4 +7,6 @@ export interface PricingPort {
   getRdsStoragePricePerGbMonth(region: AwsRegion, storageType: string): number;
   getLoadBalancerPricePerMonth(region: AwsRegion): number;
   getNatGatewayPricePerMonth(region: AwsRegion): number;
+  /** Data (YYYY-MM) dell'ultima verifica dei prezzi: va mostrata in ogni report. */
+  getPricesAsOf(): string;
 }

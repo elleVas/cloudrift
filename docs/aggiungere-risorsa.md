@@ -1,34 +1,74 @@
 # Come aggiungere un nuovo tipo di risorsa AWS
 
-Questa guida descrive passo per passo come estendere cloudrift per rilevare un nuovo tipo di risorsa AWS sprecata. Segui i passi nell'ordine indicato.
+Questa guida descrive come estendere cloudrift per rilevare un nuovo tipo di risorsa sprecata. Grazie al modello a plugin (`WasteScannerPort`), **il coordinatore, il summary e il DTO del report non si toccano**: si aggiungono i pezzi nuovi e il compilatore segnala i punti da completare.
 
-Come esempio pratico, useremo il caso ipotetico di **CloudWatch Log Groups senza retention policy** (gruppi di log che crescono all'infinito perché non hanno mai un `retentionInDays` configurato).
+Come esempio useremo il caso ipotetico di **CloudWatch Log Groups senza retention policy** (log che crescono all'infinito perché `retentionInDays` non è mai stato configurato).
+
+**Panoramica dei passi (6):**
+
+1. Aggiungi il kind alla union `ResourceKind`
+2. Crea l'entità (implementa `WastedResource`)
+3. Crea la waste policy
+4. Aggiungi il pricing (`PricingPort`, `prices.json`, `StaticPriceTableAdapter`)
+5. Implementa lo scanner AWS
+6. Aggiungi il presenter CLI e registra lo scanner nel composition root
+
+Dopo il passo 1, `pnpm nx run-many -t typecheck` ti elenca esattamente i punti rimanenti: la union è il punto di estensione controllato dal compilatore.
 
 ---
 
-## Passo 1 — Entità nel domain
+## Passo 1 — Il kind in `ResourceKind`
 
-Crea il file `libs/cloud-cost/domain/src/entities/<nome-risorsa>.entity.ts`.
+`libs/cloud-cost/domain/src/wasted-resource.ts`:
 
 ```typescript
-// libs/cloud-cost/domain/src/entities/log-group.entity.ts
+export const RESOURCE_KINDS = [
+  // … esistenti …
+  'log-group',                                   // ← aggiunto
+] as const;
 
+export const RESOURCE_KIND_LABELS: Record<ResourceKind, string> = {
+  // … esistenti …
+  'log-group': 'CloudWatch Log Groups',          // ← aggiunto
+};
+```
+
+Aggiungi anche la riga in `ResourceKindMap` (`group-by-kind.ts`):
+
+```typescript
+export interface ResourceKindMap {
+  // … esistenti …
+  'log-group': LogGroup;
+}
+```
+
+Da questo momento il typecheck fallisce su `resource-presenters.ts` (CLI) finché non completi il passo 6 — è voluto.
+
+---
+
+## Passo 2 — Entità nel domain
+
+`libs/cloud-cost/domain/src/entities/log-group.entity.ts`:
+
+```typescript
 import { Entity } from 'shared-kernel';
-import { AwsRegion } from '../value-objects/aws-region.value-object.js';
-import { CostEstimate } from '../value-objects/cost-estimate.value-object.js';
+import { AwsRegion } from '../value-objects/aws-region.value-object';
+import { CostEstimate } from '../value-objects/cost-estimate.value-object';
+import type { WastedResource } from '../wasted-resource';
 
 export interface LogGroupProps {
   logGroupName: string;
   region: AwsRegion;
-  accountId: string;    // OBBLIGATORIO: ID account AWS
+  accountId: string;
   storedBytes: number;
+  retentionInDays?: number;   // il "fatto" su cui decide la policy
   creationTime: Date;
-  detectedAt: Date;     // OBBLIGATORIO: quando l'adapter ha rilevato lo spreco
+  detectedAt: Date;
   tags: Record<string, string>;
-  monthlyCostUsd: number; // OBBLIGATORIO: calcolato dall'adapter via PricingPort
+  monthlyCostUsd: number;
 }
 
-export class LogGroup extends Entity<string> {
+export class LogGroup extends Entity<string> implements WastedResource {
   private readonly props: Readonly<LogGroupProps>;
 
   constructor(props: LogGroupProps) {
@@ -43,180 +83,73 @@ export class LogGroup extends Entity<string> {
   get detectedAt(): Date { return this.props.detectedAt; }
   get tags(): Record<string, string> { return this.props.tags; }
 
+  get kind(): 'log-group' { return 'log-group'; }
+  get wasteReason(): string { return 'no retention policy'; }
+
+  hasRetentionPolicy(): boolean {
+    return this.props.retentionInDays !== undefined;
+  }
+
   get costEstimate(): CostEstimate {
-    const storedGb = (this.props.storedBytes / (1024 ** 3)).toFixed(2);
+    const storedGb = (this.props.storedBytes / 1024 ** 3).toFixed(2);
     return CostEstimate.of(this.props.monthlyCostUsd, `${storedGb} GB CW logs (no retention)`);
   }
 }
 ```
 
 **Regole:**
-- L'ID dell'entità è il campo che AWS usa come identificativo univoco
-- Le props vengono congelate (`Object.freeze`) per garantire l'immutabilità
-- I tre campi `accountId`, `detectedAt`, `monthlyCostUsd` sono **obbligatori** in tutte le entità
-- Il `costEstimate` usa `CostEstimate.of(monthlyCostUsd, description)` — il prezzo viene dall'adapter, non dall'entità
+- L'ID dell'entità è l'identificativo univoco AWS
+- Le props sono congelate (`Object.freeze`)
+- L'entità porta i **fatti** (qui `retentionInDays`); la **decisione** sta nella policy
+- Esporta entità e props da `domain/src/index.ts`
 
 ---
 
-## Passo 2 — Pricing: aggiorna `PricingPort` e `prices.json`
+## Passo 3 — Waste policy
 
-**a) Aggiungi il metodo a `PricingPort`** (`libs/cloud-cost/domain/src/ports/outbound/pricing.port.ts`):
+`libs/cloud-cost/domain/src/policies/resource-waste-policies.ts`:
 
 ```typescript
-export interface PricingPort {
-  // ... metodi esistenti ...
-  getLogGroupPricePerGbMonth(region: AwsRegion): number;
-}
-```
-
-**b) Aggiungi i prezzi a `prices.json`** (`libs/cloud-cost/infrastructure/aws-adapter/src/pricing/prices.json`):
-
-```json
-{
-  "default": {
-    "...",
-    "cw-logs": 0.03
-  },
-  "eu-west-1": {
-    "...",
-    "cw-logs": 0.033
+export class LogGroupWastePolicy extends WastePolicy<LogGroup> {
+  protected judge(group: LogGroup, now: Date): WasteVerdict {
+    if (group.hasRetentionPolicy()) return notWaste('retention policy configured');
+    if (this.isWithinGracePeriod(group.creationTime, now)) {
+      return notWaste(`created less than ${this.minAgeDays}d ago`);
+    }
+    return waste('no retention policy');
   }
 }
 ```
 
-**c) Implementa il metodo in `StaticPriceTableAdapter`** (`static-price-table.adapter.ts`):
+Tag di esclusione e periodo di grazia arrivano gratis dalla classe base. Aggiungi i test in `resource-waste-policies.spec.ts` (caso waste, caso grace period, caso tag) ed esporta la policy dall'`index.ts` del domain.
+
+---
+
+## Passo 4 — Pricing
+
+**a)** Metodo in `PricingPort` (`domain/src/ports/outbound/pricing.port.ts`):
+
+```typescript
+getLogGroupPricePerGbMonth(region: AwsRegion): number;
+```
+
+**b)** Prezzi in `prices.json` (chiave `cw-logs` in `default` e nelle regioni con prezzo specifico). Se il listino è stato ri-verificato, aggiorna anche `pricesAsOf`.
+
+**c)** Implementazione in `StaticPriceTableAdapter`:
 
 ```typescript
 getLogGroupPricePerGbMonth(region: AwsRegion): number {
-  return this.lookup(region, 'cw-logs');
+  return lookup(region, 'cw-logs');
 }
 ```
 
-> **Nota:** il pricing non vive nel domain — `CostEstimate.of()` è l'unico factory method e non conosce prezzi. I prezzi si trovano solo in `prices.json` nell'infrastruttura.
+> Aggiorna anche il `mockPricing` condiviso nei test degli scanner (`src/testing/mock-pricing.ts`): il typecheck te lo ricorderà.
 
 ---
 
-## Passo 3 — Port outbound repository
+## Passo 5 — Scanner AWS
 
-Crea `libs/cloud-cost/domain/src/ports/outbound/<nome>-repository.port.ts`:
-
-```typescript
-// libs/cloud-cost/domain/src/ports/outbound/log-group-repository.port.ts
-
-import type { Result } from 'shared-kernel';
-import type { LogGroup } from '../../entities/log-group.entity.js';
-import type { AwsRegion } from '../../value-objects/aws-region.value-object.js';
-
-export interface LogGroupRepositoryPort {
-  findGroupsWithoutRetention(region: AwsRegion): Promise<Result<LogGroup[]>>;
-}
-
-export const LOG_GROUP_REPOSITORY_PORT = Symbol('LogGroupRepositoryPort');
-```
-
----
-
-## Passo 4 — Aggiorna `WastedResourcesSummary`
-
-Apri `libs/cloud-cost/domain/src/ports/inbound/find-wasted-resources.use-case.port.ts` e aggiungi il nuovo campo:
-
-```typescript
-import type { LogGroup } from '../../entities/log-group.entity.js';
-
-export interface WastedResourcesSummary {
-  ebsVolumes: EbsVolume[];
-  elasticIps: ElasticIp[];
-  rdsInstances: RdsInstance[];
-  loadBalancers: LoadBalancer[];
-  stoppedEc2Instances: Ec2Instance[];
-  orphanSnapshots: EbsSnapshot[];
-  idleNatGateways: NatGateway[];
-  logGroupsWithoutRetention: LogGroup[];  // ← aggiunto
-  totalMonthlyCostUsd: number;
-}
-```
-
----
-
-## Passo 5 — Aggiorna `index.ts` del domain
-
-Apri `libs/cloud-cost/domain/src/index.ts` e aggiungi gli export:
-
-```typescript
-// Entities
-export { LogGroup } from './entities/log-group.entity.js';
-export type { LogGroupProps } from './entities/log-group.entity.js';
-
-// Outbound Ports
-export type { LogGroupRepositoryPort } from './ports/outbound/log-group-repository.port.js';
-export { LOG_GROUP_REPOSITORY_PORT } from './ports/outbound/log-group-repository.port.js';
-```
-
----
-
-## Passo 6 — Use Case nell'application layer
-
-Crea `libs/cloud-cost/application/src/use-cases/find-log-groups-without-retention.use-case.ts`:
-
-```typescript
-import { Result } from 'shared-kernel';
-import type { LogGroup, LogGroupRepositoryPort, AwsRegion } from 'cloud-cost-domain';
-
-export class FindLogGroupsWithoutRetentionUseCase {
-  constructor(private readonly logGroupRepository: LogGroupRepositoryPort) {}
-
-  async execute(regions: AwsRegion[]): Promise<Result<LogGroup[]>> {
-    const allGroups: LogGroup[] = [];
-
-    for (const region of regions) {
-      const result = await this.logGroupRepository.findGroupsWithoutRetention(region);
-      if (!result.ok) return result;
-      allGroups.push(...result.value);
-    }
-
-    return Result.ok(allGroups);
-  }
-}
-```
-
----
-
-## Passo 7 — Aggiorna `AnalyzeCloudWasteUseCase`
-
-Aggiungi il nuovo use case al coordinatore (`analyze-cloud-waste.use-case.ts`):
-
-```typescript
-// Nel tipo AnalyzeCloudWasteDependencies
-export interface AnalyzeCloudWasteDependencies {
-  // ... repository esistenti
-  logGroupRepository: LogGroupRepositoryPort; // ← aggiunto
-}
-
-// Nel costruttore
-constructor(deps: AnalyzeCloudWasteDependencies) {
-  // ...
-  this.findLogGroups = new FindLogGroupsWithoutRetentionUseCase(deps.logGroupRepository);
-}
-
-// In execute() — aggiungi al Promise.all esistente
-const [..., logGroupResult] = await Promise.all([
-  // ... use case esistenti
-  this.findLogGroups.execute(request.regions), // ← aggiunto
-]);
-
-// Usa collect() per il partial-result (non fail-fast)
-const logGroupsWithoutRetention = collect(logGroupResult, 'Log Groups', scanErrors);
-
-// Aggiungi al totalMonthlyCostUsd e al summary return
-```
-
-**Importante:** usa sempre `collect()` (non `if (!result.ok) return result`): permette al coordinatore di continuare anche se questo tipo di risorsa fallisce.
-
----
-
-## Passo 8 — Adapter AWS
-
-Crea `libs/cloud-cost/infrastructure/aws-adapter/src/repositories/aws-log-group.repository.adapter.ts`:
+`libs/cloud-cost/infrastructure/aws-adapter/src/scanners/aws-log-group.scanner.ts`:
 
 ```typescript
 import {
@@ -225,46 +158,47 @@ import {
   type LogGroup as AwsLogGroup,
 } from '@aws-sdk/client-cloudwatch-logs';
 import { Result } from 'shared-kernel';
-import type { LogGroupRepositoryPort, AwsRegion, PricingPort } from 'cloud-cost-domain';
-import { LogGroup } from 'cloud-cost-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error.js';
-import { paginate } from '../utils/paginate.js';
+import type { AwsRegion, PricingPort, WasteScannerPort, WastedResource } from 'cloud-cost-domain';
+import { LogGroup, LogGroupWastePolicy } from 'cloud-cost-domain';
+import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { paginate } from '../utils/paginate';
 
-export class AwsLogGroupRepositoryAdapter implements LogGroupRepositoryPort {
+export class AwsLogGroupScanner implements WasteScannerPort {
+  readonly kind = 'log-group' as const;
+
   constructor(
     private readonly pricing: PricingPort,
-    private readonly accountId: string = 'unknown',
+    private readonly accountId = 'unknown',
+    private readonly policy = new LogGroupWastePolicy(),
   ) {}
 
-  async findGroupsWithoutRetention(
-    region: AwsRegion,
-  ): ReturnType<LogGroupRepositoryPort['findGroupsWithoutRetention']> {
+  async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
     const client = new CloudWatchLogsClient({ region: region.code });
     try {
-      // Usa paginate() per raccogliere tutti i log group
-      const allGroups = await paginate<AwsLogGroup>(async (cursor) => {
+      const rawGroups = await paginate<AwsLogGroup>(async (cursor) => {
         const r = await client.send(new DescribeLogGroupsCommand({ nextToken: cursor }));
         return { items: r.logGroups ?? [], cursor: r.nextToken };
       });
 
       const pricePerGb = this.pricing.getLogGroupPricePerGbMonth(region);
+      const now = new Date();
 
-      const groups = allGroups
-        .filter((lg) => lg.retentionInDays === undefined || lg.retentionInDays === null)
+      const groups = rawGroups
         .map((lg) => {
           const storedBytes = lg.storedBytes ?? 0;
-          const storedGb = storedBytes / (1024 ** 3);
           return new LogGroup({
             logGroupName: lg.logGroupName!,
             region,
             accountId: this.accountId,
             storedBytes,
+            retentionInDays: lg.retentionInDays,
             creationTime: lg.creationTime ? new Date(lg.creationTime) : new Date(0),
-            detectedAt: new Date(),
+            detectedAt: now,
             tags: {},
-            monthlyCostUsd: +(pricePerGb * storedGb).toFixed(4),
+            monthlyCostUsd: +((storedBytes / 1024 ** 3) * pricePerGb).toFixed(4),
           });
-        });
+        })
+        .filter((group) => this.policy.evaluate(group, now).isWaste);
 
       return Result.ok(groups);
     } catch (err) {
@@ -276,59 +210,61 @@ export class AwsLogGroupRepositoryAdapter implements LogGroupRepositoryPort {
 }
 ```
 
-Aggiorna `libs/cloud-cost/infrastructure/aws-adapter/src/index.ts`:
-
-```typescript
-export { AwsLogGroupRepositoryAdapter } from './repositories/aws-log-group.repository.adapter.js';
-```
-
-> **Nota:** `@aws-sdk/client-cloudwatch-logs` deve essere aggiunto come dipendenza nel `package.json` root prima di installare.
+**Regole:**
+- `paginate()` per tutte le chiamate list
+- Eventuale fan-out interno (una chiamata per elemento) → `mapWithConcurrency` con limite
+- La policy si applica **sempre** prima del return
+- Esporta lo scanner da `aws-adapter/src/index.ts` e aggiungi `@aws-sdk/client-cloudwatch-logs` nel `package.json` root
 
 ---
 
-## Passo 9 — Aggiorna la CLI
+## Passo 6 — CLI: presenter + registrazione
 
-**`analyze-waste.command.ts`:** aggiungi l'adapter al costruttore del use case.
-
-**`waste-report.table-formatter.ts`:** aggiungi la sezione di output:
+**a)** Presenter in `apps/cli/src/formatters/resource-presenters.ts` (il typecheck fallisce finché manca):
 
 ```typescript
-if (summary.idleNatGateways.length > 0) {
-  lines.push(chalk.bold.yellow('\n  NAT Gateways — Idle (0 traffico nelle ultime 48h)'));
-  const table = new Table({
-    head: ['NAT Gateway ID', 'Region', 'VPC', 'Created', 'Est. Cost'],
-    style: { head: ['cyan'] },
-  });
-  for (const gw of summary.idleNatGateways) {
-    table.push([gw.id, gw.region.code, gw.vpcId,
-      gw.createTime.toISOString().split('T')[0], chalk.red(gw.costEstimate.format())]);
-  }
-  lines.push(table.toString());
-}
+'log-group': {
+  title: 'CloudWatch Log Groups — No retention policy',
+  head: ['Log Group', 'Region', 'Stored', 'Created'],
+  colWidths: [190, 70, 70, 84, 85],   // l'ultimo è la colonna costo
+  row: (lg) => [
+    lg.id, lg.region.code,
+    `${(lg.storedBytes / 1024 ** 3).toFixed(1)} GB`,
+    lg.creationTime.toISOString().split('T')[0],
+  ],
+  recommend: (lg) =>
+    `Set a retention policy on log group ${lg.id} in ${lg.region.code}`,
+},
 ```
 
-Aggiorna anche la condizione "nessuna risorsa trovata" per includere `idleNatGateways.length === 0`.
+Tabella console, PDF e DTO JSON si aggiornano da soli: consumano il registry e `RESOURCE_KIND_LABELS`.
+
+**b)** Registrazione nel composition root (`analyze-waste.command.ts`):
+
+```typescript
+const scanners: WasteScannerPort[] = [
+  // … esistenti …
+  new AwsLogGroupScanner(pricing, accountId, new LogGroupWastePolicy(policyOptions)),
+];
+```
 
 ---
 
-## Passo 10 — Aggiungi i test
+## Test
 
-Segui la struttura dei test esistenti:
+- `domain`: spec dell'entità + casi della policy in `resource-waste-policies.spec.ts`
+- `aws-adapter`: spec dello scanner (mock SDK) — mapping, paginazione, policy applicata, errori, `destroy()`
+- Il coordinatore **non** ha bisogno di nuovi test: è generico
 
-- `libs/cloud-cost/domain/src/entities/log-group.entity.spec.ts`
-- `libs/cloud-cost/application/src/use-cases/find-log-groups-without-retention.use-case.spec.ts`
-- `libs/cloud-cost/infrastructure/aws-adapter/src/repositories/aws-log-group.repository.adapter.spec.ts`
-
-Verifica che tutto passi:
 ```sh
-pnpm nx run-many -t test
+pnpm nx run-many -t typecheck test lint
 ```
 
 ---
 
-## Permessi IAM necessari
+## Permessi IAM
 
-Aggiorna la policy IAM nel README principale con i nuovi permessi richiesti. Per NAT Gateway:
+Aggiungi al README la permission richiesta dal nuovo scanner. Per i log group:
 
 ```json
 "logs:DescribeLogGroups"
@@ -338,19 +274,15 @@ Aggiorna la policy IAM nel README principale con i nuovi permessi richiesti. Per
 
 ## Checklist riepilogativa
 
-- [ ] Entità in `domain/src/entities/` — con `accountId`, `detectedAt`, `monthlyCostUsd` obbligatori
-- [ ] Metodo aggiunto a `PricingPort` in `domain/src/ports/outbound/pricing.port.ts`
-- [ ] Prezzi aggiunti a `prices.json` per ogni regione supportata
-- [ ] Metodo implementato in `StaticPriceTableAdapter`
-- [ ] Port outbound repository in `domain/src/ports/outbound/`
-- [ ] `WastedResourcesSummary` aggiornato con il nuovo campo
-- [ ] `domain/src/index.ts` aggiornato
-- [ ] Use case in `application/src/use-cases/`
-- [ ] `AnalyzeCloudWasteUseCase` aggiornato — usa `collect()` per partial results
-- [ ] `application/src/index.ts` aggiornato
-- [ ] Adapter AWS in `infrastructure/aws-adapter/src/repositories/` — usa `paginate()`, imposta `accountId` e `detectedAt`
-- [ ] `aws-adapter/src/index.ts` aggiornato
-- [ ] CLI `analyze-waste.command.ts` aggiornato con il nuovo adapter
-- [ ] Formatter aggiornato
-- [ ] Test per entità, use case e adapter
-- [ ] README aggiornato con permessi IAM e tabella prezzi
+- [ ] `ResourceKind` + `RESOURCE_KIND_LABELS` + `ResourceKindMap` aggiornati
+- [ ] Entità in `domain/src/entities/` che implementa `WastedResource` (fatti, non decisioni)
+- [ ] Waste policy in `domain/src/policies/` + test
+- [ ] `domain/src/index.ts` aggiornato (entità + policy)
+- [ ] `PricingPort` + `prices.json` (+ `pricesAsOf` se ri-verificato) + `StaticPriceTableAdapter` + `mockPricing`
+- [ ] Scanner in `aws-adapter/src/scanners/` con policy applicata + test
+- [ ] `aws-adapter/src/index.ts` aggiornato; dipendenza SDK nel `package.json` root
+- [ ] Presenter in `resource-presenters.ts`
+- [ ] Scanner registrato in `analyze-waste.command.ts`
+- [ ] README aggiornato (tabella risorse + permessi IAM)
+
+**Cosa NON va toccato** (se ti ritrovi a modificarli, qualcosa è andato storto): `AnalyzeCloudWasteUseCase`, `WastedResourcesSummary`, `WasteReportDto`, i tre formatter.
