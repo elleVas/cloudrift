@@ -1,8 +1,10 @@
 # Architettura di cloudrift
 
+> 🇬🇧 [English version](../en/architecture.md)
+
 ## Panoramica
 
-cloudrift adotta un'architettura a strati ispirata al **Domain-Driven Design (DDD)** e all'**Architettura Esagonale** (Ports & Adapters), organizzata attorno a un **modello a plugin**: il concetto centrale del dominio è la *risorsa sprecata* (`WastedResource`), e ogni tipo di risorsa AWS è un plugin (`WasteScannerPort`) che il coordinatore esegue in modo generico.
+cloudrift adotta un'architettura a strati ispirata al **Domain-Driven Design (DDD)** e all'**Architettura Esagonale** (Ports & Adapters), organizzata attorno a un **modello a plugin**: il concetto centrale del dominio è la _risorsa sprecata_ (`WastedResource`), e ogni tipo di risorsa AWS è un plugin (`WasteScannerPort`) che il coordinatore esegue in modo generico.
 
 Questa scelta compra due cose, e vale la pena essere espliciti su quali:
 
@@ -42,6 +44,35 @@ Ciò che **non** compra da sola è il multi-cloud: vedi la sezione [Verso il mul
 
 ---
 
+## Perché DDD e Architettura Esagonale?
+
+### Testabilità
+
+Il domain e il use case si testano **senza nessuna dipendenza AWS**: le policy sono funzioni pure su entità con date deterministiche, e il coordinatore si testa con scanner finti in-memory (`{ kind, scan: async () => Result.ok([...]) }`). Niente framework di mock, test veloci e deterministici. È il beneficio principale e quello che da solo giustifica le porte.
+
+### Il dominio è il prodotto
+
+La definizione di "spreco" — periodi di grazia, tag di esclusione, snapshot non cancellabili perché legati ad AMI, finestre di traffico — è la vera proprietà intellettuale del tool, e cambia più spesso del codice AWS. Tenerla in policy di dominio esplicite, separate dai dettagli SDK, significa poterla evolvere e testare senza toccare l'infrastruttura. Se queste regole vivessero nei filtri delle chiamate API (com'era in origine), ogni ritocco a una soglia richiederebbe di ragionare su paginazione e client AWS.
+
+### Estensibilità a costo costante
+
+L'esagonale qui prende la forma di un modello a plugin: ogni tipo di risorsa è una `WasteScannerPort`. Aggiungere un tipo non tocca il coordinatore, il summary, il DTO né i formatter (vedi [aggiungere-risorsa.md](./aggiungere-risorsa.md)) — il punto di modifica rimasto è la union `ResourceKind`, una riga che il compilatore usa per guidarti sui punti da completare.
+
+### Sostituibilità — nei limiti onesti
+
+Le porte rendono sostituibile la **tecnologia**, non il **dominio**: si può cambiare la sorgente dei prezzi (statico → AWS Pricing API) o aggiungere un entry point (CLI → HTTP) senza toccare il core. Il multi-cloud invece non è "gratis" — richiede nuove entità, policy e listini — ma l'architettura garantisce che il core non si tocchi: il percorso è descritto in [Verso il multi-cloud](#verso-il-multi-cloud).
+
+### Separazione delle responsabilità
+
+- Il **domain** SA cosa è "sprecato" (entità + waste policies)
+- L'**application** SA come coordinare la scansione e proiettare il report
+- L'**infrastruttura** SA come parlare con AWS (paginazione, client, rate limit)
+- La **CLI** SA come mostrarlo (presenter, tabella, PDF, JSON)
+
+**Il trade-off, dichiarato:** per un tool di questa taglia l'architettura è più struttura del minimo indispensabile — un singolo script farebbe la stessa scansione. Ripaga perché il dominio (le policy) è destinato a crescere, perché i tipi di risorsa aumentano nel tempo, e perché le presentazioni si moltiplicano (terminale, PDF, JSON, domani un frontend). Se nessuna di queste tre direttrici fosse vera, questa architettura sarebbe sovradimensionata.
+
+---
+
 ## I layer in dettaglio
 
 ### 1. `shared/kernel` — Nucleo condiviso
@@ -57,8 +88,13 @@ Ciò che **non** compra da sola è il multi-cloud: vedi la sezione [Verso il mul
 
 ```typescript
 export type ResourceKind =
-  | 'ebs-volume' | 'elastic-ip' | 'rds-instance' | 'load-balancer'
-  | 'ec2-instance' | 'ebs-snapshot' | 'nat-gateway';
+  | 'ebs-volume'
+  | 'elastic-ip'
+  | 'rds-instance'
+  | 'load-balancer'
+  | 'ec2-instance'
+  | 'ebs-snapshot'
+  | 'nat-gateway';
 
 export interface WastedResource {
   readonly id: string;
@@ -87,15 +123,15 @@ La definizione di "spreco" **non** sta negli adapter né nei filtri delle API AW
 
 Ogni policy concreta aggiunge il criterio specifico del tipo:
 
-| Policy | Criterio | Guardia anti-falso-positivo |
-|---|---|---|
-| `EbsVolumeWastePolicy` | `state === 'available'` | grace su `createTime` (AWS non espone la data di detach) |
-| `ElasticIpWastePolicy` | nessuna association | — (gli EIP non hanno data di creazione) |
-| `RdsInstanceWastePolicy` | `status === 'stopped'` | — (AWS riavvia da solo dopo 7 giorni: se è stopped, è recente per definizione) |
-| `LoadBalancerWastePolicy` | zero target registrati | grace su `createdTime` |
-| `Ec2InstanceWastePolicy` | `state === 'stopped'` | grace su `stoppedSince` (da `StateTransitionReason`), fallback `launchTime` |
-| `EbsSnapshotWastePolicy` | volume sorgente cancellato | esclusi snapshot referenziati da AMI (non cancellabili); grace su `startTime` |
-| `NatGatewayWastePolicy` | zero bytes in uscita nella finestra (48h) | grace su `createTime` (ambienti appena creati) |
+| Policy                    | Criterio                                  | Guardia anti-falso-positivo                                                    |
+| ------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------ |
+| `EbsVolumeWastePolicy`    | `state === 'available'`                   | grace su `createTime` (AWS non espone la data di detach)                       |
+| `ElasticIpWastePolicy`    | nessuna association                       | — (gli EIP non hanno data di creazione)                                        |
+| `RdsInstanceWastePolicy`  | `status === 'stopped'`                    | — (AWS riavvia da solo dopo 7 giorni: se è stopped, è recente per definizione) |
+| `LoadBalancerWastePolicy` | zero target registrati                    | grace su `createdTime`                                                         |
+| `Ec2InstanceWastePolicy`  | `state === 'stopped'`                     | grace su `stoppedSince` (da `StateTransitionReason`), fallback `launchTime`    |
+| `EbsSnapshotWastePolicy`  | volume sorgente cancellato                | esclusi snapshot referenziati da AMI (non cancellabili); grace su `startTime`  |
+| `NatGatewayWastePolicy`   | zero bytes in uscita nella finestra (48h) | grace su `createTime` (ambienti appena creati)                                 |
 
 Le policy sono pura logica di dominio: si testano senza AWS, e i loro parametri arrivano dalla CLI (`--min-age-days`, `--ignore-tag`).
 
@@ -120,7 +156,7 @@ Le policy sono pura logica di dominio: si testano senza AWS, e i loro parametri 
 constructor(private readonly scanners: readonly WasteScannerPort[]) {}
 ```
 
-Esegue gli scanner **in parallelo tra loro** e **in sequenza sulle regioni** (per non concentrare chiamate sulle stesse API regionali). Gli errori sono raccolti per coppia *(scanner, regione)*: il fallimento di una regione non scarta i risultati delle altre regioni né degli altri scanner. Il summary viene sempre restituito con i dati parziali e gli errori in `scanErrors`.
+Esegue gli scanner **in parallelo tra loro** e **in sequenza sulle regioni** (per non concentrare chiamate sulle stesse API regionali). Gli errori sono raccolti per coppia _(scanner, regione)_: il fallimento di una regione non scarta i risultati delle altre regioni né degli altri scanner. Il summary viene sempre restituito con i dati parziali e gli errori in `scanErrors`.
 
 `toWasteReportDto()` proietta il summary in **`WasteReportDto`**, una struttura JSON-safe (solo primitivi e stringhe ISO): è il contratto dati per qualunque presentazione, presente e futura (vedi [Frontend-readiness](#frontend-readiness)).
 
@@ -131,6 +167,7 @@ Ogni scanner implementa `WasteScannerPort` con **AWS SDK v3**: crea il client pe
 Gli adapter pre-filtrano lato server dove possibile (es. `status=available` per gli EBS) come **ottimizzazione**: il filtro API produce un sovrainsieme dei candidati, la decisione finale è sempre della policy di dominio.
 
 Particolarità:
+
 - **`AwsNatGatewayScanner`**: le chiamate CloudWatch sono limitate a 5 concorrenti (`mapWithConcurrency`) per evitare throttling su account con molti gateway.
 - **`AwsEbsSnapshotScanner`**: interroga anche `DescribeImages` per escludere gli snapshot legati ad AMI registrate.
 - **`resolveAwsAccountId()`**: risolve l'account ID via `sts:GetCallerIdentity`, eliminando l'inserimento manuale (resta l'override `--account-id`).
@@ -184,7 +221,7 @@ const scanners: WasteScannerPort[] = [
 
 Il use case, il summary, il DTO e i formatter restano invariati — è questa la proprietà che l'architettura attuale garantisce davvero, ed è verificabile: nessuno di quei file menziona un servizio AWS.
 
-**Cosa NON promettere:** che "basta scrivere un adapter". Servono entità GCP, policy GCP (le semantiche di spreco sono diverse: un Persistent Disk non ha lo stato `available` di EBS), un listino GCP e i presenter. L'architettura garantisce che il *core* non si tocca, non che il lavoro sia gratis.
+**Cosa NON promettere:** che "basta scrivere un adapter". Servono entità GCP, policy GCP (le semantiche di spreco sono diverse: un Persistent Disk non ha lo stato `available` di EBS), un listino GCP e i presenter. L'architettura garantisce che il _core_ non si tocca, non che il lavoro sia gratis.
 
 ---
 

@@ -1,52 +1,54 @@
-# Come aggiungere un nuovo tipo di risorsa AWS
+# How to add a new AWS resource type
 
-Questa guida descrive come estendere cloudrift per rilevare un nuovo tipo di risorsa sprecata. Grazie al modello a plugin (`WasteScannerPort`), **il coordinatore, il summary e il DTO del report non si toccano**: si aggiungono i pezzi nuovi e il compilatore segnala i punti da completare.
+> 🇮🇹 [Versione italiana](../it/aggiungere-risorsa.md)
 
-Come esempio useremo il caso ipotetico di **CloudWatch Log Groups senza retention policy** (log che crescono all'infinito perché `retentionInDays` non è mai stato configurato).
+This guide describes how to extend cloudrift to detect a new type of wasted resource. Thanks to the plugin model (`WasteScannerPort`), **the coordinator, the summary and the report DTO are not touched**: you add the new pieces and the compiler points out the spots to complete.
 
-**Panoramica dei passi (6):**
+As an example we will use the hypothetical case of **CloudWatch Log Groups without a retention policy** (logs growing forever because `retentionInDays` was never configured).
 
-1. Aggiungi il kind alla union `ResourceKind`
-2. Crea l'entità (implementa `WastedResource`)
-3. Crea la waste policy
-4. Aggiungi il pricing (`PricingPort`, `prices.json`, `StaticPriceTableAdapter`)
-5. Implementa lo scanner AWS
-6. Aggiungi il presenter CLI e registra lo scanner nel composition root
+**Overview of the steps (6):**
 
-Dopo il passo 1, `pnpm nx run-many -t typecheck` ti elenca esattamente i punti rimanenti: la union è il punto di estensione controllato dal compilatore.
+1. Add the kind to the `ResourceKind` union
+2. Create the entity (implements `WastedResource`)
+3. Create the waste policy
+4. Add pricing (`PricingPort`, `prices.json`, `StaticPriceTableAdapter`)
+5. Implement the AWS scanner
+6. Add the CLI presenter and register the scanner in the composition root
+
+After step 1, `pnpm nx run-many -t typecheck` lists exactly the remaining spots: the union is the compiler-controlled extension point.
 
 ---
 
-## Passo 1 — Il kind in `ResourceKind`
+## Step 1 — The kind in `ResourceKind`
 
 `libs/cloud-cost/domain/src/wasted-resource.ts`:
 
 ```typescript
 export const RESOURCE_KINDS = [
-  // … esistenti …
-  'log-group',                                   // ← aggiunto
+  // … existing …
+  'log-group',                                   // ← added
 ] as const;
 
 export const RESOURCE_KIND_LABELS: Record<ResourceKind, string> = {
-  // … esistenti …
-  'log-group': 'CloudWatch Log Groups',          // ← aggiunto
+  // … existing …
+  'log-group': 'CloudWatch Log Groups',          // ← added
 };
 ```
 
-Aggiungi anche la riga in `ResourceKindMap` (`group-by-kind.ts`):
+Also add the row in `ResourceKindMap` (`group-by-kind.ts`):
 
 ```typescript
 export interface ResourceKindMap {
-  // … esistenti …
+  // … existing …
   'log-group': LogGroup;
 }
 ```
 
-Da questo momento il typecheck fallisce su `resource-presenters.ts` (CLI) finché non completi il passo 6 — è voluto.
+From this moment the typecheck fails on `resource-presenters.ts` (CLI) until you complete step 6 — that is intentional.
 
 ---
 
-## Passo 2 — Entità nel domain
+## Step 2 — Entity in the domain
 
 `libs/cloud-cost/domain/src/entities/log-group.entity.ts`:
 
@@ -61,7 +63,7 @@ export interface LogGroupProps {
   region: AwsRegion;
   accountId: string;
   storedBytes: number;
-  retentionInDays?: number;   // il "fatto" su cui decide la policy
+  retentionInDays?: number;   // the "fact" the policy decides on
   creationTime: Date;
   detectedAt: Date;
   tags: Record<string, string>;
@@ -97,15 +99,15 @@ export class LogGroup extends Entity<string> implements WastedResource {
 }
 ```
 
-**Regole:**
-- L'ID dell'entità è l'identificativo univoco AWS
-- Le props sono congelate (`Object.freeze`)
-- L'entità porta i **fatti** (qui `retentionInDays`); la **decisione** sta nella policy
-- Esporta entità e props da `domain/src/index.ts`
+**Rules:**
+- The entity ID is the unique AWS identifier
+- Props are frozen (`Object.freeze`)
+- The entity carries the **facts** (here `retentionInDays`); the **decision** belongs to the policy
+- Export entity and props from `domain/src/index.ts`
 
 ---
 
-## Passo 3 — Waste policy
+## Step 3 — Waste policy
 
 `libs/cloud-cost/domain/src/policies/resource-waste-policies.ts`:
 
@@ -121,21 +123,21 @@ export class LogGroupWastePolicy extends WastePolicy<LogGroup> {
 }
 ```
 
-Tag di esclusione e periodo di grazia arrivano gratis dalla classe base. Aggiungi i test in `resource-waste-policies.spec.ts` (caso waste, caso grace period, caso tag) ed esporta la policy dall'`index.ts` del domain.
+Exclusion tag and grace period come for free from the base class. Add the tests in `resource-waste-policies.spec.ts` (waste case, grace-period case, tag case) and export the policy from the domain's `index.ts`.
 
 ---
 
-## Passo 4 — Pricing
+## Step 4 — Pricing
 
-**a)** Metodo in `PricingPort` (`domain/src/ports/outbound/pricing.port.ts`):
+**a)** Method on `PricingPort` (`domain/src/ports/outbound/pricing.port.ts`):
 
 ```typescript
 getLogGroupPricePerGbMonth(region: AwsRegion): number;
 ```
 
-**b)** Prezzi in `prices.json` (chiave `cw-logs` in `default` e nelle regioni con prezzo specifico). Se il listino è stato ri-verificato, aggiorna anche `pricesAsOf`.
+**b)** Prices in `prices.json` (a `cw-logs` key in `default` and in regions with specific pricing). If the price table was re-verified, also update `pricesAsOf`.
 
-**c)** Implementazione in `StaticPriceTableAdapter`:
+**c)** Implementation in `StaticPriceTableAdapter`:
 
 ```typescript
 getLogGroupPricePerGbMonth(region: AwsRegion): number {
@@ -143,11 +145,11 @@ getLogGroupPricePerGbMonth(region: AwsRegion): number {
 }
 ```
 
-> Aggiorna anche il `mockPricing` condiviso nei test degli scanner (`src/testing/mock-pricing.ts`): il typecheck te lo ricorderà.
+> Also update the shared `mockPricing` in the scanner tests (`src/testing/mock-pricing.ts`): the typecheck will remind you.
 
 ---
 
-## Passo 5 — Scanner AWS
+## Step 5 — AWS scanner
 
 `libs/cloud-cost/infrastructure/aws-adapter/src/scanners/aws-log-group.scanner.ts`:
 
@@ -210,23 +212,23 @@ export class AwsLogGroupScanner implements WasteScannerPort {
 }
 ```
 
-**Regole:**
-- `paginate()` per tutte le chiamate list
-- Eventuale fan-out interno (una chiamata per elemento) → `mapWithConcurrency` con limite
-- La policy si applica **sempre** prima del return
-- Esporta lo scanner da `aws-adapter/src/index.ts` e aggiungi `@aws-sdk/client-cloudwatch-logs` nel `package.json` root
+**Rules:**
+- `paginate()` for every list call
+- Any internal fan-out (one call per item) → `mapWithConcurrency` with a cap
+- The policy is **always** applied before returning
+- Export the scanner from `aws-adapter/src/index.ts` and add `@aws-sdk/client-cloudwatch-logs` to the root `package.json`
 
 ---
 
-## Passo 6 — CLI: presenter + registrazione
+## Step 6 — CLI: presenter + registration
 
-**a)** Presenter in `apps/cli/src/formatters/resource-presenters.ts` (il typecheck fallisce finché manca):
+**a)** Presenter in `apps/cli/src/formatters/resource-presenters.ts` (the typecheck fails until it exists):
 
 ```typescript
 'log-group': {
   title: 'CloudWatch Log Groups — No retention policy',
   head: ['Log Group', 'Region', 'Stored', 'Created'],
-  colWidths: [190, 70, 70, 84, 85],   // l'ultimo è la colonna costo
+  colWidths: [190, 70, 70, 84, 85],   // the last one is the cost column
   row: (lg) => [
     lg.id, lg.region.code,
     `${(lg.storedBytes / 1024 ** 3).toFixed(1)} GB`,
@@ -237,24 +239,24 @@ export class AwsLogGroupScanner implements WasteScannerPort {
 },
 ```
 
-Tabella console, PDF e DTO JSON si aggiornano da soli: consumano il registry e `RESOURCE_KIND_LABELS`.
+Console table, PDF and JSON DTO update themselves: they consume the registry and `RESOURCE_KIND_LABELS`.
 
-**b)** Registrazione nel composition root (`analyze-waste.command.ts`):
+**b)** Registration in the composition root (`analyze-waste.command.ts`):
 
 ```typescript
 const scanners: WasteScannerPort[] = [
-  // … esistenti …
+  // … existing …
   new AwsLogGroupScanner(pricing, accountId, new LogGroupWastePolicy(policyOptions)),
 ];
 ```
 
 ---
 
-## Test
+## Tests
 
-- `domain`: spec dell'entità + casi della policy in `resource-waste-policies.spec.ts`
-- `aws-adapter`: spec dello scanner (mock SDK) — mapping, paginazione, policy applicata, errori, `destroy()`
-- Il coordinatore **non** ha bisogno di nuovi test: è generico
+- `domain`: entity spec + policy cases in `resource-waste-policies.spec.ts`
+- `aws-adapter`: scanner spec (mocked SDK) — mapping, pagination, policy applied, errors, `destroy()`
+- The coordinator needs **no** new tests: it is generic
 
 ```sh
 pnpm nx run-many -t typecheck test lint
@@ -262,9 +264,9 @@ pnpm nx run-many -t typecheck test lint
 
 ---
 
-## Permessi IAM
+## IAM permissions
 
-Aggiungi al README la permission richiesta dal nuovo scanner. Per i log group:
+Add the permission the new scanner requires to the README. For log groups:
 
 ```json
 "logs:DescribeLogGroups"
@@ -272,17 +274,17 @@ Aggiungi al README la permission richiesta dal nuovo scanner. Per i log group:
 
 ---
 
-## Checklist riepilogativa
+## Summary checklist
 
-- [ ] `ResourceKind` + `RESOURCE_KIND_LABELS` + `ResourceKindMap` aggiornati
-- [ ] Entità in `domain/src/entities/` che implementa `WastedResource` (fatti, non decisioni)
-- [ ] Waste policy in `domain/src/policies/` + test
-- [ ] `domain/src/index.ts` aggiornato (entità + policy)
-- [ ] `PricingPort` + `prices.json` (+ `pricesAsOf` se ri-verificato) + `StaticPriceTableAdapter` + `mockPricing`
-- [ ] Scanner in `aws-adapter/src/scanners/` con policy applicata + test
-- [ ] `aws-adapter/src/index.ts` aggiornato; dipendenza SDK nel `package.json` root
+- [ ] `ResourceKind` + `RESOURCE_KIND_LABELS` + `ResourceKindMap` updated
+- [ ] Entity in `domain/src/entities/` implementing `WastedResource` (facts, not decisions)
+- [ ] Waste policy in `domain/src/policies/` + tests
+- [ ] `domain/src/index.ts` updated (entity + policy)
+- [ ] `PricingPort` + `prices.json` (+ `pricesAsOf` if re-verified) + `StaticPriceTableAdapter` + `mockPricing`
+- [ ] Scanner in `aws-adapter/src/scanners/` with the policy applied + tests
+- [ ] `aws-adapter/src/index.ts` updated; SDK dependency in the root `package.json`
 - [ ] Presenter in `resource-presenters.ts`
-- [ ] Scanner registrato in `analyze-waste.command.ts`
-- [ ] README aggiornato (tabella risorse + permessi IAM)
+- [ ] Scanner registered in `analyze-waste.command.ts`
+- [ ] README updated (resource table + IAM permissions)
 
-**Cosa NON va toccato** (se ti ritrovi a modificarli, qualcosa è andato storto): `AnalyzeCloudWasteUseCase`, `WastedResourcesSummary`, `WasteReportDto`, i tre formatter.
+**What must NOT be touched** (if you find yourself modifying these, something went wrong): `AnalyzeCloudWasteUseCase`, `WastedResourcesSummary`, `WasteReportDto`, the three formatters.

@@ -240,18 +240,18 @@ Dependencies always point inward: CLI → Application → Domain ← AWS Adapter
 
 ### Technical documentation
 
-Full documentation (in Italian) is in the [`docs/`](./docs/) folder:
+Full documentation is in the [`docs/`](./docs/) folder — English in [`docs/en/`](./docs/en/), Italian in [`docs/it/`](./docs/it/):
 
-| File                                                       | Content                                                 |
-| ---------------------------------------------------------- | ------------------------------------------------------- |
-| [docs/architettura.md](./docs/architettura.md)             | Architectural decisions, system layers, dependency flow |
-| [docs/scelte-tecniche.md](./docs/scelte-tecniche.md)       | Nx, pnpm, TypeScript, AWS SDK v3, Result pattern, jest  |
-| [docs/funzionamento.md](./docs/funzionamento.md)           | End-to-end execution flow, code walkthrough             |
-| [docs/aggiungere-risorsa.md](./docs/aggiungere-risorsa.md) | Step-by-step guide to adding a new resource type        |
+| File (EN)                                                       | Content                                                |
+| ---------------------------------------------------------------- | ------------------------------------------------------ |
+| [docs/en/architecture.md](./docs/en/architecture.md)            | Architectural decisions, layers, multi-cloud path      |
+| [docs/en/technical-choices.md](./docs/en/technical-choices.md)  | Nx, pnpm, TypeScript, AWS SDK v3, Result pattern, jest |
+| [docs/en/how-it-works.md](./docs/en/how-it-works.md)            | End-to-end execution flow, code walkthrough            |
+| [docs/en/adding-a-resource.md](./docs/en/adding-a-resource.md)  | Step-by-step guide to adding a new resource type       |
 
 ### Adding a new resource type
 
-See [docs/aggiungere-risorsa.md](./docs/aggiungere-risorsa.md) for a complete walkthrough. In short:
+See [docs/en/adding-a-resource.md](./docs/en/adding-a-resource.md) for a complete walkthrough. In short:
 
 1. Add the new kind to the `ResourceKind` union (`wasted-resource.ts`) — the compiler then points to every spot that needs updating
 2. Add the entity to `libs/cloud-cost/domain/src/entities/` implementing `WastedResource`
@@ -513,14 +513,14 @@ Le dipendenze puntano sempre verso l'interno: CLI → Application → Domain ←
 
 ### Documentazione tecnica
 
-Tutta la documentazione è nella cartella [`docs/`](./docs/):
+Tutta la documentazione è nella cartella [`docs/`](./docs/) — italiano in [`docs/it/`](./docs/it/), inglese in [`docs/en/`](./docs/en/):
 
-| File                                                       | Contenuto                                                         |
-| ---------------------------------------------------------- | ----------------------------------------------------------------- |
-| [docs/architettura.md](./docs/architettura.md)             | Scelte architetturali, layer del sistema, flusso delle dipendenze |
-| [docs/scelte-tecniche.md](./docs/scelte-tecniche.md)       | Nx, pnpm, TypeScript, AWS SDK v3, Result pattern, jest            |
-| [docs/funzionamento.md](./docs/funzionamento.md)           | Flusso di esecuzione end-to-end, spiegazione del codice           |
-| [docs/aggiungere-risorsa.md](./docs/aggiungere-risorsa.md) | Guida passo per passo per aggiungere un nuovo tipo di risorsa     |
+| File (IT)                                                            | Contenuto                                                         |
+| --------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| [docs/it/architettura.md](./docs/it/architettura.md)                 | Scelte architetturali, layer del sistema, percorso multi-cloud    |
+| [docs/it/scelte-tecniche.md](./docs/it/scelte-tecniche.md)           | Nx, pnpm, TypeScript, AWS SDK v3, Result pattern, jest            |
+| [docs/it/funzionamento.md](./docs/it/funzionamento.md)               | Flusso di esecuzione end-to-end, spiegazione del codice           |
+| [docs/it/aggiungere-risorsa.md](./docs/it/aggiungere-risorsa.md)     | Guida passo per passo per aggiungere un nuovo tipo di risorsa     |
 
 ---
 

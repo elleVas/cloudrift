@@ -1,5 +1,7 @@
 # Scelte Tecniche
 
+> 🇬🇧 [English version](../en/technical-choices.md)
+
 Questo documento spiega il perché di ogni scelta tecnologica nel progetto, con i trade-off considerati.
 
 ---

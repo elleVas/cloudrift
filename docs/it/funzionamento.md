@@ -1,5 +1,7 @@
 # Come funziona il codice
 
+> 🇬🇧 [English version](../en/how-it-works.md)
+
 Questo documento descrive il flusso completo di esecuzione, dall'invocazione CLI fino alla risposta AWS e alla visualizzazione dei risultati.
 
 ---
