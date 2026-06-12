@@ -1,6 +1,7 @@
 import { Entity } from 'shared-kernel';
 import { AwsRegion } from '../value-objects/aws-region.value-object';
 import { CostEstimate } from '../value-objects/cost-estimate.value-object';
+import type { WastedResource } from '../wasted-resource';
 
 export interface ElasticIpProps {
   allocationId: string;
@@ -14,7 +15,7 @@ export interface ElasticIpProps {
   monthlyCostUsd: number;
 }
 
-export class ElasticIp extends Entity<string> {
+export class ElasticIp extends Entity<string> implements WastedResource {
   private readonly props: Readonly<ElasticIpProps>;
 
   constructor(props: ElasticIpProps) {
@@ -28,6 +29,9 @@ export class ElasticIp extends Entity<string> {
   get detectedAt(): Date { return this.props.detectedAt; }
   get associationId(): string | undefined { return this.props.associationId; }
   get tags(): Record<string, string> { return this.props.tags; }
+
+  get kind(): 'elastic-ip' { return 'elastic-ip'; }
+  get wasteReason(): string { return 'unassociated'; }
 
   isUnassociated(): boolean {
     return !this.props.associationId;

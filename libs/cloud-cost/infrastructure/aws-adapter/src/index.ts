@@ -1,9 +1,10 @@
-export { AwsEbsVolumeRepositoryAdapter } from './repositories/aws-ebs-volume.repository.adapter';
-export { AwsElasticIpRepositoryAdapter } from './repositories/aws-elastic-ip.repository.adapter';
-export { AwsRdsInstanceRepositoryAdapter } from './repositories/aws-rds-instance.repository.adapter';
-export { AwsLoadBalancerRepositoryAdapter } from './repositories/aws-load-balancer.repository.adapter';
-export { AwsEc2InstanceRepositoryAdapter } from './repositories/aws-ec2-instance.repository.adapter';
-export { AwsEbsSnapshotRepositoryAdapter } from './repositories/aws-ebs-snapshot.repository.adapter';
-export { AwsNatGatewayRepositoryAdapter } from './repositories/aws-nat-gateway.repository.adapter';
+export { AwsEbsVolumeScanner } from './scanners/aws-ebs-volume.scanner';
+export { AwsElasticIpScanner } from './scanners/aws-elastic-ip.scanner';
+export { AwsRdsInstanceScanner } from './scanners/aws-rds-instance.scanner';
+export { AwsLoadBalancerScanner } from './scanners/aws-load-balancer.scanner';
+export { AwsEc2InstanceScanner } from './scanners/aws-ec2-instance.scanner';
+export { AwsEbsSnapshotScanner } from './scanners/aws-ebs-snapshot.scanner';
+export { AwsNatGatewayScanner } from './scanners/aws-nat-gateway.scanner';
 export { AwsAdapterError } from './errors/aws-adapter.error';
 export { StaticPriceTableAdapter } from './pricing/static-price-table.adapter';
+export { resolveAwsAccountId } from './account/aws-account-id.resolver';

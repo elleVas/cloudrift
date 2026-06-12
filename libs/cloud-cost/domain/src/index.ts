@@ -1,3 +1,9 @@
+// Wasted resource model
+export { RESOURCE_KINDS, RESOURCE_KIND_LABELS } from './wasted-resource';
+export type { ResourceKind, WastedResource } from './wasted-resource';
+export { groupByKind } from './group-by-kind';
+export type { ResourceKindMap, FindingsByKind } from './group-by-kind';
+
 // Entities
 export { EbsVolume } from './entities/ebs-volume.entity';
 export type { EbsVolumeProps, EbsVolumeState } from './entities/ebs-volume.entity';
@@ -15,25 +21,31 @@ export { NatGateway } from './entities/nat-gateway.entity';
 export type { NatGatewayProps } from './entities/nat-gateway.entity';
 
 // Value Objects
-export { AwsRegion } from './value-objects/aws-region.value-object';
+export { AwsRegion, InvalidAwsRegionError } from './value-objects/aws-region.value-object';
 export { CostEstimate } from './value-objects/cost-estimate.value-object';
+
+// Waste Policies
+export {
+  WastePolicy,
+  waste,
+  notWaste,
+  DEFAULT_MIN_AGE_DAYS,
+  DEFAULT_IGNORE_TAG,
+} from './policies/waste-policy';
+export type { WasteVerdict, WastePolicyOptions } from './policies/waste-policy';
+export {
+  EbsVolumeWastePolicy,
+  ElasticIpWastePolicy,
+  RdsInstanceWastePolicy,
+  LoadBalancerWastePolicy,
+  Ec2InstanceWastePolicy,
+  EbsSnapshotWastePolicy,
+  NatGatewayWastePolicy,
+} from './policies/resource-waste-policies';
 
 // Outbound Ports
 export type { PricingPort } from './ports/outbound/pricing.port';
-export type { EbsVolumeRepositoryPort } from './ports/outbound/ebs-volume-repository.port';
-export { EBS_VOLUME_REPOSITORY_PORT } from './ports/outbound/ebs-volume-repository.port';
-export type { ElasticIpRepositoryPort } from './ports/outbound/elastic-ip-repository.port';
-export { ELASTIC_IP_REPOSITORY_PORT } from './ports/outbound/elastic-ip-repository.port';
-export type { RdsInstanceRepositoryPort } from './ports/outbound/rds-instance-repository.port';
-export { RDS_INSTANCE_REPOSITORY_PORT } from './ports/outbound/rds-instance-repository.port';
-export type { LoadBalancerRepositoryPort } from './ports/outbound/load-balancer-repository.port';
-export { LOAD_BALANCER_REPOSITORY_PORT } from './ports/outbound/load-balancer-repository.port';
-export type { Ec2InstanceRepositoryPort } from './ports/outbound/ec2-instance-repository.port';
-export { EC2_INSTANCE_REPOSITORY_PORT } from './ports/outbound/ec2-instance-repository.port';
-export type { EbsSnapshotRepositoryPort } from './ports/outbound/ebs-snapshot-repository.port';
-export { EBS_SNAPSHOT_REPOSITORY_PORT } from './ports/outbound/ebs-snapshot-repository.port';
-export type { NatGatewayRepositoryPort } from './ports/outbound/nat-gateway-repository.port';
-export { NAT_GATEWAY_REPOSITORY_PORT } from './ports/outbound/nat-gateway-repository.port';
+export type { WasteScannerPort } from './ports/outbound/waste-scanner.port';
 
 // Inbound Ports
 export type {

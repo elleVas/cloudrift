@@ -1,4 +1,4 @@
-import { AwsRegion } from './aws-region.value-object';
+import { AwsRegion, InvalidAwsRegionError } from './aws-region.value-object';
 
 describe('AwsRegion', () => {
   it('creates a valid region', () => {
@@ -13,6 +13,22 @@ describe('AwsRegion', () => {
     ];
     for (const code of regions) {
       expect(() => AwsRegion.create(code)).not.toThrow();
+    }
+  });
+
+  it('parse returns ok for a valid region', () => {
+    const result = AwsRegion.parse('eu-west-1');
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.code).toBe('eu-west-1');
+  });
+
+  it('parse returns a typed failure for an invalid region', () => {
+    const result = AwsRegion.parse('banana');
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toBeInstanceOf(InvalidAwsRegionError);
+      expect(result.error.code).toBe('INVALID_AWS_REGION');
+      expect(result.error.message).toContain('banana');
     }
   });
 

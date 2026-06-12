@@ -3,19 +3,14 @@ import {
   AwsRegion,
   EbsVolume,
   ElasticIp,
-  EbsVolumeRepositoryPort,
-  ElasticIpRepositoryPort,
-  RdsInstanceRepositoryPort,
-  LoadBalancerRepositoryPort,
-  Ec2InstanceRepositoryPort,
-  EbsSnapshotRepositoryPort,
-  NatGatewayRepositoryPort,
 } from 'cloud-cost-domain';
+import type { ResourceKind, WastedResource, WasteScannerPort } from 'cloud-cost-domain';
 import { Result } from 'shared-kernel';
 
-const region = AwsRegion.create('us-east-1');
+const usEast = AwsRegion.create('us-east-1');
+const euWest = AwsRegion.create('eu-west-1');
 
-function makeEbsVolume(id: string): EbsVolume {
+function makeEbsVolume(id: string, region = usEast): EbsVolume {
   return new EbsVolume({
     volumeId: id,
     region,
@@ -34,7 +29,7 @@ function makeElasticIp(allocationId: string): ElasticIp {
   return new ElasticIp({
     allocationId,
     publicIp: '1.2.3.4',
-    region,
+    region: usEast,
     accountId: '123456789012',
     detectedAt: new Date('2026-06-09'),
     tags: {},
@@ -42,197 +37,111 @@ function makeElasticIp(allocationId: string): ElasticIp {
   });
 }
 
-function makeEbsRepo(volumes: EbsVolume[], fail?: Error): EbsVolumeRepositoryPort {
+/** Scanner fittizio: una risposta per regione, in ordine di chiamata. */
+function makeScanner(
+  kind: ResourceKind,
+  responses: Array<Result<WastedResource[]>>,
+): WasteScannerPort {
+  let call = 0;
   return {
-    findUnattachedVolumes: async () =>
-      fail ? Result.fail(fail) : Result.ok(volumes),
+    kind,
+    scan: async () => responses[Math.min(call++, responses.length - 1)],
   };
-}
-
-function makeEipRepo(ips: ElasticIp[], fail?: Error): ElasticIpRepositoryPort {
-  return {
-    findUnassociatedElasticIps: async () =>
-      fail ? Result.fail(fail) : Result.ok(ips),
-  };
-}
-
-function makeRdsRepo(fail?: Error): RdsInstanceRepositoryPort {
-  return { findStoppedInstances: async () => fail ? Result.fail(fail) : Result.ok([]) };
-}
-
-function makeElbRepo(fail?: Error): LoadBalancerRepositoryPort {
-  return { findIdleLoadBalancers: async () => fail ? Result.fail(fail) : Result.ok([]) };
-}
-
-function makeEc2Repo(fail?: Error): Ec2InstanceRepositoryPort {
-  return { findStoppedInstances: async () => fail ? Result.fail(fail) : Result.ok([]) };
-}
-
-function makeSnapshotRepo(fail?: Error): EbsSnapshotRepositoryPort {
-  return { findOrphanSnapshots: async () => fail ? Result.fail(fail) : Result.ok([]) };
-}
-
-function makeNatRepo(fail?: Error): NatGatewayRepositoryPort {
-  return { findIdleGateways: async () => fail ? Result.fail(fail) : Result.ok([]) };
-}
-
-function makeUseCase(
-  ebsRepo: EbsVolumeRepositoryPort,
-  eipRepo: ElasticIpRepositoryPort,
-  rdsRepo: RdsInstanceRepositoryPort = makeRdsRepo(),
-  elbRepo: LoadBalancerRepositoryPort = makeElbRepo(),
-  ec2Repo: Ec2InstanceRepositoryPort = makeEc2Repo(),
-  snapshotRepo: EbsSnapshotRepositoryPort = makeSnapshotRepo(),
-  natRepo: NatGatewayRepositoryPort = makeNatRepo(),
-) {
-  return new AnalyzeCloudWasteUseCase({
-    ebsRepository: ebsRepo,
-    elasticIpRepository: eipRepo,
-    rdsRepository: rdsRepo,
-    loadBalancerRepository: elbRepo,
-    ec2Repository: ec2Repo,
-    snapshotRepository: snapshotRepo,
-    natGatewayRepository: natRepo,
-  });
 }
 
 describe('AnalyzeCloudWasteUseCase', () => {
-  it('returns empty summary with no scan errors when all repositories succeed', async () => {
-    const useCase = makeUseCase(makeEbsRepo([]), makeEipRepo([]));
-    const result = await useCase.execute({ regions: [region] });
+  it('returns an empty summary when all scanners find nothing', async () => {
+    const useCase = new AnalyzeCloudWasteUseCase([
+      makeScanner('ebs-volume', [Result.ok([])]),
+      makeScanner('elastic-ip', [Result.ok([])]),
+    ]);
+
+    const result = await useCase.execute({ regions: [usEast] });
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.ebsVolumes).toHaveLength(0);
-    expect(result.value.elasticIps).toHaveLength(0);
-    expect(result.value.rdsInstances).toHaveLength(0);
-    expect(result.value.loadBalancers).toHaveLength(0);
-    expect(result.value.stoppedEc2Instances).toHaveLength(0);
-    expect(result.value.orphanSnapshots).toHaveLength(0);
-    expect(result.value.idleNatGateways).toHaveLength(0);
+    expect(result.value.findings).toHaveLength(0);
     expect(result.value.totalMonthlyCostUsd).toBe(0);
     expect(result.value.scanErrors).toHaveLength(0);
   });
 
-  it('aggregates volumes and IPs and computes total cost', async () => {
-    const volumes = [makeEbsVolume('vol-1'), makeEbsVolume('vol-2')];
-    const ips = [makeElasticIp('eipalloc-1')];
+  it('aggregates findings from all scanners and computes total cost', async () => {
+    const useCase = new AnalyzeCloudWasteUseCase([
+      makeScanner('ebs-volume', [Result.ok([makeEbsVolume('vol-1'), makeEbsVolume('vol-2')])]),
+      makeScanner('elastic-ip', [Result.ok([makeElasticIp('eipalloc-1')])]),
+    ]);
 
-    const useCase = makeUseCase(makeEbsRepo(volumes), makeEipRepo(ips));
-    const result = await useCase.execute({ regions: [region] });
+    const result = await useCase.execute({ regions: [usEast] });
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.ebsVolumes).toHaveLength(2);
-    expect(result.value.elasticIps).toHaveLength(1);
-    // 2 × (100 GB × $0.08) + 1 × $3.60 = $16.00 + $3.60 = $19.60
+    expect(result.value.findings).toHaveLength(3);
+    // 2 × (100 GB × $0.08) + 1 × $3.60 = $19.60
     expect(result.value.totalMonthlyCostUsd).toBeCloseTo(19.6, 2);
-    expect(result.value.scanErrors).toHaveLength(0);
   });
 
-  it('returns partial results and records scanError when EBS repository fails', async () => {
+  it('records a scanError with kind and region when a scanner fails, preserving other results', async () => {
     const err = new Error('EBS failed');
-    const ips = [makeElasticIp('eipalloc-1')];
-    const useCase = makeUseCase(makeEbsRepo([], err), makeEipRepo(ips));
+    const useCase = new AnalyzeCloudWasteUseCase([
+      makeScanner('ebs-volume', [Result.fail(err)]),
+      makeScanner('elastic-ip', [Result.ok([makeElasticIp('eipalloc-1')])]),
+    ]);
 
-    const result = await useCase.execute({ regions: [region] });
+    const result = await useCase.execute({ regions: [usEast] });
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.ebsVolumes).toHaveLength(0);
-    expect(result.value.elasticIps).toHaveLength(1);
-    expect(result.value.scanErrors).toHaveLength(1);
-    expect(result.value.scanErrors[0].resourceType).toBe('EBS Volumes');
-    expect(result.value.scanErrors[0].error).toBe(err);
+    expect(result.value.findings).toHaveLength(1);
+    expect(result.value.scanErrors).toEqual([
+      { kind: 'ebs-volume', region: 'us-east-1', error: err },
+    ]);
   });
 
-  it('returns partial results and records scanError when EIP repository fails', async () => {
-    const err = new Error('EIP failed');
-    const volumes = [makeEbsVolume('vol-1')];
-    const useCase = makeUseCase(makeEbsRepo(volumes), makeEipRepo([], err));
+  it('keeps results from healthy regions when one region fails', async () => {
+    const err = new Error('eu-west-1 not enabled');
+    const useCase = new AnalyzeCloudWasteUseCase([
+      makeScanner('ebs-volume', [
+        Result.ok([makeEbsVolume('vol-us')]),
+        Result.fail(err),
+      ]),
+    ]);
 
-    const result = await useCase.execute({ regions: [region] });
+    const result = await useCase.execute({ regions: [usEast, euWest] });
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.ebsVolumes).toHaveLength(1);
-    expect(result.value.elasticIps).toHaveLength(0);
-    expect(result.value.scanErrors).toHaveLength(1);
-    expect(result.value.scanErrors[0].resourceType).toBe('Elastic IPs');
-    expect(result.value.scanErrors[0].error).toBe(err);
+    expect(result.value.findings.map((f) => f.id)).toEqual(['vol-us']);
+    expect(result.value.scanErrors).toEqual([
+      { kind: 'ebs-volume', region: 'eu-west-1', error: err },
+    ]);
   });
 
-  it('returns partial results and records scanError when RDS repository fails', async () => {
-    const err = new Error('RDS failed');
-    const useCase = makeUseCase(makeEbsRepo([]), makeEipRepo([]), makeRdsRepo(err));
+  it('excludes failed scans from the total cost', async () => {
+    const useCase = new AnalyzeCloudWasteUseCase([
+      makeScanner('ebs-volume', [Result.fail(new Error('boom'))]),
+      makeScanner('elastic-ip', [Result.ok([makeElasticIp('eipalloc-1')])]),
+    ]);
 
-    const result = await useCase.execute({ regions: [region] });
+    const result = await useCase.execute({ regions: [usEast] });
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.scanErrors).toHaveLength(1);
-    expect(result.value.scanErrors[0].resourceType).toBe('RDS Instances');
+    expect(result.value.totalMonthlyCostUsd).toBeCloseTo(3.6, 2);
   });
 
-  it('returns partial results and records scanError when ELB repository fails', async () => {
-    const err = new Error('ELB failed');
-    const useCase = makeUseCase(makeEbsRepo([]), makeEipRepo([]), makeRdsRepo(), makeElbRepo(err));
+  it('scans every region with every scanner', async () => {
+    const calls: string[] = [];
+    const tracking: WasteScannerPort = {
+      kind: 'ebs-volume',
+      scan: async (region) => {
+        calls.push(region.code);
+        return Result.ok([]);
+      },
+    };
 
-    const result = await useCase.execute({ regions: [region] });
+    const useCase = new AnalyzeCloudWasteUseCase([tracking]);
+    await useCase.execute({ regions: [usEast, euWest] });
 
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.value.scanErrors).toHaveLength(1);
-    expect(result.value.scanErrors[0].resourceType).toBe('Load Balancers');
-  });
-
-  it('records scanError for NAT Gateways while preserving other results', async () => {
-    const err = new Error('CloudWatch throttled');
-    const volumes = [makeEbsVolume('vol-1')];
-    const useCase = makeUseCase(
-      makeEbsRepo(volumes), makeEipRepo([]), makeRdsRepo(), makeElbRepo(),
-      makeEc2Repo(), makeSnapshotRepo(), makeNatRepo(err),
-    );
-
-    const result = await useCase.execute({ regions: [region] });
-
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.value.ebsVolumes).toHaveLength(1);
-    expect(result.value.idleNatGateways).toHaveLength(0);
-    expect(result.value.scanErrors).toHaveLength(1);
-    expect(result.value.scanErrors[0].resourceType).toBe('NAT Gateways');
-    expect(result.value.scanErrors[0].error).toBe(err);
-  });
-
-  it('accumulates multiple scanErrors when several repositories fail', async () => {
-    const useCase = makeUseCase(
-      makeEbsRepo([], new Error('EBS')),
-      makeEipRepo([], new Error('EIP')),
-      makeRdsRepo(new Error('RDS')),
-    );
-
-    const result = await useCase.execute({ regions: [region] });
-
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.value.scanErrors).toHaveLength(3);
-    expect(result.value.totalMonthlyCostUsd).toBe(0);
-  });
-
-  it('excludes failed resource costs from totalMonthlyCostUsd', async () => {
-    const volumes = [makeEbsVolume('vol-1')];
-    const useCase = makeUseCase(
-      makeEbsRepo(volumes),
-      makeEipRepo([], new Error('EIP throttled')),
-    );
-
-    const result = await useCase.execute({ regions: [region] });
-
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    // Only EBS cost counted; EIP scan failed so nothing added
-    expect(result.value.totalMonthlyCostUsd).toBeCloseTo(8.0, 2); // 100 GB × $0.08
-    expect(result.value.scanErrors).toHaveLength(1);
+    expect(calls).toEqual(['us-east-1', 'eu-west-1']);
   });
 });

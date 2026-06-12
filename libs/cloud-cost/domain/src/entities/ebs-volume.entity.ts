@@ -1,6 +1,7 @@
 import { Entity } from 'shared-kernel';
 import { AwsRegion } from '../value-objects/aws-region.value-object';
 import { CostEstimate } from '../value-objects/cost-estimate.value-object';
+import type { WastedResource } from '../wasted-resource';
 
 export type EbsVolumeState =
   | 'available'
@@ -23,7 +24,7 @@ export interface EbsVolumeProps {
   monthlyCostUsd: number;
 }
 
-export class EbsVolume extends Entity<string> {
+export class EbsVolume extends Entity<string> implements WastedResource {
   private readonly props: Readonly<EbsVolumeProps>;
 
   constructor(props: EbsVolumeProps) {
@@ -39,6 +40,9 @@ export class EbsVolume extends Entity<string> {
   get createTime(): Date { return this.props.createTime; }
   get detectedAt(): Date { return this.props.detectedAt; }
   get tags(): Record<string, string> { return this.props.tags; }
+
+  get kind(): 'ebs-volume' { return 'ebs-volume'; }
+  get wasteReason(): string { return 'unattached'; }
 
   isUnattached(): boolean {
     return this.props.state === 'available';

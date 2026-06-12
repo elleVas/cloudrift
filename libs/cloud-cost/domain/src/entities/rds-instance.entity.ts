@@ -1,6 +1,7 @@
 import { Entity } from 'shared-kernel';
 import { AwsRegion } from '../value-objects/aws-region.value-object';
 import { CostEstimate } from '../value-objects/cost-estimate.value-object';
+import type { WastedResource } from '../wasted-resource';
 
 export type RdsInstanceStatus =
   | 'available'
@@ -28,7 +29,7 @@ export interface RdsInstanceProps {
   monthlyCostUsd: number;
 }
 
-export class RdsInstance extends Entity<string> {
+export class RdsInstance extends Entity<string> implements WastedResource {
   private readonly props: Readonly<RdsInstanceProps>;
 
   constructor(props: RdsInstanceProps) {
@@ -46,6 +47,9 @@ export class RdsInstance extends Entity<string> {
   get multiAZ(): boolean { return this.props.multiAZ; }
   get detectedAt(): Date { return this.props.detectedAt; }
   get tags(): Record<string, string> { return this.props.tags; }
+
+  get kind(): 'rds-instance' { return 'rds-instance'; }
+  get wasteReason(): string { return 'stopped (storage and backups still billed)'; }
 
   isStopped(): boolean {
     return this.props.dbInstanceStatus === 'stopped';

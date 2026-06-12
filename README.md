@@ -20,7 +20,13 @@
 | **EBS Snapshots**  | Source volume deleted (orphan snapshots)    | $0.05/GB-month                                          |
 | **NAT Gateways**   | Zero outbound traffic in the last 48h       | ~$32.40/month fixed                                     |
 
-> Prices vary by region. The tool uses region-specific pricing for: `us-east-1`, `us-west-2`, `eu-west-1`, `eu-central-1`, `ap-southeast-1`, `ap-northeast-1`.
+**False-positive guards (waste policies):**
+
+- **Grace period** — resources younger than 7 days (configurable via `--min-age-days`) are never reported. For EC2 the stop time is reconstructed from `StateTransitionReason`; for NAT Gateways and Load Balancers the creation time is used.
+- **Exclusion tag** — any resource tagged `cloudrift:ignore` (configurable via `--ignore-tag`) is skipped.
+- **AMI-bound snapshots** — orphan snapshots referenced by a registered AMI are not reported (they cannot be deleted anyway).
+
+> Prices vary by region. The tool uses region-specific pricing for: `us-east-1`, `us-west-2`, `eu-west-1`, `eu-central-1`, `ap-southeast-1`, `ap-northeast-1`. Every report states the date the price table was last verified (`prices as of`).
 
 ### Prerequisites
 
@@ -88,15 +94,11 @@ Output is compiled to `apps/cli/dist/`.
 #### Step 5 — Run
 
 ```sh
-# Scan us-east-1 (default)
+# Scan us-east-1 (default) — the account ID is auto-detected via STS
 node apps/cli/dist/main.js analyze
 
-# Scan multiple regions with your account ID
-node apps/cli/dist/main.js analyze -r us-east-1 eu-west-1 --account-id 123456789012
-
-# Retrieve account ID automatically (requires sts:GetCallerIdentity permission)
-ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-node apps/cli/dist/main.js analyze -r us-east-1 eu-west-1 --account-id "$ACCOUNT_ID"
+# Scan multiple regions
+node apps/cli/dist/main.js analyze -r us-east-1 eu-west-1
 ```
 
 If everything is configured correctly you'll see tables listing the wasted resources found and an estimated total cost. If the account has no wasted resources you'll see "No wasted resources found".
@@ -109,12 +111,15 @@ If everything is configured correctly you'll see tables listing the wasted resou
 node apps/cli/dist/main.js analyze [options]
 ```
 
-| Option                       | Description                                                                                                    | Default     |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------------- | ----------- |
-| `-r, --regions <regions...>` | AWS regions to scan                                                                                            | `us-east-1` |
-| `--account-id <id>`          | AWS account ID (12-digit number, visible in the AWS console)                                                   | `unknown`   |
-| `--pdf [filename]`           | Export a PDF report; if no filename is given, saves `cloudrift-report-YYYY-MM-DD.pdf` in the current directory | —           |
-| `-h, --help`                 | Show help                                                                                                      | —           |
+| Option                       | Description                                                                                                    | Default            |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------- | ------------------ |
+| `-r, --regions <regions...>` | AWS regions to scan                                                                                            | `us-east-1`        |
+| `--account-id <id>`          | AWS account ID override (auto-detected via `sts:GetCallerIdentity` when omitted)                               | auto-detected      |
+| `--min-age-days <days>`      | Grace period: resources younger than this many days are not reported                                           | `7`                |
+| `--ignore-tag <tag>`         | Resources carrying this tag are excluded from the report                                                       | `cloudrift:ignore` |
+| `--pdf [filename]`           | Export a PDF report; if no filename is given, saves `cloudrift-report-YYYY-MM-DD.pdf` in the current directory | —                  |
+| `--json [filename]`          | Output the report as JSON; with no filename, prints JSON to stdout (suppresses the table output)               | —                  |
+| `-h, --help`                 | Show help                                                                                                      | —                  |
 
 **Examples:**
 
@@ -125,18 +130,17 @@ node apps/cli/dist/main.js analyze
 # Scan multiple regions at once
 node apps/cli/dist/main.js analyze -r us-east-1 eu-west-1 ap-southeast-1
 
-# Include your AWS account ID (useful for multi-account setups)
-node apps/cli/dist/main.js analyze -r us-east-1 eu-west-1 --account-id 123456789012
-
-# Retrieve the current account ID via AWS CLI and pass it automatically
-ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-node apps/cli/dist/main.js analyze -r us-east-1 --account-id "$ACCOUNT_ID"
+# Disable the grace period (report resources of any age)
+node apps/cli/dist/main.js analyze --min-age-days 0
 
 # Export a PDF report with auto-generated filename (cloudrift-report-YYYY-MM-DD.pdf)
 node apps/cli/dist/main.js analyze --pdf
 
-# Export a PDF report with a custom filename
-node apps/cli/dist/main.js analyze -r us-east-1 eu-west-1 --account-id 123456789012 --pdf report.pdf
+# Machine-readable output (e.g. to feed a dashboard or CI check)
+node apps/cli/dist/main.js analyze --json | jq '.totalMonthlyCostUsd'
+
+# Save the JSON report to a file alongside the console output
+node apps/cli/dist/main.js analyze --json report.json
 ```
 
 **PDF report:**
@@ -184,12 +188,14 @@ The AWS principal needs the following read-only permissions:
     "ec2:DescribeAddresses",
     "ec2:DescribeInstances",
     "ec2:DescribeSnapshots",
+    "ec2:DescribeImages",
     "ec2:DescribeNatGateways",
     "cloudwatch:GetMetricStatistics",
     "rds:DescribeDBInstances",
     "elasticloadbalancing:DescribeLoadBalancers",
     "elasticloadbalancing:DescribeTargetGroups",
-    "elasticloadbalancing:DescribeTargetHealth"
+    "elasticloadbalancing:DescribeTargetHealth",
+    "sts:GetCallerIdentity"
   ],
   "Resource": "*"
 }
@@ -219,41 +225,42 @@ pnpm nx run-many -t typecheck
 
 ### Architecture
 
-The project uses a DDD layered architecture (Ports & Adapters):
+The project uses a DDD layered architecture (Ports & Adapters) with a plugin model: every resource type is a `WasteScannerPort` implementation, and the coordinator use case is generic over the registered scanners.
 
 ```
-apps/cli/                          → CLI entry point (Commander.js)
-libs/shared/kernel/                → Reusable base classes
-libs/cloud-cost/domain/            → Entities, value objects, ports
-libs/cloud-cost/application/       → Use cases
+apps/cli/                          → CLI entry point (Commander.js), presenters
+libs/shared/kernel/                → Reusable base classes (Entity, ValueObject, Result)
+libs/cloud-cost/domain/            → Entities, value objects, waste policies, ports
+libs/cloud-cost/application/       → Generic use case + serializable report DTO
 libs/cloud-cost/infrastructure/
-  aws-adapter/                     → AWS SDK v3 implementation
+  aws-adapter/                     → AWS SDK v3 scanners, pricing, STS account resolver
 ```
 
 Dependencies always point inward: CLI → Application → Domain ← AWS Adapter.
 
 ### Technical documentation
 
-Full documentation (in Italian) is in the [`docs/`](./docs/) folder:
+Full documentation is in the [`docs/`](./docs/) folder — English in [`docs/en/`](./docs/en/), Italian in [`docs/it/`](./docs/it/):
 
-| File                                                       | Content                                                 |
-| ---------------------------------------------------------- | ------------------------------------------------------- |
-| [docs/architettura.md](./docs/architettura.md)             | Architectural decisions, system layers, dependency flow |
-| [docs/scelte-tecniche.md](./docs/scelte-tecniche.md)       | Nx, pnpm, TypeScript, AWS SDK v3, Result pattern, jest  |
-| [docs/funzionamento.md](./docs/funzionamento.md)           | End-to-end execution flow, code walkthrough             |
-| [docs/aggiungere-risorsa.md](./docs/aggiungere-risorsa.md) | Step-by-step guide to adding a new resource type        |
+| File (EN)                                                       | Content                                                |
+| ---------------------------------------------------------------- | ------------------------------------------------------ |
+| [docs/en/architecture.md](./docs/en/architecture.md)            | Architectural decisions, layers, multi-cloud path      |
+| [docs/en/technical-choices.md](./docs/en/technical-choices.md)  | Nx, pnpm, TypeScript, AWS SDK v3, Result pattern, jest |
+| [docs/en/how-it-works.md](./docs/en/how-it-works.md)            | End-to-end execution flow, code walkthrough            |
+| [docs/en/adding-a-resource.md](./docs/en/adding-a-resource.md)  | Step-by-step guide to adding a new resource type       |
 
 ### Adding a new resource type
 
-See [docs/aggiungere-risorsa.md](./docs/aggiungere-risorsa.md) for a complete walkthrough. In short:
+See [docs/en/adding-a-resource.md](./docs/en/adding-a-resource.md) for a complete walkthrough. In short:
 
-1. Add the entity to `libs/cloud-cost/domain/src/entities/` — include `accountId`, `detectedAt`, and `monthlyCostUsd` fields
-2. Add pricing methods to `PricingPort` and `StaticPriceTableAdapter` (update `prices.json` with per-region values)
-3. Define the outbound repository port in `libs/cloud-cost/domain/src/ports/outbound/`
-4. Add the resource list to `WastedResourcesSummary` in the inbound port
-5. Create the use case in `libs/cloud-cost/application/src/use-cases/` and export it from `index.ts`
-6. Implement the AWS adapter in `libs/cloud-cost/infrastructure/aws-adapter/src/repositories/` — use `paginate()` for all AWS list calls, pass `this.accountId` and `new Date()` as `detectedAt` when building entities
-7. Wire into `AnalyzeCloudWasteUseCase`, update the CLI formatter, and register in `analyze-waste.command.ts`
+1. Add the new kind to the `ResourceKind` union (`wasted-resource.ts`) — the compiler then points to every spot that needs updating
+2. Add the entity to `libs/cloud-cost/domain/src/entities/` implementing `WastedResource`
+3. Add a waste policy in `libs/cloud-cost/domain/src/policies/` (grace period and ignore tag come for free from the base class)
+4. Add pricing to `PricingPort`, `StaticPriceTableAdapter` and `prices.json`
+5. Implement the scanner in `libs/cloud-cost/infrastructure/aws-adapter/src/scanners/` (implements `WasteScannerPort`)
+6. Add the presenter entry in `apps/cli/src/formatters/resource-presenters.ts` and register the scanner in `analyze-waste.command.ts`
+
+No changes to `AnalyzeCloudWasteUseCase`, the summary, or the report DTO are needed.
 
 ## 🇮🇹 Italiano
 
@@ -271,7 +278,13 @@ See [docs/aggiungere-risorsa.md](./docs/aggiungere-risorsa.md) for a complete wa
 | **EBS Snapshots**  | Volume sorgente cancellato (snapshot orfani)                            | $0,05/GB-mese                                                 |
 | **NAT Gateways**   | Zero traffico in uscita nelle ultime 48h                                | ~$32,40/mese fisso                                            |
 
-> I prezzi variano per regione. Il tool usa prezzi specifici per: `us-east-1`, `us-west-2`, `eu-west-1`, `eu-central-1`, `ap-southeast-1`, `ap-northeast-1`.
+**Protezioni contro i falsi positivi (waste policies):**
+
+- **Periodo di grazia** — le risorse più giovani di 7 giorni (configurabile con `--min-age-days`) non vengono mai segnalate. Per le EC2 la data di stop è ricostruita da `StateTransitionReason`; per NAT Gateway e Load Balancer si usa la data di creazione.
+- **Tag di esclusione** — qualunque risorsa con il tag `cloudrift:ignore` (configurabile con `--ignore-tag`) viene saltata.
+- **Snapshot legati ad AMI** — gli snapshot orfani referenziati da un'AMI registrata non vengono segnalati (non sarebbero comunque cancellabili).
+
+> I prezzi variano per regione. Il tool usa prezzi specifici per: `us-east-1`, `us-west-2`, `eu-west-1`, `eu-central-1`, `ap-southeast-1`, `ap-northeast-1`. Ogni report indica la data di ultima verifica del listino (`prices as of`).
 
 ### Prerequisiti
 
@@ -339,15 +352,11 @@ L'output viene compilato in `apps/cli/dist/`.
 #### Passo 5 — Esegui
 
 ```sh
-# Scansione su us-east-1 (default)
+# Scansione su us-east-1 (default) — l'account ID viene rilevato automaticamente via STS
 node apps/cli/dist/main.js analyze
 
-# Scansione su più regioni con account ID
-node apps/cli/dist/main.js analyze -r us-east-1 eu-west-1 --account-id 123456789012
-
-# Recupera l'account ID in automatico (richiede permesso sts:GetCallerIdentity)
-ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-node apps/cli/dist/main.js analyze -r us-east-1 eu-west-1 --account-id "$ACCOUNT_ID"
+# Scansione su più regioni
+node apps/cli/dist/main.js analyze -r us-east-1 eu-west-1
 ```
 
 Se tutto è configurato correttamente vedrai tabelle con le risorse sprecate trovate e il totale stimato. Se un account non ha risorse sprecate vedrai un messaggio "No wasted resources found".
@@ -360,12 +369,15 @@ Se tutto è configurato correttamente vedrai tabelle con le risorse sprecate tro
 node apps/cli/dist/main.js analyze [opzioni]
 ```
 
-| Opzione                      | Descrizione                                                                                                          | Default     |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------------------- | ----------- |
-| `-r, --regions <regioni...>` | Regioni AWS da scansionare                                                                                           | `us-east-1` |
-| `--account-id <id>`          | ID dell'account AWS (12 cifre, visibile nella console AWS)                                                           | `unknown`   |
-| `--pdf [filename]`           | Esporta un report PDF; se non si specifica un nome, salva `cloudrift-report-YYYY-MM-DD.pdf` nella directory corrente | —           |
-| `-h, --help`                 | Mostra l'help                                                                                                        | —           |
+| Opzione                      | Descrizione                                                                                                          | Default            |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| `-r, --regions <regioni...>` | Regioni AWS da scansionare                                                                                           | `us-east-1`        |
+| `--account-id <id>`          | Override dell'account ID (rilevato automaticamente via `sts:GetCallerIdentity` se omesso)                            | auto-rilevato      |
+| `--min-age-days <giorni>`    | Periodo di grazia: le risorse più giovani di N giorni non vengono segnalate                                          | `7`                |
+| `--ignore-tag <tag>`         | Le risorse con questo tag vengono escluse dal report                                                                 | `cloudrift:ignore` |
+| `--pdf [filename]`           | Esporta un report PDF; se non si specifica un nome, salva `cloudrift-report-YYYY-MM-DD.pdf` nella directory corrente | —                  |
+| `--json [filename]`          | Output del report in JSON; senza filename stampa il JSON su stdout (sopprime l'output tabellare)                     | —                  |
+| `-h, --help`                 | Mostra l'help                                                                                                        | —                  |
 
 **Esempi:**
 
@@ -376,18 +388,17 @@ node apps/cli/dist/main.js analyze
 # Più regioni contemporaneamente
 node apps/cli/dist/main.js analyze -r us-east-1 eu-west-1 ap-southeast-1
 
-# Con account ID esplicito (utile in scenari multi-account)
-node apps/cli/dist/main.js analyze -r us-east-1 eu-west-1 --account-id 123456789012
-
-# Recupera l'account ID corrente via AWS CLI e passalo come argomento
-ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-node apps/cli/dist/main.js analyze -r us-east-1 --account-id "$ACCOUNT_ID"
+# Disattiva il periodo di grazia (segnala risorse di qualsiasi età)
+node apps/cli/dist/main.js analyze --min-age-days 0
 
 # Esporta un report PDF con nome automatico (cloudrift-report-YYYY-MM-DD.pdf)
 node apps/cli/dist/main.js analyze --pdf
 
-# Esporta un report PDF con nome personalizzato
-node apps/cli/dist/main.js analyze -r us-east-1 eu-west-1 --account-id 123456789012 --pdf report.pdf
+# Output machine-readable (es. per una dashboard o un check CI)
+node apps/cli/dist/main.js analyze --json | jq '.totalMonthlyCostUsd'
+
+# Salva il report JSON su file mantenendo l'output console
+node apps/cli/dist/main.js analyze --json report.json
 ```
 
 **Report PDF:**
@@ -450,12 +461,14 @@ Il principal AWS deve avere le seguenti permission in sola lettura:
     "ec2:DescribeAddresses",
     "ec2:DescribeInstances",
     "ec2:DescribeSnapshots",
+    "ec2:DescribeImages",
     "ec2:DescribeNatGateways",
     "cloudwatch:GetMetricStatistics",
     "rds:DescribeDBInstances",
     "elasticloadbalancing:DescribeLoadBalancers",
     "elasticloadbalancing:DescribeTargetGroups",
-    "elasticloadbalancing:DescribeTargetHealth"
+    "elasticloadbalancing:DescribeTargetHealth",
+    "sts:GetCallerIdentity"
   ],
   "Resource": "*"
 }
@@ -485,30 +498,29 @@ pnpm nx run-many -t typecheck
 
 ### Architettura
 
-Il progetto usa un'architettura DDD a strati (Ports & Adapters):
+Il progetto usa un'architettura DDD a strati (Ports & Adapters) con un modello a plugin: ogni tipo di risorsa è un'implementazione di `WasteScannerPort` e il use case coordinatore è generico sugli scanner registrati.
 
 ```
-apps/cli/                          → Entry point CLI (Commander.js)
-libs/shared/kernel/                → Base classes riusabili
-libs/cloud-cost/domain/            → Entità, value objects, port
-libs/cloud-cost/application/       → Use cases
+apps/cli/                          → Entry point CLI (Commander.js), presenter
+libs/shared/kernel/                → Base classes riusabili (Entity, ValueObject, Result)
+libs/cloud-cost/domain/            → Entità, value objects, waste policies, port
+libs/cloud-cost/application/       → Use case generico + DTO serializzabile del report
 libs/cloud-cost/infrastructure/
-  aws-adapter/                     → Implementazione AWS SDK v3
+  aws-adapter/                     → Scanner AWS SDK v3, pricing, resolver account STS
 ```
 
 Le dipendenze puntano sempre verso l'interno: CLI → Application → Domain ← AWS Adapter.
 
 ### Documentazione tecnica
 
-Tutta la documentazione è nella cartella [`docs/`](./docs/):
+Tutta la documentazione è nella cartella [`docs/`](./docs/) — italiano in [`docs/it/`](./docs/it/), inglese in [`docs/en/`](./docs/en/):
 
-| File                                                       | Contenuto                                                         |
-| ---------------------------------------------------------- | ----------------------------------------------------------------- |
-| [docs/architettura.md](./docs/architettura.md)             | Scelte architetturali, layer del sistema, flusso delle dipendenze |
-| [docs/scelte-tecniche.md](./docs/scelte-tecniche.md)       | Nx, pnpm, TypeScript, AWS SDK v3, Result pattern, jest            |
-| [docs/funzionamento.md](./docs/funzionamento.md)           | Flusso di esecuzione end-to-end, spiegazione del codice           |
-| [docs/aggiungere-risorsa.md](./docs/aggiungere-risorsa.md) | Guida passo per passo per aggiungere un nuovo tipo di risorsa     |
+| File (IT)                                                            | Contenuto                                                         |
+| --------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| [docs/it/architettura.md](./docs/it/architettura.md)                 | Scelte architetturali, layer del sistema, percorso multi-cloud    |
+| [docs/it/scelte-tecniche.md](./docs/it/scelte-tecniche.md)           | Nx, pnpm, TypeScript, AWS SDK v3, Result pattern, jest            |
+| [docs/it/funzionamento.md](./docs/it/funzionamento.md)               | Flusso di esecuzione end-to-end, spiegazione del codice           |
+| [docs/it/aggiungere-risorsa.md](./docs/it/aggiungere-risorsa.md)     | Guida passo per passo per aggiungere un nuovo tipo di risorsa     |
 
 ---
 
-> > > > > > > master
