@@ -20,7 +20,7 @@ import { paginate } from '../utils/paginate';
 export class AwsEc2InstanceRepositoryAdapter implements Ec2InstanceRepositoryPort {
   constructor(
     private readonly pricing: PricingPort,
-    private readonly accountId: string = 'unknown',
+    private readonly accountId = 'unknown',
   ) {}
 
   async findStoppedInstances(

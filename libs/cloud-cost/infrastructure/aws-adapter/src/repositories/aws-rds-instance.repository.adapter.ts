@@ -12,7 +12,7 @@ import { paginate } from '../utils/paginate';
 export class AwsRdsInstanceRepositoryAdapter implements RdsInstanceRepositoryPort {
   constructor(
     private readonly pricing: PricingPort,
-    private readonly accountId: string = 'unknown',
+    private readonly accountId = 'unknown',
   ) {}
 
   async findStoppedInstances(

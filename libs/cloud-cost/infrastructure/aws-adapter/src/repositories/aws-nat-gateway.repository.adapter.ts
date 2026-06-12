@@ -19,7 +19,7 @@ const LOOKBACK_HOURS = 48;
 export class AwsNatGatewayRepositoryAdapter implements NatGatewayRepositoryPort {
   constructor(
     private readonly pricing: PricingPort,
-    private readonly accountId: string = 'unknown',
+    private readonly accountId = 'unknown',
   ) {}
 
   async findIdleGateways(

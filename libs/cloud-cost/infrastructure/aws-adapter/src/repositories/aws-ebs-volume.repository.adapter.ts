@@ -17,7 +17,7 @@ import { paginate } from '../utils/paginate';
 export class AwsEbsVolumeRepositoryAdapter implements EbsVolumeRepositoryPort {
   constructor(
     private readonly pricing: PricingPort,
-    private readonly accountId: string = 'unknown',
+    private readonly accountId = 'unknown',
   ) {}
 
   async findUnattachedVolumes(

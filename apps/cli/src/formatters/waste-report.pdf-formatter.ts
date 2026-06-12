@@ -135,7 +135,7 @@ function drawMetricBox(
 function drawDetailPages(doc: PDFKit.PDFDocument, summary: WastedResourcesSummary): void {
   if (summary.ebsVolumes.length > 0) {
     doc.addPage();
-    let y = sectionHeader(doc, 'EBS Volumes — Unattached');
+    const y = sectionHeader(doc, 'EBS Volumes — Unattached');
     const rows = summary.ebsVolumes.map(v => [
       v.id, v.region.code, `${v.sizeGb} GB`, v.volumeType,
       fmt(v.createTime), `$${v.costEstimate.monthlyCostUsd.toFixed(2)}/mo`,
@@ -145,7 +145,7 @@ function drawDetailPages(doc: PDFKit.PDFDocument, summary: WastedResourcesSummar
 
   if (summary.elasticIps.length > 0) {
     doc.addPage();
-    let y = sectionHeader(doc, 'Elastic IPs — Unassociated');
+    const y = sectionHeader(doc, 'Elastic IPs — Unassociated');
     const rows = summary.elasticIps.map(ip => [
       ip.id, ip.region.code, ip.publicIp, `$${ip.costEstimate.monthlyCostUsd.toFixed(2)}/mo`,
     ]);
@@ -154,7 +154,7 @@ function drawDetailPages(doc: PDFKit.PDFDocument, summary: WastedResourcesSummar
 
   if (summary.rdsInstances.length > 0) {
     doc.addPage();
-    let y = sectionHeader(doc, 'RDS Instances — Stopped');
+    const y = sectionHeader(doc, 'RDS Instances — Stopped');
     const rows = summary.rdsInstances.map(db => [
       db.id, db.region.code, db.dbInstanceClass, db.engine,
       `${db.allocatedStorageGb} GB ${db.storageType}`, `$${db.costEstimate.monthlyCostUsd.toFixed(2)}/mo`,
@@ -164,7 +164,7 @@ function drawDetailPages(doc: PDFKit.PDFDocument, summary: WastedResourcesSummar
 
   if (summary.loadBalancers.length > 0) {
     doc.addPage();
-    let y = sectionHeader(doc, 'Load Balancers — Idle');
+    const y = sectionHeader(doc, 'Load Balancers — Idle');
     const rows = summary.loadBalancers.map(lb => [
       lb.name, lb.region.code, lb.type, fmt(lb.createdTime), `$${lb.costEstimate.monthlyCostUsd.toFixed(2)}/mo`,
     ]);
@@ -173,7 +173,7 @@ function drawDetailPages(doc: PDFKit.PDFDocument, summary: WastedResourcesSummar
 
   if (summary.stoppedEc2Instances.length > 0) {
     doc.addPage();
-    let y = sectionHeader(doc, 'EC2 Instances — Stopped (EBS still billed)');
+    const y = sectionHeader(doc, 'EC2 Instances — Stopped (EBS still billed)');
     const rows = summary.stoppedEc2Instances.map(inst => [
       inst.id, inst.region.code, inst.instanceType,
       inst.attachedVolumes.length > 0
@@ -186,7 +186,7 @@ function drawDetailPages(doc: PDFKit.PDFDocument, summary: WastedResourcesSummar
 
   if (summary.orphanSnapshots.length > 0) {
     doc.addPage();
-    let y = sectionHeader(doc, 'EBS Snapshots — Orphaned (source volume deleted)');
+    const y = sectionHeader(doc, 'EBS Snapshots — Orphaned (source volume deleted)');
     const rows = summary.orphanSnapshots.map(snap => [
       snap.id, snap.region.code, snap.sourceVolumeId, `${snap.sizeGb} GB`,
       fmt(snap.startTime), `$${snap.costEstimate.monthlyCostUsd.toFixed(2)}/mo`,
@@ -196,7 +196,7 @@ function drawDetailPages(doc: PDFKit.PDFDocument, summary: WastedResourcesSummar
 
   if (summary.idleNatGateways.length > 0) {
     doc.addPage();
-    let y = sectionHeader(doc, 'NAT Gateways — Idle (zero traffic in last 48h)');
+    const y = sectionHeader(doc, 'NAT Gateways — Idle (zero traffic in last 48h)');
     const rows = summary.idleNatGateways.map(gw => [
       gw.id, gw.region.code, gw.vpcId, fmt(gw.createTime), `$${gw.costEstimate.monthlyCostUsd.toFixed(2)}/mo`,
     ]);

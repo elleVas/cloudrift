@@ -14,7 +14,7 @@ import { paginate } from '../utils/paginate';
 export class AwsEbsSnapshotRepositoryAdapter implements EbsSnapshotRepositoryPort {
   constructor(
     private readonly pricing: PricingPort,
-    private readonly accountId: string = 'unknown',
+    private readonly accountId = 'unknown',
   ) {}
 
   async findOrphanSnapshots(

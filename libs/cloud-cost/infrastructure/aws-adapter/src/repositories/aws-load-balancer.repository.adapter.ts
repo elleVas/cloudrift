@@ -15,7 +15,7 @@ import { paginate } from '../utils/paginate';
 export class AwsLoadBalancerRepositoryAdapter implements LoadBalancerRepositoryPort {
   constructor(
     private readonly pricing: PricingPort,
-    private readonly accountId: string = 'unknown',
+    private readonly accountId = 'unknown',
   ) {}
 
   async findIdleLoadBalancers(

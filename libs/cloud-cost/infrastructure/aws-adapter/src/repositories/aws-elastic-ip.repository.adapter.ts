@@ -11,7 +11,7 @@ import { AwsAdapterError } from '../errors/aws-adapter.error';
 export class AwsElasticIpRepositoryAdapter implements ElasticIpRepositoryPort {
   constructor(
     private readonly pricing: PricingPort,
-    private readonly accountId: string = 'unknown',
+    private readonly accountId = 'unknown',
   ) {}
 
   async findUnassociatedElasticIps(
