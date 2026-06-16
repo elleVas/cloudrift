@@ -32,12 +32,17 @@ program
     'resources carrying this tag are excluded from the report (default cloudrift:ignore, overrides config)',
   )
   .option(
+    '--format <format>',
+    'stdout output format: table (default), json, or markdown (for CI / PR comments)',
+    'table',
+  )
+  .option(
     '--pdf [filename]',
-    'Export a PDF report (optional filename, defaults to cloudrift-report-YYYY-MM-DD.pdf)',
+    'Also write a PDF report to disk (optional filename, defaults to cloudrift-report-YYYY-MM-DD.pdf)',
   )
   .option(
     '--json [filename]',
-    'Output the report as JSON (to stdout when no filename is given)',
+    'Also write a JSON report to disk (optional filename, defaults to cloudrift-report-YYYY-MM-DD.json)',
   )
   .action(analyzeWasteCommand);
 
