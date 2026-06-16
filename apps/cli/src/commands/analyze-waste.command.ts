@@ -12,6 +12,7 @@ import {
   Ec2InstanceWastePolicy,
   EbsSnapshotWastePolicy,
   NatGatewayWastePolicy,
+  Gp2UpgradePolicy,
 } from 'cloud-cost-domain';
 import type { WastePolicyOptions, WasteScannerPort } from 'cloud-cost-domain';
 import { AnalyzeCloudWasteUseCase } from 'cloud-cost-application';
@@ -24,6 +25,7 @@ import {
   AwsEc2InstanceScanner,
   AwsEbsSnapshotScanner,
   AwsNatGatewayScanner,
+  AwsGp2UpgradeScanner,
   StaticPriceTableAdapter,
   resolveAwsAccountId,
 } from 'cloud-cost-infrastructure-aws-adapter';
@@ -134,6 +136,7 @@ export async function analyzeWasteCommand(
       new NatGatewayWastePolicy(policyOptions),
       cloudwatchWindowHours,
     ),
+    new AwsGp2UpgradeScanner(pricing, accountId, new Gp2UpgradePolicy(policyOptions)),
   ];
 
   const useCase = new AnalyzeCloudWasteUseCase(scanners);

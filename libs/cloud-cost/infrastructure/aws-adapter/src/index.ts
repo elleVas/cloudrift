@@ -5,6 +5,7 @@ export { AwsLoadBalancerScanner } from './scanners/aws-load-balancer.scanner';
 export { AwsEc2InstanceScanner } from './scanners/aws-ec2-instance.scanner';
 export { AwsEbsSnapshotScanner } from './scanners/aws-ebs-snapshot.scanner';
 export { AwsNatGatewayScanner } from './scanners/aws-nat-gateway.scanner';
+export { AwsGp2UpgradeScanner } from './scanners/aws-gp2-upgrade.scanner';
 export { AwsAdapterError } from './errors/aws-adapter.error';
 export { StaticPriceTableAdapter } from './pricing/static-price-table.adapter';
 export { resolveAwsAccountId } from './account/aws-account-id.resolver';

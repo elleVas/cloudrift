@@ -6,6 +6,7 @@ import type { LoadBalancer } from './entities/load-balancer.entity';
 import type { Ec2Instance } from './entities/ec2-instance.entity';
 import type { EbsSnapshot } from './entities/ebs-snapshot.entity';
 import type { NatGateway } from './entities/nat-gateway.entity';
+import type { Gp2Volume } from './entities/gp2-volume.entity';
 
 /**
  * Mappa kind → entità concreta. Permette ai consumer (formatter, frontend)
@@ -19,6 +20,7 @@ export interface ResourceKindMap {
   'ec2-instance': Ec2Instance;
   'ebs-snapshot': EbsSnapshot;
   'nat-gateway': NatGateway;
+  'ebs-gp2-upgrade': Gp2Volume;
 }
 
 export type FindingsByKind = {

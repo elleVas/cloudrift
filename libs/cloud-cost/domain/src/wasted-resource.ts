@@ -9,6 +9,7 @@ export const RESOURCE_KINDS = [
   'ec2-instance',
   'ebs-snapshot',
   'nat-gateway',
+  'ebs-gp2-upgrade',
 ] as const;
 
 export type ResourceKind = (typeof RESOURCE_KINDS)[number];
@@ -21,6 +22,7 @@ export const RESOURCE_KIND_LABELS: Record<ResourceKind, string> = {
   'ec2-instance': 'EC2 Instances',
   'ebs-snapshot': 'EBS Snapshots',
   'nat-gateway': 'NAT Gateways',
+  'ebs-gp2-upgrade': 'EBS gp2→gp3 Upgrades',
 };
 
 /**

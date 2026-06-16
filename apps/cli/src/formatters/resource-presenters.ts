@@ -98,6 +98,14 @@ export const presenters: PresenterMap = {
     recommend: (gw) =>
       `Delete idle NAT Gateway ${gw.id} in ${gw.region.code} — ${gw.wasteReason}`,
   },
+  'ebs-gp2-upgrade': {
+    title: 'EBS Volumes — gp2→gp3 upgrade (savings opportunity, not deletable waste)',
+    head: ['Volume ID', 'Region', 'Size', 'Created'],
+    colWidths: [170, 90, 60, 96, 80],
+    row: (v) => [v.id, v.region.code, `${v.sizeGb} GB`, day(v.createTime)],
+    recommend: (v) =>
+      `Modify EBS ${v.id} (${v.sizeGb} GB gp2) in ${v.region.code} to gp3 — saves ${v.costEstimate.format()}, no downtime`,
+  },
 };
 
 export function presenterFor(kind: ResourceKind): ResourcePresenter {

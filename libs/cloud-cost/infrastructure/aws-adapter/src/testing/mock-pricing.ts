@@ -1,7 +1,8 @@
 import type { PricingPort } from 'cloud-cost-domain';
 
 export const mockPricing: PricingPort = {
-  getEbsVolumePricePerGbMonth: () => 0.08,
+  getEbsVolumePricePerGbMonth: (_region, volumeType) =>
+    volumeType === 'gp2' ? 0.1 : 0.08,
   getEbsSnapshotPricePerGbMonth: () => 0.05,
   getElasticIpPricePerMonth: () => 3.6,
   getRdsStoragePricePerGbMonth: () => 0.115,
