@@ -32,14 +32,18 @@ import {
 import { loadConfig } from '../config/cloudrift.config';
 import { formatWasteReportAsTable } from '../formatters/waste-report.table-formatter';
 import { formatWasteReportAsJson } from '../formatters/waste-report.json-formatter';
+import { formatWasteReportAsMarkdown } from '../formatters/waste-report.markdown-formatter';
 import { generateWasteReportPdf } from '../formatters/waste-report.pdf-formatter';
 
 const DEFAULT_CLOUDWATCH_WINDOW_HOURS = 48;
+const OUTPUT_FORMATS = ['table', 'json', 'markdown'] as const;
+type OutputFormat = (typeof OUTPUT_FORMATS)[number];
 
 interface AnalyzeWasteOptions {
   regions: string[];
   accountId?: string;
   config?: string;
+  format?: string;
   pdf?: string | boolean;
   json?: string | boolean;
   minAgeDays?: string;
@@ -60,8 +64,16 @@ function fail(message: string): void {
 export async function analyzeWasteCommand(
   options: AnalyzeWasteOptions,
 ): Promise<void> {
-  // --json senza filename: stampa solo JSON su stdout (output machine-readable).
-  const jsonToStdout = options.json === true;
+  const format = (options.format ?? 'table') as OutputFormat;
+  if (!OUTPUT_FORMATS.includes(format)) {
+    return fail(`--format must be one of: ${OUTPUT_FORMATS.join(', ')}. Got "${options.format}".`);
+  }
+  // In modalità machine-readable lo stdout deve contenere SOLO il report:
+  // il chrome umano (banner, conferme) viene instradato su stderr.
+  const quietStdout = format !== 'table';
+  const info = quietStdout
+    ? (msg: string) => console.error(msg)
+    : (msg: string) => console.log(msg);
 
   const configResult = await loadConfig(process.cwd(), options.config);
   if (!configResult.ok) return fail(configResult.error.message);
@@ -104,16 +116,16 @@ export async function analyzeWasteCommand(
 
   const accountId = options.accountId ?? (await resolveAwsAccountId()) ?? 'unknown';
 
-  if (!jsonToStdout) {
+  if (!quietStdout) {
     const accountLabel = accountId !== 'unknown' ? ` (account ${accountId})` : '';
     console.log(
       chalk.bold.blue(
         `\n  Scanning ${regions.map((r) => r.code).join(', ')}${accountLabel} for wasted cloud resources...\n`,
       ),
     );
-    if (skipped.length > 0) {
-      console.log(chalk.dim(`  Skipping excluded regions: ${skipped.join(', ')}\n`));
-    }
+  }
+  if (skipped.length > 0) {
+    info(chalk.dim(`  Skipping excluded regions: ${skipped.join(', ')}`));
   }
 
   const pricing = new StaticPriceTableAdapter();
@@ -151,28 +163,39 @@ export async function analyzeWasteCommand(
     pricesAsOf: pricing.getPricesAsOf(),
   };
 
-  if (jsonToStdout) {
-    console.log(formatWasteReportAsJson(result.value, meta));
+  // Il report scelto va SEMPRE su stdout (così è componibile in pipeline:
+  // `--format json | jq`, `--format markdown >> $GITHUB_STEP_SUMMARY`).
+  let rendered: string;
+  if (format === 'json') {
+    rendered = formatWasteReportAsJson(result.value, meta);
+  } else if (format === 'markdown') {
+    rendered = formatWasteReportAsMarkdown(result.value, meta, {
+      costAlertThresholdUsd: config.costAlertThresholdUsd,
+    });
   } else {
-    console.log(formatWasteReportAsTable(result.value, meta));
+    rendered = formatWasteReportAsTable(result.value, meta);
   }
+  console.log(rendered);
 
-  if (typeof options.json === 'string') {
-    const jsonPath = resolve(process.cwd(), options.json);
+  const day = meta.generatedAt.toISOString().split('T')[0];
+
+  // --json / --pdf sono artefatti su file, indipendenti dal formato di stdout.
+  if (options.json !== undefined && options.json !== false) {
+    const filename =
+      typeof options.json === 'string' ? options.json : `cloudrift-report-${day}.json`;
+    const jsonPath = resolve(process.cwd(), filename);
     await writeFile(jsonPath, formatWasteReportAsJson(result.value, meta));
-    console.log(chalk.green(`  JSON report saved to ${jsonPath}\n`));
+    info(chalk.green(`  JSON report saved to ${jsonPath}`));
   }
 
   if (options.pdf !== undefined && options.pdf !== false) {
     const filename =
-      typeof options.pdf === 'string'
-        ? options.pdf
-        : `cloudrift-report-${new Date().toISOString().split('T')[0]}.pdf`;
+      typeof options.pdf === 'string' ? options.pdf : `cloudrift-report-${day}.pdf`;
     const outputPath = resolve(process.cwd(), filename);
 
-    process.stdout.write(chalk.bold(`  Generating PDF report...`));
+    info(chalk.bold('  Generating PDF report...'));
     await generateWasteReportPdf(result.value, meta, outputPath);
-    console.log(chalk.green(` saved to ${outputPath}\n`));
+    info(chalk.green(`  PDF report saved to ${outputPath}`));
   }
 
   // Soglia di costo per le pipeline: exit code 2 quando il totale la supera.
