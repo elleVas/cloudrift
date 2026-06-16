@@ -19,7 +19,7 @@ import { AwsAdapterError } from '../errors/aws-adapter.error';
 import { paginate } from '../utils/paginate';
 import { mapWithConcurrency } from '../utils/map-with-concurrency';
 
-const LOOKBACK_HOURS = 48;
+const DEFAULT_LOOKBACK_HOURS = 48;
 // Limita le chiamate CloudWatch simultanee per non incorrere in throttling
 // su account con molti NAT Gateway.
 const CLOUDWATCH_CONCURRENCY = 5;
@@ -31,6 +31,7 @@ export class AwsNatGatewayScanner implements WasteScannerPort {
     private readonly pricing: PricingPort,
     private readonly accountId = 'unknown',
     private readonly policy = new NatGatewayWastePolicy(),
+    private readonly windowHours = DEFAULT_LOOKBACK_HOURS,
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
@@ -50,7 +51,7 @@ export class AwsNatGatewayScanner implements WasteScannerPort {
       if (gateways.length === 0) return Result.ok([]);
 
       const endTime = new Date();
-      const startTime = new Date(endTime.getTime() - LOOKBACK_HOURS * 60 * 60 * 1000);
+      const startTime = new Date(endTime.getTime() - this.windowHours * 60 * 60 * 1000);
       const monthlyCostUsd = this.pricing.getNatGatewayPricePerMonth(region);
 
       const bytesPerGateway = await mapWithConcurrency(
@@ -64,7 +65,7 @@ export class AwsNatGatewayScanner implements WasteScannerPort {
               Dimensions: [{ Name: 'NatGatewayId', Value: gw.NatGatewayId! }],
               StartTime: startTime,
               EndTime: endTime,
-              Period: LOOKBACK_HOURS * 3600,
+              Period: this.windowHours * 3600,
               Statistics: ['Sum'],
             }),
           );
@@ -84,7 +85,7 @@ export class AwsNatGatewayScanner implements WasteScannerPort {
               createTime: gw.CreateTime ?? new Date(0),
               detectedAt: now,
               bytesOutLastWindow: bytesPerGateway[index],
-              metricWindowHours: LOOKBACK_HOURS,
+              metricWindowHours: this.windowHours,
               tags: Object.fromEntries(
                 (gw.Tags ?? []).map((t) => [t.Key ?? '', t.Value ?? '']),
               ),

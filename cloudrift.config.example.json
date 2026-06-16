@@ -1,0 +1,10 @@
+{
+  "excludeRegions": ["us-gov-east-1", "us-gov-west-1"],
+  "excludeTagValues": {
+    "Environment": "Production"
+  },
+  "cloudwatchWindowHours": 168,
+  "minAgeDays": 14,
+  "ignoreTag": "cloudrift:ignore",
+  "costAlertThresholdUsd": 500
+}

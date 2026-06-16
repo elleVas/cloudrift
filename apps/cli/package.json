@@ -4,6 +4,16 @@
   "private": true,
   "nx": {
     "targets": {
+      "test": {
+        "executor": "@nx/jest:jest",
+        "outputs": [
+          "{workspaceRoot}/coverage/{projectRoot}"
+        ],
+        "options": {
+          "jestConfig": "apps/cli/jest.config.cjs",
+          "passWithNoTests": true
+        }
+      },
       "build": {
         "executor": "@nx/esbuild:esbuild",
         "outputs": [
