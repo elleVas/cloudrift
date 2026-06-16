@@ -6,6 +6,7 @@ import type { LoadBalancer } from '../entities/load-balancer.entity';
 import type { Ec2Instance } from '../entities/ec2-instance.entity';
 import type { EbsSnapshot } from '../entities/ebs-snapshot.entity';
 import type { NatGateway } from '../entities/nat-gateway.entity';
+import type { Gp2Volume } from '../entities/gp2-volume.entity';
 
 export class EbsVolumeWastePolicy extends WastePolicy<EbsVolume> {
   protected judge(volume: EbsVolume, now: Date): WasteVerdict {
@@ -79,5 +80,17 @@ export class NatGatewayWastePolicy extends WastePolicy<NatGateway> {
       return notWaste(`created less than ${this.minAgeDays}d ago`);
     }
     return waste(`zero traffic in last ${gateway.metricWindowHours}h`);
+  }
+}
+
+export class Gp2UpgradePolicy extends WastePolicy<Gp2Volume> {
+  protected judge(volume: Gp2Volume, now: Date): WasteVerdict {
+    // Il prefiltro server-side garantisce già volume-type=gp2 in-use;
+    // applichiamo solo il periodo di grazia per non segnalare risorse
+    // appena create (infrastruttura ancora in fase di setup).
+    if (this.isWithinGracePeriod(volume.createTime, now)) {
+      return notWaste(`created less than ${this.minAgeDays}d ago`);
+    }
+    return waste('gp2 volume upgradeable to gp3');
   }
 }

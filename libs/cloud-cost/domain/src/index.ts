@@ -19,6 +19,8 @@ export { EbsSnapshot } from './entities/ebs-snapshot.entity';
 export type { EbsSnapshotProps } from './entities/ebs-snapshot.entity';
 export { NatGateway } from './entities/nat-gateway.entity';
 export type { NatGatewayProps } from './entities/nat-gateway.entity';
+export { Gp2Volume } from './entities/gp2-volume.entity';
+export type { Gp2VolumeProps } from './entities/gp2-volume.entity';
 
 // Value Objects
 export { AwsRegion, InvalidAwsRegionError } from './value-objects/aws-region.value-object';
@@ -41,6 +43,7 @@ export {
   Ec2InstanceWastePolicy,
   EbsSnapshotWastePolicy,
   NatGatewayWastePolicy,
+  Gp2UpgradePolicy,
 } from './policies/resource-waste-policies';
 
 // Outbound Ports

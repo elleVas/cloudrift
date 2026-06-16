@@ -6,6 +6,7 @@ import {
   Ec2InstanceWastePolicy,
   EbsSnapshotWastePolicy,
   NatGatewayWastePolicy,
+  Gp2UpgradePolicy,
 } from './resource-waste-policies';
 import { DEFAULT_IGNORE_TAG } from './waste-policy';
 import { EbsVolume } from '../entities/ebs-volume.entity';
@@ -15,6 +16,7 @@ import { LoadBalancer } from '../entities/load-balancer.entity';
 import { Ec2Instance } from '../entities/ec2-instance.entity';
 import { EbsSnapshot } from '../entities/ebs-snapshot.entity';
 import { NatGateway } from '../entities/nat-gateway.entity';
+import { Gp2Volume } from '../entities/gp2-volume.entity';
 import type { EbsSnapshotProps } from '../entities/ebs-snapshot.entity';
 import type { Ec2InstanceProps } from '../entities/ec2-instance.entity';
 import { AwsRegion } from '../value-objects/aws-region.value-object';
@@ -305,5 +307,44 @@ describe('NatGatewayWastePolicy', () => {
 
   it('does not flag a freshly created gateway (grace period)', () => {
     expect(policy.evaluate(makeGateway(0, yesterday), now).isWaste).toBe(false);
+  });
+});
+
+describe('Gp2UpgradePolicy', () => {
+  const policy = new Gp2UpgradePolicy();
+
+  function makeGp2Volume(
+    overrides: { createTime?: Date; tags?: Record<string, string> } = {},
+  ): Gp2Volume {
+    return new Gp2Volume({
+      volumeId: 'vol-gp2',
+      region,
+      accountId: '123456789012',
+      sizeGb: 200,
+      createTime: overrides.createTime ?? oldDate,
+      detectedAt: now,
+      tags: overrides.tags ?? {},
+      monthlyCostUsd: 4, // (0.10 - 0.08) * 200
+    });
+  }
+
+  it('flags an old gp2 volume as an upgrade opportunity', () => {
+    expect(policy.evaluate(makeGp2Volume(), now).isWaste).toBe(true);
+  });
+
+  it('does not flag a freshly created gp2 volume (grace period)', () => {
+    expect(policy.evaluate(makeGp2Volume({ createTime: yesterday }), now).isWaste).toBe(false);
+  });
+
+  it('does not flag a gp2 volume carrying the ignore tag', () => {
+    const verdict = policy.evaluate(
+      makeGp2Volume({ tags: { [DEFAULT_IGNORE_TAG]: 'true' } }),
+      now,
+    );
+    expect(verdict.isWaste).toBe(false);
+  });
+
+  it('reports the saving in the wasteReason', () => {
+    expect(makeGp2Volume().wasteReason).toContain('saves $4.00/mo');
   });
 });
