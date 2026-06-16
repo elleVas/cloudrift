@@ -1,4 +1,4 @@
-import { ValueObject } from 'shared-kernel';
+import { DomainError, Result, ValueObject } from 'shared-kernel';
 
 interface AwsRegionProps {
   code: string;
@@ -21,14 +21,29 @@ const VALID_AWS_REGIONS = new Set([
   'mx-central-1',
 ]);
 
+export class InvalidAwsRegionError extends DomainError {
+  constructor(code: string) {
+    super(
+      'INVALID_AWS_REGION',
+      `Invalid AWS region: "${code}". Must be a recognized AWS region code (e.g. us-east-1, eu-west-1).`,
+    );
+  }
+}
+
 export class AwsRegion extends ValueObject<AwsRegionProps> {
-  static create(code: string): AwsRegion {
+  /** Factory Result-based: da usare per input esterni (CLI, API). */
+  static parse(code: string): Result<AwsRegion, InvalidAwsRegionError> {
     if (!VALID_AWS_REGIONS.has(code)) {
-      throw new Error(
-        `Invalid AWS region: "${code}". Must be a recognized AWS region code (e.g. us-east-1, eu-west-1).`,
-      );
+      return Result.fail(new InvalidAwsRegionError(code));
     }
-    return new AwsRegion({ code });
+    return Result.ok(new AwsRegion({ code }));
+  }
+
+  /** Factory throwing: da usare solo per codici noti a compile time (test, fixture). */
+  static create(code: string): AwsRegion {
+    const result = AwsRegion.parse(code);
+    if (!result.ok) throw result.error;
+    return result.value;
   }
 
   get code(): string {

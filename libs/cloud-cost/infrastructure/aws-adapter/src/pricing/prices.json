@@ -1,5 +1,6 @@
 {
-  "_comment": "Monthly USD prices per region. 'default' is used as fallback for unlisted regions. Sources: AWS public pricing pages (last verified 2025-06).",
+  "_comment": "Monthly USD prices per region. 'default' is used as fallback for unlisted regions. Sources: AWS public pricing pages. Update 'pricesAsOf' whenever prices are re-verified.",
+  "pricesAsOf": "2025-06",
   "default": {
     "ebs-gp2":       0.100,
     "ebs-gp3":       0.080,

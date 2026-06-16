@@ -1,7 +1,10 @@
 import { LoadBalancer } from './load-balancer.entity';
 import { AwsRegion } from '../value-objects/aws-region.value-object';
 
-function makeLb(type: 'application' | 'network' = 'application'): LoadBalancer {
+function makeLb(
+  type: 'application' | 'network' = 'application',
+  registeredTargetCount = 0,
+): LoadBalancer {
   return new LoadBalancer({
     arn: 'arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/my-lb/abc123',
     name: 'my-lb',
@@ -10,6 +13,7 @@ function makeLb(type: 'application' | 'network' = 'application'): LoadBalancer {
     type,
     createdTime: new Date('2025-03-01'),
     detectedAt: new Date('2026-06-09'),
+    registeredTargetCount,
     tags: { Team: 'platform' },
     monthlyCostUsd: 16.2,
   });
@@ -27,6 +31,19 @@ describe('LoadBalancer', () => {
     expect(lb.name).toBe('my-lb');
     expect(lb.type).toBe('network');
     expect(lb.region.code).toBe('us-east-1');
+  });
+
+  it('isIdle returns true when no targets are registered', () => {
+    expect(makeLb('application', 0).isIdle()).toBe(true);
+  });
+
+  it('isIdle returns false when targets are registered', () => {
+    expect(makeLb('application', 3).isIdle()).toBe(false);
+  });
+
+  it('exposes kind and wasteReason', () => {
+    expect(makeLb().kind).toBe('load-balancer');
+    expect(makeLb().wasteReason).toContain('no registered targets');
   });
 
   it('costEstimate returns stored monthlyCostUsd', () => {

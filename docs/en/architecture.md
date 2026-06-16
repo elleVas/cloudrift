@@ -1,0 +1,255 @@
+# cloudrift Architecture
+
+> 🇮🇹 [Versione italiana](../it/architettura.md)
+
+## Overview
+
+cloudrift adopts a layered architecture inspired by **Domain-Driven Design (DDD)** and **Hexagonal Architecture** (Ports & Adapters), organized around a **plugin model**: the central domain concept is the _wasted resource_ (`WastedResource`), and every AWS resource type is a plugin (`WasteScannerPort`) that the coordinator executes generically.
+
+This choice buys two things, and it is worth being explicit about which:
+
+1. **Testability without AWS** — domain and application are tested with fake in-memory scanners, no SDK and no credentials.
+2. **Adding new resource types at constant cost** — a new type touches neither the coordinator, nor the summary, nor the report DTO (see [adding-a-resource.md](./adding-a-resource.md)).
+
+What it does **not** buy on its own is multi-cloud: see [Towards multi-cloud](#towards-multi-cloud) for the honest path.
+
+---
+
+## Layer structure
+
+```
+┌──────────────────────────────────────────────────────────┐
+│                        apps/cli                          │
+│   (Commander.js entry point, presenters, composition root)│
+└───────────────────────────┬──────────────────────────────┘
+                            │ depends on
+┌───────────────────────────▼──────────────────────────────┐
+│              libs/cloud-cost/application                 │
+│   (generic AnalyzeCloudWasteUseCase, WasteReportDto)     │
+└──────┬──────────────────────────────────────┬────────────┘
+       │ depends on                           │ depends on
+┌──────▼──────────────────┐   ┌──────────────▼────────────┐
+│  libs/cloud-cost/domain │   │  libs/shared/kernel       │
+│  (WastedResource,       │   │  (Entity, ValueObject,    │
+│   entities, policies,   │   │   Result, DomainError)    │
+│   ports)                │   └───────────────────────────┘
+└──────▲──────────────────┘
+       │ implements WasteScannerPort (×7)
+┌──────┴──────────────────────────────────────────────────┐
+│        libs/cloud-cost/infrastructure/aws-adapter       │
+│   (AWS SDK v3 scanners, pricing, STS account resolver)  │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Fundamental rule:** dependencies always point inward (towards the domain). The domain knows nothing about the AWS SDK, Commander.js or pdfkit.
+
+---
+
+## Why DDD and Hexagonal Architecture?
+
+### Testability
+
+The domain and the use case are tested **without any AWS dependency**: policies are pure functions over entities with deterministic dates, and the coordinator is tested with fake in-memory scanners (`{ kind, scan: async () => Result.ok([...]) }`). No mocking framework, fast and deterministic tests. This is the main benefit, and the one that alone justifies the ports.
+
+### The domain is the product
+
+The definition of "waste" — grace periods, exclusion tags, snapshots that cannot be deleted because they are bound to AMIs, traffic windows — is the real intellectual property of the tool, and it changes more often than the AWS plumbing. Keeping it in explicit domain policies, separate from SDK details, means it can evolve and be tested without touching the infrastructure. If these rules lived inside the API call filters (as they originally did), every threshold tweak would require reasoning about pagination and AWS clients.
+
+### Extensibility at constant cost
+
+Hexagonal here takes the shape of a plugin model: every resource type is a `WasteScannerPort`. Adding a type touches neither the coordinator, nor the summary, nor the DTO, nor the formatters (see [adding-a-resource.md](./adding-a-resource.md)) — the one remaining modification point is the `ResourceKind` union, a single line the compiler uses to walk you through every spot that needs completing.
+
+### Substitutability — within honest limits
+
+Ports make the **technology** replaceable, not the **domain**: you can swap the pricing source (static → AWS Pricing API) or add an entry point (CLI → HTTP) without touching the core. Multi-cloud, on the other hand, is not "free" — it requires new entities, policies and price tables — but the architecture guarantees the core stays untouched: the path is described in [Towards multi-cloud](#towards-multi-cloud).
+
+### Separation of responsibilities
+
+- The **domain** KNOWS what "wasted" means (entities + waste policies)
+- The **application** KNOWS how to coordinate the scan and project the report
+- The **infrastructure** KNOWS how to talk to AWS (pagination, clients, rate limits)
+- The **CLI** KNOWS how to display it (presenters, table, PDF, JSON)
+
+**The trade-off, stated openly:** for a tool of this size the architecture is more structure than the bare minimum — a single script would perform the same scan. It pays off because the domain (the policies) is bound to grow, because resource types accumulate over time, and because presentations multiply (terminal, PDF, JSON, a frontend tomorrow). If none of those three directions were true, this architecture would be over-engineered.
+
+---
+
+## The layers in detail
+
+### 1. `shared/kernel` — Shared core
+
+- **`Entity<TId>`**: base class for objects with identity.
+- **`ValueObject<T>`**: immutable objects with structural equality (`AwsRegion`, `CostEstimate`).
+- **`Result<T, E>`**: success/failure as a value, no exceptions across layers.
+- **`DomainError`**: typed errors with an explicit `code`.
+
+### 2. `cloud-cost/domain` — The heart of the system
+
+#### The unifying model: `WastedResource` and `ResourceKind`
+
+```typescript
+export type ResourceKind =
+  | 'ebs-volume'
+  | 'elastic-ip'
+  | 'rds-instance'
+  | 'load-balancer'
+  | 'ec2-instance'
+  | 'ebs-snapshot'
+  | 'nat-gateway';
+
+export interface WastedResource {
+  readonly id: string;
+  readonly kind: ResourceKind;
+  readonly region: AwsRegion;
+  readonly accountId: string;
+  readonly detectedAt: Date;
+  readonly tags: Record<string, string>;
+  readonly costEstimate: CostEstimate;
+  readonly wasteReason: string;
+}
+```
+
+`WastedResource` is **the only type that crosses the inbound boundary**: coordinator, summary, formatters and DTO depend on this interface, never on the concrete entities. The `ResourceKind` union is the single compiler-controlled extension point: adding a kind fails the typecheck until every consumer (CLI presenters, etc.) is updated. This is pragmatic OCP: one modification point exists, but it is one line and the compiler points out every spot left to complete.
+
+#### Entities
+
+The 7 entities (`EbsVolume`, `ElasticIp`, `RdsInstance`, `LoadBalancer`, `Ec2Instance`, `EbsSnapshot`, `NatGateway`) implement `WastedResource` and carry the observed **facts** the decisions need: `LoadBalancer.registeredTargetCount`, `NatGateway.bytesOutLastWindow`, `EbsSnapshot.sourceVolumeExists` / `boundToAmiId`, `Ec2Instance.stoppedSince`.
+
+#### Waste Policies — where the business knowledge lives
+
+The definition of "waste" does **not** live in the adapters or in the AWS API filters: it lives in the domain policies (`libs/cloud-cost/domain/src/policies/`). The base class `WastePolicy<T>` applies two cross-cutting rules:
+
+- **Exclusion tag** (`cloudrift:ignore`, configurable): the resource is explicitly opted out by the user.
+- **Grace period** (`minAgeDays`, default 7): a resource that is too young is not waste — a freshly detached volume, a just-created LB or a NAT with no traffic for a few hours are almost always work in progress, not waste.
+
+Each concrete policy adds the type-specific criterion:
+
+| Policy                    | Criterion                                 | False-positive guard                                                            |
+| ------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------- |
+| `EbsVolumeWastePolicy`    | `state === 'available'`                   | grace on `createTime` (AWS does not expose the detach date)                     |
+| `ElasticIpWastePolicy`    | no association                            | — (EIPs have no creation date)                                                  |
+| `RdsInstanceWastePolicy`  | `status === 'stopped'`                    | — (AWS auto-restarts after 7 days: if it is stopped, it is recent by definition) |
+| `LoadBalancerWastePolicy` | zero registered targets                   | grace on `createdTime`                                                          |
+| `Ec2InstanceWastePolicy`  | `state === 'stopped'`                     | grace on `stoppedSince` (from `StateTransitionReason`), fallback `launchTime`   |
+| `EbsSnapshotWastePolicy`  | source volume deleted                     | snapshots referenced by AMIs excluded (not deletable); grace on `startTime`     |
+| `NatGatewayWastePolicy`   | zero outbound bytes in the window (48h)   | grace on `createTime` (freshly created environments)                            |
+
+Policies are pure domain logic: tested without AWS, with their parameters coming from the CLI (`--min-age-days`, `--ignore-tag`).
+
+#### Ports
+
+- **Outbound `WasteScannerPort`** — the single detection port:
+  ```typescript
+  export interface WasteScannerPort {
+    readonly kind: ResourceKind;
+    scan(region: AwsRegion): Promise<Result<WastedResource[]>>;
+  }
+  ```
+  The contract requires the scanner to return only resources **already confirmed** by the relevant policy.
+- **Outbound `PricingPort`** — per-region prices per resource type, plus `getPricesAsOf()` (the price-table verification date, shown in every report).
+- **Inbound `FindWastedResourcesUseCasePort`** — defines `WastedResourcesSummary { findings, totalMonthlyCostUsd, scanErrors }` and `ResourceScanError { kind, region, error }`.
+
+### 3. `cloud-cost/application` — Generic use case and DTO
+
+`AnalyzeCloudWasteUseCase` receives an **array of `WasteScannerPort`** and does not know how many or which ones:
+
+```typescript
+constructor(private readonly scanners: readonly WasteScannerPort[]) {}
+```
+
+It runs the scanners **in parallel with each other** and **sequentially across regions** (to avoid concentrating calls on the same regional APIs). Errors are collected per _(scanner, region)_ pair: one region failing discards neither the results of the other regions nor those of the other scanners. The summary is always returned with partial data and the errors in `scanErrors`.
+
+`toWasteReportDto()` projects the summary into **`WasteReportDto`**, a JSON-safe structure (primitives and ISO strings only): it is the data contract for any presentation, present and future (see [Frontend-readiness](#frontend-readiness)).
+
+### 4. `cloud-cost/infrastructure/aws-adapter` — Concrete scanners
+
+Every scanner implements `WasteScannerPort` with the **AWS SDK v3**: it creates the client for the region, uses `paginate()` to follow cursors, maps responses to entities (computing costs via `PricingPort`), applies the waste policy and destroys the client in the `finally`. SDK errors are wrapped in `AwsAdapterError`.
+
+Adapters pre-filter server-side where possible (e.g. `status=available` for EBS) as an **optimization**: the API filter yields a superset of the candidates; the final decision always belongs to the domain policy.
+
+Specifics:
+
+- **`AwsNatGatewayScanner`**: CloudWatch calls are capped at 5 concurrent (`mapWithConcurrency`) to avoid throttling on accounts with many gateways.
+- **`AwsEbsSnapshotScanner`**: also queries `DescribeImages` to exclude snapshots bound to registered AMIs.
+- **`resolveAwsAccountId()`**: resolves the account ID via `sts:GetCallerIdentity`, removing manual input (the `--account-id` override remains).
+
+### 5. `apps/cli` — Entry point and composition root
+
+`analyze-waste.command.ts` is the only place where concrete implementations are instantiated: it builds the price table, the policies (with the CLI parameters) and the 7 scanners, injects them into the use case and hands the result to the formatters. The three formatters (console table, PDF, JSON) share the `resource-presenters.ts` registry, typed `Record<ResourceKind, …>` with `satisfies`: forgetting the presenter for a new kind is a compile error.
+
+---
+
+## Error handling
+
+The project uses `Result<T, E>` for expected errors, **with no exceptions across layer boundaries** — including user input: `AwsRegion.parse()` returns `Result<AwsRegion, InvalidAwsRegionError>` and the CLI handles it by printing a clean message and exiting with code 1 (a throwing `AwsRegion.create()` also exists, reserved for codes known at compile time, e.g. test fixtures).
+
+```
+AWS scanner ──Result.ok(findings)───▶ Use Case ──Result.ok(summary)──▶ CLI
+            ──Result.fail(err)──────▶ Use Case ──scanErrors[{kind, region, error}]──▶ CLI (warning)
+```
+
+Error granularity is **per (scanner, region)**: a missing permission in one region produces a warning for that pair and touches nothing else.
+
+---
+
+## Towards multi-cloud
+
+Today the product's domain **is** AWS waste: `EbsVolume`, `NatGateway` and `ElasticIp` are legitimately part of the ubiquitous language, and pretending otherwise would produce empty abstractions. That said, the refactoring towards `WastedResource` has made the multi-cloud path concrete and incremental. Here is how it would happen, in three phases:
+
+### Phase 1 — Generalize the inbound boundary (small)
+
+The only AWS-specific type crossing the inbound boundary is `AwsRegion`. Introduce a `CloudLocation { provider: 'aws' | 'gcp' | 'azure'; code: string }` VO (or add `provider` to `WastedResource`), and `ResourceScanError.region` becomes a qualified string. Coordinator, summary, DTO and formatters **do not change**: they already depend only on `WastedResource`.
+
+### Phase 2 — New bounded context or new kinds (the real decision)
+
+Two options, to be chosen when the real requirement exists:
+
+- **Additional kinds in the same context** — `'gcp-persistent-disk'`, `'gcp-static-ip'`, … join the `ResourceKind` union with their own entities (`PersistentDisk`, not a fake `EbsVolume`), policies and scanners (`libs/cloud-cost/infrastructure/gcp-adapter`). The right fit if the product remains "one unified waste report". The coordinator's `Promise.all` scales from 7 to N scanners without changes.
+- **Separate bounded context** — `libs/gcp-cost/` with its own domain, if the semantics diverge too much. Shares only `shared/kernel`. The `libs/<context>/` structure already allows it.
+
+The first option is the recommended one as long as the report stays unified: the marginal cost of a GCP kind is identical to that of an AWS kind (entity + policy + scanner + presenter).
+
+### Phase 3 — Multi-provider composition root
+
+The CLI registers both providers' scanners in the same array:
+
+```typescript
+const scanners: WasteScannerPort[] = [
+  ...buildAwsScanners(awsPricing, awsAccountId, policyOptions),
+  ...buildGcpScanners(gcpPricing, gcpProjectId, policyOptions),
+];
+```
+
+The use case, the summary, the DTO and the formatters stay untouched — this is the property the current architecture actually guarantees, and it is verifiable: none of those files mentions an AWS service.
+
+**What NOT to promise:** that "you just write an adapter". You need GCP entities, GCP policies (waste semantics differ: a Persistent Disk has no EBS-style `available` state), a GCP price table and the presenters. The architecture guarantees the _core_ stays untouched, not that the work is free.
+
+---
+
+## Frontend-readiness
+
+Today the presentations are the terminal and PDF; tomorrow there could be a web frontend. The design accounts for it like this:
+
+```
+                        ┌────────────► table-formatter ──► terminal
+WastedResourcesSummary ─┼────────────► pdf-formatter ────► report.pdf
+  (domain entities)     │
+                        └─ toWasteReportDto() ─► WasteReportDto (JSON-safe)
+                                                   │
+                                                   ├─► json-formatter ──► stdout / file (--json)
+                                                   └─► [future] HTTP adapter ──► frontend SPA
+```
+
+The points that make a frontend an addition rather than a refactoring:
+
+1. **`WasteReportDto` is the API contract that already exists.** It is serializable (no classes, no `Date`, ISO strings only), versionable and already exercised in production by the `--json` flag. An HTTP endpoint (`GET /api/waste-report`) would return exactly this DTO: the frontend would never depend on domain entities.
+2. **The use case is already headless.** `AnalyzeCloudWasteUseCase` does not know it lives inside a CLI: a new entry point (`apps/api` with Fastify/Hono, or a Lambda) is just another composition root that instantiates the same scanners and calls the same `execute()`.
+3. **No logic in the formatters.** Table, PDF and JSON are pure projections of the summary/DTO; the frontend would be the fourth projection, built on the DTO's `breakdown`, `findings` and `scanErrors` (which already contain labels, reasons and costs ready for rendering).
+
+Concrete steps when needed: create `apps/api` (new Nx project) with an endpoint that runs the use case and returns the DTO; add authentication/caching in the HTTP adapter (not in the core); the frontend (React/Vue in `apps/web`) consumes the typed DTO by importing `WasteReportDto` from `cloud-cost-application` — the type is already exported.
+
+---
+
+## Bounded Context
+
+There is currently a single bounded context: **cloud-cost**. The `libs/<context>/{domain,application,infrastructure}` structure allows adding more (e.g. `gcp-cost`, or non-cost contexts such as `security-posture`) sharing only `shared/kernel`.

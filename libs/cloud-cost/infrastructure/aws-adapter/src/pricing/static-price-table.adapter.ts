@@ -34,4 +34,8 @@ export class StaticPriceTableAdapter implements PricingPort {
   getNatGatewayPricePerMonth(region: AwsRegion): number {
     return lookup(region, 'nat-gateway');
   }
+
+  getPricesAsOf(): string {
+    return priceTable.pricesAsOf;
+  }
 }

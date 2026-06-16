@@ -5,7 +5,7 @@ import { analyzeWasteCommand } from './commands/analyze-waste.command';
 program
   .name('cloudrift')
   .description('Detect and report wasted AWS cloud resources')
-  .version('0.1.0');
+  .version('0.2.0');
 
 program
   .command('analyze')
@@ -17,12 +17,25 @@ program
   )
   .option(
     '--account-id <id>',
-    'AWS account ID (12-digit number visible in the AWS console, e.g. 123456789012)',
-    'unknown',
+    'AWS account ID override (auto-detected via STS when omitted)',
+  )
+  .option(
+    '--min-age-days <days>',
+    'grace period: resources younger than this many days are not reported',
+    '7',
+  )
+  .option(
+    '--ignore-tag <tag>',
+    'resources carrying this tag are excluded from the report',
+    'cloudrift:ignore',
   )
   .option(
     '--pdf [filename]',
     'Export a PDF report (optional filename, defaults to cloudrift-report-YYYY-MM-DD.pdf)',
+  )
+  .option(
+    '--json [filename]',
+    'Output the report as JSON (to stdout when no filename is given)',
   )
   .action(analyzeWasteCommand);
 

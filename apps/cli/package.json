@@ -16,7 +16,8 @@
           "format": [
             "cjs"
           ],
-          "bundle": false,
+          "bundle": true,
+          "thirdParty": false,
           "main": "apps/cli/src/main.ts",
           "tsConfig": "apps/cli/tsconfig.app.json",
           "assets": [
