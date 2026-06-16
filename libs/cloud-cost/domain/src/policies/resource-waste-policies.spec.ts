@@ -76,6 +76,36 @@ describe('EbsVolumeWastePolicy', () => {
   });
 });
 
+describe('WastePolicy excludeTagValues', () => {
+  it('excludes a resource whose tag matches an excluded key=value', () => {
+    const policy = new EbsVolumeWastePolicy({
+      excludeTagValues: { Environment: 'Production' },
+    });
+    const verdict = policy.evaluate(
+      makeVolume({ tags: { Environment: 'Production' } }),
+      now,
+    );
+    expect(verdict.isWaste).toBe(false);
+    expect(verdict.reason).toContain('Environment=Production');
+  });
+
+  it('does not exclude when the tag value differs', () => {
+    const policy = new EbsVolumeWastePolicy({
+      excludeTagValues: { Environment: 'Production' },
+    });
+    expect(
+      policy.evaluate(makeVolume({ tags: { Environment: 'Staging' } }), now).isWaste,
+    ).toBe(true);
+  });
+
+  it('does not exclude when the tag key is absent', () => {
+    const policy = new EbsVolumeWastePolicy({
+      excludeTagValues: { Environment: 'Production' },
+    });
+    expect(policy.evaluate(makeVolume({ tags: {} }), now).isWaste).toBe(true);
+  });
+});
+
 describe('ElasticIpWastePolicy', () => {
   const policy = new ElasticIpWastePolicy();
 

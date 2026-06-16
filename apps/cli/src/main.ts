@@ -20,14 +20,16 @@ program
     'AWS account ID override (auto-detected via STS when omitted)',
   )
   .option(
+    '--config <path>',
+    'path to a cloudrift config file (defaults to cloudrift.config.json / .cloudriftrc in the cwd)',
+  )
+  .option(
     '--min-age-days <days>',
-    'grace period: resources younger than this many days are not reported',
-    '7',
+    'grace period: resources younger than this many days are not reported (default 7, overrides config)',
   )
   .option(
     '--ignore-tag <tag>',
-    'resources carrying this tag are excluded from the report',
-    'cloudrift:ignore',
+    'resources carrying this tag are excluded from the report (default cloudrift:ignore, overrides config)',
   )
   .option(
     '--pdf [filename]',
