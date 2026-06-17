@@ -9,7 +9,7 @@ Questo documento descrive il flusso completo di esecuzione, dall'invocazione CLI
 ## Flusso di esecuzione end-to-end
 
 ```
-utente: cloudrift analyze -r us-east-1 eu-west-1 [--pdf] [--json] [--min-age-days 7]
+utente: cloudrift analyze -r us-east-1 eu-west-1 [--format json|markdown] [--pdf] [--live-pricing]
           │
           ▼
      apps/cli/src/main.ts
@@ -17,23 +17,25 @@ utente: cloudrift analyze -r us-east-1 eu-west-1 [--pdf] [--json] [--min-age-day
           │
           ▼
      analyze-waste.command.ts  (composition root)
-     1. AwsRegion.parse() per ogni regione (errore pulito su input invalido)
-     2. accountId: --account-id oppure STS GetCallerIdentity
-     3. Istanzia pricing, policy (config + --min-age-days / --ignore-tag) e gli 8 scanner
+     1. loadConfig() — cloudrift.config.json / .cloudriftrc / --config
+     2. AwsRegion.parse() per regione; config.excludeRegions filtrate via
+     3. accountId: --account-id oppure STS GetCallerIdentity
+     4. Pricing: tabella statica ← live API (--live-pricing) ← config.prices (vincono)
+     5. Istanzia policy (config + flag) e gli 8 scanner
           │
           ▼
      AnalyzeCloudWasteUseCase.execute({ regions })
      Esegue gli scanner registrati in parallelo (Promise.all),
      ogni scanner itera le regioni in sequenza
           │
-     ┌────┬────┬────┬────┬────┬────┬────┐
-     ▼    ▼    ▼    ▼    ▼    ▼    ▼    │ (uno per ResourceKind)
-   EBS  EIP  RDS  ELB  EC2  Snap  NAT   │
-  scan  scan scan scan scan scan  scan  │
-     │    │    │    │    │    │    │
-     ▼    ▼    ▼    ▼    ▼    ▼    ▼
-  EC2  EC2  RDS ELBv2 EC2* EC2** EC2+CW
-  API  API  API  API  API  API   API
+     ┌────┬────┬────┬────┬────┬────┬────┬────┐
+     ▼    ▼    ▼    ▼    ▼    ▼    ▼    ▼    │ (uno per ResourceKind)
+   EBS  EIP  RDS  ELB  EC2  Snap  NAT  gp2  │
+  scan  scan scan scan scan scan scan scan  │
+     │    │    │    │    │    │    │    │
+     ▼    ▼    ▼    ▼    ▼    ▼    ▼    ▼
+  EC2  EC2  RDS ELBv2 EC2* EC2** EC2+CW EC2
+  API  API  API  API  API  API   API   API
           │        (* 2 chiamate; ** 3 chiamate; CW=CloudWatch, max 5 concorrenti)
           ▼
      Ogni scanner applica la waste policy di dominio
@@ -43,10 +45,10 @@ utente: cloudrift analyze -r us-east-1 eu-west-1 [--pdf] [--json] [--min-age-day
      WastedResourcesSummary { findings: WastedResource[],
                               totalMonthlyCostUsd, scanErrors }
           │
-          ├──────────────────────────┬───────────────────────────┐
-          ▼                          ▼ (--pdf)                   ▼ (--json)
-  formatWasteReportAsTable    generateWasteReportPdf      formatWasteReportAsJson
-  (cli-table3 + chalk)        (pdfkit, con salto pagina)  (WasteReportDto, JSON-safe)
+          ▼
+     --format sceglie lo stdout: table (default) | json | markdown
+     --pdf / --json [file] scrivono artefatti aggiuntivi su disco
+     totalMonthlyCostUsd > config.costAlertThresholdUsd → exit code 2 (gate CI)
 ```
 
 ---
@@ -200,6 +202,34 @@ export const presenters: { [K in ResourceKind]: ResourcePresenter<ResourceKindMa
 - **Markdown** (`waste-report.markdown-formatter.ts`): un report pronto per le Pull Request (totali, breakdown, `<details>` collassabile per kind, raccomandazioni principali, callout sulla soglia di costo) per `--format markdown` in CI.
 
 `--format` (`table` | `json` | `markdown`) sceglie cosa va su stdout; `--pdf` / `--json [filename]` scrivono file aggiuntivi. Nei formati machine-readable il chrome umano va su stderr, così su stdout resta solo il report.
+
+---
+
+## Risoluzione dei prezzi
+
+I costi sono risolti per `(regione, chiave)` da tre livelli costruiti nel composition root, vince il più specifico:
+
+```
+prices.json (statico, sempre presente)
+   ← AWS Pricing API (solo con --live-pricing)
+   ← config.prices (override utente, vincono)
+```
+
+Tutte e tre condividono la stessa forma `PriceTable` (`regione → { chiave: USD }` con fallback `default`), quindi si compongono con un semplice `mergePriceTables`. Poiché il merge avviene **prima** dello scan, i getter di `PricingPort` restano sincroni e gli scanner non cambiano.
+
+- **`AwsPricingApiAdapter.warmUp(regions)`** recupera i prezzi di listino (`@aws-sdk/client-pricing`) e materializza una tabella. Accetta un prezzo **solo se i filtri risolvono un valore unico** (ambiguo → omesso → lo riempie lo statico); qualunque errore fa ricadere il chiamante interamente sulla tabella statica con un warning — mai un crash.
+- **`config.prices`** sono le tariffe negoziate/aziendali dell'utente e vincono su entrambi. Sono l'unico modo per far combaciare il report con la bolletta reale — anche i prezzi live sono prezzi di *listino* AWS, non la tua fattura.
+- `getPricesAsOf()` riflette il livello usato: la data dello statico, quella del fetch live, o `… + custom overrides`.
+
+## Integrazione CI/CD
+
+Tre elementi rendono il tool nativo per le pipeline:
+
+1. **`--format markdown`** produce un report pronto per le Pull Request (totali, breakdown, raccomandazioni, callout soglia) — instradalo in `$GITHUB_STEP_SUMMARY` o pubblicalo come commento PR.
+2. **`config.costAlertThresholdUsd`** imposta un budget: quando `totalMonthlyCostUsd` lo supera, il comando imposta **exit code 2**, facendo fallire il job CI. L'alert va su stderr, così non sporca mai lo stdout machine-readable.
+3. **stdout pulito** — nei formati `json`/`markdown` tutti i messaggi umani vanno su stderr, quindi `cloudrift … --format json | jq` e `… --format markdown >> "$GITHUB_STEP_SUMMARY"` sono sicuri.
+
+Il file di config (`cloudrift.config.json`) viene cercato nella working directory: committarlo alla root del repo fa sì che la CI lo prenda automaticamente dopo il checkout.
 
 ---
 

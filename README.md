@@ -328,14 +328,7 @@ pnpm nx run-many -t typecheck
 
 ### Releasing
 
-Publishing is automated: push a `vX.Y.Z` tag whose version matches `@cloudrift/cli` and the [release workflow](.github/workflows/release.yml) lints, tests, packages and runs `npm publish` with provenance (needs the `NPM_TOKEN` repo secret). Verify the publishable artifact locally first:
-
-```sh
-pnpm nx package cli                      # builds + generates apps/cli/dist/package.json
-cd apps/cli/dist && npm pack --dry-run   # inspect the exact tarball contents
-```
-
-The published package is bundled (esbuild): workspace libraries are inlined into `main.js`, so the generated `dist/package.json` declares only the third-party runtime dependencies.
+Publishing `@cloudrift/cli` to npm is automated via a tag-triggered workflow. See [docs/en/releasing.md](./docs/en/releasing.md) for the full process (one-time npm org / `NPM_TOKEN` setup, cutting a release, local verification).
 
 ### Architecture
 
@@ -362,6 +355,7 @@ Full documentation is in the [`docs/`](./docs/) folder — English in [`docs/en/
 | [docs/en/technical-choices.md](./docs/en/technical-choices.md)  | Nx, pnpm, TypeScript, AWS SDK v3, Result pattern, jest |
 | [docs/en/how-it-works.md](./docs/en/how-it-works.md)            | End-to-end execution flow, code walkthrough            |
 | [docs/en/adding-a-resource.md](./docs/en/adding-a-resource.md)  | Step-by-step guide to adding a new resource type       |
+| [docs/en/releasing.md](./docs/en/releasing.md)                  | How `@cloudrift/cli` is built and published to npm     |
 
 ### Adding a new resource type
 
@@ -715,14 +709,7 @@ pnpm nx run-many -t typecheck
 
 ### Rilascio
 
-La pubblicazione è automatica: pusha un tag `vX.Y.Z` la cui versione combacia con `@cloudrift/cli` e il [workflow di release](.github/workflows/release.yml) esegue lint, test, packaging e `npm publish` con provenance (richiede il secret `NPM_TOKEN` del repo). Verifica prima l'artefatto pubblicabile in locale:
-
-```sh
-pnpm nx package cli                      # build + genera apps/cli/dist/package.json
-cd apps/cli/dist && npm pack --dry-run   # ispeziona il contenuto esatto del tarball
-```
-
-Il pacchetto pubblicato è bundlato (esbuild): le librerie del workspace sono inlinate in `main.js`, quindi il `dist/package.json` generato dichiara solo le dipendenze runtime di terze parti.
+La pubblicazione di `@cloudrift/cli` su npm è automatica tramite un workflow attivato dai tag. Vedi [docs/it/rilascio.md](./docs/it/rilascio.md) per il processo completo (setup una tantum org npm / `NPM_TOKEN`, come pubblicare una release, verifica in locale).
 
 ### Architettura
 
@@ -749,6 +736,7 @@ Tutta la documentazione è nella cartella [`docs/`](./docs/) — italiano in [`d
 | [docs/it/scelte-tecniche.md](./docs/it/scelte-tecniche.md)           | Nx, pnpm, TypeScript, AWS SDK v3, Result pattern, jest            |
 | [docs/it/funzionamento.md](./docs/it/funzionamento.md)               | Flusso di esecuzione end-to-end, spiegazione del codice           |
 | [docs/it/aggiungere-risorsa.md](./docs/it/aggiungere-risorsa.md)     | Guida passo per passo per aggiungere un nuovo tipo di risorsa     |
+| [docs/it/rilascio.md](./docs/it/rilascio.md)                         | Come `@cloudrift/cli` viene buildato e pubblicato su npm           |
 
 ---
 
