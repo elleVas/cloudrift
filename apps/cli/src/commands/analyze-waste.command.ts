@@ -27,8 +27,15 @@ import {
   AwsNatGatewayScanner,
   AwsGp2UpgradeScanner,
   StaticPriceTableAdapter,
+  TablePricingAdapter,
+  AwsPricingApiAdapter,
+  BUILTIN_PRICE_TABLE,
+  BUILTIN_PRICES_AS_OF,
+  mergePriceTables,
   resolveAwsAccountId,
 } from 'cloud-cost-infrastructure-aws-adapter';
+import type { PriceTable } from 'cloud-cost-infrastructure-aws-adapter';
+import type { PricingPort } from 'cloud-cost-domain';
 import { loadConfig } from '../config/cloudrift.config';
 import { formatWasteReportAsTable } from '../formatters/waste-report.table-formatter';
 import { formatWasteReportAsJson } from '../formatters/waste-report.json-formatter';
@@ -44,6 +51,7 @@ interface AnalyzeWasteOptions {
   accountId?: string;
   config?: string;
   format?: string;
+  livePricing?: boolean;
   pdf?: string | boolean;
   json?: string | boolean;
   minAgeDays?: string;
@@ -128,7 +136,39 @@ export async function analyzeWasteCommand(
     info(chalk.dim(`  Skipping excluded regions: ${skipped.join(', ')}`));
   }
 
-  const pricing = new StaticPriceTableAdapter();
+  // Pricing a livelli: listino statico (base) ← AWS Pricing API live (--live-pricing)
+  // ← override utente (config.prices, vincono). Gli override per regione servono
+  // per tariffe negoziate/aziendali, così il report riflette la bolletta reale.
+  let priceTable: PriceTable = BUILTIN_PRICE_TABLE;
+  let pricesAsOf = BUILTIN_PRICES_AS_OF;
+  let layered = false;
+
+  if (options.livePricing) {
+    info(chalk.dim('  Fetching current prices from the AWS Pricing API...'));
+    const live = await new AwsPricingApiAdapter().warmUp(regions);
+    if (live.ok) {
+      priceTable = mergePriceTables(priceTable, live.value);
+      pricesAsOf = new Date().toISOString().slice(0, 7); // YYYY-MM
+      layered = true;
+    } else {
+      info(
+        chalk.yellow(
+          `  Live pricing unavailable (${live.error.message}); using the static price table.`,
+        ),
+      );
+    }
+  }
+
+  if (config.prices) {
+    priceTable = mergePriceTables(priceTable, config.prices);
+    pricesAsOf = `${pricesAsOf} + custom overrides`;
+    layered = true;
+  }
+
+  const pricing: PricingPort = layered
+    ? new TablePricingAdapter(priceTable, pricesAsOf)
+    : new StaticPriceTableAdapter();
+
   const policyOptions: WastePolicyOptions = {
     minAgeDays,
     ignoreTag,

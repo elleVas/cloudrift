@@ -7,5 +7,18 @@ export { AwsEbsSnapshotScanner } from './scanners/aws-ebs-snapshot.scanner';
 export { AwsNatGatewayScanner } from './scanners/aws-nat-gateway.scanner';
 export { AwsGp2UpgradeScanner } from './scanners/aws-gp2-upgrade.scanner';
 export { AwsAdapterError } from './errors/aws-adapter.error';
-export { StaticPriceTableAdapter } from './pricing/static-price-table.adapter';
+export {
+  StaticPriceTableAdapter,
+  BUILTIN_PRICE_TABLE,
+  BUILTIN_PRICES_AS_OF,
+} from './pricing/static-price-table.adapter';
+export {
+  TablePricingAdapter,
+  mergePriceTables,
+} from './pricing/table-pricing.adapter';
+export type { PriceTable, RegionPrices } from './pricing/table-pricing.adapter';
+export {
+  AwsPricingApiAdapter,
+  extractOnDemandUsd,
+} from './pricing/aws-pricing-api.adapter';
 export { resolveAwsAccountId } from './account/aws-account-id.resolver';

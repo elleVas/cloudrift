@@ -13,6 +13,7 @@ describe('parseConfig', () => {
         minAgeDays: 14,
         ignoreTag: 'keep',
         costAlertThresholdUsd: 500,
+        prices: { 'eu-west-1': { 'nat-gateway': 28.5 }, default: { 'elastic-ip': 3.2 } },
       }),
     );
     expect(result.ok).toBe(true);
@@ -24,8 +25,23 @@ describe('parseConfig', () => {
         minAgeDays: 14,
         ignoreTag: 'keep',
         costAlertThresholdUsd: 500,
+        prices: { 'eu-west-1': { 'nat-gateway': 28.5 }, default: { 'elastic-ip': 3.2 } },
       });
     }
+  });
+
+  it('rejects a prices table with a non-number value', () => {
+    const result = parseConfig(
+      JSON.stringify({ prices: { 'eu-west-1': { 'nat-gateway': 'cheap' } } }),
+    );
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.message).toContain('prices');
+  });
+
+  it('rejects a prices table that is not region → object', () => {
+    const result = parseConfig(JSON.stringify({ prices: { 'eu-west-1': 28.5 } }));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.message).toContain('prices');
   });
 
   it('returns empty config for an empty object', () => {
