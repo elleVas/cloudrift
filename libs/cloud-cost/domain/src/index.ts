@@ -1,6 +1,17 @@
 // Wasted resource model
-export { RESOURCE_KINDS, RESOURCE_KIND_LABELS } from './wasted-resource';
-export type { ResourceKind, WastedResource } from './wasted-resource';
+export {
+  RESOURCE_KINDS,
+  RESOURCE_KIND_LABELS,
+  RESOURCE_KIND_META,
+  categoryOf,
+  isEstimated,
+} from './wasted-resource';
+export type {
+  ResourceKind,
+  WastedResource,
+  FindingCategory,
+  ResourceKindMeta,
+} from './wasted-resource';
 export { groupByKind } from './group-by-kind';
 export type { ResourceKindMap, FindingsByKind } from './group-by-kind';
 

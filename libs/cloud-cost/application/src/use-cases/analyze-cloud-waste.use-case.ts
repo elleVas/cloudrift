@@ -1,4 +1,5 @@
 import { Result } from 'shared-kernel';
+import { categoryOf } from 'cloud-cost-domain';
 import type {
   FindWastedResourcesRequest,
   FindWastedResourcesUseCasePort,
@@ -42,11 +43,22 @@ export class AnalyzeCloudWasteUseCase implements FindWastedResourcesUseCasePort 
       }),
     );
 
-    const totalMonthlyCostUsd = findings.reduce(
-      (sum, finding) => sum + finding.costEstimate.monthlyCostUsd,
-      0,
-    );
+    let totalWasteMonthlyUsd = 0;
+    let totalOptimizationMonthlyUsd = 0;
+    for (const finding of findings) {
+      const amount = finding.costEstimate.monthlyCostUsd;
+      if (categoryOf(finding.kind) === 'waste') {
+        totalWasteMonthlyUsd += amount;
+      } else {
+        totalOptimizationMonthlyUsd += amount;
+      }
+    }
 
-    return Result.ok({ findings, totalMonthlyCostUsd, scanErrors });
+    return Result.ok({
+      findings,
+      totalWasteMonthlyUsd,
+      totalOptimizationMonthlyUsd,
+      scanErrors,
+    });
   }
 }

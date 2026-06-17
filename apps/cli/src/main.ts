@@ -48,7 +48,7 @@ program
     '--json [filename]',
     'Also write a JSON report to disk (optional filename, defaults to cloudrift-report-YYYY-MM-DD.json)',
   )
-  .action(analyzeWasteCommand);
+  .action((options) => analyzeWasteCommand(options));
 
 program.parseAsync(process.argv).catch((err: Error) => {
   console.error(err.message);

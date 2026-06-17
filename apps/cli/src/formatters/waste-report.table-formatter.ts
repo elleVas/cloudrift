@@ -3,9 +3,10 @@ import chalk from 'chalk';
 import {
   RESOURCE_KINDS,
   RESOURCE_KIND_LABELS,
+  RESOURCE_KIND_META,
   groupByKind,
 } from 'cloud-cost-domain';
-import type { WastedResourcesSummary } from 'cloud-cost-domain';
+import type { FindingCategory, WastedResourcesSummary } from 'cloud-cost-domain';
 import { presenterFor } from './resource-presenters';
 
 export interface TableReportMeta {
@@ -19,21 +20,38 @@ export function formatWasteReportAsTable(
   const lines: string[] = [];
   const grouped = groupByKind(summary.findings);
 
-  for (const kind of RESOURCE_KINDS) {
-    const findings = grouped[kind];
-    if (findings.length === 0) continue;
+  const renderKindTables = (category: FindingCategory): boolean => {
+    let rendered = false;
+    for (const kind of RESOURCE_KINDS) {
+      if (RESOURCE_KIND_META[kind].category !== category) continue;
+      const findings = grouped[kind];
+      if (findings.length === 0) continue;
+      rendered = true;
 
-    const presenter = presenterFor(kind);
-    lines.push(chalk.bold.yellow(`\n  ${presenter.title}`));
-
-    const table = new Table({
-      head: [...presenter.head, 'Est. Cost'],
-      style: { head: ['cyan'] },
-    });
-    for (const finding of findings) {
-      table.push([...presenter.row(finding), chalk.red(finding.costEstimate.format())]);
+      const presenter = presenterFor(kind);
+      lines.push(chalk.bold.yellow(`\n  ${presenter.title}`));
+      const table = new Table({
+        head: [...presenter.head, 'Est. Cost'],
+        style: { head: ['cyan'] },
+      });
+      for (const finding of findings) {
+        table.push([...presenter.row(finding), chalk.red(finding.costEstimate.format())]);
+      }
+      lines.push(table.toString());
     }
-    lines.push(table.toString());
+    return rendered;
+  };
+
+  renderKindTables('waste');
+
+  // Sezione separata: opportunità di risparmio, NON conteggiate nel totale waste.
+  const hasOptimizations = summary.totalOptimizationMonthlyUsd > 0 ||
+    RESOURCE_KINDS.some((k) => RESOURCE_KIND_META[k].category === 'optimization' && grouped[k].length > 0);
+  if (hasOptimizations) {
+    lines.push(
+      chalk.bold.cyan('\n  ── Optimization opportunities (savings — verify before acting) ──'),
+    );
+    renderKindTables('optimization');
   }
 
   if (summary.findings.length === 0 && summary.scanErrors.length === 0) {
@@ -53,11 +71,22 @@ export function formatWasteReportAsTable(
     }
   }
 
+  const incomplete = summary.scanErrors.length > 0
+    ? chalk.yellow(' (incomplete — see warnings above)')
+    : '';
   lines.push(
     chalk.bold(
-      `\n  Total estimated waste: ${chalk.red(`$${summary.totalMonthlyCostUsd.toFixed(2)}/month`)}${summary.scanErrors.length > 0 ? chalk.yellow(' (incomplete — see warnings above)') : ''}`,
+      `\n  Total waste: ${chalk.red(`$${summary.totalWasteMonthlyUsd.toFixed(2)}/month`)}${incomplete}`,
     ),
   );
+  if (summary.totalOptimizationMonthlyUsd > 0) {
+    lines.push(
+      chalk.cyan(
+        `  Optimization opportunities: $${summary.totalOptimizationMonthlyUsd.toFixed(2)}/month ` +
+          `(savings, not counted in the waste total)`,
+      ),
+    );
+  }
   lines.push(
     chalk.dim(
       `  Estimates based on AWS list prices as of ${meta.pricesAsOf}; actual billing may differ.\n`,

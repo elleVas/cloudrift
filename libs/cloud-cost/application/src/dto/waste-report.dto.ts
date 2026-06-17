@@ -1,10 +1,18 @@
-import { RESOURCE_KIND_LABELS, groupByKind } from 'cloud-cost-domain';
-import type { ResourceKind, WastedResourcesSummary } from 'cloud-cost-domain';
+import { RESOURCE_KIND_META, groupByKind } from 'cloud-cost-domain';
+import type {
+  FindingCategory,
+  ResourceKind,
+  WastedResourcesSummary,
+} from 'cloud-cost-domain';
 
 /**
  * Proiezione serializzabile (JSON-safe) del summary: è il contratto dati
  * per qualunque presentazione — CLI, PDF, API HTTP o frontend. Non contiene
  * classi né Date: solo primitivi e stringhe ISO.
+ *
+ * I finding sono divisi in due categorie: `waste` (spreco, conta nel totale
+ * waste / gate CI) e `optimization` (opportunità di risparmio, a parte). Le
+ * voci `estimated` sono stime (rightsizing) da verificare.
  */
 export interface WasteReportDto {
   meta: {
@@ -13,18 +21,24 @@ export interface WasteReportDto {
     generatedAt: string;
     pricesAsOf: string;
   };
-  totalMonthlyCostUsd: number;
-  totalAnnualCostUsd: number;
-  resourceCount: number;
+  totalWasteMonthlyUsd: number;
+  totalWasteAnnualUsd: number;
+  totalOptimizationMonthlyUsd: number;
+  wasteCount: number;
+  optimizationCount: number;
   breakdown: Array<{
     kind: ResourceKind;
     label: string;
+    category: FindingCategory;
+    estimated: boolean;
     count: number;
     monthlyCostUsd: number;
   }>;
   findings: Array<{
     id: string;
     kind: ResourceKind;
+    category: FindingCategory;
+    estimated: boolean;
     region: string;
     accountId: string;
     detectedAt: string;
@@ -57,12 +71,21 @@ export function toWasteReportDto(
     .filter((kind) => grouped[kind].length > 0)
     .map((kind) => ({
       kind,
-      label: RESOURCE_KIND_LABELS[kind],
+      label: RESOURCE_KIND_META[kind].label,
+      category: RESOURCE_KIND_META[kind].category,
+      estimated: RESOURCE_KIND_META[kind].estimated,
       count: grouped[kind].length,
       monthlyCostUsd: round2(
         grouped[kind].reduce((sum, r) => sum + r.costEstimate.monthlyCostUsd, 0),
       ),
     }));
+
+  let wasteCount = 0;
+  let optimizationCount = 0;
+  for (const finding of summary.findings) {
+    if (RESOURCE_KIND_META[finding.kind].category === 'waste') wasteCount++;
+    else optimizationCount++;
+  }
 
   return {
     meta: {
@@ -71,13 +94,17 @@ export function toWasteReportDto(
       generatedAt: meta.generatedAt.toISOString(),
       pricesAsOf: meta.pricesAsOf,
     },
-    totalMonthlyCostUsd: round2(summary.totalMonthlyCostUsd),
-    totalAnnualCostUsd: round2(summary.totalMonthlyCostUsd * 12),
-    resourceCount: summary.findings.length,
+    totalWasteMonthlyUsd: round2(summary.totalWasteMonthlyUsd),
+    totalWasteAnnualUsd: round2(summary.totalWasteMonthlyUsd * 12),
+    totalOptimizationMonthlyUsd: round2(summary.totalOptimizationMonthlyUsd),
+    wasteCount,
+    optimizationCount,
     breakdown,
     findings: summary.findings.map((finding) => ({
       id: finding.id,
       kind: finding.kind,
+      category: RESOURCE_KIND_META[finding.kind].category,
+      estimated: RESOURCE_KIND_META[finding.kind].estimated,
       region: finding.region.code,
       accountId: finding.accountId,
       detectedAt: finding.detectedAt.toISOString(),
