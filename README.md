@@ -19,6 +19,7 @@
 | **EC2 Instances**  | Stopped — attached EBS volumes keep billing | Sum of attached EBS volumes                             |
 | **EBS Snapshots**  | Source volume deleted (orphan snapshots)    | $0.05/GB-month                                          |
 | **NAT Gateways**   | Zero outbound traffic in the last 48h       | ~$32.40/month fixed                                     |
+| **EBS gp2→gp3**    | In-use gp2 volume upgradeable to gp3 (savings, not waste) | Saving: gp2 − gp3 price × GB (≈ $0.02/GB-mo) |
 
 **False-positive guards (waste policies):**
 
@@ -28,11 +29,26 @@
 
 > Prices vary by region. The tool uses region-specific pricing for: `us-east-1`, `us-west-2`, `eu-west-1`, `eu-central-1`, `ap-southeast-1`, `ap-northeast-1`. Every report states the date the price table was last verified (`prices as of`).
 
+### Install
+
+The published package is **[`@cloudrift/cli`](https://www.npmjs.com/package/@cloudrift/cli)**; the installed command is `cloudrift`.
+
+```sh
+# One-off (ideal in CI)
+npx @cloudrift/cli@latest analyze -r us-east-1
+
+# Or install globally
+npm install -g @cloudrift/cli
+cloudrift analyze -r us-east-1
+```
+
+Prefer building from source for development? See [Quick Start](#quick-start) below. All examples in this README use `cloudrift …`; when running from source replace it with `node apps/cli/dist/main.js …`.
+
 ### Prerequisites
 
-- **Node.js 20+** — check with `node --version`
-- **pnpm** — install with `npm install -g pnpm`, check with `pnpm --version`
+- **Node.js 18+** — check with `node --version`
 - **AWS credentials** with read-only permissions (see [Required IAM permissions](#required-iam-permissions) below)
+- **pnpm** — only needed when building from source (`npm install -g pnpm`)
 
 ---
 
@@ -114,33 +130,37 @@ node apps/cli/dist/main.js analyze [options]
 | Option                       | Description                                                                                                    | Default            |
 | ---------------------------- | -------------------------------------------------------------------------------------------------------------- | ------------------ |
 | `-r, --regions <regions...>` | AWS regions to scan                                                                                            | `us-east-1`        |
+| `--format <format>`          | stdout output format: `table`, `json`, or `markdown` (for CI / PR comments)                                   | `table`            |
+| `--config <path>`            | Path to a config file (defaults to `cloudrift.config.json` / `.cloudriftrc` in the cwd)                       | auto-discovered    |
 | `--account-id <id>`          | AWS account ID override (auto-detected via `sts:GetCallerIdentity` when omitted)                               | auto-detected      |
-| `--min-age-days <days>`      | Grace period: resources younger than this many days are not reported                                           | `7`                |
-| `--ignore-tag <tag>`         | Resources carrying this tag are excluded from the report                                                       | `cloudrift:ignore` |
-| `--pdf [filename]`           | Export a PDF report; if no filename is given, saves `cloudrift-report-YYYY-MM-DD.pdf` in the current directory | —                  |
-| `--json [filename]`          | Output the report as JSON; with no filename, prints JSON to stdout (suppresses the table output)               | —                  |
+| `--min-age-days <days>`      | Grace period: resources younger than this many days are not reported (overrides config)                       | `7`                |
+| `--ignore-tag <tag>`         | Resources carrying this tag are excluded from the report (overrides config)                                   | `cloudrift:ignore` |
+| `--pdf [filename]`           | Also write a PDF report to disk (defaults to `cloudrift-report-YYYY-MM-DD.pdf`)                                | —                  |
+| `--json [filename]`          | Also write a JSON report to disk (defaults to `cloudrift-report-YYYY-MM-DD.json`)                              | —                  |
 | `-h, --help`                 | Show help                                                                                                      | —                  |
+
+> **stdout vs. file artifacts:** `--format` controls what goes to **stdout** (the report itself). `--json` / `--pdf` write **additional files** to disk and are independent of `--format`. In machine-readable formats (`json`, `markdown`) all human messages are routed to stderr, so stdout carries only the report — ideal for piping.
 
 **Examples:**
 
 ```sh
 # Scan the default region (us-east-1)
-node apps/cli/dist/main.js analyze
+cloudrift analyze
 
 # Scan multiple regions at once
-node apps/cli/dist/main.js analyze -r us-east-1 eu-west-1 ap-southeast-1
+cloudrift analyze -r us-east-1 eu-west-1 ap-southeast-1
 
 # Disable the grace period (report resources of any age)
-node apps/cli/dist/main.js analyze --min-age-days 0
+cloudrift analyze --min-age-days 0
 
 # Export a PDF report with auto-generated filename (cloudrift-report-YYYY-MM-DD.pdf)
-node apps/cli/dist/main.js analyze --pdf
+cloudrift analyze --pdf
 
 # Machine-readable output (e.g. to feed a dashboard or CI check)
-node apps/cli/dist/main.js analyze --json | jq '.totalMonthlyCostUsd'
+cloudrift analyze --format json | jq '.totalMonthlyCostUsd'
 
-# Save the JSON report to a file alongside the console output
-node apps/cli/dist/main.js analyze --json report.json
+# Markdown report (e.g. a GitHub Actions PR comment / step summary)
+cloudrift analyze --format markdown >> "$GITHUB_STEP_SUMMARY"
 ```
 
 **PDF report:**
@@ -175,6 +195,67 @@ If scanning a resource type fails (e.g. missing CloudWatch permissions for NAT G
 **Per-region pricing:**
 
 Prices are region-aware (defined in `prices.json` in the infrastructure layer). Regions with explicit pricing: `us-east-1`, `us-west-2`, `eu-west-1`, `eu-central-1`, `ap-southeast-1`, `ap-northeast-1`. All other regions fall back to us-east-1 defaults.
+
+### Configuration file
+
+cloudrift reads `cloudrift.config.json` (or `.cloudriftrc`) from the current directory, or a path passed with `--config`. CLI flags take precedence over the config file, which takes precedence over the built-in defaults. All fields are optional:
+
+```json
+{
+  "excludeRegions": ["us-gov-east-1"],
+  "excludeTagValues": { "Environment": "Production" },
+  "cloudwatchWindowHours": 168,
+  "minAgeDays": 14,
+  "ignoreTag": "cloudrift:ignore",
+  "costAlertThresholdUsd": 500
+}
+```
+
+| Field                   | Meaning                                                                                          |
+| ----------------------- | ------------------------------------------------------------------------------------------------ |
+| `excludeRegions`        | Regions skipped even if passed via `-r`                                                          |
+| `excludeTagValues`      | Exclude any resource carrying an exact `key: value` tag (e.g. don't touch `Environment: Production`) |
+| `cloudwatchWindowHours` | CloudWatch lookback window for traffic-based checks (default 48, max 168 = 7 days)               |
+| `minAgeDays`            | Grace period in days (same as `--min-age-days`)                                                  |
+| `ignoreTag`             | Exclusion tag (same as `--ignore-tag`)                                                           |
+| `costAlertThresholdUsd` | If the monthly total exceeds this, the command **exits with code 2** (used to fail a pipeline)  |
+
+> A staging NAT Gateway with no weekend traffic is a classic false positive: widen `cloudwatchWindowHours` to `168` so a quiet weekend doesn't flag it.
+
+### Use in CI/CD
+
+cloudrift is built to run inside pipelines, not just a terminal. Two ingredients make it CI-friendly:
+
+1. `--format markdown` produces a Pull-Request-ready comment (totals, breakdown, top recommendations).
+2. `costAlertThresholdUsd` in the config makes the command **exit 2** when waste exceeds the budget, which fails the job.
+
+**GitHub Actions** — comment the waste report on the step summary and fail over budget:
+
+```yaml
+name: Cloud cost check
+on: [pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  cloudrift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # OIDC or static keys — here static, from repo secrets
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      # Posts the markdown report to the job summary; exits 2 if over costAlertThresholdUsd
+      - run: npx @cloudrift/cli@latest analyze -r us-east-1 eu-west-1 --format markdown >> "$GITHUB_STEP_SUMMARY"
+```
+
+With a `cloudrift.config.json` committed (`{"costAlertThresholdUsd": 500}`), the `run` step's exit code 2 fails the check automatically — the pipeline blocks when newly created resources push waste over the threshold.
 
 ### Required IAM permissions
 
@@ -222,6 +303,17 @@ pnpm nx run-many -t lint
 # Type check
 pnpm nx run-many -t typecheck
 ```
+
+### Releasing
+
+Publishing is automated: push a `vX.Y.Z` tag whose version matches `@cloudrift/cli` and the [release workflow](.github/workflows/release.yml) lints, tests, packages and runs `npm publish` with provenance (needs the `NPM_TOKEN` repo secret). Verify the publishable artifact locally first:
+
+```sh
+pnpm nx package cli                      # builds + generates apps/cli/dist/package.json
+cd apps/cli/dist && npm pack --dry-run   # inspect the exact tarball contents
+```
+
+The published package is bundled (esbuild): workspace libraries are inlined into `main.js`, so the generated `dist/package.json` declares only the third-party runtime dependencies.
 
 ### Architecture
 
@@ -277,6 +369,7 @@ No changes to `AnalyzeCloudWasteUseCase`, the summary, or the report DTO are nee
 | **EC2 Instances**  | Ferme (`stopped`), i volumi EBS attaccati continuano a essere fatturati | Somma dei volumi EBS attaccati                                |
 | **EBS Snapshots**  | Volume sorgente cancellato (snapshot orfani)                            | $0,05/GB-mese                                                 |
 | **NAT Gateways**   | Zero traffico in uscita nelle ultime 48h                                | ~$32,40/mese fisso                                            |
+| **EBS gp2→gp3**    | Volume gp2 in uso aggiornabile a gp3 (risparmio, non spreco)            | Risparmio: prezzo gp2 − gp3 × GB (≈ $0,02/GB-mese)           |
 
 **Protezioni contro i falsi positivi (waste policies):**
 
@@ -286,11 +379,26 @@ No changes to `AnalyzeCloudWasteUseCase`, the summary, or the report DTO are nee
 
 > I prezzi variano per regione. Il tool usa prezzi specifici per: `us-east-1`, `us-west-2`, `eu-west-1`, `eu-central-1`, `ap-southeast-1`, `ap-northeast-1`. Ogni report indica la data di ultima verifica del listino (`prices as of`).
 
+### Installazione
+
+Il pacchetto pubblicato è **[`@cloudrift/cli`](https://www.npmjs.com/package/@cloudrift/cli)**; il comando installato è `cloudrift`.
+
+```sh
+# Esecuzione singola (ideale in CI)
+npx @cloudrift/cli@latest analyze -r us-east-1
+
+# Oppure installazione globale
+npm install -g @cloudrift/cli
+cloudrift analyze -r us-east-1
+```
+
+Preferisci compilare dai sorgenti per lo sviluppo? Vedi [Guida rapida](#guida-rapida) qui sotto. Tutti gli esempi di questo README usano `cloudrift …`; eseguendo dai sorgenti sostituiscilo con `node apps/cli/dist/main.js …`.
+
 ### Prerequisiti
 
-- **Node.js 20+** — verifica con `node --version`
-- **pnpm** — installa con `npm install -g pnpm`, poi verifica con `pnpm --version`
+- **Node.js 18+** — verifica con `node --version`
 - **Credenziali AWS** con permessi in sola lettura (vedi sezione [Permessi IAM](#permessi-iam-necessari) qui sotto)
+- **pnpm** — serve solo per compilare dai sorgenti (`npm install -g pnpm`)
 
 ---
 
@@ -372,33 +480,37 @@ node apps/cli/dist/main.js analyze [opzioni]
 | Opzione                      | Descrizione                                                                                                          | Default            |
 | ---------------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------------ |
 | `-r, --regions <regioni...>` | Regioni AWS da scansionare                                                                                           | `us-east-1`        |
+| `--format <format>`          | Formato di stdout: `table`, `json` o `markdown` (per CI / commenti PR)                                              | `table`            |
+| `--config <path>`            | Percorso del file di config (default: `cloudrift.config.json` / `.cloudriftrc` nella cwd)                          | auto-rilevato      |
 | `--account-id <id>`          | Override dell'account ID (rilevato automaticamente via `sts:GetCallerIdentity` se omesso)                            | auto-rilevato      |
-| `--min-age-days <giorni>`    | Periodo di grazia: le risorse più giovani di N giorni non vengono segnalate                                          | `7`                |
-| `--ignore-tag <tag>`         | Le risorse con questo tag vengono escluse dal report                                                                 | `cloudrift:ignore` |
-| `--pdf [filename]`           | Esporta un report PDF; se non si specifica un nome, salva `cloudrift-report-YYYY-MM-DD.pdf` nella directory corrente | —                  |
-| `--json [filename]`          | Output del report in JSON; senza filename stampa il JSON su stdout (sopprime l'output tabellare)                     | —                  |
+| `--min-age-days <giorni>`    | Periodo di grazia: le risorse più giovani di N giorni non vengono segnalate (ha precedenza sul config)              | `7`                |
+| `--ignore-tag <tag>`         | Le risorse con questo tag vengono escluse dal report (ha precedenza sul config)                                     | `cloudrift:ignore` |
+| `--pdf [filename]`           | Scrive anche un report PDF su disco (default `cloudrift-report-YYYY-MM-DD.pdf`)                                      | —                  |
+| `--json [filename]`          | Scrive anche un report JSON su disco (default `cloudrift-report-YYYY-MM-DD.json`)                                   | —                  |
 | `-h, --help`                 | Mostra l'help                                                                                                        | —                  |
+
+> **stdout vs. file:** `--format` controlla cosa va su **stdout** (il report). `--json` / `--pdf` scrivono **file aggiuntivi** su disco, indipendenti da `--format`. Nei formati machine-readable (`json`, `markdown`) tutti i messaggi umani vanno su stderr, così su stdout resta solo il report — ideale per il piping.
 
 **Esempi:**
 
 ```sh
 # Scansione nella regione di default (us-east-1)
-node apps/cli/dist/main.js analyze
+cloudrift analyze
 
 # Più regioni contemporaneamente
-node apps/cli/dist/main.js analyze -r us-east-1 eu-west-1 ap-southeast-1
+cloudrift analyze -r us-east-1 eu-west-1 ap-southeast-1
 
 # Disattiva il periodo di grazia (segnala risorse di qualsiasi età)
-node apps/cli/dist/main.js analyze --min-age-days 0
+cloudrift analyze --min-age-days 0
 
 # Esporta un report PDF con nome automatico (cloudrift-report-YYYY-MM-DD.pdf)
-node apps/cli/dist/main.js analyze --pdf
+cloudrift analyze --pdf
 
 # Output machine-readable (es. per una dashboard o un check CI)
-node apps/cli/dist/main.js analyze --json | jq '.totalMonthlyCostUsd'
+cloudrift analyze --format json | jq '.totalMonthlyCostUsd'
 
-# Salva il report JSON su file mantenendo l'output console
-node apps/cli/dist/main.js analyze --json report.json
+# Report Markdown (es. commento PR / step summary su GitHub Actions)
+cloudrift analyze --format markdown >> "$GITHUB_STEP_SUMMARY"
 ```
 
 **Report PDF:**
@@ -449,6 +561,67 @@ Se la scansione di un tipo di risorsa fallisce (es. permessi mancanti su CloudWa
 
 I prezzi sono per-regione (file `prices.json` nell'infrastruttura). Regioni supportate con prezzi specifici: `us-east-1`, `us-west-2`, `eu-west-1`, `eu-central-1`, `ap-southeast-1`, `ap-northeast-1`. Per le altre regioni viene usato il prezzo di default (us-east-1).
 
+### File di configurazione
+
+cloudrift legge `cloudrift.config.json` (o `.cloudriftrc`) dalla directory corrente, oppure il percorso passato con `--config`. I flag CLI hanno la precedenza sul file di config, che a sua volta ha la precedenza sui default. Tutti i campi sono opzionali:
+
+```json
+{
+  "excludeRegions": ["us-gov-east-1"],
+  "excludeTagValues": { "Environment": "Production" },
+  "cloudwatchWindowHours": 168,
+  "minAgeDays": 14,
+  "ignoreTag": "cloudrift:ignore",
+  "costAlertThresholdUsd": 500
+}
+```
+
+| Campo                   | Significato                                                                                              |
+| ----------------------- | -------------------------------------------------------------------------------------------------------- |
+| `excludeRegions`        | Regioni saltate anche se passate con `-r`                                                                |
+| `excludeTagValues`      | Esclude le risorse con un tag `chiave: valore` esatto (es. non toccare `Environment: Production`)        |
+| `cloudwatchWindowHours` | Finestra CloudWatch per i check sul traffico (default 48, max 168 = 7 giorni)                            |
+| `minAgeDays`            | Periodo di grazia in giorni (come `--min-age-days`)                                                      |
+| `ignoreTag`             | Tag di esclusione (come `--ignore-tag`)                                                                  |
+| `costAlertThresholdUsd` | Se il totale mensile supera questa soglia, il comando **esce con codice 2** (per far fallire la pipeline) |
+
+> Un NAT Gateway di staging senza traffico nel weekend è il classico falso positivo: allarga `cloudwatchWindowHours` a `168` così un weekend tranquillo non lo segnala.
+
+### Uso in CI/CD
+
+cloudrift è pensato per girare dentro le pipeline, non solo nel terminale. Due ingredienti lo rendono CI-friendly:
+
+1. `--format markdown` produce un commento pronto per le Pull Request (totali, breakdown, raccomandazioni principali).
+2. `costAlertThresholdUsd` nel config fa **uscire con codice 2** quando lo spreco supera il budget, facendo fallire il job.
+
+**GitHub Actions** — commenta il report sullo step summary e fallisci se oltre budget:
+
+```yaml
+name: Cloud cost check
+on: [pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  cloudrift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # OIDC o chiavi statiche — qui statiche, dai secret del repo
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      # Pubblica il report markdown nel job summary; esce 2 se oltre costAlertThresholdUsd
+      - run: npx @cloudrift/cli@latest analyze -r us-east-1 eu-west-1 --format markdown >> "$GITHUB_STEP_SUMMARY"
+```
+
+Con un `cloudrift.config.json` committato (`{"costAlertThresholdUsd": 500}`), l'exit code 2 dello step `run` fa fallire il check automaticamente — la pipeline si blocca quando nuove risorse spingono lo spreco oltre la soglia.
+
 ### Permessi IAM necessari
 
 Il principal AWS deve avere le seguenti permission in sola lettura:
@@ -495,6 +668,17 @@ pnpm nx run-many -t lint
 # Type check
 pnpm nx run-many -t typecheck
 ```
+
+### Rilascio
+
+La pubblicazione è automatica: pusha un tag `vX.Y.Z` la cui versione combacia con `@cloudrift/cli` e il [workflow di release](.github/workflows/release.yml) esegue lint, test, packaging e `npm publish` con provenance (richiede il secret `NPM_TOKEN` del repo). Verifica prima l'artefatto pubblicabile in locale:
+
+```sh
+pnpm nx package cli                      # build + genera apps/cli/dist/package.json
+cd apps/cli/dist && npm pack --dry-run   # ispeziona il contenuto esatto del tarball
+```
+
+Il pacchetto pubblicato è bundlato (esbuild): le librerie del workspace sono inlinate in `main.js`, quindi il `dist/package.json` generato dichiara solo le dipendenze runtime di terze parti.
 
 ### Architettura
 

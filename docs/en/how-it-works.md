@@ -19,7 +19,7 @@ user: cloudrift analyze -r us-east-1 eu-west-1 [--pdf] [--json] [--min-age-days 
      analyze-waste.command.ts  (composition root)
      1. AwsRegion.parse() for each region (clean error on invalid input)
      2. accountId: --account-id or STS GetCallerIdentity
-     3. Instantiates pricing, policies (--min-age-days / --ignore-tag) and the 7 scanners
+     3. Instantiates pricing, policies (config + --min-age-days / --ignore-tag) and the 8 scanners
           │
           ▼
      AnalyzeCloudWasteUseCase.execute({ regions })
@@ -197,6 +197,9 @@ export const presenters: { [K in ResourceKind]: ResourcePresenter<ResourceKindMa
 - **Console table** (`waste-report.table-formatter.ts`): iterates `RESOURCE_KINDS`, uses `groupByKind(findings)` and the presenter for headers and rows. At the end: warnings per (kind, region), total and a disclaimer with the price table date.
 - **PDF** (`waste-report.pdf-formatter.ts`): executive summary page (totals, breakdown, top 8 recommendations from `presenter.recommend`) + one page per kind. `drawTable` handles **page breaks**: when a table exceeds the bottom margin, it closes the border, opens a new page and redraws the header.
 - **JSON** (`waste-report.json-formatter.ts`): serializes `toWasteReportDto(summary, meta)` — the data contract for dashboards, CI or a future frontend.
+- **Markdown** (`waste-report.markdown-formatter.ts`): a Pull-Request-ready report (totals, breakdown, collapsible `<details>` per kind, top recommendations, cost-threshold callout) for `--format markdown` in CI.
+
+`--format` (`table` | `json` | `markdown`) selects what goes to stdout; `--pdf` / `--json [filename]` write additional files. In machine-readable formats the human chrome is routed to stderr so stdout carries only the report.
 
 ---
 

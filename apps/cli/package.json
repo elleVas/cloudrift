@@ -1,7 +1,44 @@
 {
-  "name": "cli",
-  "version": "0.0.1",
-  "private": true,
+  "name": "@cloudrift/cli",
+  "version": "0.3.0",
+  "description": "Detect and report wasted AWS cloud resources — built to run in CI/CD and fail pipelines over a cost threshold.",
+  "keywords": [
+    "aws",
+    "cost",
+    "finops",
+    "cloud",
+    "waste",
+    "cost-optimization",
+    "cli",
+    "ci",
+    "ec2",
+    "ebs",
+    "rds",
+    "nat-gateway"
+  ],
+  "license": "EL-2.0",
+  "homepage": "https://github.com/elleVas/cloudrift#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/elleVas/cloudrift.git",
+    "directory": "apps/cli"
+  },
+  "bugs": {
+    "url": "https://github.com/elleVas/cloudrift/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "main": "./main.js",
+  "bin": {
+    "cloudrift": "./main.js"
+  },
+  "files": [
+    "main.js"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "nx": {
     "targets": {
       "test": {
@@ -12,6 +49,19 @@
         "options": {
           "jestConfig": "apps/cli/jest.config.cjs",
           "passWithNoTests": true
+        }
+      },
+      "package": {
+        "dependsOn": [
+          "build"
+        ],
+        "cache": true,
+        "outputs": [
+          "{projectRoot}/dist/package.json"
+        ],
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "node apps/cli/scripts/make-dist-package.mjs"
         }
       },
       "build": {
@@ -31,7 +81,17 @@
           "main": "apps/cli/src/main.ts",
           "tsConfig": "apps/cli/tsconfig.app.json",
           "assets": [
-            "apps/cli/src/assets"
+            "apps/cli/src/assets",
+            {
+              "input": ".",
+              "glob": "README.md",
+              "output": "."
+            },
+            {
+              "input": ".",
+              "glob": "LICENSE.md",
+              "output": "."
+            }
           ],
           "esbuildOptions": {
             "sourcemap": true,
@@ -51,40 +111,6 @@
             }
           }
         }
-      },
-      "prune-lockfile": {
-        "dependsOn": [
-          "build"
-        ],
-        "cache": true,
-        "executor": "@nx/js:prune-lockfile",
-        "outputs": [
-          "{workspaceRoot}/apps/cli/dist/package.json",
-          "{workspaceRoot}/apps/cli/dist/pnpm-lock.yaml"
-        ],
-        "options": {
-          "buildTarget": "build"
-        }
-      },
-      "copy-workspace-modules": {
-        "dependsOn": [
-          "build"
-        ],
-        "cache": true,
-        "outputs": [
-          "{workspaceRoot}/apps/cli/dist/workspace_modules"
-        ],
-        "executor": "@nx/js:copy-workspace-modules",
-        "options": {
-          "buildTarget": "build"
-        }
-      },
-      "prune": {
-        "dependsOn": [
-          "prune-lockfile",
-          "copy-workspace-modules"
-        ],
-        "executor": "nx:noop"
       },
       "serve": {
         "continuous": true,
