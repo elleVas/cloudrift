@@ -106,6 +106,20 @@ export const presenters: PresenterMap = {
     recommend: (v) =>
       `Modify EBS ${v.id} (${v.sizeGb} GB gp2) in ${v.region.code} to gp3 — saves ${v.costEstimate.format()}, no downtime`,
   },
+  'ebs-idle': {
+    title: 'EBS Volumes — Idle (attached, no I/O)',
+    head: ['Volume ID', 'Region', 'Size', 'Type', 'Attached to'],
+    colWidths: [130, 72, 56, 50, 130, 70],
+    row: (v) => [
+      v.id,
+      v.region.code,
+      `${v.sizeGb} GB`,
+      v.volumeType,
+      v.attachedInstanceId ?? '—',
+    ],
+    recommend: (v) =>
+      `Detach or delete idle EBS ${v.id} (${v.sizeGb} GB ${v.volumeType}) in ${v.region.code} — no I/O in last ${v.metricWindowHours}h`,
+  },
 };
 
 export function presenterFor(kind: ResourceKind): ResourcePresenter {

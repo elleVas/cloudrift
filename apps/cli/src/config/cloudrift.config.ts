@@ -34,6 +34,11 @@ export interface CloudriftConfig {
    * Vincono su listino statico e su AWS Pricing API.
    */
   prices?: Record<string, Record<string, number>>;
+  /** Soglie per-check. */
+  thresholds?: {
+    /** Operazioni I/O totali sotto cui un volume EBS attaccato è "idle". Default 0. */
+    ebsIdleMaxOps?: number;
+  };
 }
 
 export class ConfigError extends DomainError {
@@ -159,6 +164,23 @@ export function parseConfig(
       errors.push(
         'prices must be an object of region → { priceKey: number } (e.g. { "eu-west-1": { "nat-gateway": 28.5 } })',
       );
+    }
+  }
+
+  if (obj.thresholds !== undefined) {
+    if (!isPlainObject(obj.thresholds)) {
+      errors.push('thresholds must be an object');
+    } else {
+      const thresholds: NonNullable<CloudriftConfig['thresholds']> = {};
+      const { ebsIdleMaxOps } = obj.thresholds;
+      if (ebsIdleMaxOps !== undefined) {
+        if (typeof ebsIdleMaxOps === 'number' && Number.isFinite(ebsIdleMaxOps) && ebsIdleMaxOps >= 0) {
+          thresholds.ebsIdleMaxOps = ebsIdleMaxOps;
+        } else {
+          errors.push('thresholds.ebsIdleMaxOps must be a non-negative number');
+        }
+      }
+      config.thresholds = thresholds;
     }
   }
 

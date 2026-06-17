@@ -44,6 +44,18 @@ describe('parseConfig', () => {
     if (!result.ok) expect(result.error.message).toContain('prices');
   });
 
+  it('parses thresholds.ebsIdleMaxOps', () => {
+    const result = parseConfig(JSON.stringify({ thresholds: { ebsIdleMaxOps: 50 } }));
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.thresholds?.ebsIdleMaxOps).toBe(50);
+  });
+
+  it('rejects a negative thresholds.ebsIdleMaxOps', () => {
+    const result = parseConfig(JSON.stringify({ thresholds: { ebsIdleMaxOps: -1 } }));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.message).toContain('ebsIdleMaxOps');
+  });
+
   it('returns empty config for an empty object', () => {
     const result = parseConfig('{}');
     expect(result.ok).toBe(true);
