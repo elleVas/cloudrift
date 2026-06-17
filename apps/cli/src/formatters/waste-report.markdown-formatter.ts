@@ -4,7 +4,10 @@ import {
   RESOURCE_KIND_META,
   groupByKind,
 } from 'cloud-cost-domain';
-import type { FindingCategory, WastedResourcesSummary } from 'cloud-cost-domain';
+import type {
+  FindingCategory,
+  WastedResourcesSummary,
+} from 'cloud-cost-domain';
 import { presenterFor } from './resource-presenters';
 
 export interface MarkdownReportOptions {
@@ -20,7 +23,10 @@ function money(n: number): string {
 
 /** Neutralizza i caratteri che romperebbero una cella di tabella markdown. */
 function esc(cell: string): string {
-  return cell.replace(/\|/g, '\\|').replace(/\r?\n/g, ' ');
+  return cell
+    .replace(/\|/g, '\\|')
+    .replace(/\r?\n/g, ' ')
+    .replace(/\\/g, '\\\\');
 }
 
 function footer(meta: { pricesAsOf: string }): string {
@@ -34,7 +40,12 @@ function footer(meta: { pricesAsOf: string }): string {
  */
 export function formatWasteReportAsMarkdown(
   summary: WastedResourcesSummary,
-  meta: { accountId: string; regions: string[]; generatedAt: Date; pricesAsOf: string },
+  meta: {
+    accountId: string;
+    regions: string[];
+    generatedAt: Date;
+    pricesAsOf: string;
+  },
   options: MarkdownReportOptions = {},
 ): string {
   const lines: string[] = [];
@@ -44,7 +55,8 @@ export function formatWasteReportAsMarkdown(
 
   const kindsOf = (category: FindingCategory) =>
     RESOURCE_KINDS.filter(
-      (k) => RESOURCE_KIND_META[k].category === category && grouped[k].length > 0,
+      (k) =>
+        RESOURCE_KIND_META[k].category === category && grouped[k].length > 0,
     );
   const countOf = (category: FindingCategory) =>
     kindsOf(category).reduce((n, k) => n + grouped[k].length, 0);
@@ -53,7 +65,9 @@ export function formatWasteReportAsMarkdown(
   lines.push('');
   const accountLabel =
     meta.accountId !== 'unknown' ? `account \`${meta.accountId}\` · ` : '';
-  lines.push(`> ${accountLabel}regions \`${meta.regions.join(', ')}\` · ${day}`);
+  lines.push(
+    `> ${accountLabel}regions \`${meta.regions.join(', ')}\` · ${day}`,
+  );
   lines.push('');
 
   if (summary.findings.length === 0 && summary.scanErrors.length === 0) {
@@ -84,10 +98,17 @@ export function formatWasteReportAsMarkdown(
   lines.push('| Resource type | Count | $/month |');
   lines.push('|---|---:|---:|');
   for (const kind of kindsOf('waste')) {
-    const subtotal = grouped[kind].reduce((s, r) => s + r.costEstimate.monthlyCostUsd, 0);
-    lines.push(`| ${RESOURCE_KIND_LABELS[kind]} | ${grouped[kind].length} | ${money(subtotal)} |`);
+    const subtotal = grouped[kind].reduce(
+      (s, r) => s + r.costEstimate.monthlyCostUsd,
+      0,
+    );
+    lines.push(
+      `| ${RESOURCE_KIND_LABELS[kind]} | ${grouped[kind].length} | ${money(subtotal)} |`,
+    );
   }
-  lines.push(`| **Total waste** | **${countOf('waste')}** | **${money(waste)}** |`);
+  lines.push(
+    `| **Total waste** | **${countOf('waste')}** | **${money(waste)}** |`,
+  );
   lines.push('');
 
   renderDetails('waste');
@@ -104,7 +125,10 @@ export function formatWasteReportAsMarkdown(
     lines.push('| Resource type | Count | $/month |');
     lines.push('|---|---:|---:|');
     for (const kind of kindsOf('optimization')) {
-      const subtotal = grouped[kind].reduce((s, r) => s + r.costEstimate.monthlyCostUsd, 0);
+      const subtotal = grouped[kind].reduce(
+        (s, r) => s + r.costEstimate.monthlyCostUsd,
+        0,
+      );
       const label = RESOURCE_KIND_META[kind].estimated
         ? `${RESOURCE_KIND_LABELS[kind]} _(estimated)_`
         : RESOURCE_KIND_LABELS[kind];
@@ -140,7 +164,9 @@ export function formatWasteReportAsMarkdown(
   if (summary.scanErrors.length > 0) {
     lines.push('> ⚠️ **Partial results** — some scans could not complete:');
     for (const { kind, region, error } of summary.scanErrors) {
-      lines.push(`> - ${RESOURCE_KIND_LABELS[kind]} in ${region}: ${esc(error.message)}`);
+      lines.push(
+        `> - ${RESOURCE_KIND_LABELS[kind]} in ${region}: ${esc(error.message)}`,
+      );
     }
     lines.push('');
   }
@@ -151,7 +177,10 @@ export function formatWasteReportAsMarkdown(
   function renderDetails(category: FindingCategory): void {
     for (const kind of kindsOf(category)) {
       const presenter = presenterFor(kind);
-      const subtotal = grouped[kind].reduce((s, r) => s + r.costEstimate.monthlyCostUsd, 0);
+      const subtotal = grouped[kind].reduce(
+        (s, r) => s + r.costEstimate.monthlyCostUsd,
+        0,
+      );
       lines.push('<details>');
       lines.push(
         `<summary>${esc(presenter.title)} (${grouped[kind].length}) · ${money(subtotal)}/mo</summary>`,
