@@ -34,7 +34,7 @@ What it does **not** buy on its own is multi-cloud: see [Towards multi-cloud](#t
 │   entities, policies,   │   │   Result, DomainError)    │
 │   ports)                │   └───────────────────────────┘
 └──────▲──────────────────┘
-       │ implements WasteScannerPort (×7)
+       │ implements WasteScannerPort (×8)
 ┌──────┴──────────────────────────────────────────────────┐
 │        libs/cloud-cost/infrastructure/aws-adapter       │
 │   (AWS SDK v3 scanners, pricing, STS account resolver)  │
@@ -95,7 +95,8 @@ export type ResourceKind =
   | 'load-balancer'
   | 'ec2-instance'
   | 'ebs-snapshot'
-  | 'nat-gateway';
+  | 'nat-gateway'
+  | 'ebs-gp2-upgrade';
 
 export interface WastedResource {
   readonly id: string;
@@ -113,7 +114,7 @@ export interface WastedResource {
 
 #### Entities
 
-The 7 entities (`EbsVolume`, `ElasticIp`, `RdsInstance`, `LoadBalancer`, `Ec2Instance`, `EbsSnapshot`, `NatGateway`) implement `WastedResource` and carry the observed **facts** the decisions need: `LoadBalancer.registeredTargetCount`, `NatGateway.bytesOutLastWindow`, `EbsSnapshot.sourceVolumeExists` / `boundToAmiId`, `Ec2Instance.stoppedSince`.
+The 8 entities (`EbsVolume`, `ElasticIp`, `RdsInstance`, `LoadBalancer`, `Ec2Instance`, `EbsSnapshot`, `NatGateway`, `Gp2Volume`) implement `WastedResource` and carry the observed **facts** the decisions need: `LoadBalancer.registeredTargetCount`, `NatGateway.bytesOutLastWindow`, `EbsSnapshot.sourceVolumeExists` / `boundToAmiId`, `Ec2Instance.stoppedSince`. `Gp2Volume` is a savings opportunity rather than deletable waste: its `costEstimate` carries the gp2→gp3 monthly *saving*.
 
 #### Waste Policies — where the business knowledge lives
 
@@ -133,6 +134,7 @@ Each concrete policy adds the type-specific criterion:
 | `Ec2InstanceWastePolicy`  | `state === 'stopped'`                     | grace on `stoppedSince` (from `StateTransitionReason`), fallback `launchTime`   |
 | `EbsSnapshotWastePolicy`  | source volume deleted                     | snapshots referenced by AMIs excluded (not deletable); grace on `startTime`     |
 | `NatGatewayWastePolicy`   | zero outbound bytes in the window (48h)   | grace on `createTime` (freshly created environments)                            |
+| `Gp2UpgradePolicy`        | in-use gp2 volume (savings, not waste)    | only `status=in-use` (unattached gp2 stays with `ebs-volume`); grace on `createTime` |
 
 Policies are pure domain logic: tested without AWS, with their parameters coming from the CLI (`--min-age-days`, `--ignore-tag`).
 
@@ -175,7 +177,7 @@ Specifics:
 
 ### 5. `apps/cli` — Entry point and composition root
 
-`analyze-waste.command.ts` is the only place where concrete implementations are instantiated: it builds the price table, the policies (with the CLI parameters) and the 7 scanners, injects them into the use case and hands the result to the formatters. The three formatters (console table, PDF, JSON) share the `resource-presenters.ts` registry, typed `Record<ResourceKind, …>` with `satisfies`: forgetting the presenter for a new kind is a compile error.
+`analyze-waste.command.ts` is the only place where concrete implementations are instantiated: it loads the config file, builds the price table, the policies (with config + CLI parameters) and the 8 scanners, injects them into the use case and hands the result to the formatters. The four formatters (console table, PDF, JSON, Markdown) share the `resource-presenters.ts` registry, typed `Record<ResourceKind, …>` with `satisfies`: forgetting the presenter for a new kind is a compile error. The output format is selected by `--format` (`table` | `json` | `markdown`); `markdown` targets CI / PR comments.
 
 ---
 
