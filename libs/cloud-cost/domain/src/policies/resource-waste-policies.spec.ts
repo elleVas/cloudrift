@@ -7,6 +7,7 @@ import {
   EbsSnapshotWastePolicy,
   NatGatewayWastePolicy,
   Gp2UpgradePolicy,
+  EbsIdlePolicy,
 } from './resource-waste-policies';
 import { DEFAULT_IGNORE_TAG } from './waste-policy';
 import { EbsVolume } from '../entities/ebs-volume.entity';
@@ -17,6 +18,7 @@ import { Ec2Instance } from '../entities/ec2-instance.entity';
 import { EbsSnapshot } from '../entities/ebs-snapshot.entity';
 import { NatGateway } from '../entities/nat-gateway.entity';
 import { Gp2Volume } from '../entities/gp2-volume.entity';
+import { IdleEbsVolume } from '../entities/idle-ebs-volume.entity';
 import type { EbsSnapshotProps } from '../entities/ebs-snapshot.entity';
 import type { Ec2InstanceProps } from '../entities/ec2-instance.entity';
 import { AwsRegion } from '../value-objects/aws-region.value-object';
@@ -346,5 +348,55 @@ describe('Gp2UpgradePolicy', () => {
 
   it('reports the saving in the wasteReason', () => {
     expect(makeGp2Volume().wasteReason).toContain('saves $4.00/mo');
+  });
+});
+
+describe('EbsIdlePolicy', () => {
+  const policy = new EbsIdlePolicy();
+
+  function makeIdleVolume(
+    overrides: { readOps?: number; writeOps?: number; createTime?: Date; tags?: Record<string, string> } = {},
+  ): IdleEbsVolume {
+    return new IdleEbsVolume({
+      volumeId: 'vol-idle',
+      region,
+      accountId: '123456789012',
+      sizeGb: 100,
+      volumeType: 'gp3',
+      attachedInstanceId: 'i-123',
+      readOps: overrides.readOps ?? 0,
+      writeOps: overrides.writeOps ?? 0,
+      metricWindowHours: 48,
+      createTime: overrides.createTime ?? oldDate,
+      detectedAt: now,
+      tags: overrides.tags ?? {},
+      monthlyCostUsd: 8,
+    });
+  }
+
+  it('flags an old attached volume with zero I/O', () => {
+    const verdict = policy.evaluate(makeIdleVolume(), now);
+    expect(verdict.isWaste).toBe(true);
+    expect(verdict.reason).toContain('48h');
+  });
+
+  it('does not flag a volume with I/O activity', () => {
+    expect(policy.evaluate(makeIdleVolume({ readOps: 10, writeOps: 5 }), now).isWaste).toBe(false);
+  });
+
+  it('does not flag a freshly created volume (grace period)', () => {
+    expect(policy.evaluate(makeIdleVolume({ createTime: yesterday }), now).isWaste).toBe(false);
+  });
+
+  it('honours a custom max-ops threshold', () => {
+    const lenient = new EbsIdlePolicy({}, 100);
+    expect(lenient.evaluate(makeIdleVolume({ readOps: 50, writeOps: 40 }), now).isWaste).toBe(true);
+    expect(lenient.evaluate(makeIdleVolume({ readOps: 80, writeOps: 40 }), now).isWaste).toBe(false);
+  });
+
+  it('does not flag a volume carrying the ignore tag', () => {
+    expect(
+      policy.evaluate(makeIdleVolume({ tags: { [DEFAULT_IGNORE_TAG]: 'true' } }), now).isWaste,
+    ).toBe(false);
   });
 });

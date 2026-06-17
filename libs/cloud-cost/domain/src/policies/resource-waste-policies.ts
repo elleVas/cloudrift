@@ -1,4 +1,4 @@
-import { WastePolicy, waste, notWaste, type WasteVerdict } from './waste-policy';
+import { WastePolicy, waste, notWaste, type WasteVerdict, type WastePolicyOptions } from './waste-policy';
 import type { EbsVolume } from '../entities/ebs-volume.entity';
 import type { ElasticIp } from '../entities/elastic-ip.entity';
 import type { RdsInstance } from '../entities/rds-instance.entity';
@@ -7,6 +7,7 @@ import type { Ec2Instance } from '../entities/ec2-instance.entity';
 import type { EbsSnapshot } from '../entities/ebs-snapshot.entity';
 import type { NatGateway } from '../entities/nat-gateway.entity';
 import type { Gp2Volume } from '../entities/gp2-volume.entity';
+import type { IdleEbsVolume } from '../entities/idle-ebs-volume.entity';
 
 export class EbsVolumeWastePolicy extends WastePolicy<EbsVolume> {
   protected judge(volume: EbsVolume, now: Date): WasteVerdict {
@@ -80,6 +81,22 @@ export class NatGatewayWastePolicy extends WastePolicy<NatGateway> {
       return notWaste(`created less than ${this.minAgeDays}d ago`);
     }
     return waste(`zero traffic in last ${gateway.metricWindowHours}h`);
+  }
+}
+
+export class EbsIdlePolicy extends WastePolicy<IdleEbsVolume> {
+  /** maxOps: soglia di operazioni I/O totali sotto la quale il volume è idle. */
+  constructor(options: WastePolicyOptions = {}, private readonly maxOps = 0) {
+    super(options);
+  }
+
+  protected judge(volume: IdleEbsVolume, now: Date): WasteVerdict {
+    if (volume.totalOps() > this.maxOps) return notWaste('has I/O activity');
+    // Un volume appena creato potrebbe non aver ancora ricevuto I/O.
+    if (this.isWithinGracePeriod(volume.createTime, now)) {
+      return notWaste(`created less than ${this.minAgeDays}d ago`);
+    }
+    return waste(`zero I/O in last ${volume.metricWindowHours}h`);
   }
 }
 

@@ -14,6 +14,7 @@ import {
   EbsSnapshotWastePolicy,
   NatGatewayWastePolicy,
   Gp2UpgradePolicy,
+  EbsIdlePolicy,
 } from 'cloud-cost-domain';
 import type {
   FindWastedResourcesUseCasePort,
@@ -32,6 +33,7 @@ import {
   AwsEbsSnapshotScanner,
   AwsNatGatewayScanner,
   AwsGp2UpgradeScanner,
+  AwsEbsIdleScanner,
   StaticPriceTableAdapter,
   TablePricingAdapter,
   AwsPricingApiAdapter,
@@ -139,6 +141,12 @@ async function defaultCreateAnalysis(ctx: AnalysisContext): Promise<Analysis> {
       cloudwatchWindowHours,
     ),
     new AwsGp2UpgradeScanner(pricing, accountId, new Gp2UpgradePolicy(policyOptions)),
+    new AwsEbsIdleScanner(
+      pricing,
+      accountId,
+      new EbsIdlePolicy(policyOptions, ctx.config.thresholds?.ebsIdleMaxOps ?? 0),
+      cloudwatchWindowHours,
+    ),
   ];
 
   return { useCase: new AnalyzeCloudWasteUseCase(scanners), pricesAsOf: pricing.getPricesAsOf() };
