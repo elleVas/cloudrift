@@ -1,14 +1,14 @@
 import {
   RESOURCE_KINDS,
   RESOURCE_KIND_LABELS,
+  RESOURCE_KIND_META,
   groupByKind,
 } from 'cloud-cost-domain';
-import type { WastedResourcesSummary } from 'cloud-cost-domain';
-import type { WasteReportMeta } from 'cloud-cost-application';
+import type { FindingCategory, WastedResourcesSummary } from 'cloud-cost-domain';
 import { presenterFor } from './resource-presenters';
 
 export interface MarkdownReportOptions {
-  /** Se valorizzata, il report mostra se il totale supera la soglia (CI). */
+  /** Se valorizzata, il report mostra se il TOTALE WASTE supera la soglia (CI). */
   costAlertThresholdUsd?: number;
 }
 
@@ -23,24 +23,31 @@ function esc(cell: string): string {
   return cell.replace(/\|/g, '\\|').replace(/\r?\n/g, ' ');
 }
 
-function footer(meta: WasteReportMeta): string {
+function footer(meta: { pricesAsOf: string }): string {
   return `---\n<sub>Estimates use AWS list prices as of ${meta.pricesAsOf}; actual billing may differ.</sub>`;
 }
 
 /**
- * Render Markdown pensato per i commenti automatici sulle Pull Request
- * (GitHub Actions / GitLab CI). Usa `<details>` per restare compatto e mette
- * il totale e l'eventuale sforamento di soglia ben in vista.
+ * Render Markdown pensato per i commenti automatici sulle Pull Request.
+ * Headline e soglia CI si basano sul **totale waste**; le opportunità di
+ * ottimizzazione (gp2→gp3, rightsizing) sono in una sezione a parte.
  */
 export function formatWasteReportAsMarkdown(
   summary: WastedResourcesSummary,
-  meta: WasteReportMeta,
+  meta: { accountId: string; regions: string[]; generatedAt: Date; pricesAsOf: string },
   options: MarkdownReportOptions = {},
 ): string {
   const lines: string[] = [];
   const grouped = groupByKind(summary.findings);
-  const total = summary.totalMonthlyCostUsd;
+  const waste = summary.totalWasteMonthlyUsd;
   const day = meta.generatedAt.toISOString().split('T')[0];
+
+  const kindsOf = (category: FindingCategory) =>
+    RESOURCE_KINDS.filter(
+      (k) => RESOURCE_KIND_META[k].category === category && grouped[k].length > 0,
+    );
+  const countOf = (category: FindingCategory) =>
+    kindsOf(category).reduce((n, k) => n + grouped[k].length, 0);
 
   lines.push('## ☁️ cloudrift — Cloud waste report');
   lines.push('');
@@ -56,63 +63,61 @@ export function formatWasteReportAsMarkdown(
     return lines.join('\n');
   }
 
-  // Headline
+  // Headline: solo waste.
   lines.push(
-    `**💸 ${money(total)}/month** potential savings ` +
-      `(**${money(total * 12)}/year**) across ${summary.findings.length} resource(s).`,
+    `**💸 ${money(waste)}/month** of waste ` +
+      `(**${money(waste * 12)}/year**) across ${countOf('waste')} resource(s).`,
   );
   if (options.costAlertThresholdUsd !== undefined) {
     lines.push('');
     lines.push(
-      total > options.costAlertThresholdUsd
-        ? `> ⚠️ **Over the ${money(options.costAlertThresholdUsd)}/mo threshold** — this pipeline should fail.`
-        : `> ✅ Under the ${money(options.costAlertThresholdUsd)}/mo threshold.`,
+      waste > options.costAlertThresholdUsd
+        ? `> ⚠️ **Over the ${money(options.costAlertThresholdUsd)}/mo waste threshold** — this pipeline should fail.`
+        : `> ✅ Under the ${money(options.costAlertThresholdUsd)}/mo waste threshold.`,
     );
   }
   lines.push('');
 
-  // Breakdown table
-  lines.push('### Breakdown');
+  // Breakdown waste.
+  lines.push('### Waste breakdown');
   lines.push('');
   lines.push('| Resource type | Count | $/month |');
   lines.push('|---|---:|---:|');
-  for (const kind of RESOURCE_KINDS) {
-    const findings = grouped[kind];
-    if (findings.length === 0) continue;
-    const subtotal = findings.reduce((s, r) => s + r.costEstimate.monthlyCostUsd, 0);
-    lines.push(`| ${RESOURCE_KIND_LABELS[kind]} | ${findings.length} | ${money(subtotal)} |`);
+  for (const kind of kindsOf('waste')) {
+    const subtotal = grouped[kind].reduce((s, r) => s + r.costEstimate.monthlyCostUsd, 0);
+    lines.push(`| ${RESOURCE_KIND_LABELS[kind]} | ${grouped[kind].length} | ${money(subtotal)} |`);
   }
-  lines.push(`| **Total** | **${summary.findings.length}** | **${money(total)}** |`);
+  lines.push(`| **Total waste** | **${countOf('waste')}** | **${money(waste)}** |`);
   lines.push('');
 
-  // Dettaglio per tipo (collassabile per mantenere il commento PR compatto)
-  for (const kind of RESOURCE_KINDS) {
-    const findings = grouped[kind];
-    if (findings.length === 0) continue;
-    const presenter = presenterFor(kind);
-    const subtotal = findings.reduce((s, r) => s + r.costEstimate.monthlyCostUsd, 0);
+  renderDetails('waste');
 
-    lines.push('<details>');
+  // Sezione optimization (a parte, non nel totale waste).
+  if (countOf('optimization') > 0) {
+    lines.push('### Optimization opportunities');
+    lines.push('');
     lines.push(
-      `<summary>${esc(presenter.title)} (${findings.length}) · ${money(subtotal)}/mo</summary>`,
+      '> Savings you can capture **without deleting** the resource. ' +
+        'Not counted in the waste total; items marked _estimated_ need verification.',
     );
     lines.push('');
-    const header = [...presenter.head, '$/mo'];
-    lines.push(`| ${header.join(' | ')} |`);
-    lines.push(`|${header.map(() => '---').join('|')}|`);
-    for (const finding of findings) {
-      const cells = [
-        ...presenter.row(finding).map(esc),
-        money(finding.costEstimate.monthlyCostUsd),
-      ];
-      lines.push(`| ${cells.join(' | ')} |`);
+    lines.push('| Resource type | Count | $/month |');
+    lines.push('|---|---:|---:|');
+    for (const kind of kindsOf('optimization')) {
+      const subtotal = grouped[kind].reduce((s, r) => s + r.costEstimate.monthlyCostUsd, 0);
+      const label = RESOURCE_KIND_META[kind].estimated
+        ? `${RESOURCE_KIND_LABELS[kind]} _(estimated)_`
+        : RESOURCE_KIND_LABELS[kind];
+      lines.push(`| ${label} | ${grouped[kind].length} | ${money(subtotal)} |`);
     }
+    lines.push(
+      `| **Total optimization** | **${countOf('optimization')}** | **${money(summary.totalOptimizationMonthlyUsd)}** |`,
+    );
     lines.push('');
-    lines.push('</details>');
-    lines.push('');
+    renderDetails('optimization');
   }
 
-  // Raccomandazioni principali (ordinate per costo decrescente)
+  // Raccomandazioni principali (ordinate per costo decrescente, tutte le categorie).
   const recommendations = RESOURCE_KINDS.flatMap((kind) =>
     grouped[kind].map((finding) => ({
       text: presenterFor(kind).recommend(finding),
@@ -132,7 +137,6 @@ export function formatWasteReportAsMarkdown(
     lines.push('');
   }
 
-  // Errori di scan: risultati parziali
   if (summary.scanErrors.length > 0) {
     lines.push('> ⚠️ **Partial results** — some scans could not complete:');
     for (const { kind, region, error } of summary.scanErrors) {
@@ -143,4 +147,29 @@ export function formatWasteReportAsMarkdown(
 
   lines.push(footer(meta));
   return lines.join('\n');
+
+  function renderDetails(category: FindingCategory): void {
+    for (const kind of kindsOf(category)) {
+      const presenter = presenterFor(kind);
+      const subtotal = grouped[kind].reduce((s, r) => s + r.costEstimate.monthlyCostUsd, 0);
+      lines.push('<details>');
+      lines.push(
+        `<summary>${esc(presenter.title)} (${grouped[kind].length}) · ${money(subtotal)}/mo</summary>`,
+      );
+      lines.push('');
+      const header = [...presenter.head, '$/mo'];
+      lines.push(`| ${header.join(' | ')} |`);
+      lines.push(`|${header.map(() => '---').join('|')}|`);
+      for (const finding of grouped[kind]) {
+        const cells = [
+          ...presenter.row(finding).map(esc),
+          money(finding.costEstimate.monthlyCostUsd),
+        ];
+        lines.push(`| ${cells.join(' | ')} |`);
+      }
+      lines.push('');
+      lines.push('</details>');
+      lines.push('');
+    }
+  }
 }

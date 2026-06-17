@@ -3,9 +3,14 @@ import { createWriteStream } from 'fs';
 import {
   RESOURCE_KINDS,
   RESOURCE_KIND_LABELS,
+  RESOURCE_KIND_META,
   groupByKind,
 } from 'cloud-cost-domain';
-import type { WastedResource, WastedResourcesSummary } from 'cloud-cost-domain';
+import type {
+  FindingCategory,
+  WastedResource,
+  WastedResourcesSummary,
+} from 'cloud-cost-domain';
 import type { WasteReportMeta } from 'cloud-cost-application';
 import { presenterFor } from './resource-presenters';
 
@@ -77,7 +82,7 @@ function drawSummaryPage(
 
   // Metric boxes
   y += 14;
-  const monthly = summary.totalMonthlyCostUsd;
+  const monthly = summary.totalWasteMonthlyUsd;
   const annual = monthly * 12;
   const total = summary.findings.length;
   const isIncomplete = summary.scanErrors.length > 0;
@@ -89,12 +94,28 @@ function drawSummaryPage(
   drawMetricBox(doc, MARGIN + 162, y, 152, 'ANNUAL WASTE', annualLabel, C.warning);
   drawMetricBox(doc, MARGIN + 324, y, 123, 'RESOURCES FOUND', String(total), C.text);
 
-  // Breakdown
+  // Waste breakdown
   y += 90;
   doc.font('Helvetica-Bold').fontSize(10.5).fillColor(C.text)
-    .text('Breakdown by resource type', MARGIN, y, { lineBreak: false });
+    .text('Waste breakdown by resource type', MARGIN, y, { lineBreak: false });
   y += 16;
-  y = drawTable(doc, ['Resource type', 'Found', 'Est. cost/month'], buildBreakdownRows(summary), [290, 60, 149], y);
+  y = drawTable(doc, ['Resource type', 'Found', 'Est. cost/month'], buildBreakdownRows(summary, 'waste'), [290, 60, 149], y);
+
+  // Optimization opportunities (separate — not counted in the waste total)
+  const optimizationRows = buildBreakdownRows(summary, 'optimization');
+  if (optimizationRows.length > 0) {
+    y += 20;
+    doc.font('Helvetica-Bold').fontSize(10.5).fillColor(C.text)
+      .text('Optimization opportunities', MARGIN, y, { lineBreak: false });
+    y += 14;
+    doc.font('Helvetica').fontSize(8).fillColor(C.muted)
+      .text(
+        `Savings without deleting the resource — $${summary.totalOptimizationMonthlyUsd.toFixed(2)}/mo, not counted in the waste total. Items marked (estimated) need verification.`,
+        MARGIN, y, { width: CONTENT_W },
+      );
+    y += 18;
+    y = drawTable(doc, ['Resource type', 'Found', 'Est. saving/month'], optimizationRows, [290, 60, 149], y);
+  }
 
   // Recommendations
   const wins = buildQuickWins(summary);
@@ -287,16 +308,20 @@ function drawRecommendations(doc: PDFKit.PDFDocument, wins: QuickWin[], startY: 
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function buildBreakdownRows(summary: WastedResourcesSummary): string[][] {
+function buildBreakdownRows(
+  summary: WastedResourcesSummary,
+  category: FindingCategory,
+): string[][] {
   const grouped = groupByKind(summary.findings);
 
   return RESOURCE_KINDS
-    .filter((kind) => grouped[kind].length > 0)
+    .filter((kind) => RESOURCE_KIND_META[kind].category === category && grouped[kind].length > 0)
     .map((kind) => {
       const findings: WastedResource[] = grouped[kind];
       const cost = findings.reduce((sum, f) => sum + f.costEstimate.monthlyCostUsd, 0);
+      const estimatedSuffix = RESOURCE_KIND_META[kind].estimated ? ' (estimated)' : '';
       return [
-        `${RESOURCE_KIND_LABELS[kind]} (${findings[0].wasteReason})`,
+        `${RESOURCE_KIND_LABELS[kind]} (${findings[0].wasteReason})${estimatedSuffix}`,
         String(findings.length),
         `$${cost.toFixed(2)}/mo`,
       ];

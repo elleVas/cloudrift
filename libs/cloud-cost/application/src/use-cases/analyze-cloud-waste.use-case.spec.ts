@@ -3,6 +3,7 @@ import {
   AwsRegion,
   EbsVolume,
   ElasticIp,
+  Gp2Volume,
 } from 'cloud-cost-domain';
 import type { ResourceKind, WastedResource, WasteScannerPort } from 'cloud-cost-domain';
 import { Result } from 'shared-kernel';
@@ -37,6 +38,19 @@ function makeElasticIp(allocationId: string): ElasticIp {
   });
 }
 
+function makeGp2Volume(id: string): Gp2Volume {
+  return new Gp2Volume({
+    volumeId: id,
+    region: usEast,
+    accountId: '123456789012',
+    sizeGb: 200,
+    createTime: new Date('2025-01-01'),
+    detectedAt: new Date('2026-06-09'),
+    tags: {},
+    monthlyCostUsd: 4,
+  });
+}
+
 /** Scanner fittizio: una risposta per regione, in ordine di chiamata. */
 function makeScanner(
   kind: ResourceKind,
@@ -61,11 +75,12 @@ describe('AnalyzeCloudWasteUseCase', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.findings).toHaveLength(0);
-    expect(result.value.totalMonthlyCostUsd).toBe(0);
+    expect(result.value.totalWasteMonthlyUsd).toBe(0);
+    expect(result.value.totalOptimizationMonthlyUsd).toBe(0);
     expect(result.value.scanErrors).toHaveLength(0);
   });
 
-  it('aggregates findings from all scanners and computes total cost', async () => {
+  it('aggregates findings from all scanners and computes the waste total', async () => {
     const useCase = new AnalyzeCloudWasteUseCase([
       makeScanner('ebs-volume', [Result.ok([makeEbsVolume('vol-1'), makeEbsVolume('vol-2')])]),
       makeScanner('elastic-ip', [Result.ok([makeElasticIp('eipalloc-1')])]),
@@ -77,7 +92,22 @@ describe('AnalyzeCloudWasteUseCase', () => {
     if (!result.ok) return;
     expect(result.value.findings).toHaveLength(3);
     // 2 × (100 GB × $0.08) + 1 × $3.60 = $19.60
-    expect(result.value.totalMonthlyCostUsd).toBeCloseTo(19.6, 2);
+    expect(result.value.totalWasteMonthlyUsd).toBeCloseTo(19.6, 2);
+    expect(result.value.totalOptimizationMonthlyUsd).toBe(0);
+  });
+
+  it('splits the totals by category (waste vs optimization)', async () => {
+    const useCase = new AnalyzeCloudWasteUseCase([
+      makeScanner('ebs-volume', [Result.ok([makeEbsVolume('vol-1')])]), // waste
+      makeScanner('ebs-gp2-upgrade', [Result.ok([makeGp2Volume('vol-gp2')])]), // optimization
+    ]);
+
+    const result = await useCase.execute({ regions: [usEast] });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.totalWasteMonthlyUsd).toBeCloseTo(8, 2);
+    expect(result.value.totalOptimizationMonthlyUsd).toBeCloseTo(4, 2);
   });
 
   it('records a scanError with kind and region when a scanner fails, preserving other results', async () => {
@@ -126,7 +156,7 @@ describe('AnalyzeCloudWasteUseCase', () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.totalMonthlyCostUsd).toBeCloseTo(3.6, 2);
+    expect(result.value.totalWasteMonthlyUsd).toBeCloseTo(3.6, 2);
   });
 
   it('scans every region with every scanner', async () => {
