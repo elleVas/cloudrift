@@ -56,6 +56,18 @@ describe('parseConfig', () => {
     if (!result.ok) expect(result.error.message).toContain('ebsIdleMaxOps');
   });
 
+  it('parses thresholds.ec2CpuPercent', () => {
+    const result = parseConfig(JSON.stringify({ thresholds: { ec2CpuPercent: 10 } }));
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.thresholds?.ec2CpuPercent).toBe(10);
+  });
+
+  it('rejects a thresholds.ec2CpuPercent outside 0-100', () => {
+    const result = parseConfig(JSON.stringify({ thresholds: { ec2CpuPercent: 150 } }));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.message).toContain('ec2CpuPercent');
+  });
+
   it('returns empty config for an empty object', () => {
     const result = parseConfig('{}');
     expect(result.ok).toBe(true);

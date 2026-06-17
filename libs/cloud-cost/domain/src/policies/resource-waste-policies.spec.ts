@@ -8,6 +8,7 @@ import {
   NatGatewayWastePolicy,
   Gp2UpgradePolicy,
   EbsIdlePolicy,
+  Ec2UnderutilizedPolicy,
 } from './resource-waste-policies';
 import { DEFAULT_IGNORE_TAG } from './waste-policy';
 import { EbsVolume } from '../entities/ebs-volume.entity';
@@ -19,6 +20,8 @@ import { EbsSnapshot } from '../entities/ebs-snapshot.entity';
 import { NatGateway } from '../entities/nat-gateway.entity';
 import { Gp2Volume } from '../entities/gp2-volume.entity';
 import { IdleEbsVolume } from '../entities/idle-ebs-volume.entity';
+import { UnderutilizedEc2Instance } from '../entities/underutilized-ec2-instance.entity';
+import type { UnderutilizedEc2InstanceProps } from '../entities/underutilized-ec2-instance.entity';
 import type { EbsSnapshotProps } from '../entities/ebs-snapshot.entity';
 import type { Ec2InstanceProps } from '../entities/ec2-instance.entity';
 import { AwsRegion } from '../value-objects/aws-region.value-object';
@@ -398,5 +401,57 @@ describe('EbsIdlePolicy', () => {
     expect(
       policy.evaluate(makeIdleVolume({ tags: { [DEFAULT_IGNORE_TAG]: 'true' } }), now).isWaste,
     ).toBe(false);
+  });
+});
+
+describe('Ec2UnderutilizedPolicy', () => {
+  const policy = new Ec2UnderutilizedPolicy();
+
+  function makeInstance(
+    overrides: Partial<UnderutilizedEc2InstanceProps> = {},
+  ): UnderutilizedEc2Instance {
+    return new UnderutilizedEc2Instance({
+      instanceId: 'i-underused',
+      region,
+      accountId: '123456789012',
+      instanceType: 'm5.large',
+      avgCpuPercent: 1.2,
+      maxCpuPercent: 2.5,
+      windowDays: 14,
+      launchTime: oldDate,
+      detectedAt: now,
+      tags: {},
+      monthlyCostUsd: 16,
+      ...overrides,
+    });
+  }
+
+  it('flags an old instance with low max CPU', () => {
+    const verdict = policy.evaluate(makeInstance(), now);
+    expect(verdict.isWaste).toBe(true);
+    expect(verdict.reason).toContain('14d');
+  });
+
+  it('does not flag an instance with CPU above threshold', () => {
+    expect(policy.evaluate(makeInstance({ maxCpuPercent: 10 }), now).isWaste).toBe(false);
+  });
+
+  it('does not flag a freshly launched instance (grace period)', () => {
+    expect(policy.evaluate(makeInstance({ launchTime: yesterday }), now).isWaste).toBe(false);
+  });
+
+  it('honours a custom CPU threshold', () => {
+    const lenient = new Ec2UnderutilizedPolicy({}, 15);
+    expect(lenient.evaluate(makeInstance({ maxCpuPercent: 10 }), now).isWaste).toBe(true);
+  });
+
+  it('does not flag an instance carrying the ignore tag', () => {
+    expect(
+      policy.evaluate(makeInstance({ tags: { [DEFAULT_IGNORE_TAG]: 'true' } }), now).isWaste,
+    ).toBe(false);
+  });
+
+  it('includes the rightsizing advisory in the wasteReason', () => {
+    expect(makeInstance().wasteReason).toContain('verify RAM/network before rightsizing');
   });
 });

@@ -11,6 +11,7 @@ export const RESOURCE_KINDS = [
   'nat-gateway',
   'ebs-gp2-upgrade',
   'ebs-idle',
+  'ec2-underutilized',
 ] as const;
 
 export type ResourceKind = (typeof RESOURCE_KINDS)[number];
@@ -41,6 +42,11 @@ export const RESOURCE_KIND_META: Record<ResourceKind, ResourceKindMeta> = {
   'nat-gateway': { label: 'NAT Gateways', category: 'waste', estimated: false },
   'ebs-gp2-upgrade': { label: 'EBS gp2→gp3 Upgrades', category: 'optimization', estimated: false },
   'ebs-idle': { label: 'EBS Volumes (idle)', category: 'waste', estimated: false },
+  'ec2-underutilized': {
+    label: 'EC2 Instances (underutilized)',
+    category: 'optimization',
+    estimated: true,
+  },
 };
 
 /** Etichette leggibili, derivate da RESOURCE_KIND_META (unica fonte). */

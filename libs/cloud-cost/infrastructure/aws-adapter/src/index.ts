@@ -7,6 +7,8 @@ export { AwsEbsSnapshotScanner } from './scanners/aws-ebs-snapshot.scanner';
 export { AwsNatGatewayScanner } from './scanners/aws-nat-gateway.scanner';
 export { AwsGp2UpgradeScanner } from './scanners/aws-gp2-upgrade.scanner';
 export { AwsEbsIdleScanner } from './scanners/aws-ebs-idle.scanner';
+export { AwsEc2UnderutilizedScanner } from './scanners/aws-ec2-underutilized.scanner';
+export type { Ec2InstancePricingSource } from './scanners/aws-ec2-underutilized.scanner';
 export { AwsAdapterError } from './errors/aws-adapter.error';
 export {
   StaticPriceTableAdapter,

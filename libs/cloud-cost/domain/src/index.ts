@@ -34,6 +34,8 @@ export { Gp2Volume } from './entities/gp2-volume.entity';
 export type { Gp2VolumeProps } from './entities/gp2-volume.entity';
 export { IdleEbsVolume } from './entities/idle-ebs-volume.entity';
 export type { IdleEbsVolumeProps } from './entities/idle-ebs-volume.entity';
+export { UnderutilizedEc2Instance } from './entities/underutilized-ec2-instance.entity';
+export type { UnderutilizedEc2InstanceProps } from './entities/underutilized-ec2-instance.entity';
 
 // Value Objects
 export { AwsRegion, InvalidAwsRegionError } from './value-objects/aws-region.value-object';
@@ -58,6 +60,7 @@ export {
   NatGatewayWastePolicy,
   Gp2UpgradePolicy,
   EbsIdlePolicy,
+  Ec2UnderutilizedPolicy,
 } from './policies/resource-waste-policies';
 
 // Outbound Ports

@@ -38,6 +38,8 @@ export interface CloudriftConfig {
   thresholds?: {
     /** Operazioni I/O totali sotto cui un volume EBS attaccato è "idle". Default 0. */
     ebsIdleMaxOps?: number;
+    /** CPU massima (%) sotto cui un'istanza EC2 è "underutilized". Default 5. */
+    ec2CpuPercent?: number;
   };
 }
 
@@ -172,12 +174,24 @@ export function parseConfig(
       errors.push('thresholds must be an object');
     } else {
       const thresholds: NonNullable<CloudriftConfig['thresholds']> = {};
-      const { ebsIdleMaxOps } = obj.thresholds;
+      const { ebsIdleMaxOps, ec2CpuPercent } = obj.thresholds;
       if (ebsIdleMaxOps !== undefined) {
         if (typeof ebsIdleMaxOps === 'number' && Number.isFinite(ebsIdleMaxOps) && ebsIdleMaxOps >= 0) {
           thresholds.ebsIdleMaxOps = ebsIdleMaxOps;
         } else {
           errors.push('thresholds.ebsIdleMaxOps must be a non-negative number');
+        }
+      }
+      if (ec2CpuPercent !== undefined) {
+        if (
+          typeof ec2CpuPercent === 'number' &&
+          Number.isFinite(ec2CpuPercent) &&
+          ec2CpuPercent >= 0 &&
+          ec2CpuPercent <= 100
+        ) {
+          thresholds.ec2CpuPercent = ec2CpuPercent;
+        } else {
+          errors.push('thresholds.ec2CpuPercent must be a number between 0 and 100');
         }
       }
       config.thresholds = thresholds;

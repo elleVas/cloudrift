@@ -139,6 +139,36 @@ export class AwsPricingApiAdapter {
   }
 
   /**
+   * Prezzo on-demand mensile per un singolo instance type, risolto on-demand
+   * (non rientra in `warmUp`/`PRICE_SPECS`: la cardinalità degli instance
+   * type è troppo alta per un prefetch). Va chiamato solo per i type
+   * effettivamente osservati durante uno scan.
+   */
+  async getEc2InstancePricePerMonth(
+    region: AwsRegion,
+    instanceType: string,
+  ): Promise<number | undefined> {
+    const location = REGION_TO_LOCATION[region.code];
+    if (!location) return undefined;
+    return this.fetchPrice(
+      {
+        key: `ec2-${instanceType}`,
+        serviceCode: 'AmazonEC2',
+        filters: [
+          { Field: 'instanceType', Value: instanceType },
+          { Field: 'productFamily', Value: 'Compute Instance' },
+          { Field: 'tenancy', Value: 'Shared' },
+          { Field: 'operatingSystem', Value: 'Linux' },
+          { Field: 'preInstalledSw', Value: 'NA' },
+          { Field: 'capacitystatus', Value: 'Used' },
+        ],
+        unit: 'hourly',
+      },
+      location,
+    );
+  }
+
+  /**
    * Restituisce il prezzo per una spec **solo se i prodotti restituiti
    * concordano su un unico valore**. Filtri ambigui (più valori distinti) ⇒
    * `undefined`, per non rischiare un prezzo sbagliato (peggio del listino).
