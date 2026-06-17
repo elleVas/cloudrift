@@ -183,4 +183,8 @@ Prices live **only** in `prices.json` (infrastructure), with per-region override
 | ALB/NLB (base) | ~$16.20/month |
 | NAT Gateway (base) | ~$32.40/month |
 
-**Maintenance:** updating prices = updating `prices.json` **and** the `pricesAsOf` field. A natural evolution is an adapter over the AWS Pricing API with a static fallback: `PricingPort` allows it without touching scanners or domain.
+**Three pricing layers (the `PricingPort` payoff).** Prices resolve per `(region, key)` from, in order: the user's `prices` overrides in the config (negotiated/company rates — highest), the **AWS Pricing API** (`--live-pricing`, `AwsPricingApiAdapter.warmUp` fetches and materialises a table), and the built-in `prices.json` (always present). All three share the same `PriceTable` shape, so they compose with a plain `mergePriceTables`; the getters stay synchronous (the live adapter warms up before the scan). Swapping/adding a source never touches the scanners or the domain — exactly what the port buys.
+
+Two safety properties: the live adapter accepts a price **only if the filters resolve to a single value** (ambiguous → fall back to static, never a wrong guess), and even live prices are AWS **list** prices, not the actual bill (Savings Plans / RI / EDP) — the `prices` override is the only way to encode real rates. `getPricesAsOf()` reflects which layer was used.
+
+**Maintenance:** updating the static fallback = updating `prices.json` **and** its `pricesAsOf` field.

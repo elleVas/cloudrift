@@ -24,6 +24,10 @@ program
     'path to a cloudrift config file (defaults to cloudrift.config.json / .cloudriftrc in the cwd)',
   )
   .option(
+    '--live-pricing',
+    'fetch current list prices from the AWS Pricing API (falls back to the static table; config prices still win)',
+  )
+  .option(
     '--min-age-days <days>',
     'grace period: resources younger than this many days are not reported (default 7, overrides config)',
   )

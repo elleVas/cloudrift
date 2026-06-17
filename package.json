@@ -39,6 +39,7 @@
     "@aws-sdk/client-cloudwatch": "^3.741.0",
     "@aws-sdk/client-ec2": "^3.741.0",
     "@aws-sdk/client-elastic-load-balancing-v2": "^3.741.0",
+    "@aws-sdk/client-pricing": "^3.1070.0",
     "@aws-sdk/client-rds": "^3.741.0",
     "@aws-sdk/client-sts": "^3.1068.0",
     "chalk": "^4.1.2",

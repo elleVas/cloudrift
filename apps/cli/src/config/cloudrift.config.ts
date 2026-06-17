@@ -28,6 +28,12 @@ export interface CloudriftConfig {
   ignoreTag?: string;
   /** Soglia di costo mensile: se superata, il comando esce con codice 2 (utile in CI). */
   costAlertThresholdUsd?: number;
+  /**
+   * Override prezzi per regione (tariffe speciali/aziendali). Stessa forma di
+   * `prices.json`: `regione → chiave → USD`, con `default` come fallback.
+   * Vincono su listino statico e su AWS Pricing API.
+   */
+  prices?: Record<string, Record<string, number>>;
 }
 
 export class ConfigError extends DomainError {
@@ -146,6 +152,16 @@ export function parseConfig(
     }
   }
 
+  if (obj.prices !== undefined) {
+    if (isPriceTable(obj.prices)) {
+      config.prices = obj.prices;
+    } else {
+      errors.push(
+        'prices must be an object of region → { priceKey: number } (e.g. { "eu-west-1": { "nat-gateway": 28.5 } })',
+      );
+    }
+  }
+
   if (errors.length > 0) {
     return Result.fail(
       new ConfigError(`Invalid config (${source}):\n  - ${errors.join('\n  - ')}`),
@@ -164,5 +180,20 @@ function isStringRecord(v: unknown): v is Record<string, string> {
     v !== null &&
     !Array.isArray(v) &&
     Object.values(v).every((val) => typeof val === 'string')
+  );
+}
+
+function isPlainObject(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null && !Array.isArray(v);
+}
+
+function isPriceTable(v: unknown): v is Record<string, Record<string, number>> {
+  if (!isPlainObject(v)) return false;
+  return Object.values(v).every(
+    (regionPrices) =>
+      isPlainObject(regionPrices) &&
+      Object.values(regionPrices).every(
+        (price) => typeof price === 'number' && Number.isFinite(price) && price >= 0,
+      ),
   );
 }

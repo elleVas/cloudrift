@@ -132,6 +132,7 @@ node apps/cli/dist/main.js analyze [options]
 | `-r, --regions <regions...>` | AWS regions to scan                                                                                            | `us-east-1`        |
 | `--format <format>`          | stdout output format: `table`, `json`, or `markdown` (for CI / PR comments)                                   | `table`            |
 | `--config <path>`            | Path to a config file (defaults to `cloudrift.config.json` / `.cloudriftrc` in the cwd)                       | auto-discovered    |
+| `--live-pricing`             | Fetch current list prices from the AWS Pricing API (falls back to the static table; config prices still win)  | off (static table) |
 | `--account-id <id>`          | AWS account ID override (auto-detected via `sts:GetCallerIdentity` when omitted)                               | auto-detected      |
 | `--min-age-days <days>`      | Grace period: resources younger than this many days are not reported (overrides config)                       | `7`                |
 | `--ignore-tag <tag>`         | Resources carrying this tag are excluded from the report (overrides config)                                   | `cloudrift:ignore` |
@@ -200,6 +201,8 @@ Prices are region-aware (defined in `prices.json` in the infrastructure layer). 
 
 cloudrift reads `cloudrift.config.json` (or `.cloudriftrc`) from the current directory, or a path passed with `--config`. CLI flags take precedence over the config file, which takes precedence over the built-in defaults. All fields are optional:
 
+> **Where does the file go?** It is **your** file, not part of the npm package. Put `cloudrift.config.json` in the directory you run `cloudrift` from — typically your repo root, **committed** so it's picked up automatically in CI (after `actions/checkout`) and shared by the team. Installing globally or running via `npx` makes no difference: discovery is based on the current working directory. If the file lives elsewhere, point at it with `--config path/to/file.json`.
+
 ```json
 {
   "excludeRegions": ["us-gov-east-1"],
@@ -207,7 +210,11 @@ cloudrift reads `cloudrift.config.json` (or `.cloudriftrc`) from the current dir
   "cloudwatchWindowHours": 168,
   "minAgeDays": 14,
   "ignoreTag": "cloudrift:ignore",
-  "costAlertThresholdUsd": 500
+  "costAlertThresholdUsd": 500,
+  "prices": {
+    "eu-west-1": { "nat-gateway": 28.5, "ebs-gp3": 0.07 },
+    "default": { "elastic-ip": 3.2 }
+  }
 }
 ```
 
@@ -219,8 +226,21 @@ cloudrift reads `cloudrift.config.json` (or `.cloudriftrc`) from the current dir
 | `minAgeDays`            | Grace period in days (same as `--min-age-days`)                                                  |
 | `ignoreTag`             | Exclusion tag (same as `--ignore-tag`)                                                           |
 | `costAlertThresholdUsd` | If the monthly total exceeds this, the command **exits with code 2** (used to fail a pipeline)  |
+| `prices`                | Per-region price overrides (same shape as the built-in table): `region → { priceKey: USD }`, with `default` as fallback. Use it for your **negotiated/enterprise rates** |
 
 > A staging NAT Gateway with no weekend traffic is a classic false positive: widen `cloudwatchWindowHours` to `168` so a quiet weekend doesn't flag it.
+
+### Pricing sources
+
+Costs are resolved from three layers; the most specific wins, per `(region, priceKey)`:
+
+1. **Your `prices` overrides** (config) — your negotiated/company rates. **Highest priority.**
+2. **AWS Pricing API** (`--live-pricing`) — current public list prices, fetched at startup.
+3. **Built-in static table** (`prices.json`) — always present as the fallback.
+
+Every report shows `prices as of` (the static date, the live fetch date, or `+ custom overrides`).
+
+> **Honest caveat:** even with `--live-pricing`, AWS returns **list** prices, not *your* bill — Savings Plans, Reserved Instances and EDP discounts are not reflected. The `prices` override is the only way to make the report match what you actually pay. Anything the live API can't unambiguously resolve falls back to the static table.
 
 ### Use in CI/CD
 
@@ -281,6 +301,8 @@ The AWS principal needs the following read-only permissions:
   "Resource": "*"
 }
 ```
+
+> `--live-pricing` additionally requires `pricing:GetProducts` (the AWS Pricing API). It is **not** needed for the default static pricing.
 
 ### Development
 
@@ -482,6 +504,7 @@ node apps/cli/dist/main.js analyze [opzioni]
 | `-r, --regions <regioni...>` | Regioni AWS da scansionare                                                                                           | `us-east-1`        |
 | `--format <format>`          | Formato di stdout: `table`, `json` o `markdown` (per CI / commenti PR)                                              | `table`            |
 | `--config <path>`            | Percorso del file di config (default: `cloudrift.config.json` / `.cloudriftrc` nella cwd)                          | auto-rilevato      |
+| `--live-pricing`             | Recupera i prezzi di listino correnti dall'AWS Pricing API (fallback alla tabella statica; i prezzi del config vincono) | off (tabella statica) |
 | `--account-id <id>`          | Override dell'account ID (rilevato automaticamente via `sts:GetCallerIdentity` se omesso)                            | auto-rilevato      |
 | `--min-age-days <giorni>`    | Periodo di grazia: le risorse più giovani di N giorni non vengono segnalate (ha precedenza sul config)              | `7`                |
 | `--ignore-tag <tag>`         | Le risorse con questo tag vengono escluse dal report (ha precedenza sul config)                                     | `cloudrift:ignore` |
@@ -565,6 +588,8 @@ I prezzi sono per-regione (file `prices.json` nell'infrastruttura). Regioni supp
 
 cloudrift legge `cloudrift.config.json` (o `.cloudriftrc`) dalla directory corrente, oppure il percorso passato con `--config`. I flag CLI hanno la precedenza sul file di config, che a sua volta ha la precedenza sui default. Tutti i campi sono opzionali:
 
+> **Dove va il file?** È un file **tuo**, non fa parte del pacchetto npm. Metti `cloudrift.config.json` nella directory da cui lanci `cloudrift` — tipicamente la root del tuo repo, **committato** così viene preso automaticamente in CI (dopo `actions/checkout`) e condiviso dal team. Installazione globale o `npx` non cambia nulla: la ricerca si basa sulla working directory corrente. Se il file sta altrove, indicalo con `--config percorso/del/file.json`.
+
 ```json
 {
   "excludeRegions": ["us-gov-east-1"],
@@ -572,7 +597,11 @@ cloudrift legge `cloudrift.config.json` (o `.cloudriftrc`) dalla directory corre
   "cloudwatchWindowHours": 168,
   "minAgeDays": 14,
   "ignoreTag": "cloudrift:ignore",
-  "costAlertThresholdUsd": 500
+  "costAlertThresholdUsd": 500,
+  "prices": {
+    "eu-west-1": { "nat-gateway": 28.5, "ebs-gp3": 0.07 },
+    "default": { "elastic-ip": 3.2 }
+  }
 }
 ```
 
@@ -584,8 +613,21 @@ cloudrift legge `cloudrift.config.json` (o `.cloudriftrc`) dalla directory corre
 | `minAgeDays`            | Periodo di grazia in giorni (come `--min-age-days`)                                                      |
 | `ignoreTag`             | Tag di esclusione (come `--ignore-tag`)                                                                  |
 | `costAlertThresholdUsd` | Se il totale mensile supera questa soglia, il comando **esce con codice 2** (per far fallire la pipeline) |
+| `prices`                | Override prezzi per regione (stessa forma del listino built-in): `regione → { chiave: USD }`, con `default` come fallback. Usalo per le tue **tariffe negoziate/aziendali** |
 
 > Un NAT Gateway di staging senza traffico nel weekend è il classico falso positivo: allarga `cloudwatchWindowHours` a `168` così un weekend tranquillo non lo segnala.
+
+### Fonti dei prezzi
+
+I costi sono risolti da tre livelli; vince il più specifico, per `(regione, chiave)`:
+
+1. **I tuoi override `prices`** (config) — le tue tariffe negoziate/aziendali. **Massima priorità.**
+2. **AWS Pricing API** (`--live-pricing`) — listino pubblico corrente, recuperato all'avvio.
+3. **Tabella statica built-in** (`prices.json`) — sempre presente come fallback.
+
+Ogni report mostra `prices as of` (la data dello statico, quella del fetch live, o `+ custom overrides`).
+
+> **Nota onesta:** anche con `--live-pricing`, AWS restituisce i prezzi di **listino**, non la *tua* bolletta — Savings Plans, Reserved Instances e sconti EDP non sono riflessi. Gli override `prices` sono l'unico modo per far combaciare il report con ciò che paghi davvero. Tutto ciò che il live non riesce a risolvere in modo univoco ricade sulla tabella statica.
 
 ### Uso in CI/CD
 
@@ -646,6 +688,8 @@ Il principal AWS deve avere le seguenti permission in sola lettura:
   "Resource": "*"
 }
 ```
+
+> `--live-pricing` richiede in più `pricing:GetProducts` (AWS Pricing API). **Non** serve per il pricing statico di default.
 
 ### Sviluppo
 

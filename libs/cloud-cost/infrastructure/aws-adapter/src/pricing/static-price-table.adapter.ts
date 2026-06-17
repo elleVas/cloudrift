@@ -1,41 +1,30 @@
-import type { PricingPort, AwsRegion } from 'cloud-cost-domain';
 import priceTable from './prices.json';
+import {
+  TablePricingAdapter,
+  type PriceTable,
+  type RegionPrices,
+} from './table-pricing.adapter';
 
-type PriceKey = keyof typeof priceTable.default;
-type RegionTable = Record<string, number>;
+/**
+ * La tabella prezzi built-in, estratta da `prices.json` scartando i campi di
+ * metadati (`_comment`, `pricesAsOf`) e tenendo solo le tabelle per regione.
+ * Esportata per poterla comporre con le altre fonti (live API, override utente).
+ */
+export const BUILTIN_PRICE_TABLE: PriceTable = Object.fromEntries(
+  Object.entries(priceTable as Record<string, unknown>).filter(
+    ([, value]) => typeof value === 'object' && value !== null,
+  ) as Array<[string, RegionPrices]>,
+);
 
-function lookup(region: AwsRegion, key: PriceKey): number {
-  const regionTable = (priceTable as unknown as Record<string, RegionTable>)[region.code];
-  if (regionTable?.[key] !== undefined) return regionTable[key];
-  return priceTable.default[key];
-}
+/** Data (YYYY-MM) di ultima verifica del listino built-in. */
+export const BUILTIN_PRICES_AS_OF: string = priceTable.pricesAsOf;
 
-export class StaticPriceTableAdapter implements PricingPort {
-  getEbsVolumePricePerGbMonth(region: AwsRegion, volumeType: string): number {
-    return lookup(region, `ebs-${volumeType}` as PriceKey) ?? priceTable.default['ebs-gp3'];
-  }
-
-  getEbsSnapshotPricePerGbMonth(region: AwsRegion): number {
-    return lookup(region, 'ebs-snapshot');
-  }
-
-  getElasticIpPricePerMonth(region: AwsRegion): number {
-    return lookup(region, 'elastic-ip');
-  }
-
-  getRdsStoragePricePerGbMonth(region: AwsRegion, storageType: string): number {
-    return lookup(region, `rds-${storageType}` as PriceKey) ?? priceTable.default['rds-gp2'];
-  }
-
-  getLoadBalancerPricePerMonth(region: AwsRegion): number {
-    return lookup(region, 'load-balancer');
-  }
-
-  getNatGatewayPricePerMonth(region: AwsRegion): number {
-    return lookup(region, 'nat-gateway');
-  }
-
-  getPricesAsOf(): string {
-    return priceTable.pricesAsOf;
+/**
+ * Adapter di pricing basato sul listino statico `prices.json`. È il fallback
+ * sempre disponibile quando non sono configurati prezzi live o manuali.
+ */
+export class StaticPriceTableAdapter extends TablePricingAdapter {
+  constructor() {
+    super(BUILTIN_PRICE_TABLE, BUILTIN_PRICES_AS_OF);
   }
 }
