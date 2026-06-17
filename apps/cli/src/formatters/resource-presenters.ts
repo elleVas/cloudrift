@@ -120,6 +120,21 @@ export const presenters: PresenterMap = {
     recommend: (v) =>
       `Detach or delete idle EBS ${v.id} (${v.sizeGb} GB ${v.volumeType}) in ${v.region.code} — no I/O in last ${v.metricWindowHours}h`,
   },
+  'ec2-underutilized': {
+    title: 'EC2 Instances — Underutilized (rightsizing candidate, verify before acting)',
+    head: ['Instance ID', 'Region', 'Type', 'Avg CPU', 'Max CPU', 'Window'],
+    colWidths: [110, 72, 70, 70, 70, 60, 80],
+    row: (inst) => [
+      inst.id,
+      inst.region.code,
+      inst.instanceType,
+      `${inst.avgCpuPercent.toFixed(1)}%`,
+      `${inst.maxCpuPercent.toFixed(1)}%`,
+      `${inst.windowDays}d`,
+    ],
+    recommend: (inst) =>
+      `Review EC2 ${inst.id} (${inst.instanceType}) in ${inst.region.code} for rightsizing — max CPU ${inst.maxCpuPercent.toFixed(1)}% over ${inst.windowDays}d (verify RAM/network first)`,
+  },
 };
 
 export function presenterFor(kind: ResourceKind): ResourcePresenter {

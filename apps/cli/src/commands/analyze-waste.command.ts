@@ -15,6 +15,7 @@ import {
   NatGatewayWastePolicy,
   Gp2UpgradePolicy,
   EbsIdlePolicy,
+  Ec2UnderutilizedPolicy,
 } from 'cloud-cost-domain';
 import type {
   FindWastedResourcesUseCasePort,
@@ -34,6 +35,7 @@ import {
   AwsNatGatewayScanner,
   AwsGp2UpgradeScanner,
   AwsEbsIdleScanner,
+  AwsEc2UnderutilizedScanner,
   StaticPriceTableAdapter,
   TablePricingAdapter,
   AwsPricingApiAdapter,
@@ -92,17 +94,22 @@ export interface AnalyzeDeps {
   createAnalysis(ctx: AnalysisContext): Promise<Analysis>;
 }
 
-/** Composizione reale: pricing a livelli + 8 scanner AWS + use case generico. */
+/** Composizione reale: pricing a livelli + scanner AWS (uno advisory gated su --live-pricing) + use case generico. */
 async function defaultCreateAnalysis(ctx: AnalysisContext): Promise<Analysis> {
   // Pricing a livelli: listino statico (base) ← AWS Pricing API live (--live-pricing)
   // ← override utente (config.prices, vincono).
   let priceTable: PriceTable = BUILTIN_PRICE_TABLE;
   let pricesAsOf = BUILTIN_PRICES_AS_OF;
   let layered = false;
+  // L'EC2 underutilized scanner risolve il prezzo per-instance-type on-demand
+  // dalla stessa istanza di AwsPricingApiAdapter: senza --live-pricing non c'è
+  // un prezzo per instance type, quindi lo scanner non viene registrato.
+  let livePricingAdapter: AwsPricingApiAdapter | undefined;
 
   if (ctx.livePricing) {
     ctx.info(chalk.dim('  Fetching current prices from the AWS Pricing API...'));
-    const live = await new AwsPricingApiAdapter().warmUp(ctx.regions);
+    livePricingAdapter = new AwsPricingApiAdapter();
+    const live = await livePricingAdapter.warmUp(ctx.regions);
     if (live.ok) {
       priceTable = mergePriceTables(priceTable, live.value);
       pricesAsOf = new Date().toISOString().slice(0, 7); // YYYY-MM
@@ -148,6 +155,19 @@ async function defaultCreateAnalysis(ctx: AnalysisContext): Promise<Analysis> {
       cloudwatchWindowHours,
     ),
   ];
+
+  // Advisory, gated su --live-pricing: il prezzo per instance type non rientra
+  // nel listino statico (cardinalità troppo alta), quindi senza prezzi live
+  // non c'è risparmio stimabile e lo scanner resta disattivato.
+  if (livePricingAdapter) {
+    scanners.push(
+      new AwsEc2UnderutilizedScanner(
+        livePricingAdapter,
+        accountId,
+        new Ec2UnderutilizedPolicy(policyOptions, ctx.config.thresholds?.ec2CpuPercent ?? 5),
+      ),
+    );
+  }
 
   return { useCase: new AnalyzeCloudWasteUseCase(scanners), pricesAsOf: pricing.getPricesAsOf() };
 }

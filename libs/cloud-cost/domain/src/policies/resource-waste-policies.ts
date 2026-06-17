@@ -8,6 +8,7 @@ import type { EbsSnapshot } from '../entities/ebs-snapshot.entity';
 import type { NatGateway } from '../entities/nat-gateway.entity';
 import type { Gp2Volume } from '../entities/gp2-volume.entity';
 import type { IdleEbsVolume } from '../entities/idle-ebs-volume.entity';
+import type { UnderutilizedEc2Instance } from '../entities/underutilized-ec2-instance.entity';
 
 export class EbsVolumeWastePolicy extends WastePolicy<EbsVolume> {
   protected judge(volume: EbsVolume, now: Date): WasteVerdict {
@@ -97,6 +98,22 @@ export class EbsIdlePolicy extends WastePolicy<IdleEbsVolume> {
       return notWaste(`created less than ${this.minAgeDays}d ago`);
     }
     return waste(`zero I/O in last ${volume.metricWindowHours}h`);
+  }
+}
+
+export class Ec2UnderutilizedPolicy extends WastePolicy<UnderutilizedEc2Instance> {
+  /** maxCpuPercent: soglia di CPU massima sotto cui l'istanza è sottoutilizzata. */
+  constructor(options: WastePolicyOptions = {}, private readonly maxCpuPercent = 5) {
+    super(options);
+  }
+
+  protected judge(instance: UnderutilizedEc2Instance, now: Date): WasteVerdict {
+    if (instance.maxCpuPercent >= this.maxCpuPercent) return notWaste('CPU above threshold');
+    // Un'istanza appena lanciata potrebbe non aver ancora accumulato traffico reale.
+    if (this.isWithinGracePeriod(instance.launchTime, now)) {
+      return notWaste(`launched less than ${this.minAgeDays}d ago`);
+    }
+    return waste(`max CPU ${instance.maxCpuPercent.toFixed(1)}% over ${instance.windowDays}d`);
   }
 }
 

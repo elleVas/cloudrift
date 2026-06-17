@@ -8,6 +8,7 @@ import type { EbsSnapshot } from './entities/ebs-snapshot.entity';
 import type { NatGateway } from './entities/nat-gateway.entity';
 import type { Gp2Volume } from './entities/gp2-volume.entity';
 import type { IdleEbsVolume } from './entities/idle-ebs-volume.entity';
+import type { UnderutilizedEc2Instance } from './entities/underutilized-ec2-instance.entity';
 
 /**
  * Mappa kind → entità concreta. Permette ai consumer (formatter, frontend)
@@ -23,6 +24,7 @@ export interface ResourceKindMap {
   'nat-gateway': NatGateway;
   'ebs-gp2-upgrade': Gp2Volume;
   'ebs-idle': IdleEbsVolume;
+  'ec2-underutilized': UnderutilizedEc2Instance;
 }
 
 export type FindingsByKind = {
