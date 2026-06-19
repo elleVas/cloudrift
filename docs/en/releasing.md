@@ -2,7 +2,7 @@
 
 > 🇮🇹 [Versione italiana](../it/rilascio.md)
 
-This document describes how the npm package is built and published. It is for maintainers — users only need the [README](../../README.md#install).
+This document describes how the npm package is built and published. It is for maintainers — users only need the [README](../../README.md#quick-start) (no version has been published yet, so the README's only path today is building from source).
 
 ## What gets published
 

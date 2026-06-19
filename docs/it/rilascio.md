@@ -2,7 +2,7 @@
 
 > 🇬🇧 [English version](../en/releasing.md)
 
-Questo documento descrive come il pacchetto npm viene buildato e pubblicato. È pensato per i manutentori — agli utenti basta il [README](../../README.md#installazione).
+Questo documento descrive come il pacchetto npm viene buildato e pubblicato. È pensato per i manutentori — agli utenti basta il [README](../../README.md#guida-rapida) (non è ancora stata pubblicata nessuna versione, quindi oggi l'unico percorso del README è compilare dai sorgenti).
 
 ## Cosa viene pubblicato
 

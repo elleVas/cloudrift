@@ -29,11 +29,13 @@ export const RESOURCE_KINDS = [
   'log-group',                                   // ← added
 ] as const;
 
-export const RESOURCE_KIND_LABELS: Record<ResourceKind, string> = {
+export const RESOURCE_KIND_META: Record<ResourceKind, ResourceKindMeta> = {
   // … existing …
-  'log-group': 'CloudWatch Log Groups',          // ← added
+  'log-group': { label: 'CloudWatch Log Groups', category: 'waste', estimated: false }, // ← added
 };
 ```
+
+`category` is `'waste'` (eliminable cost, counts in `totalWasteMonthlyUsd` and the CI gate) or `'optimization'` (a saving that keeps the resource, e.g. gp2→gp3 — see [architecture.md](./architecture.md#waste-vs-optimization--findingcategory)). `estimated: true` marks a heuristic figure that needs verification (only `ec2-underutilized` today). `RESOURCE_KIND_LABELS` is derived automatically from `RESOURCE_KIND_META` — do not add a separate entry there.
 
 Also add the row in `ResourceKindMap` (`group-by-kind.ts`):
 
@@ -276,7 +278,7 @@ Add the permission the new scanner requires to the README. For log groups:
 
 ## Summary checklist
 
-- [ ] `ResourceKind` + `RESOURCE_KIND_LABELS` + `ResourceKindMap` updated
+- [ ] `ResourceKind` + `RESOURCE_KIND_META` (label, category, estimated) + `ResourceKindMap` updated
 - [ ] Entity in `domain/src/entities/` implementing `WastedResource` (facts, not decisions)
 - [ ] Waste policy in `domain/src/policies/` + tests
 - [ ] `domain/src/index.ts` updated (entity + policy)

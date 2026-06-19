@@ -10,5 +10,9 @@
   "prices": {
     "eu-west-1": { "nat-gateway": 28.5, "ebs-gp3": 0.07 },
     "default": { "elastic-ip": 3.2 }
+  },
+  "thresholds": {
+    "ebsIdleMaxOps": 0,
+    "ec2CpuPercent": 5
   }
 }
