@@ -51,7 +51,7 @@ Questo documento spiega il perché di ogni scelta tecnologica nel progetto, con 
 
 ## AWS SDK v3
 
-**Scelta:** client modulari `@aws-sdk/client-ec2`, `client-rds`, `client-elastic-load-balancing-v2`, `client-cloudwatch`, `client-sts`.
+**Scelta:** client modulari `@aws-sdk/client-ec2`, `client-rds`, `client-elastic-load-balancing-v2`, `client-cloudwatch`, `client-sts`, `client-pricing`.
 
 **Perché:**
 - Modulare: si importa solo il client necessario
@@ -99,6 +99,10 @@ try {
 - snapshot referenziati da AMI registrate (non cancellabili)
 
 **Trade-off:** il grace period sugli EBS usa `createTime` come proxy della data di detach (AWS non la espone): un volume vecchio staccato ieri viene comunque segnalato. Accettabile: il caso opposto (volume appena creato segnalato come spreco) era molto più dannoso per la fiducia nel report.
+
+**Soglie per-check.** Due policy — `EbsIdlePolicy` e `Ec2UnderutilizedPolicy` — prendono in più una soglia numerica come parametro del costruttore (non un flag CLI trasversale, dato che non ha senso per le altre policy): `ebsIdleMaxOps` (operazioni I/O CloudWatch totali sotto cui un volume attaccato conta come idle, default 0) e `ec2CpuPercent` (CPU massima % sotto cui un'istanza running conta come sottoutilizzata, default 5). Entrambe configurabili solo via `config.thresholds`, non un flag CLI dedicato — sono manopole di tuning per un check advisory, non qualcosa che ogni invocazione deve passare.
+
+**Spreco vs. ottimizzazione.** Non ogni detector trova spreco cancellabile: `ebs-gp2-upgrade` ed `ec2-underutilized` sono opportunità di risparmio che mantengono la risorsa (`FindingCategory: 'optimization'`), escluse dal totale waste principale e dal gate CI (vedi [architettura.md](./architettura.md#spreco-vs-ottimizzazione--findingcategory)). `ec2-underutilized` è inoltre marcata `estimated: true`: la sola CPU non dimostra che anche RAM/rete siano altrettanto inutilizzate.
 
 ---
 
@@ -188,3 +192,5 @@ I prezzi vivono **solo** in `prices.json` (infrastruttura), con override per-reg
 Due proprietà di sicurezza: l'adapter live accetta un prezzo **solo se i filtri risolvono un valore unico** (ambiguo → fallback allo statico, mai un prezzo indovinato sbagliato), e anche i prezzi live sono prezzi di **listino** AWS, non la bolletta reale (Savings Plans / RI / EDP) — gli override `prices` sono l'unico modo per encodare le tariffe vere. `getPricesAsOf()` riflette quale livello è stato usato.
 
 **Manutenzione:** aggiornare il fallback statico = aggiornare `prices.json` **e** il suo campo `pricesAsOf`.
+
+**L'unica eccezione: pricing EC2 per instance type.** `AwsEc2UnderutilizedScanner` non rientra nel modello a tre livelli descritto sopra: la cardinalità degli instance type EC2 è troppo alta per stare in `prices.json` o per essere pre-caricata in `warmUp()`. Chiama invece direttamente `AwsPricingApiAdapter.getEc2InstancePricePerMonth(region, instanceType)`, on demand, per ogni instance type distinto osservato nello scan. La conseguenza è voluta, non una svista: senza `--live-pricing` non c'è alcuna fonte di prezzo per questo check, quindi il composition root semplicemente non registra lo scanner, invece di riportare una stima di risparmio a zero.

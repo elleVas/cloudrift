@@ -51,7 +51,7 @@ This document explains the reasoning behind every technology choice in the proje
 
 ## AWS SDK v3
 
-**Choice:** modular clients `@aws-sdk/client-ec2`, `client-rds`, `client-elastic-load-balancing-v2`, `client-cloudwatch`, `client-sts`.
+**Choice:** modular clients `@aws-sdk/client-ec2`, `client-rds`, `client-elastic-load-balancing-v2`, `client-cloudwatch`, `client-sts`, `client-pricing`.
 
 **Why:**
 - Modular: only the needed client is imported
@@ -99,6 +99,10 @@ try {
 - snapshots referenced by registered AMIs (not deletable)
 
 **Trade-off:** the EBS grace period uses `createTime` as a proxy for the detach date (AWS does not expose it): an old volume detached yesterday still gets reported. Acceptable: the opposite case (a freshly created volume reported as waste) was far more damaging to trust in the report.
+
+**Per-check thresholds.** Two policies — `EbsIdlePolicy` and `Ec2UnderutilizedPolicy` — additionally take a numeric threshold as a constructor parameter (not a cross-cutting CLI flag, since it is meaningless for the other policies): `ebsIdleMaxOps` (total CloudWatch I/O ops below which an attached volume counts as idle, default 0) and `ec2CpuPercent` (max CPU% below which a running instance counts as underutilized, default 5). Both are configurable only via `config.thresholds`, not a dedicated CLI flag — they are tuning knobs for an advisory check, not something every invocation needs to pass.
+
+**Waste vs. optimization.** Not every detector finds deletable waste: `ebs-gp2-upgrade` and `ec2-underutilized` are savings opportunities that keep the resource (`FindingCategory: 'optimization'`), kept out of the headline waste total and the CI gate (see [architecture.md](./architecture.md#waste-vs-optimization--findingcategory)). `ec2-underutilized` is further marked `estimated: true`: CPU alone doesn't prove RAM/network are equally idle.
 
 ---
 
@@ -188,3 +192,5 @@ Prices live **only** in `prices.json` (infrastructure), with per-region override
 Two safety properties: the live adapter accepts a price **only if the filters resolve to a single value** (ambiguous → fall back to static, never a wrong guess), and even live prices are AWS **list** prices, not the actual bill (Savings Plans / RI / EDP) — the `prices` override is the only way to encode real rates. `getPricesAsOf()` reflects which layer was used.
 
 **Maintenance:** updating the static fallback = updating `prices.json` **and** its `pricesAsOf` field.
+
+**The one exception: per-instance-type EC2 pricing.** `AwsEc2UnderutilizedScanner` doesn't fit the three-layer model above: the cardinality of EC2 instance types is too high to put in `prices.json` or to pre-fetch in `warmUp()`. Instead it calls `AwsPricingApiAdapter.getEc2InstancePricePerMonth(region, instanceType)` directly, on demand, per distinct instance type observed in the scan. The consequence is by design, not an oversight: without `--live-pricing` there is no price source at all for this check, so the composition root simply does not register the scanner, rather than reporting a savings estimate of zero.

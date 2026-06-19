@@ -20,6 +20,10 @@
 | **EBS Snapshots**  | Source volume deleted (orphan snapshots)    | $0.05/GB-month                                          |
 | **NAT Gateways**   | Zero outbound traffic in the last 48h       | ~$32.40/month fixed                                     |
 | **EBS gp2→gp3**    | In-use gp2 volume upgradeable to gp3 (savings, not waste) | Saving: gp2 − gp3 price × GB (≈ $0.02/GB-mo) |
+| **EBS Volumes (idle)** | Attached (in-use) but zero I/O in the last 48h | gp3: $0.08/GB-mo · gp2: $0.10/GB-mo · io1: $0.125/GB-mo |
+| **EC2 Instances (underutilized)** | Running, max CPU ≤ 5% over 14 days — rightsizing candidate, requires `--live-pricing` | Saving: ~50% of the instance's monthly cost (estimate — verify RAM/network before acting) |
+
+Every finding is also tagged `waste` or `optimization`: `waste` is money being spent now and feeds the headline total and the CI gate; `optimization` (gp2→gp3, EC2 underutilized) is a saving opportunity that keeps the resource, shown separately and never gated. `EC2 Instances (underutilized)` is additionally an *estimate* — verify before acting.
 
 **False-positive guards (waste policies):**
 
@@ -29,26 +33,13 @@
 
 > Prices vary by region. The tool uses region-specific pricing for: `us-east-1`, `us-west-2`, `eu-west-1`, `eu-central-1`, `ap-southeast-1`, `ap-northeast-1`. Every report states the date the price table was last verified (`prices as of`).
 
-### Install
-
-The published package is **[`@cloudrift/cli`](https://www.npmjs.com/package/@cloudrift/cli)**; the installed command is `cloudrift`.
-
-```sh
-# One-off (ideal in CI)
-npx @cloudrift/cli@latest analyze -r us-east-1
-
-# Or install globally
-npm install -g @cloudrift/cli
-cloudrift analyze -r us-east-1
-```
-
-Prefer building from source for development? See [Quick Start](#quick-start) below. All examples in this README use `cloudrift …`; when running from source replace it with `node apps/cli/dist/main.js …`.
+> **No npm package yet.** `@cloudrift/cli` is not published on npm — the [release workflow](#releasing) exists but hasn't been triggered with a version tag. For now, build and run from source: see [Quick Start](#quick-start) below. Every command in this README uses `node apps/cli/dist/main.js …` accordingly.
 
 ### Prerequisites
 
 - **Node.js 18+** — check with `node --version`
 - **AWS credentials** with read-only permissions (see [Required IAM permissions](#required-iam-permissions) below)
-- **pnpm** — only needed when building from source (`npm install -g pnpm`)
+- **pnpm** — required to build from source (`npm install -g pnpm`)
 
 ---
 
@@ -146,22 +137,22 @@ node apps/cli/dist/main.js analyze [options]
 
 ```sh
 # Scan the default region (us-east-1)
-cloudrift analyze
+node apps/cli/dist/main.js analyze
 
 # Scan multiple regions at once
-cloudrift analyze -r us-east-1 eu-west-1 ap-southeast-1
+node apps/cli/dist/main.js analyze -r us-east-1 eu-west-1 ap-southeast-1
 
 # Disable the grace period (report resources of any age)
-cloudrift analyze --min-age-days 0
+node apps/cli/dist/main.js analyze --min-age-days 0
 
 # Export a PDF report with auto-generated filename (cloudrift-report-YYYY-MM-DD.pdf)
-cloudrift analyze --pdf
+node apps/cli/dist/main.js analyze --pdf
 
 # Machine-readable output (e.g. to feed a dashboard or CI check)
-cloudrift analyze --format json | jq '.totalMonthlyCostUsd'
+node apps/cli/dist/main.js analyze --format json | jq '.totalWasteMonthlyUsd'
 
 # Markdown report (e.g. a GitHub Actions PR comment / step summary)
-cloudrift analyze --format markdown >> "$GITHUB_STEP_SUMMARY"
+node apps/cli/dist/main.js analyze --format markdown >> "$GITHUB_STEP_SUMMARY"
 ```
 
 **PDF report:**
@@ -201,7 +192,7 @@ Prices are region-aware (defined in `prices.json` in the infrastructure layer). 
 
 cloudrift reads `cloudrift.config.json` (or `.cloudriftrc`) from the current directory, or a path passed with `--config`. CLI flags take precedence over the config file, which takes precedence over the built-in defaults. All fields are optional:
 
-> **Where does the file go?** It is **your** file, not part of the npm package. Put `cloudrift.config.json` in the directory you run `cloudrift` from — typically your repo root, **committed** so it's picked up automatically in CI (after `actions/checkout`) and shared by the team. Installing globally or running via `npx` makes no difference: discovery is based on the current working directory. If the file lives elsewhere, point at it with `--config path/to/file.json`.
+> **Where does the file go?** It is **your** file, not part of the published artifact. Put `cloudrift.config.json` in the directory you run the CLI from — typically your repo root, **committed** so it's picked up automatically in CI (after `actions/checkout`) and shared by the team. Discovery is based on the current working directory, regardless of how the CLI is invoked. If the file lives elsewhere, point at it with `--config path/to/file.json`.
 
 ```json
 {
@@ -214,6 +205,10 @@ cloudrift reads `cloudrift.config.json` (or `.cloudriftrc`) from the current dir
   "prices": {
     "eu-west-1": { "nat-gateway": 28.5, "ebs-gp3": 0.07 },
     "default": { "elastic-ip": 3.2 }
+  },
+  "thresholds": {
+    "ebsIdleMaxOps": 0,
+    "ec2CpuPercent": 5
   }
 }
 ```
@@ -225,8 +220,10 @@ cloudrift reads `cloudrift.config.json` (or `.cloudriftrc`) from the current dir
 | `cloudwatchWindowHours` | CloudWatch lookback window for traffic-based checks (default 48, max 168 = 7 days)               |
 | `minAgeDays`            | Grace period in days (same as `--min-age-days`)                                                  |
 | `ignoreTag`             | Exclusion tag (same as `--ignore-tag`)                                                           |
-| `costAlertThresholdUsd` | If the monthly total exceeds this, the command **exits with code 2** (used to fail a pipeline)  |
+| `costAlertThresholdUsd` | If the **waste** total (`totalWasteMonthlyUsd`) exceeds this, the command **exits with code 2** (used to fail a pipeline); optimization savings never count toward it |
 | `prices`                | Per-region price overrides (same shape as the built-in table): `region → { priceKey: USD }`, with `default` as fallback. Use it for your **negotiated/enterprise rates** |
+| `thresholds.ebsIdleMaxOps` | Total CloudWatch I/O ops below which an attached EBS volume counts as idle (default `0`)      |
+| `thresholds.ec2CpuPercent` | Max CPU% below which a running EC2 instance counts as underutilized (default `5`)             |
 
 > A staging NAT Gateway with no weekend traffic is a classic false positive: widen `cloudwatchWindowHours` to `168` so a quiet weekend doesn't flag it.
 
@@ -249,7 +246,7 @@ cloudrift is built to run inside pipelines, not just a terminal. Two ingredients
 1. `--format markdown` produces a Pull-Request-ready comment (totals, breakdown, top recommendations).
 2. `costAlertThresholdUsd` in the config makes the command **exit 2** when waste exceeds the budget, which fails the job.
 
-**GitHub Actions** — comment the waste report on the step summary and fail over budget:
+**GitHub Actions** — comment the waste report on the step summary and fail over budget. No npm package is published yet, so the CI job builds cloudrift from source on every run:
 
 ```yaml
 name: Cloud cost check
@@ -263,6 +260,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          repository: elleVas/cloudrift
+          path: cloudrift-cli
+
+      - uses: pnpm/action-setup@v4
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: 'pnpm', cache-dependency-path: cloudrift-cli/pnpm-lock.yaml }
+
+      - run: pnpm install --frozen-lockfile
+        working-directory: cloudrift-cli
+      - run: pnpm nx build cli
+        working-directory: cloudrift-cli
 
       # OIDC or static keys — here static, from repo secrets
       - uses: aws-actions/configure-aws-credentials@v4
@@ -272,10 +282,11 @@ jobs:
           aws-region: us-east-1
 
       # Posts the markdown report to the job summary; exits 2 if over costAlertThresholdUsd
-      - run: npx @cloudrift/cli@latest analyze -r us-east-1 eu-west-1 --format markdown >> "$GITHUB_STEP_SUMMARY"
+      # (cloudrift.config.json is read from the checkout of *this* repo, the cwd)
+      - run: node cloudrift-cli/apps/cli/dist/main.js analyze -r us-east-1 eu-west-1 --format markdown >> "$GITHUB_STEP_SUMMARY"
 ```
 
-With a `cloudrift.config.json` committed (`{"costAlertThresholdUsd": 500}`), the `run` step's exit code 2 fails the check automatically — the pipeline blocks when newly created resources push waste over the threshold.
+With a `cloudrift.config.json` committed (`{"costAlertThresholdUsd": 500}`), the last step's exit code 2 fails the check automatically — the pipeline blocks when newly created resources push waste over the threshold. Once `@cloudrift/cli` is published, the build/checkout steps collapse to a single `npx @cloudrift/cli@latest analyze …` line.
 
 ### Required IAM permissions
 
@@ -386,6 +397,10 @@ No changes to `AnalyzeCloudWasteUseCase`, the summary, or the report DTO are nee
 | **EBS Snapshots**  | Volume sorgente cancellato (snapshot orfani)                            | $0,05/GB-mese                                                 |
 | **NAT Gateways**   | Zero traffico in uscita nelle ultime 48h                                | ~$32,40/mese fisso                                            |
 | **EBS gp2→gp3**    | Volume gp2 in uso aggiornabile a gp3 (risparmio, non spreco)            | Risparmio: prezzo gp2 − gp3 × GB (≈ $0,02/GB-mese)           |
+| **EBS Volumes (idle)** | Attaccati (in-use) ma zero I/O nelle ultime 48h                     | gp3: $0,08/GB-mese · gp2: $0,10/GB-mese · io1: $0,125/GB-mese |
+| **EC2 Instances (underutilized)** | Running, CPU massima ≤ 5% in 14 giorni — candidato a rightsizing, richiede `--live-pricing` | Risparmio: ~50% del costo mensile dell'istanza (stima — verificare RAM/rete prima di agire) |
+
+Ogni finding è anche etichettato `waste` o `optimization`: `waste` è denaro speso ora e contribuisce al totale principale e al gate CI; `optimization` (gp2→gp3, EC2 underutilized) è un'opportunità di risparmio che mantiene la risorsa, mostrata a parte e mai usata come gate. `EC2 Instances (underutilized)` è inoltre una *stima* — da verificare prima di agire.
 
 **Protezioni contro i falsi positivi (waste policies):**
 
@@ -395,26 +410,13 @@ No changes to `AnalyzeCloudWasteUseCase`, the summary, or the report DTO are nee
 
 > I prezzi variano per regione. Il tool usa prezzi specifici per: `us-east-1`, `us-west-2`, `eu-west-1`, `eu-central-1`, `ap-southeast-1`, `ap-northeast-1`. Ogni report indica la data di ultima verifica del listino (`prices as of`).
 
-### Installazione
-
-Il pacchetto pubblicato è **[`@cloudrift/cli`](https://www.npmjs.com/package/@cloudrift/cli)**; il comando installato è `cloudrift`.
-
-```sh
-# Esecuzione singola (ideale in CI)
-npx @cloudrift/cli@latest analyze -r us-east-1
-
-# Oppure installazione globale
-npm install -g @cloudrift/cli
-cloudrift analyze -r us-east-1
-```
-
-Preferisci compilare dai sorgenti per lo sviluppo? Vedi [Guida rapida](#guida-rapida) qui sotto. Tutti gli esempi di questo README usano `cloudrift …`; eseguendo dai sorgenti sostituiscilo con `node apps/cli/dist/main.js …`.
+> **Nessun pacchetto npm ancora.** `@cloudrift/cli` non è pubblicato su npm — il [workflow di rilascio](#rilascio) esiste ma non è ancora stato attivato con un tag di versione. Per ora va compilato ed eseguito dai sorgenti: vedi [Guida rapida](#guida-rapida) qui sotto. Ogni comando in questo README usa quindi `node apps/cli/dist/main.js …`.
 
 ### Prerequisiti
 
 - **Node.js 18+** — verifica con `node --version`
 - **Credenziali AWS** con permessi in sola lettura (vedi sezione [Permessi IAM](#permessi-iam-necessari) qui sotto)
-- **pnpm** — serve solo per compilare dai sorgenti (`npm install -g pnpm`)
+- **pnpm** — necessario per compilare dai sorgenti (`npm install -g pnpm`)
 
 ---
 
@@ -512,22 +514,22 @@ node apps/cli/dist/main.js analyze [opzioni]
 
 ```sh
 # Scansione nella regione di default (us-east-1)
-cloudrift analyze
+node apps/cli/dist/main.js analyze
 
 # Più regioni contemporaneamente
-cloudrift analyze -r us-east-1 eu-west-1 ap-southeast-1
+node apps/cli/dist/main.js analyze -r us-east-1 eu-west-1 ap-southeast-1
 
 # Disattiva il periodo di grazia (segnala risorse di qualsiasi età)
-cloudrift analyze --min-age-days 0
+node apps/cli/dist/main.js analyze --min-age-days 0
 
 # Esporta un report PDF con nome automatico (cloudrift-report-YYYY-MM-DD.pdf)
-cloudrift analyze --pdf
+node apps/cli/dist/main.js analyze --pdf
 
 # Output machine-readable (es. per una dashboard o un check CI)
-cloudrift analyze --format json | jq '.totalMonthlyCostUsd'
+node apps/cli/dist/main.js analyze --format json | jq '.totalWasteMonthlyUsd'
 
 # Report Markdown (es. commento PR / step summary su GitHub Actions)
-cloudrift analyze --format markdown >> "$GITHUB_STEP_SUMMARY"
+node apps/cli/dist/main.js analyze --format markdown >> "$GITHUB_STEP_SUMMARY"
 ```
 
 **Report PDF:**
@@ -582,7 +584,7 @@ I prezzi sono per-regione (file `prices.json` nell'infrastruttura). Regioni supp
 
 cloudrift legge `cloudrift.config.json` (o `.cloudriftrc`) dalla directory corrente, oppure il percorso passato con `--config`. I flag CLI hanno la precedenza sul file di config, che a sua volta ha la precedenza sui default. Tutti i campi sono opzionali:
 
-> **Dove va il file?** È un file **tuo**, non fa parte del pacchetto npm. Metti `cloudrift.config.json` nella directory da cui lanci `cloudrift` — tipicamente la root del tuo repo, **committato** così viene preso automaticamente in CI (dopo `actions/checkout`) e condiviso dal team. Installazione globale o `npx` non cambia nulla: la ricerca si basa sulla working directory corrente. Se il file sta altrove, indicalo con `--config percorso/del/file.json`.
+> **Dove va il file?** È un file **tuo**, non fa parte dell'artefatto pubblicato. Metti `cloudrift.config.json` nella directory da cui lanci la CLI — tipicamente la root del tuo repo, **committato** così viene preso automaticamente in CI (dopo `actions/checkout`) e condiviso dal team. La ricerca si basa sulla working directory corrente, indipendentemente da come viene invocata la CLI. Se il file sta altrove, indicalo con `--config percorso/del/file.json`.
 
 ```json
 {
@@ -595,6 +597,10 @@ cloudrift legge `cloudrift.config.json` (o `.cloudriftrc`) dalla directory corre
   "prices": {
     "eu-west-1": { "nat-gateway": 28.5, "ebs-gp3": 0.07 },
     "default": { "elastic-ip": 3.2 }
+  },
+  "thresholds": {
+    "ebsIdleMaxOps": 0,
+    "ec2CpuPercent": 5
   }
 }
 ```
@@ -606,8 +612,10 @@ cloudrift legge `cloudrift.config.json` (o `.cloudriftrc`) dalla directory corre
 | `cloudwatchWindowHours` | Finestra CloudWatch per i check sul traffico (default 48, max 168 = 7 giorni)                            |
 | `minAgeDays`            | Periodo di grazia in giorni (come `--min-age-days`)                                                      |
 | `ignoreTag`             | Tag di esclusione (come `--ignore-tag`)                                                                  |
-| `costAlertThresholdUsd` | Se il totale mensile supera questa soglia, il comando **esce con codice 2** (per far fallire la pipeline) |
+| `costAlertThresholdUsd` | Se il totale **waste** (`totalWasteMonthlyUsd`) supera questa soglia, il comando **esce con codice 2** (per far fallire la pipeline); i risparmi di optimization non contano mai per questo gate |
 | `prices`                | Override prezzi per regione (stessa forma del listino built-in): `regione → { chiave: USD }`, con `default` come fallback. Usalo per le tue **tariffe negoziate/aziendali** |
+| `thresholds.ebsIdleMaxOps` | Operazioni I/O CloudWatch totali sotto cui un volume EBS attaccato conta come idle (default `0`)      |
+| `thresholds.ec2CpuPercent` | CPU massima % sotto cui un'istanza EC2 running conta come sottoutilizzata (default `5`)                |
 
 > Un NAT Gateway di staging senza traffico nel weekend è il classico falso positivo: allarga `cloudwatchWindowHours` a `168` così un weekend tranquillo non lo segnala.
 
@@ -630,7 +638,7 @@ cloudrift è pensato per girare dentro le pipeline, non solo nel terminale. Due 
 1. `--format markdown` produce un commento pronto per le Pull Request (totali, breakdown, raccomandazioni principali).
 2. `costAlertThresholdUsd` nel config fa **uscire con codice 2** quando lo spreco supera il budget, facendo fallire il job.
 
-**GitHub Actions** — commenta il report sullo step summary e fallisci se oltre budget:
+**GitHub Actions** — commenta il report sullo step summary e fallisci se oltre budget. Nessun pacchetto npm è ancora pubblicato, quindi il job CI compila cloudrift dai sorgenti ad ogni run:
 
 ```yaml
 name: Cloud cost check
@@ -644,6 +652,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          repository: elleVas/cloudrift
+          path: cloudrift-cli
+
+      - uses: pnpm/action-setup@v4
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: 'pnpm', cache-dependency-path: cloudrift-cli/pnpm-lock.yaml }
+
+      - run: pnpm install --frozen-lockfile
+        working-directory: cloudrift-cli
+      - run: pnpm nx build cli
+        working-directory: cloudrift-cli
 
       # OIDC o chiavi statiche — qui statiche, dai secret del repo
       - uses: aws-actions/configure-aws-credentials@v4
@@ -653,10 +674,11 @@ jobs:
           aws-region: us-east-1
 
       # Pubblica il report markdown nel job summary; esce 2 se oltre costAlertThresholdUsd
-      - run: npx @cloudrift/cli@latest analyze -r us-east-1 eu-west-1 --format markdown >> "$GITHUB_STEP_SUMMARY"
+      # (cloudrift.config.json viene letto dal checkout di *questo* repo, la cwd)
+      - run: node cloudrift-cli/apps/cli/dist/main.js analyze -r us-east-1 eu-west-1 --format markdown >> "$GITHUB_STEP_SUMMARY"
 ```
 
-Con un `cloudrift.config.json` committato (`{"costAlertThresholdUsd": 500}`), l'exit code 2 dello step `run` fa fallire il check automaticamente — la pipeline si blocca quando nuove risorse spingono lo spreco oltre la soglia.
+Con un `cloudrift.config.json` committato (`{"costAlertThresholdUsd": 500}`), il codice di uscita 2 dell'ultimo step fa fallire il check automaticamente — la pipeline si blocca quando nuove risorse spingono lo spreco oltre la soglia. Una volta pubblicato `@cloudrift/cli`, gli step di build/checkout si riducono a una singola riga `npx @cloudrift/cli@latest analyze …`.
 
 ### Permessi IAM necessari
 

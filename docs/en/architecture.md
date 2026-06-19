@@ -34,7 +34,7 @@ What it does **not** buy on its own is multi-cloud: see [Towards multi-cloud](#t
 │   entities, policies,   │   │   Result, DomainError)    │
 │   ports)                │   └───────────────────────────┘
 └──────▲──────────────────┘
-       │ implements WasteScannerPort (×8)
+       │ implements WasteScannerPort (×10)
 ┌──────┴──────────────────────────────────────────────────┐
 │        libs/cloud-cost/infrastructure/aws-adapter       │
 │   (AWS SDK v3 scanners, pricing, STS account resolver)  │
@@ -88,15 +88,20 @@ Ports make the **technology** replaceable, not the **domain**: you can swap the 
 #### The unifying model: `WastedResource` and `ResourceKind`
 
 ```typescript
-export type ResourceKind =
-  | 'ebs-volume'
-  | 'elastic-ip'
-  | 'rds-instance'
-  | 'load-balancer'
-  | 'ec2-instance'
-  | 'ebs-snapshot'
-  | 'nat-gateway'
-  | 'ebs-gp2-upgrade';
+export const RESOURCE_KINDS = [
+  'ebs-volume',
+  'elastic-ip',
+  'rds-instance',
+  'load-balancer',
+  'ec2-instance',
+  'ebs-snapshot',
+  'nat-gateway',
+  'ebs-gp2-upgrade',
+  'ebs-idle',
+  'ec2-underutilized',
+] as const;
+
+export type ResourceKind = (typeof RESOURCE_KINDS)[number];
 
 export interface WastedResource {
   readonly id: string;
@@ -112,9 +117,27 @@ export interface WastedResource {
 
 `WastedResource` is **the only type that crosses the inbound boundary**: coordinator, summary, formatters and DTO depend on this interface, never on the concrete entities. The `ResourceKind` union is the single compiler-controlled extension point: adding a kind fails the typecheck until every consumer (CLI presenters, etc.) is updated. This is pragmatic OCP: one modification point exists, but it is one line and the compiler points out every spot left to complete.
 
+#### Waste vs. optimization — `FindingCategory`
+
+Not every finding is "delete this and stop paying": `RESOURCE_KIND_META` (`wasted-resource.ts`) attaches a `FindingCategory` (`'waste' | 'optimization'`) and an `estimated` flag to every kind:
+
+```typescript
+export const RESOURCE_KIND_META: Record<ResourceKind, ResourceKindMeta> = {
+  'ebs-volume': { label: 'EBS Volumes', category: 'waste', estimated: false },
+  // …
+  'ebs-gp2-upgrade': { label: 'EBS gp2→gp3 Upgrades', category: 'optimization', estimated: false },
+  'ec2-underutilized': { label: 'EC2 Instances (underutilized)', category: 'optimization', estimated: true },
+};
+```
+
+- **`waste`** — money being spent right now, eliminable by deleting/detaching the resource. Contributes to `totalWasteMonthlyUsd`, the headline number and the CI gate (`costAlertThresholdUsd`).
+- **`optimization`** — a saving opportunity that keeps the resource (gp2→gp3, EC2 rightsizing). Shown separately as `totalOptimizationMonthlyUsd`, never in the waste total. `ec2-underutilized` is additionally `estimated: true`: low CPU alone doesn't prove RAM/network are equally idle, so the figure is a heuristic to verify before acting, not a committed number.
+
+`RESOURCE_KIND_LABELS` is derived from `RESOURCE_KIND_META` (single source of truth) rather than maintained separately.
+
 #### Entities
 
-The 8 entities (`EbsVolume`, `ElasticIp`, `RdsInstance`, `LoadBalancer`, `Ec2Instance`, `EbsSnapshot`, `NatGateway`, `Gp2Volume`) implement `WastedResource` and carry the observed **facts** the decisions need: `LoadBalancer.registeredTargetCount`, `NatGateway.bytesOutLastWindow`, `EbsSnapshot.sourceVolumeExists` / `boundToAmiId`, `Ec2Instance.stoppedSince`. `Gp2Volume` is a savings opportunity rather than deletable waste: its `costEstimate` carries the gp2→gp3 monthly *saving*.
+The 10 entities (`EbsVolume`, `ElasticIp`, `RdsInstance`, `LoadBalancer`, `Ec2Instance`, `EbsSnapshot`, `NatGateway`, `Gp2Volume`, `IdleEbsVolume`, `UnderutilizedEc2Instance`) implement `WastedResource` and carry the observed **facts** the decisions need: `LoadBalancer.registeredTargetCount`, `NatGateway.bytesOutLastWindow`, `EbsSnapshot.sourceVolumeExists` / `boundToAmiId`, `Ec2Instance.stoppedSince`, `IdleEbsVolume`'s summed `VolumeReadOps`/`VolumeWriteOps`, `UnderutilizedEc2Instance.maxCpuPercent`. `Gp2Volume` and `UnderutilizedEc2Instance` are savings opportunities rather than deletable waste: their `costEstimate` carries the estimated monthly *saving*, not a cost being paid.
 
 #### Waste Policies — where the business knowledge lives
 
@@ -134,9 +157,11 @@ Each concrete policy adds the type-specific criterion:
 | `Ec2InstanceWastePolicy`  | `state === 'stopped'`                     | grace on `stoppedSince` (from `StateTransitionReason`), fallback `launchTime`   |
 | `EbsSnapshotWastePolicy`  | source volume deleted                     | snapshots referenced by AMIs excluded (not deletable); grace on `startTime`     |
 | `NatGatewayWastePolicy`   | zero outbound bytes in the window (48h)   | grace on `createTime` (freshly created environments)                            |
+| `EbsIdlePolicy`           | attached (`in-use`) volume, total I/O ops ≤ `ebsIdleMaxOps` (default 0) over the window | grace on `createTime` (no I/O yet ≠ idle) |
+| `Ec2UnderutilizedPolicy`  | running instance, max CPU% ≤ `ec2CpuPercent` (default 5) over the window | grace on `launchTime`; only registered when `--live-pricing` is on (needs a per-instance-type price) |
 | `Gp2UpgradePolicy`        | in-use gp2 volume (savings, not waste)    | only `status=in-use` (unattached gp2 stays with `ebs-volume`); grace on `createTime` |
 
-Policies are pure domain logic: tested without AWS, with their parameters coming from the CLI (`--min-age-days`, `--ignore-tag`).
+`EbsIdlePolicy` and `Ec2UnderutilizedPolicy` take their thresholds as constructor parameters (`ebsIdleMaxOps`, `ec2CpuPercent`), configurable via `config.thresholds`. Policies are pure domain logic: tested without AWS, with their parameters coming from the CLI (`--min-age-days`, `--ignore-tag`) and the config file (`thresholds`).
 
 #### Ports
 
@@ -149,7 +174,7 @@ Policies are pure domain logic: tested without AWS, with their parameters coming
   ```
   The contract requires the scanner to return only resources **already confirmed** by the relevant policy.
 - **Outbound `PricingPort`** — per-region prices per resource type, plus `getPricesAsOf()` (the price-table verification date, shown in every report).
-- **Inbound `FindWastedResourcesUseCasePort`** — defines `WastedResourcesSummary { findings, totalMonthlyCostUsd, scanErrors }` and `ResourceScanError { kind, region, error }`.
+- **Inbound `FindWastedResourcesUseCasePort`** — defines `WastedResourcesSummary { findings, totalWasteMonthlyUsd, totalOptimizationMonthlyUsd, scanErrors }` and `ResourceScanError { kind, region, error }`. The two totals are split by `FindingCategory` (see [above](#waste-vs-optimization--findingcategory)): only `totalWasteMonthlyUsd` feeds the CI gate.
 
 ### 3. `cloud-cost/application` — Generic use case and DTO
 
@@ -177,7 +202,7 @@ Specifics:
 
 ### 5. `apps/cli` — Entry point and composition root
 
-`analyze-waste.command.ts` is the only place where concrete implementations are instantiated: it loads the config file, builds the price table, the policies (with config + CLI parameters) and the 8 scanners, injects them into the use case and hands the result to the formatters. The four formatters (console table, PDF, JSON, Markdown) share the `resource-presenters.ts` registry, typed `Record<ResourceKind, …>` with `satisfies`: forgetting the presenter for a new kind is a compile error. The output format is selected by `--format` (`table` | `json` | `markdown`); `markdown` targets CI / PR comments.
+`analyze-waste.command.ts` is the only place where concrete implementations are instantiated: it loads the config file, builds the price table, the policies (with config + CLI parameters) and 9 of the 10 scanners, injects them into the use case and hands the result to the formatters. The 10th, `AwsEc2UnderutilizedScanner`, is registered only when `--live-pricing` is set: its savings estimate needs a per-instance-type price that the static table doesn't carry, so without live pricing there is nothing reliable to report and the scanner is left out rather than registered with a zero estimate. The four formatters (console table, PDF, JSON, Markdown) share the `resource-presenters.ts` registry, typed `Record<ResourceKind, ResourcePresenter<…>>`: forgetting the presenter for a new kind is a compile error. The output format is selected by `--format` (`table` | `json` | `markdown`); `markdown` targets CI / PR comments.
 
 ---
 
@@ -206,7 +231,7 @@ The only AWS-specific type crossing the inbound boundary is `AwsRegion`. Introdu
 
 Two options, to be chosen when the real requirement exists:
 
-- **Additional kinds in the same context** — `'gcp-persistent-disk'`, `'gcp-static-ip'`, … join the `ResourceKind` union with their own entities (`PersistentDisk`, not a fake `EbsVolume`), policies and scanners (`libs/cloud-cost/infrastructure/gcp-adapter`). The right fit if the product remains "one unified waste report". The coordinator's `Promise.all` scales from 7 to N scanners without changes.
+- **Additional kinds in the same context** — `'gcp-persistent-disk'`, `'gcp-static-ip'`, … join the `ResourceKind` union with their own entities (`PersistentDisk`, not a fake `EbsVolume`), policies and scanners (`libs/cloud-cost/infrastructure/gcp-adapter`). The right fit if the product remains "one unified waste report". The coordinator's `Promise.all` scales from 10 to N scanners without changes.
 - **Separate bounded context** — `libs/gcp-cost/` with its own domain, if the semantics diverge too much. Shares only `shared/kernel`. The `libs/<context>/` structure already allows it.
 
 The first option is the recommended one as long as the report stays unified: the marginal cost of a GCP kind is identical to that of an AWS kind (entity + policy + scanner + presenter).

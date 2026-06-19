@@ -21,34 +21,39 @@ user: cloudrift analyze -r us-east-1 eu-west-1 [--format json|markdown] [--pdf] 
      2. AwsRegion.parse() per region; config.excludeRegions filtered out
      3. accountId: --account-id or STS GetCallerIdentity
      4. Pricing: static table ← live API (--live-pricing) ← config.prices (wins)
-     5. Instantiates policies (config + flags) and the 8 scanners
+     5. Instantiates policies (config + flags) and 9 of the 10 scanners
+        (the 10th, EC2 underutilized, only with --live-pricing)
           │
           ▼
      AnalyzeCloudWasteUseCase.execute({ regions })
      Runs the registered scanners in parallel (Promise.all),
      each scanner iterates the regions sequentially
           │
-     ┌────┬────┬────┬────┬────┬────┬────┬────┐
-     ▼    ▼    ▼    ▼    ▼    ▼    ▼    ▼    │ (one per ResourceKind)
-   EBS  EIP  RDS  ELB  EC2  Snap  NAT  gp2  │
-  scan  scan scan scan scan scan scan scan  │
-     │    │    │    │    │    │    │    │
-     ▼    ▼    ▼    ▼    ▼    ▼    ▼    ▼
-  EC2  EC2  RDS ELBv2 EC2* EC2** EC2+CW EC2
-  API  API  API  API  API  API   API   API
+     ┌────┬────┬────┬────┬────┬────┬────┬────┬────┬────┐
+     ▼    ▼    ▼    ▼    ▼    ▼    ▼    ▼    ▼    ▼    │ (one per ResourceKind)
+   EBS  EIP  RDS  ELB  EC2  Snap  NAT  gp2  EBS  EC2  │
+  scan  scan scan scan scan scan scan scan  idle under-│
+     │    │    │    │    │    │    │    │   scan util* │
+     ▼    ▼    ▼    ▼    ▼    ▼    ▼    ▼    ▼    ▼
+  EC2  EC2  RDS ELBv2 EC2* EC2** EC2+CW EC2 EC2+CW EC2+CW
+  API  API  API  API  API  API   API   API  API   +Pricing
           │        (* 2 calls; ** 3 calls; CW=CloudWatch, max 5 concurrent)
+          │        (EC2 underutilized: registered only with --live-pricing —
+          │         needs a per-instance-type price the static table lacks)
           ▼
      Each scanner applies the domain waste policy
      (grace period, exclusion tag, type-specific criteria)
           │
           ▼
      WastedResourcesSummary { findings: WastedResource[],
-                              totalMonthlyCostUsd, scanErrors }
+                              totalWasteMonthlyUsd,
+                              totalOptimizationMonthlyUsd, scanErrors }
           │
           ▼
      --format selects stdout: table (default) | json | markdown
      --pdf / --json [file] also write artifacts to disk
-     totalMonthlyCostUsd > config.costAlertThresholdUsd → exit code 2 (CI gate)
+     totalWasteMonthlyUsd > config.costAlertThresholdUsd → exit code 2 (CI gate)
+     (totalOptimizationMonthlyUsd, being estimated/advisory, never gates CI)
 ```
 
 ---
@@ -69,7 +74,7 @@ program
   .action(analyzeWasteCommand);
 ```
 
-`--pdf` and `--json` accept an optional filename. `--json` with no filename prints **only** the JSON to stdout (the table output is suppressed), making the command composable: `cloudrift analyze --json | jq '.totalMonthlyCostUsd'`.
+`--pdf` and `--json` accept an optional filename. `--json` with no filename prints **only** the JSON to stdout (the table output is suppressed), making the command composable: `cloudrift analyze --json | jq '.totalWasteMonthlyUsd'`.
 
 ---
 
@@ -93,8 +98,14 @@ const policyOptions = { minAgeDays, ignoreTag: options.ignoreTag };
 const scanners: WasteScannerPort[] = [
   new AwsEbsVolumeScanner(pricing, accountId, new EbsVolumeWastePolicy(policyOptions)),
   new AwsElasticIpScanner(pricing, accountId, new ElasticIpWastePolicy(policyOptions)),
-  // … the other 5
+  // … the other 6 always-registered scanners (rds, lb, ec2, snapshot, nat, gp2-upgrade, ebs-idle)
 ];
+
+// EC2 underutilized needs a per-instance-type price (only available live):
+// registered conditionally, not part of the base 9.
+if (livePricingAdapter) {
+  scanners.push(new AwsEc2UnderutilizedScanner(livePricingAdapter, accountId, new Ec2UnderutilizedPolicy(policyOptions)));
+}
 
 const useCase = new AnalyzeCloudWasteUseCase(scanners);
 const result = await useCase.execute({ regions });
@@ -166,6 +177,14 @@ For each `available` gateway, it queries `GetMetricStatistics(BytesOutToDestinat
 
 For each ALB/NLB it counts the registered targets via `DescribeTargetGroups` + `DescribeTargetHealth` (more precise than just "target groups exist": a TG can be empty). The count ends up in the entity (`registeredTargetCount`); the policy decides.
 
+#### `AwsEbsIdleScanner` — Attached but no I/O
+
+Distinct from `AwsEbsVolumeScanner` (unattached volumes): this one lists `in-use` volumes and sums `VolumeReadOps` + `VolumeWriteOps` from CloudWatch over the window (48h default), through the same `mapWithConcurrency(…, 5, …)` cap as the NAT scanner. A volume with zero total ops is "idle" — paid storage attached to an instance that never touches the disk. `EbsIdlePolicy`'s threshold (`maxOps`, default 0) is configurable via `config.thresholds.ebsIdleMaxOps`.
+
+#### `AwsEc2UnderutilizedScanner` — CPU-based rightsizing, advisory only
+
+Lists `running` instances, fetches `CPUUtilization` (`Average`, `Maximum`) over a 14-day window, and resolves the instance's monthly price **on demand** from the AWS Pricing API (it implements `Ec2InstancePricingSource` by duck typing against `AwsPricingApiAdapter`) — the per-instance-type price space is too large for the static table. Without `--live-pricing` there is no price to resolve, so the composition root does not register this scanner at all (see the composition root section above). The savings estimate is half the instance's monthly cost (`RIGHTSIZE_SAVING_FRACTION = 0.5`, a one-tier-downsize heuristic) and is marked `estimated: true` in `RESOURCE_KIND_META`: low CPU alone doesn't confirm RAM/network are equally idle.
+
 ---
 
 ### Entities and Value Objects
@@ -174,11 +193,13 @@ All entities implement `WastedResource` and freeze their props (`Object.freeze`)
 
 ```typescript
 // Examples of decision "facts"
-LoadBalancer.registeredTargetCount  // → isIdle()
-NatGateway.bytesOutLastWindow       // → isIdle()
-EbsSnapshot.sourceVolumeExists      // → isOrphan()
-EbsSnapshot.boundToAmiId            // → not deletable
-Ec2Instance.stoppedSince            // → grace period on the actual stop
+LoadBalancer.registeredTargetCount         // → isIdle()
+NatGateway.bytesOutLastWindow              // → isIdle()
+EbsSnapshot.sourceVolumeExists             // → isOrphan()
+EbsSnapshot.boundToAmiId                   // → not deletable
+Ec2Instance.stoppedSince                   // → grace period on the actual stop
+IdleEbsVolume.totalOps()                   // readOps + writeOps → EbsIdlePolicy
+UnderutilizedEc2Instance.maxCpuPercent     // → Ec2UnderutilizedPolicy
 ```
 
 `CostEstimate.of(monthlyCostUsd, description)` is the only factory: price computation lives in the infrastructure (`StaticPriceTableAdapter` + `prices.json`), never in the domain.
@@ -190,16 +211,18 @@ Ec2Instance.stoppedSince            // → grace period on the actual stop
 The three formatters share the `resource-presenters.ts` registry (CLI):
 
 ```typescript
-export const presenters: { [K in ResourceKind]: ResourcePresenter<ResourceKindMap[K]> } = {
+type PresenterMap = { [K in ResourceKind]: ResourcePresenter<ResourceKindMap[K]> };
+
+export const presenters: PresenterMap = {
   'ebs-volume': { title, head, colWidths, row(v), recommend(v) },
-  // … satisfies guarantees exhaustiveness at compile time
+  // … the mapped type forces exhaustiveness: a missing key is a compile error
 };
 ```
 
-- **Console table** (`waste-report.table-formatter.ts`): iterates `RESOURCE_KINDS`, uses `groupByKind(findings)` and the presenter for headers and rows. At the end: warnings per (kind, region), total and a disclaimer with the price table date.
-- **PDF** (`waste-report.pdf-formatter.ts`): executive summary page (totals, breakdown, top 8 recommendations from `presenter.recommend`) + one page per kind. `drawTable` handles **page breaks**: when a table exceeds the bottom margin, it closes the border, opens a new page and redraws the header.
-- **JSON** (`waste-report.json-formatter.ts`): serializes `toWasteReportDto(summary, meta)` — the data contract for dashboards, CI or a future frontend.
-- **Markdown** (`waste-report.markdown-formatter.ts`): a Pull-Request-ready report (totals, breakdown, collapsible `<details>` per kind, top recommendations, cost-threshold callout) for `--format markdown` in CI.
+- **Console table** (`waste-report.table-formatter.ts`): iterates `RESOURCE_KINDS`, uses `groupByKind(findings)` and the presenter for headers and rows. At the end: warnings per (kind, region), the waste total, a separate "Optimization opportunities" line when `totalOptimizationMonthlyUsd > 0`, and a disclaimer with the price table date.
+- **PDF** (`waste-report.pdf-formatter.ts`): executive summary page (totals, breakdown, top 8 recommendations from `presenter.recommend`) + one page per kind. The optimization total is called out separately, with a note that `estimated` items need verification. `drawTable` handles **page breaks**: when a table exceeds the bottom margin, it closes the border, opens a new page and redraws the header.
+- **JSON** (`waste-report.json-formatter.ts`): serializes `toWasteReportDto(summary, meta)` — the data contract for dashboards, CI or a future frontend. Every finding carries its `category` and `estimated` flag.
+- **Markdown** (`waste-report.markdown-formatter.ts`): a Pull-Request-ready report (totals, breakdown, collapsible `<details>` per kind, top recommendations, cost-threshold callout, a separate "Total optimization" row) for `--format markdown` in CI.
 
 `--format` (`table` | `json` | `markdown`) selects what goes to stdout; `--pdf` / `--json [filename]` write additional files. In machine-readable formats the human chrome is routed to stderr so stdout carries only the report.
 
@@ -221,12 +244,14 @@ All three share one `PriceTable` shape (`region → { key: USD }` with a `defaul
 - **`config.prices`** are the user's negotiated/enterprise rates and win over both. They are the only way to make the report match the actual bill — even live prices are AWS *list* prices, not your invoice.
 - `getPricesAsOf()` reflects the layer used: the static date, the live fetch date, or `… + custom overrides`.
 
+**Exception: `AwsEc2UnderutilizedScanner`.** Per-instance-type prices aren't in `prices.json` (too many instance types to maintain) and aren't pre-warmed by `warmUp()`. The scanner instead calls `AwsPricingApiAdapter.getEc2InstancePricePerMonth(region, instanceType)` directly, on demand, for each distinct instance type found — which is why this one scanner needs `--live-pricing` to even be registered, rather than degrading gracefully to a static fallback like the others.
+
 ## CI/CD integration
 
 Three pieces make the tool pipeline-native:
 
 1. **`--format markdown`** renders a Pull-Request-ready report (totals, breakdown, top recommendations, threshold callout) — pipe it to `$GITHUB_STEP_SUMMARY` or post it as a PR comment.
-2. **`config.costAlertThresholdUsd`** sets a budget: when `totalMonthlyCostUsd` exceeds it the command sets **exit code 2**, which fails the CI job. The alert goes to stderr so it never corrupts machine-readable stdout.
+2. **`config.costAlertThresholdUsd`** sets a budget: when `totalWasteMonthlyUsd` exceeds it the command sets **exit code 2**, which fails the CI job. `totalOptimizationMonthlyUsd` never gates CI — it's an estimated/advisory figure. The alert goes to stderr so it never corrupts machine-readable stdout.
 3. **Clean stdout** — in `json`/`markdown` formats all human messages are routed to stderr, so `cloudrift … --format json | jq` and `… --format markdown >> "$GITHUB_STEP_SUMMARY"` are safe.
 
 The config file (`cloudrift.config.json`) is discovered from the working directory, so committing it at the repo root means CI picks it up automatically after checkout.

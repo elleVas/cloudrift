@@ -29,11 +29,13 @@ export const RESOURCE_KINDS = [
   'log-group',                                   // ← aggiunto
 ] as const;
 
-export const RESOURCE_KIND_LABELS: Record<ResourceKind, string> = {
+export const RESOURCE_KIND_META: Record<ResourceKind, ResourceKindMeta> = {
   // … esistenti …
-  'log-group': 'CloudWatch Log Groups',          // ← aggiunto
+  'log-group': { label: 'CloudWatch Log Groups', category: 'waste', estimated: false }, // ← aggiunto
 };
 ```
+
+`category` è `'waste'` (costo eliminabile, conta in `totalWasteMonthlyUsd` e nel gate CI) oppure `'optimization'` (un risparmio che mantiene la risorsa, es. gp2→gp3 — vedi [architettura.md](./architettura.md#spreco-vs-ottimizzazione--findingcategory)). `estimated: true` marca una cifra euristica da verificare (oggi solo `ec2-underutilized`). `RESOURCE_KIND_LABELS` è derivato automaticamente da `RESOURCE_KIND_META` — non aggiungere una entry separata lì.
 
 Aggiungi anche la riga in `ResourceKindMap` (`group-by-kind.ts`):
 
@@ -276,7 +278,7 @@ Aggiungi al README la permission richiesta dal nuovo scanner. Per i log group:
 
 ## Checklist riepilogativa
 
-- [ ] `ResourceKind` + `RESOURCE_KIND_LABELS` + `ResourceKindMap` aggiornati
+- [ ] `ResourceKind` + `RESOURCE_KIND_META` (label, category, estimated) + `ResourceKindMap` aggiornati
 - [ ] Entità in `domain/src/entities/` che implementa `WastedResource` (fatti, non decisioni)
 - [ ] Waste policy in `domain/src/policies/` + test
 - [ ] `domain/src/index.ts` aggiornato (entità + policy)
