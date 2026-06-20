@@ -200,6 +200,7 @@ cloudrift reads `cloudrift.config.json` (or `.cloudriftrc`) from the current dir
   "excludeRegions": ["us-gov-east-1"],
   "excludeTagValues": { "Environment": "Production" },
   "cloudwatchWindowHours": 168,
+  "utilizationWindowHours": 168,
   "minAgeDays": 14,
   "ignoreTag": "cloudrift:ignore",
   "costAlertThresholdUsd": 500,
@@ -215,20 +216,22 @@ cloudrift reads `cloudrift.config.json` (or `.cloudriftrc`) from the current dir
 }
 ```
 
-| Field                   | Meaning                                                                                          |
-| ----------------------- | ------------------------------------------------------------------------------------------------ |
-| `excludeRegions`        | Regions skipped even if passed via `-r`                                                          |
-| `excludeTagValues`      | Exclude any resource carrying an exact `key: value` tag (e.g. don't touch `Environment: Production`) |
-| `cloudwatchWindowHours` | CloudWatch lookback window for traffic-based checks (default 48, max 168 = 7 days)               |
-| `minAgeDays`            | Grace period in days (same as `--min-age-days`)                                                  |
-| `ignoreTag`             | Exclusion tag (same as `--ignore-tag`)                                                           |
-| `costAlertThresholdUsd` | If the **waste** total (`totalWasteMonthlyUsd`) exceeds this, the command **exits with code 2** (used to fail a pipeline); optimization savings never count toward it |
-| `prices`                | Per-region price overrides (same shape as the built-in table): `region → { priceKey: USD }`, with `default` as fallback. Use it for your **negotiated/enterprise rates** |
+| Field                     | Meaning                                                                                          |
+| ------------------------- | ------------------------------------------------------------------------------------------------ |
+| `excludeRegions`          | Regions skipped even if passed via `-r`                                                          |
+| `excludeTagValues`        | Exclude any resource carrying an exact `key: value` tag (e.g. don't touch `Environment: Production`) |
+| `cloudwatchWindowHours`   | CloudWatch lookback window for zero-activity checks (NAT Gateway, EBS idle) (default 48, max 168 = 7 days) |
+| `utilizationWindowHours`  | CloudWatch lookback window for CPU utilization checks (EC2/RDS underutilized) (default 168 = 7 days, max 336 = 14 days) |
+| `minAgeDays`              | Grace period in days (same as `--min-age-days`)                                                  |
+| `ignoreTag`               | Exclusion tag (same as `--ignore-tag`)                                                           |
+| `costAlertThresholdUsd`   | If the **waste** total (`totalWasteMonthlyUsd`) exceeds this, the command **exits with code 2** (used to fail a pipeline); optimization savings never count toward it |
+| `prices`                  | Per-region price overrides (same shape as the built-in table): `region → { priceKey: USD }`, with `default` as fallback. Use it for your **negotiated/enterprise rates** |
 | `thresholds.ebsIdleMaxOps` | Total CloudWatch I/O ops below which an attached EBS volume counts as idle (default `0`)      |
 | `thresholds.ec2CpuPercent` | Max CPU% below which a running EC2 instance counts as underutilized (default `5`)             |
 | `thresholds.rdsCpuPercent` | Max CPU% below which an available RDS instance counts as underutilized (default `5`)          |
 
 > A staging NAT Gateway with no weekend traffic is a classic false positive: widen `cloudwatchWindowHours` to `168` so a quiet weekend doesn't flag it.
+> A batch workload that only spikes CPU once a week needs a wider `utilizationWindowHours` (up to `336`) so a quiet 7-day sample doesn't get flagged as underutilized.
 
 ### Pricing sources
 
@@ -595,6 +598,7 @@ cloudrift legge `cloudrift.config.json` (o `.cloudriftrc`) dalla directory corre
   "excludeRegions": ["us-gov-east-1"],
   "excludeTagValues": { "Environment": "Production" },
   "cloudwatchWindowHours": 168,
+  "utilizationWindowHours": 168,
   "minAgeDays": 14,
   "ignoreTag": "cloudrift:ignore",
   "costAlertThresholdUsd": 500,
@@ -610,20 +614,22 @@ cloudrift legge `cloudrift.config.json` (o `.cloudriftrc`) dalla directory corre
 }
 ```
 
-| Campo                   | Significato                                                                                              |
-| ----------------------- | -------------------------------------------------------------------------------------------------------- |
-| `excludeRegions`        | Regioni saltate anche se passate con `-r`                                                                |
-| `excludeTagValues`      | Esclude le risorse con un tag `chiave: valore` esatto (es. non toccare `Environment: Production`)        |
-| `cloudwatchWindowHours` | Finestra CloudWatch per i check sul traffico (default 48, max 168 = 7 giorni)                            |
-| `minAgeDays`            | Periodo di grazia in giorni (come `--min-age-days`)                                                      |
-| `ignoreTag`             | Tag di esclusione (come `--ignore-tag`)                                                                  |
-| `costAlertThresholdUsd` | Se il totale **waste** (`totalWasteMonthlyUsd`) supera questa soglia, il comando **esce con codice 2** (per far fallire la pipeline); i risparmi di optimization non contano mai per questo gate |
-| `prices`                | Override prezzi per regione (stessa forma del listino built-in): `regione → { chiave: USD }`, con `default` come fallback. Usalo per le tue **tariffe negoziate/aziendali** |
+| Campo                     | Significato                                                                                              |
+| ------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `excludeRegions`          | Regioni saltate anche se passate con `-r`                                                                |
+| `excludeTagValues`        | Esclude le risorse con un tag `chiave: valore` esatto (es. non toccare `Environment: Production`)        |
+| `cloudwatchWindowHours`   | Finestra CloudWatch per i check "zero-attività" (NAT Gateway, EBS idle) (default 48, max 168 = 7 giorni) |
+| `utilizationWindowHours`  | Finestra CloudWatch per i check di utilizzo CPU (EC2/RDS underutilized) (default 168 = 7 giorni, max 336 = 14 giorni) |
+| `minAgeDays`              | Periodo di grazia in giorni (come `--min-age-days`)                                                      |
+| `ignoreTag`               | Tag di esclusione (come `--ignore-tag`)                                                                  |
+| `costAlertThresholdUsd`   | Se il totale **waste** (`totalWasteMonthlyUsd`) supera questa soglia, il comando **esce con codice 2** (per far fallire la pipeline); i risparmi di optimization non contano mai per questo gate |
+| `prices`                  | Override prezzi per regione (stessa forma del listino built-in): `regione → { chiave: USD }`, con `default` come fallback. Usalo per le tue **tariffe negoziate/aziendali** |
 | `thresholds.ebsIdleMaxOps` | Operazioni I/O CloudWatch totali sotto cui un volume EBS attaccato conta come idle (default `0`)      |
 | `thresholds.ec2CpuPercent` | CPU massima % sotto cui un'istanza EC2 running conta come sottoutilizzata (default `5`)                |
 | `thresholds.rdsCpuPercent` | CPU massima % sotto cui un'istanza RDS disponibile conta come sottoutilizzata (default `5`)            |
 
 > Un NAT Gateway di staging senza traffico nel weekend è il classico falso positivo: allarga `cloudwatchWindowHours` a `168` così un weekend tranquillo non lo segnala.
+> Un workload batch che picca la CPU solo una volta a settimana ha bisogno di un `utilizationWindowHours` più ampio (fino a `336`) per non essere segnalato come sottoutilizzato per via di un campione di 7 giorni troppo tranquillo.
 
 ### Fonti dei prezzi
 

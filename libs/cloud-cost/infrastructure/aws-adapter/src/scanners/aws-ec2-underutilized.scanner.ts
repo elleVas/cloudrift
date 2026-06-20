@@ -15,7 +15,7 @@ import { AwsAdapterError } from '../errors/aws-adapter.error';
 import { paginate } from '../utils/paginate';
 import { mapWithConcurrency } from '../utils/map-with-concurrency';
 
-const DEFAULT_WINDOW_DAYS = 14;
+const DEFAULT_WINDOW_HOURS = 168;
 const CLOUDWATCH_CONCURRENCY = 5;
 const PRICING_CONCURRENCY = 5;
 /** Risparmio stimato da un downsize di un tier (advisory, da verificare). */
@@ -46,7 +46,7 @@ export class AwsEc2UnderutilizedScanner implements WasteScannerPort {
     private readonly pricing: Ec2InstancePricingSource,
     private readonly accountId = 'unknown',
     private readonly policy = new Ec2UnderutilizedPolicy(),
-    private readonly windowDays = DEFAULT_WINDOW_DAYS,
+    private readonly windowHours = DEFAULT_WINDOW_HOURS,
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
@@ -67,8 +67,8 @@ export class AwsEc2UnderutilizedScanner implements WasteScannerPort {
       if (rawInstances.length === 0) return Result.ok([]);
 
       const endTime = new Date();
-      const startTime = new Date(endTime.getTime() - this.windowDays * 24 * 60 * 60 * 1000);
-      const periodSeconds = this.windowDays * 24 * 3600;
+      const startTime = new Date(endTime.getTime() - this.windowHours * 60 * 60 * 1000);
+      const periodSeconds = this.windowHours * 3600;
 
       const cpu = await mapWithConcurrency(rawInstances, CLOUDWATCH_CONCURRENCY, (i) =>
         this.cpuStats(cw, i.InstanceId!, startTime, endTime, periodSeconds),
@@ -97,7 +97,7 @@ export class AwsEc2UnderutilizedScanner implements WasteScannerPort {
             instanceType,
             avgCpuPercent: cpu[index].avg,
             maxCpuPercent: cpu[index].max,
-            windowDays: this.windowDays,
+            windowDays: +(this.windowHours / 24).toFixed(1),
             launchTime: inst.LaunchTime ?? new Date(),
             detectedAt: now,
             tags: Object.fromEntries(

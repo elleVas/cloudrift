@@ -54,6 +54,7 @@ import { formatWasteReportAsMarkdown } from '../formatters/waste-report.markdown
 import { generateWasteReportPdf } from '../formatters/waste-report.pdf-formatter';
 
 const DEFAULT_CLOUDWATCH_WINDOW_HOURS = 48;
+const DEFAULT_UTILIZATION_WINDOW_HOURS = 168;
 const OUTPUT_FORMATS = ['table', 'json', 'markdown'] as const;
 type OutputFormat = (typeof OUTPUT_FORMATS)[number];
 
@@ -77,6 +78,7 @@ export interface AnalysisContext {
   livePricing: boolean;
   policyOptions: WastePolicyOptions;
   cloudwatchWindowHours: number;
+  utilizationWindowHours: number;
   info: (msg: string) => void;
 }
 
@@ -135,7 +137,7 @@ async function defaultCreateAnalysis(ctx: AnalysisContext): Promise<Analysis> {
     ? new TablePricingAdapter(priceTable, pricesAsOf)
     : new StaticPriceTableAdapter();
 
-  const { policyOptions, accountId, cloudwatchWindowHours } = ctx;
+  const { policyOptions, accountId, cloudwatchWindowHours, utilizationWindowHours } = ctx;
   const scanners: WasteScannerPort[] = [
     new AwsEbsVolumeScanner(pricing, accountId, new EbsVolumeWastePolicy(policyOptions)),
     new AwsElasticIpScanner(pricing, accountId, new ElasticIpWastePolicy(policyOptions)),
@@ -167,11 +169,13 @@ async function defaultCreateAnalysis(ctx: AnalysisContext): Promise<Analysis> {
         livePricingAdapter,
         accountId,
         new Ec2UnderutilizedPolicy(policyOptions, ctx.config.thresholds?.ec2CpuPercent ?? 5),
+        utilizationWindowHours,
       ),
       new AwsRdsUnderutilizedScanner(
         livePricingAdapter,
         accountId,
         new RdsUnderutilizedPolicy(policyOptions, ctx.config.thresholds?.rdsCpuPercent ?? 5),
+        utilizationWindowHours,
       ),
     );
   }
@@ -230,6 +234,8 @@ export async function analyzeWasteCommand(
   const ignoreTag = options.ignoreTag ?? config.ignoreTag ?? DEFAULT_IGNORE_TAG;
   const cloudwatchWindowHours =
     config.cloudwatchWindowHours ?? DEFAULT_CLOUDWATCH_WINDOW_HOURS;
+  const utilizationWindowHours =
+    config.utilizationWindowHours ?? DEFAULT_UTILIZATION_WINDOW_HOURS;
 
   // Regioni: parse Result-based (niente throw su input), poi esclusione da config.
   const excluded = new Set(config.excludeRegions ?? []);
@@ -278,6 +284,7 @@ export async function analyzeWasteCommand(
     livePricing: options.livePricing === true,
     policyOptions,
     cloudwatchWindowHours,
+    utilizationWindowHours,
     info,
   });
 
