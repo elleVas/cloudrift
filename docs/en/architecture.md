@@ -161,9 +161,10 @@ Each concrete policy adds the type-specific criterion:
 | `NatGatewayWastePolicy`   | zero outbound bytes in the window (48h)   | grace on `createTime` (freshly created environments)                            |
 | `EbsIdlePolicy`           | attached (`in-use`) volume, total I/O ops ≤ `ebsIdleMaxOps` (default 0) over the window | grace on `createTime` (no I/O yet ≠ idle) |
 | `Ec2UnderutilizedPolicy`  | running instance, max CPU% ≤ `ec2CpuPercent` (default 5) over the window | grace on `launchTime`; only registered when `--live-pricing` is on (needs a per-instance-type price) |
+| `RdsUnderutilizedPolicy`  | available instance, max CPU% ≤ `rdsCpuPercent` (default 5) over the window | grace on `instanceCreateTime`; only registered when `--live-pricing` is on (needs a per-instance-class price) |
 | `Gp2UpgradePolicy`        | in-use gp2 volume (savings, not waste)    | only `status=in-use` (unattached gp2 stays with `ebs-volume`); grace on `createTime` |
 
-`EbsIdlePolicy` and `Ec2UnderutilizedPolicy` take their thresholds as constructor parameters (`ebsIdleMaxOps`, `ec2CpuPercent`), configurable via `config.thresholds`. Policies are pure domain logic: tested without AWS, with their parameters coming from the CLI (`--min-age-days`, `--ignore-tag`) and the config file (`thresholds`).
+`EbsIdlePolicy`, `Ec2UnderutilizedPolicy` and `RdsUnderutilizedPolicy` take their thresholds as constructor parameters (`ebsIdleMaxOps`, `ec2CpuPercent`, `rdsCpuPercent`), configurable via `config.thresholds`. Policies are pure domain logic: tested without AWS, with their parameters coming from the CLI (`--min-age-days`, `--ignore-tag`) and the config file (`thresholds`).
 
 #### Ports
 
@@ -204,7 +205,7 @@ Specifics:
 
 ### 5. `apps/cli` — Entry point and composition root
 
-`analyze-waste.command.ts` is the only place where concrete implementations are instantiated: it loads the config file, builds the price table, the policies (with config + CLI parameters) and 9 of the 10 scanners, injects them into the use case and hands the result to the formatters. The 10th, `AwsEc2UnderutilizedScanner`, is registered only when `--live-pricing` is set: its savings estimate needs a per-instance-type price that the static table doesn't carry, so without live pricing there is nothing reliable to report and the scanner is left out rather than registered with a zero estimate. The four formatters (console table, PDF, JSON, Markdown) share the `resource-presenters.ts` registry, typed `Record<ResourceKind, ResourcePresenter<…>>`: forgetting the presenter for a new kind is a compile error. The output format is selected by `--format` (`table` | `json` | `markdown`); `markdown` targets CI / PR comments.
+`analyze-waste.command.ts` is the only place where concrete implementations are instantiated: it loads the config file, builds the price table, the policies (with config + CLI parameters) and 9 of the 11 scanners, injects them into the use case and hands the result to the formatters. The other two, `AwsEc2UnderutilizedScanner` and `AwsRdsUnderutilizedScanner`, are registered only when `--live-pricing` is set: their savings estimate needs a per-instance-type/class price that the static table doesn't carry, so without live pricing there is nothing reliable to report and the scanners are left out rather than registered with a zero estimate. The four formatters (console table, PDF, JSON, Markdown) share the `resource-presenters.ts` registry, typed `Record<ResourceKind, ResourcePresenter<…>>`: forgetting the presenter for a new kind is a compile error. The output format is selected by `--format` (`table` | `json` | `markdown`); `markdown` targets CI / PR comments.
 
 ---
 
@@ -233,7 +234,7 @@ The only AWS-specific type crossing the inbound boundary is `AwsRegion`. Introdu
 
 Two options, to be chosen when the real requirement exists:
 
-- **Additional kinds in the same context** — `'gcp-persistent-disk'`, `'gcp-static-ip'`, … join the `ResourceKind` union with their own entities (`PersistentDisk`, not a fake `EbsVolume`), policies and scanners (`libs/cloud-cost/infrastructure/gcp-adapter`). The right fit if the product remains "one unified waste report". The coordinator's `Promise.all` scales from 10 to N scanners without changes.
+- **Additional kinds in the same context** — `'gcp-persistent-disk'`, `'gcp-static-ip'`, … join the `ResourceKind` union with their own entities (`PersistentDisk`, not a fake `EbsVolume`), policies and scanners (`libs/cloud-cost/infrastructure/gcp-adapter`). The right fit if the product remains "one unified waste report". The coordinator's `Promise.all` scales from 11 to N scanners without changes.
 - **Separate bounded context** — `libs/gcp-cost/` with its own domain, if the semantics diverge too much. Shares only `shared/kernel`. The `libs/<context>/` structure already allows it.
 
 The first option is the recommended one as long as the report stays unified: the marginal cost of a GCP kind is identical to that of an AWS kind (entity + policy + scanner + presenter).
