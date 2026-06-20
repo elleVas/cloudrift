@@ -10,6 +10,9 @@ const CONFIG_FILENAMES = ['cloudrift.config.json', '.cloudriftrc'] as const;
 /** Finestra CloudWatch massima consentita (7 giorni). */
 export const MAX_CLOUDWATCH_WINDOW_HOURS = 168;
 
+/** Finestra massima consentita per i check di utilizzo CPU (14 giorni). */
+export const MAX_UTILIZATION_WINDOW_HOURS = 336;
+
 /**
  * Configurazione opzionale letta da `cloudrift.config.json` o `.cloudriftrc`.
  * Ogni campo è opzionale: i flag CLI hanno la precedenza, poi il file di
@@ -20,8 +23,10 @@ export interface CloudriftConfig {
   excludeRegions?: string[];
   /** Coppie tag=valore che escludono una risorsa (es. { "Environment": "Production" }). */
   excludeTagValues?: Record<string, string>;
-  /** Finestra temporale (ore) per le metriche CloudWatch. Default 48, max 168. */
+  /** Finestra temporale (ore) per le metriche CloudWatch "zero-attività" (NAT, EBS idle). Default 48, max 168. */
   cloudwatchWindowHours?: number;
+  /** Finestra temporale (ore) per i check di utilizzo CPU (EC2/RDS underutilized). Default 168, max 336. */
+  utilizationWindowHours?: number;
   /** Periodo di grazia in giorni. Override di --min-age-days. */
   minAgeDays?: number;
   /** Tag di esclusione esplicita. Override di --ignore-tag. */
@@ -132,6 +137,15 @@ export function parseConfig(
       config.cloudwatchWindowHours = n;
     } else {
       errors.push(`cloudwatchWindowHours must be a number between 1 and ${MAX_CLOUDWATCH_WINDOW_HOURS}`);
+    }
+  }
+
+  if (obj.utilizationWindowHours !== undefined) {
+    const n = obj.utilizationWindowHours;
+    if (typeof n === 'number' && Number.isFinite(n) && n > 0 && n <= MAX_UTILIZATION_WINDOW_HOURS) {
+      config.utilizationWindowHours = n;
+    } else {
+      errors.push(`utilizationWindowHours must be a number between 1 and ${MAX_UTILIZATION_WINDOW_HOURS}`);
     }
   }
 

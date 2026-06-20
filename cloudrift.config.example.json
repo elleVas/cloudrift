@@ -4,6 +4,7 @@
     "Environment": "Production"
   },
   "cloudwatchWindowHours": 168,
+  "utilizationWindowHours": 168,
   "minAgeDays": 14,
   "ignoreTag": "cloudrift:ignore",
   "costAlertThresholdUsd": 500,
@@ -13,6 +14,7 @@
   },
   "thresholds": {
     "ebsIdleMaxOps": 0,
-    "ec2CpuPercent": 5
+    "ec2CpuPercent": 5,
+    "rdsCpuPercent": 5
   }
 }

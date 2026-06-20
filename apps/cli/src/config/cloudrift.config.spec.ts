@@ -110,6 +110,18 @@ describe('parseConfig', () => {
     if (!result.ok) expect(result.error.message).toContain('cloudwatchWindowHours');
   });
 
+  it('parses utilizationWindowHours', () => {
+    const result = parseConfig(JSON.stringify({ utilizationWindowHours: 336 }));
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.utilizationWindowHours).toBe(336);
+  });
+
+  it('rejects a utilizationWindowHours above the 14-day cap', () => {
+    const result = parseConfig(JSON.stringify({ utilizationWindowHours: 400 }));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.message).toContain('utilizationWindowHours');
+  });
+
   it('rejects a negative cost threshold', () => {
     const result = parseConfig(JSON.stringify({ costAlertThresholdUsd: -1 }));
     expect(result.ok).toBe(false);
