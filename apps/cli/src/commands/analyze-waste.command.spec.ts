@@ -159,4 +159,31 @@ describe('analyzeWasteCommand (CLI end-to-end)', () => {
       await rm(dir, { recursive: true, force: true });
     }
   });
+
+  it('writes a PDF artifact to disk with --pdf <file>', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'cloudrift-cli-'));
+    const file = join(dir, 'out.pdf');
+    try {
+      await run({ format: 'table', pdf: file }, makeDeps({
+        summary: summaryOf([wasteVolume('vol-1', 8)], 8),
+      }));
+      const written = await readFile(file);
+      expect(written.length).toBeGreaterThan(0);
+      expect(written.subarray(0, 5).toString('latin1')).toBe('%PDF-');
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('reports a partial scan without crashing, exit code dictated only by the cost threshold', async () => {
+    const summary: WastedResourcesSummary = {
+      ...summaryOf([], 0),
+      scanErrors: [
+        { kind: 'ebs-volume', region: 'us-east-1', error: new Error('AccessDenied') },
+      ],
+    };
+    await run({ format: 'table' }, makeDeps({ summary }));
+    expect(process.exitCode).toBeUndefined();
+    expect(stdout).toContain('partial results');
+  });
 });

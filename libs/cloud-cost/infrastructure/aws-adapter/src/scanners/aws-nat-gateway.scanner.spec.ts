@@ -101,6 +101,8 @@ describe('AwsNatGatewayScanner', () => {
     const cwArgs = (GetMetricStatisticsCommand as unknown as jest.Mock).mock.calls[0][0];
     expect(cwArgs.MetricName).toBe('BytesOutToDestination');
     expect(cwArgs.Dimensions).toEqual([{ Name: 'NatGatewayId', Value: 'nat-1' }]);
+    expect(cwArgs.Namespace).toBe('AWS/NATGateway');
+    expect(cwArgs.Period).toBe(48 * 3600);
   });
 
   it('returns Result.fail wrapping AwsAdapterError and destroys both clients on error', async () => {

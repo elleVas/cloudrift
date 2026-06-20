@@ -372,6 +372,7 @@ Full documentation is in the [`docs/`](./docs/) folder — English in [`docs/en/
 | [docs/en/technical-choices.md](./docs/en/technical-choices.md)  | Nx, pnpm, TypeScript, AWS SDK v3, Result pattern, jest |
 | [docs/en/how-it-works.md](./docs/en/how-it-works.md)            | End-to-end execution flow, code walkthrough            |
 | [docs/en/adding-a-resource.md](./docs/en/adding-a-resource.md)  | Step-by-step guide to adding a new resource type       |
+| [docs/en/testing.md](./docs/en/testing.md)                      | Test pyramid, where each level lives, manual AWS verification |
 | [docs/en/releasing.md](./docs/en/releasing.md)                  | How `@cloudrift/cli` is built and published to npm     |
 
 ### Adding a new resource type
@@ -770,6 +771,7 @@ Tutta la documentazione è nella cartella [`docs/`](./docs/) — italiano in [`d
 | [docs/it/scelte-tecniche.md](./docs/it/scelte-tecniche.md)           | Nx, pnpm, TypeScript, AWS SDK v3, Result pattern, jest            |
 | [docs/it/funzionamento.md](./docs/it/funzionamento.md)               | Flusso di esecuzione end-to-end, spiegazione del codice           |
 | [docs/it/aggiungere-risorsa.md](./docs/it/aggiungere-risorsa.md)     | Guida passo per passo per aggiungere un nuovo tipo di risorsa     |
+| [docs/it/test.md](./docs/it/test.md)                                 | Piramide dei test, dove vive ogni livello, verifica manuale AWS   |
 | [docs/it/rilascio.md](./docs/it/rilascio.md)                         | Come `@cloudrift/cli` viene buildato e pubblicato su npm           |
 
 ---

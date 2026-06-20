@@ -7,7 +7,8 @@
     "build": "nx run-many -t build",
     "test": "nx run-many -t test",
     "lint": "nx run-many -t lint",
-    "typecheck": "nx run-many -t typecheck"
+    "typecheck": "nx run-many -t typecheck",
+    "verify:aws": "node scripts/verify-against-aws.mjs"
   },
   "devDependencies": {
     "@eslint/compat": "^1.4.1",
@@ -44,6 +45,8 @@
     "@aws-sdk/client-sts": "^3.1068.0",
     "chalk": "^4.1.2",
     "cli-table3": "^0.6.5",
+    "cloud-cost-domain": "workspace:*",
+    "cloud-cost-infrastructure-aws-adapter": "workspace:*",
     "commander": "^13.1.0"
   }
 }

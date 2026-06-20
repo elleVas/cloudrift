@@ -114,6 +114,8 @@ describe('AwsEbsIdleScanner', () => {
     expect(metricCalls).toContain('VolumeWriteOps');
     const firstArgs = (GetMetricStatisticsCommand as unknown as jest.Mock).mock.calls[0][0];
     expect(firstArgs.Dimensions).toEqual([{ Name: 'VolumeId', Value: 'vol-1' }]);
+    expect(firstArgs.Namespace).toBe('AWS/EBS');
+    expect(firstArgs.Period).toBe(48 * 3600);
   });
 
   it('returns Result.fail wrapping AwsAdapterError and destroys both clients on error', async () => {
