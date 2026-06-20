@@ -9,6 +9,8 @@ export { AwsGp2UpgradeScanner } from './scanners/aws-gp2-upgrade.scanner';
 export { AwsEbsIdleScanner } from './scanners/aws-ebs-idle.scanner';
 export { AwsEc2UnderutilizedScanner } from './scanners/aws-ec2-underutilized.scanner';
 export type { Ec2InstancePricingSource } from './scanners/aws-ec2-underutilized.scanner';
+export { AwsRdsUnderutilizedScanner } from './scanners/aws-rds-underutilized.scanner';
+export type { RdsInstancePricingSource } from './scanners/aws-rds-underutilized.scanner';
 export { AwsAdapterError } from './errors/aws-adapter.error';
 export {
   StaticPriceTableAdapter,

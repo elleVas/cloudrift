@@ -68,6 +68,18 @@ describe('parseConfig', () => {
     if (!result.ok) expect(result.error.message).toContain('ec2CpuPercent');
   });
 
+  it('parses thresholds.rdsCpuPercent', () => {
+    const result = parseConfig(JSON.stringify({ thresholds: { rdsCpuPercent: 10 } }));
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.thresholds?.rdsCpuPercent).toBe(10);
+  });
+
+  it('rejects a thresholds.rdsCpuPercent outside 0-100', () => {
+    const result = parseConfig(JSON.stringify({ thresholds: { rdsCpuPercent: 150 } }));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.message).toContain('rdsCpuPercent');
+  });
+
   it('returns empty config for an empty object', () => {
     const result = parseConfig('{}');
     expect(result.ok).toBe(true);

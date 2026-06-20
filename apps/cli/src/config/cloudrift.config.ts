@@ -40,6 +40,8 @@ export interface CloudriftConfig {
     ebsIdleMaxOps?: number;
     /** CPU massima (%) sotto cui un'istanza EC2 è "underutilized". Default 5. */
     ec2CpuPercent?: number;
+    /** CPU massima (%) sotto cui un'istanza RDS è "underutilized". Default 5. */
+    rdsCpuPercent?: number;
   };
 }
 
@@ -174,7 +176,7 @@ export function parseConfig(
       errors.push('thresholds must be an object');
     } else {
       const thresholds: NonNullable<CloudriftConfig['thresholds']> = {};
-      const { ebsIdleMaxOps, ec2CpuPercent } = obj.thresholds;
+      const { ebsIdleMaxOps, ec2CpuPercent, rdsCpuPercent } = obj.thresholds;
       if (ebsIdleMaxOps !== undefined) {
         if (typeof ebsIdleMaxOps === 'number' && Number.isFinite(ebsIdleMaxOps) && ebsIdleMaxOps >= 0) {
           thresholds.ebsIdleMaxOps = ebsIdleMaxOps;
@@ -192,6 +194,18 @@ export function parseConfig(
           thresholds.ec2CpuPercent = ec2CpuPercent;
         } else {
           errors.push('thresholds.ec2CpuPercent must be a number between 0 and 100');
+        }
+      }
+      if (rdsCpuPercent !== undefined) {
+        if (
+          typeof rdsCpuPercent === 'number' &&
+          Number.isFinite(rdsCpuPercent) &&
+          rdsCpuPercent >= 0 &&
+          rdsCpuPercent <= 100
+        ) {
+          thresholds.rdsCpuPercent = rdsCpuPercent;
+        } else {
+          errors.push('thresholds.rdsCpuPercent must be a number between 0 and 100');
         }
       }
       config.thresholds = thresholds;

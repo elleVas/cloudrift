@@ -135,6 +135,22 @@ export const presenters: PresenterMap = {
     recommend: (inst) =>
       `Review EC2 ${inst.id} (${inst.instanceType}) in ${inst.region.code} for rightsizing — max CPU ${inst.maxCpuPercent.toFixed(1)}% over ${inst.windowDays}d (verify RAM/network first)`,
   },
+  'rds-underutilized': {
+    title: 'RDS Instances — Underutilized (rightsizing candidate, verify before acting)',
+    head: ['Identifier', 'Region', 'Class', 'Engine', 'Avg CPU', 'Max CPU', 'Window'],
+    colWidths: [110, 72, 82, 68, 70, 70, 60, 80],
+    row: (db) => [
+      db.id,
+      db.region.code,
+      db.dbInstanceClass,
+      db.engine,
+      `${db.avgCpuPercent.toFixed(1)}%`,
+      `${db.maxCpuPercent.toFixed(1)}%`,
+      `${db.windowDays}d`,
+    ],
+    recommend: (db) =>
+      `Review RDS ${db.id} (${db.dbInstanceClass} ${db.engine}) in ${db.region.code} for rightsizing — max CPU ${db.maxCpuPercent.toFixed(1)}% over ${db.windowDays}d (verify storage I/O/connections first)`,
+  },
 };
 
 export function presenterFor(kind: ResourceKind): ResourcePresenter {

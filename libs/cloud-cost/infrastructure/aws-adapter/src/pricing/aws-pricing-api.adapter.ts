@@ -44,6 +44,25 @@ const REGION_TO_LOCATION: Record<string, string> = {
   'af-south-1': 'Africa (Cape Town)',
 };
 
+/**
+ * Mappa engine RDS (valore di `DescribeDBInstances`) → `databaseEngine` del
+ * Pricing API. Engine assenti (es. varianti Aurora) restituiscono `undefined`
+ * da `getRdsInstancePricePerMonth`: meglio nessun prezzo che uno sbagliato.
+ */
+const RDS_ENGINE_TO_PRICING_ENGINE: Record<string, string> = {
+  postgres: 'PostgreSQL',
+  mysql: 'MySQL',
+  mariadb: 'MariaDB',
+  'oracle-se2': 'Oracle',
+  'oracle-se2-cdb': 'Oracle',
+  'oracle-ee': 'Oracle',
+  'oracle-ee-cdb': 'Oracle',
+  'sqlserver-ex': 'SQL Server',
+  'sqlserver-web': 'SQL Server',
+  'sqlserver-se': 'SQL Server',
+  'sqlserver-ee': 'SQL Server',
+};
+
 type PriceUnit = 'gb-month' | 'hourly';
 
 interface PriceSpec {
@@ -161,6 +180,39 @@ export class AwsPricingApiAdapter {
           { Field: 'operatingSystem', Value: 'Linux' },
           { Field: 'preInstalledSw', Value: 'NA' },
           { Field: 'capacitystatus', Value: 'Used' },
+        ],
+        unit: 'hourly',
+      },
+      location,
+    );
+  }
+
+  /**
+   * Prezzo on-demand mensile per una classe di istanza RDS, risolto on-demand
+   * come `getEc2InstancePricePerMonth` (stessa motivazione: cardinalità
+   * troppo alta per il prefetch). Richiede una mappatura engine → engine del
+   * Pricing API (vedi `RDS_ENGINE_TO_PRICING_ENGINE`): engine non mappati
+   * (es. Aurora) restituiscono `undefined`.
+   */
+  async getRdsInstancePricePerMonth(
+    region: AwsRegion,
+    dbInstanceClass: string,
+    engine: string,
+    multiAZ: boolean,
+  ): Promise<number | undefined> {
+    const location = REGION_TO_LOCATION[region.code];
+    if (!location) return undefined;
+    const databaseEngine = RDS_ENGINE_TO_PRICING_ENGINE[engine];
+    if (!databaseEngine) return undefined;
+    return this.fetchPrice(
+      {
+        key: `rds-${dbInstanceClass}-${engine}-${multiAZ ? 'multi' : 'single'}`,
+        serviceCode: 'AmazonRDS',
+        filters: [
+          { Field: 'instanceType', Value: dbInstanceClass },
+          { Field: 'databaseEngine', Value: databaseEngine },
+          { Field: 'deploymentOption', Value: multiAZ ? 'Multi-AZ' : 'Single-AZ' },
+          { Field: 'productFamily', Value: 'Database Instance' },
         ],
         unit: 'hourly',
       },

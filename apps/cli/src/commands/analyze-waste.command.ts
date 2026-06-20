@@ -16,6 +16,7 @@ import {
   Gp2UpgradePolicy,
   EbsIdlePolicy,
   Ec2UnderutilizedPolicy,
+  RdsUnderutilizedPolicy,
 } from 'cloud-cost-domain';
 import type {
   FindWastedResourcesUseCasePort,
@@ -36,6 +37,7 @@ import {
   AwsGp2UpgradeScanner,
   AwsEbsIdleScanner,
   AwsEc2UnderutilizedScanner,
+  AwsRdsUnderutilizedScanner,
   StaticPriceTableAdapter,
   TablePricingAdapter,
   AwsPricingApiAdapter,
@@ -156,15 +158,20 @@ async function defaultCreateAnalysis(ctx: AnalysisContext): Promise<Analysis> {
     ),
   ];
 
-  // Advisory, gated su --live-pricing: il prezzo per instance type non rientra
-  // nel listino statico (cardinalità troppo alta), quindi senza prezzi live
-  // non c'è risparmio stimabile e lo scanner resta disattivato.
+  // Advisory, gated su --live-pricing: il prezzo per instance type/classe RDS
+  // non rientra nel listino statico (cardinalità troppo alta), quindi senza
+  // prezzi live non c'è risparmio stimabile e gli scanner restano disattivati.
   if (livePricingAdapter) {
     scanners.push(
       new AwsEc2UnderutilizedScanner(
         livePricingAdapter,
         accountId,
         new Ec2UnderutilizedPolicy(policyOptions, ctx.config.thresholds?.ec2CpuPercent ?? 5),
+      ),
+      new AwsRdsUnderutilizedScanner(
+        livePricingAdapter,
+        accountId,
+        new RdsUnderutilizedPolicy(policyOptions, ctx.config.thresholds?.rdsCpuPercent ?? 5),
       ),
     );
   }
