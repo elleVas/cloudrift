@@ -21,25 +21,25 @@ user: cloudrift analyze -r us-east-1 eu-west-1 [--format json|markdown] [--pdf] 
      2. AwsRegion.parse() per region; config.excludeRegions filtered out
      3. accountId: --account-id or STS GetCallerIdentity
      4. Pricing: static table ← live API (--live-pricing) ← config.prices (wins)
-     5. Instantiates policies (config + flags) and 9 of the 10 scanners
-        (the 10th, EC2 underutilized, only with --live-pricing)
+     5. Instantiates policies (config + flags) and 9 of the 11 scanners
+        (the other two, EC2/RDS underutilized, only with --live-pricing)
           │
           ▼
      AnalyzeCloudWasteUseCase.execute({ regions })
      Runs the registered scanners in parallel (Promise.all),
      each scanner iterates the regions sequentially
           │
-     ┌────┬────┬────┬────┬────┬────┬────┬────┬────┬────┐
-     ▼    ▼    ▼    ▼    ▼    ▼    ▼    ▼    ▼    ▼    │ (one per ResourceKind)
-   EBS  EIP  RDS  ELB  EC2  Snap  NAT  gp2  EBS  EC2  │
-  scan  scan scan scan scan scan scan scan  idle under-│
-     │    │    │    │    │    │    │    │   scan util* │
-     ▼    ▼    ▼    ▼    ▼    ▼    ▼    ▼    ▼    ▼
-  EC2  EC2  RDS ELBv2 EC2* EC2** EC2+CW EC2 EC2+CW EC2+CW
-  API  API  API  API  API  API   API   API  API   +Pricing
+     ┌────┬────┬────┬────┬────┬────┬────┬────┬────┬────┬────┐
+     ▼    ▼    ▼    ▼    ▼    ▼    ▼    ▼    ▼    ▼    ▼    │ (one per ResourceKind)
+   EBS  EIP  RDS  ELB  EC2  Snap  NAT  gp2  EBS  EC2  RDS  │
+  scan  scan scan scan scan scan scan scan  idle under- under-│
+     │    │    │    │    │    │    │    │   scan util*  util* │
+     ▼    ▼    ▼    ▼    ▼    ▼    ▼    ▼    ▼    ▼    ▼
+  EC2  EC2  RDS ELBv2 EC2* EC2** EC2+CW EC2 EC2+CW EC2+CW RDS+CW
+  API  API  API  API  API  API   API   API  API   +Pricing +Pricing
           │        (* 2 calls; ** 3 calls; CW=CloudWatch, max 5 concurrent)
-          │        (EC2 underutilized: registered only with --live-pricing —
-          │         needs a per-instance-type price the static table lacks)
+          │        (EC2/RDS underutilized: registered only with --live-pricing —
+          │         need a per-instance-type/class price the static table lacks)
           ▼
      Each scanner applies the domain waste policy
      (grace period, exclusion tag, type-specific criteria)
@@ -248,7 +248,7 @@ All three share one `PriceTable` shape (`region → { key: USD }` with a `defaul
 - **`config.prices`** are the user's negotiated/enterprise rates and win over both. They are the only way to make the report match the actual bill — even live prices are AWS *list* prices, not your invoice.
 - `getPricesAsOf()` reflects the layer used: the static date, the live fetch date, or `… + custom overrides`.
 
-**Exception: `AwsEc2UnderutilizedScanner`.** Per-instance-type prices aren't in `prices.json` (too many instance types to maintain) and aren't pre-warmed by `warmUp()`. The scanner instead calls `AwsPricingApiAdapter.getEc2InstancePricePerMonth(region, instanceType)` directly, on demand, for each distinct instance type found — which is why this one scanner needs `--live-pricing` to even be registered, rather than degrading gracefully to a static fallback like the others.
+**Exception: `AwsEc2UnderutilizedScanner` and `AwsRdsUnderutilizedScanner`.** Per-instance-type/class prices aren't in `prices.json` (too many types to maintain) and aren't pre-warmed by `warmUp()`. The two scanners instead call `AwsPricingApiAdapter.getEc2InstancePricePerMonth(region, instanceType)` / `getRdsInstancePricePerMonth(region, instanceClass, engine, deploymentOption)` directly, on demand, for each distinct instance type/class found — which is why these are the only two scanners that need `--live-pricing` to even be registered, rather than degrading gracefully to a static fallback like the others.
 
 ## CI/CD integration
 
