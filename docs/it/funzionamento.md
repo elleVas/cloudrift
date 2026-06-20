@@ -185,6 +185,10 @@ Distinto da `AwsEbsVolumeScanner` (volumi non attaccati): questo elenca i volumi
 
 Elenca le istanze `running`, recupera `CPUUtilization` (`Average`, `Maximum`) su una finestra di 14 giorni, e risolve il prezzo mensile dell'istanza **on demand** dall'AWS Pricing API (implementa `Ec2InstancePricingSource` per duck typing contro `AwsPricingApiAdapter`) — lo spazio dei prezzi per instance type è troppo grande per il listino statico. Senza `--live-pricing` non c'è un prezzo da risolvere, quindi il composition root non registra affatto questo scanner (vedi sopra la sezione sul composition root). La stima di risparmio è metà del costo mensile dell'istanza (`RIGHTSIZE_SAVING_FRACTION = 0.5`, un'euristica da downsize di un tier) ed è marcata `estimated: true` in `RESOURCE_KIND_META`: una CPU bassa da sola non conferma che RAM/rete siano altrettanto inutilizzate.
 
+#### `AwsRdsUnderutilizedScanner` — Rightsizing basato su CPU, solo advisory
+
+Stesso pattern di `AwsEc2UnderutilizedScanner`, applicato a RDS. Elenca le istanze `available` (filtro server-side, disgiunto da `AwsRdsInstanceScanner` che filtra su `stopped`), recupera `CPUUtilization` dal namespace `AWS/RDS` (`Average`, `Maximum`) su una finestra di 14 giorni, e risolve il prezzo mensile **on demand** dall'AWS Pricing API (implementa `RdsInstancePricingSource` per duck typing contro `AwsPricingApiAdapter`, che mappa l'engine di `DescribeDBInstances` — es. `postgres` — al valore `databaseEngine` del Pricing API — `PostgreSQL` — e usa `deploymentOption` per Single-AZ/Multi-AZ; engine senza mappatura, come Aurora, restituiscono `undefined`). Senza `--live-pricing` lo scanner non viene registrato, per lo stesso motivo dello scanner EC2. Stessa stima di risparmio (metà del costo mensile, `RIGHTSIZE_SAVING_FRACTION = 0.5`) e stesso flag `estimated: true`: una CPU bassa non conferma che storage I/O o connessioni siano altrettanto inutilizzati.
+
 ---
 
 ### Entità e Value Object

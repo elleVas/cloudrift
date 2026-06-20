@@ -111,3 +111,38 @@ describe('AwsPricingApiAdapter.warmUp', () => {
     expect(mockDestroy).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('AwsPricingApiAdapter.getRdsInstancePricePerMonth', () => {
+  it('resolves an unambiguous hourly price to monthly for a known engine', async () => {
+    mockSend.mockResolvedValue({ PriceList: [priceListItem('0.0960000000')] });
+
+    const adapter = new AwsPricingApiAdapter();
+    const price = await adapter.getRdsInstancePricePerMonth(euWest1, 'db.t3.medium', 'postgres', false);
+
+    expect(price).toBe(+(0.096 * 730).toFixed(4));
+    const filters = (mockSend.mock.calls[0][0] as GetProductsCommand).input.Filters ?? [];
+    expect(filters).toEqual(
+      expect.arrayContaining([
+        { Type: 'TERM_MATCH', Field: 'instanceType', Value: 'db.t3.medium' },
+        { Type: 'TERM_MATCH', Field: 'databaseEngine', Value: 'PostgreSQL' },
+        { Type: 'TERM_MATCH', Field: 'deploymentOption', Value: 'Single-AZ' },
+      ]),
+    );
+  });
+
+  it('returns undefined for an engine with no Pricing API mapping (e.g. Aurora)', async () => {
+    const adapter = new AwsPricingApiAdapter();
+    const price = await adapter.getRdsInstancePricePerMonth(euWest1, 'db.r5.large', 'aurora-postgresql', false);
+
+    expect(price).toBeUndefined();
+    expect(mockSend).not.toHaveBeenCalled();
+  });
+
+  it('returns undefined for a region with no known location mapping', async () => {
+    const adapter = new AwsPricingApiAdapter();
+    const price = await adapter.getRdsInstancePricePerMonth(unknownRegion, 'db.t3.medium', 'postgres', false);
+
+    expect(price).toBeUndefined();
+    expect(mockSend).not.toHaveBeenCalled();
+  });
+});

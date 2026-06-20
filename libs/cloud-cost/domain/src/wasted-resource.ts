@@ -12,6 +12,7 @@ export const RESOURCE_KINDS = [
   'ebs-gp2-upgrade',
   'ebs-idle',
   'ec2-underutilized',
+  'rds-underutilized',
 ] as const;
 
 export type ResourceKind = (typeof RESOURCE_KINDS)[number];
@@ -44,6 +45,11 @@ export const RESOURCE_KIND_META: Record<ResourceKind, ResourceKindMeta> = {
   'ebs-idle': { label: 'EBS Volumes (idle)', category: 'waste', estimated: false },
   'ec2-underutilized': {
     label: 'EC2 Instances (underutilized)',
+    category: 'optimization',
+    estimated: true,
+  },
+  'rds-underutilized': {
+    label: 'RDS Instances (underutilized)',
     category: 'optimization',
     estimated: true,
   },

@@ -22,8 +22,9 @@
 | **EBS gp2→gp3**    | In-use gp2 volume upgradeable to gp3 (savings, not waste) | Saving: gp2 − gp3 price × GB (≈ $0.02/GB-mo) |
 | **EBS Volumes (idle)** | Attached (in-use) but zero I/O in the last 48h | gp3: $0.08/GB-mo · gp2: $0.10/GB-mo · io1: $0.125/GB-mo |
 | **EC2 Instances (underutilized)** | Running, max CPU ≤ 5% over 14 days — rightsizing candidate, requires `--live-pricing` | Saving: ~50% of the instance's monthly cost (estimate — verify RAM/network before acting) |
+| **RDS Instances (underutilized)** | Available, max CPU ≤ 5% over 14 days — rightsizing candidate, requires `--live-pricing` | Saving: ~50% of the instance's monthly cost (estimate — verify storage I/O/connections before acting) |
 
-Every finding is also tagged `waste` or `optimization`: `waste` is money being spent now and feeds the headline total and the CI gate; `optimization` (gp2→gp3, EC2 underutilized) is a saving opportunity that keeps the resource, shown separately and never gated. `EC2 Instances (underutilized)` is additionally an *estimate* — verify before acting.
+Every finding is also tagged `waste` or `optimization`: `waste` is money being spent now and feeds the headline total and the CI gate; `optimization` (gp2→gp3, EC2/RDS underutilized) is a saving opportunity that keeps the resource, shown separately and never gated. `EC2/RDS Instances (underutilized)` are additionally *estimates* — verify before acting.
 
 **False-positive guards (waste policies):**
 
@@ -208,7 +209,8 @@ cloudrift reads `cloudrift.config.json` (or `.cloudriftrc`) from the current dir
   },
   "thresholds": {
     "ebsIdleMaxOps": 0,
-    "ec2CpuPercent": 5
+    "ec2CpuPercent": 5,
+    "rdsCpuPercent": 5
   }
 }
 ```
@@ -224,6 +226,7 @@ cloudrift reads `cloudrift.config.json` (or `.cloudriftrc`) from the current dir
 | `prices`                | Per-region price overrides (same shape as the built-in table): `region → { priceKey: USD }`, with `default` as fallback. Use it for your **negotiated/enterprise rates** |
 | `thresholds.ebsIdleMaxOps` | Total CloudWatch I/O ops below which an attached EBS volume counts as idle (default `0`)      |
 | `thresholds.ec2CpuPercent` | Max CPU% below which a running EC2 instance counts as underutilized (default `5`)             |
+| `thresholds.rdsCpuPercent` | Max CPU% below which an available RDS instance counts as underutilized (default `5`)          |
 
 > A staging NAT Gateway with no weekend traffic is a classic false positive: widen `cloudwatchWindowHours` to `168` so a quiet weekend doesn't flag it.
 
@@ -399,8 +402,9 @@ No changes to `AnalyzeCloudWasteUseCase`, the summary, or the report DTO are nee
 | **EBS gp2→gp3**    | Volume gp2 in uso aggiornabile a gp3 (risparmio, non spreco)            | Risparmio: prezzo gp2 − gp3 × GB (≈ $0,02/GB-mese)           |
 | **EBS Volumes (idle)** | Attaccati (in-use) ma zero I/O nelle ultime 48h                     | gp3: $0,08/GB-mese · gp2: $0,10/GB-mese · io1: $0,125/GB-mese |
 | **EC2 Instances (underutilized)** | Running, CPU massima ≤ 5% in 14 giorni — candidato a rightsizing, richiede `--live-pricing` | Risparmio: ~50% del costo mensile dell'istanza (stima — verificare RAM/rete prima di agire) |
+| **RDS Instances (underutilized)** | Disponibile (`available`), CPU massima ≤ 5% in 14 giorni — candidato a rightsizing, richiede `--live-pricing` | Risparmio: ~50% del costo mensile dell'istanza (stima — verificare storage I/O/connessioni prima di agire) |
 
-Ogni finding è anche etichettato `waste` o `optimization`: `waste` è denaro speso ora e contribuisce al totale principale e al gate CI; `optimization` (gp2→gp3, EC2 underutilized) è un'opportunità di risparmio che mantiene la risorsa, mostrata a parte e mai usata come gate. `EC2 Instances (underutilized)` è inoltre una *stima* — da verificare prima di agire.
+Ogni finding è anche etichettato `waste` o `optimization`: `waste` è denaro speso ora e contribuisce al totale principale e al gate CI; `optimization` (gp2→gp3, EC2/RDS underutilized) è un'opportunità di risparmio che mantiene la risorsa, mostrata a parte e mai usata come gate. `EC2/RDS Instances (underutilized)` sono inoltre delle *stime* — da verificare prima di agire.
 
 **Protezioni contro i falsi positivi (waste policies):**
 
@@ -600,7 +604,8 @@ cloudrift legge `cloudrift.config.json` (o `.cloudriftrc`) dalla directory corre
   },
   "thresholds": {
     "ebsIdleMaxOps": 0,
-    "ec2CpuPercent": 5
+    "ec2CpuPercent": 5,
+    "rdsCpuPercent": 5
   }
 }
 ```
@@ -616,6 +621,7 @@ cloudrift legge `cloudrift.config.json` (o `.cloudriftrc`) dalla directory corre
 | `prices`                | Override prezzi per regione (stessa forma del listino built-in): `regione → { chiave: USD }`, con `default` come fallback. Usalo per le tue **tariffe negoziate/aziendali** |
 | `thresholds.ebsIdleMaxOps` | Operazioni I/O CloudWatch totali sotto cui un volume EBS attaccato conta come idle (default `0`)      |
 | `thresholds.ec2CpuPercent` | CPU massima % sotto cui un'istanza EC2 running conta come sottoutilizzata (default `5`)                |
+| `thresholds.rdsCpuPercent` | CPU massima % sotto cui un'istanza RDS disponibile conta come sottoutilizzata (default `5`)            |
 
 > Un NAT Gateway di staging senza traffico nel weekend è il classico falso positivo: allarga `cloudwatchWindowHours` a `168` così un weekend tranquillo non lo segnala.
 

@@ -98,6 +98,7 @@ export const RESOURCE_KINDS = [
   'ebs-gp2-upgrade',
   'ebs-idle',
   'ec2-underutilized',
+  'rds-underutilized',
 ] as const;
 
 export type ResourceKind = (typeof RESOURCE_KINDS)[number];
@@ -126,17 +127,18 @@ export const RESOURCE_KIND_META: Record<ResourceKind, ResourceKindMeta> = {
   // …
   'ebs-gp2-upgrade': { label: 'EBS gp2→gp3 Upgrades', category: 'optimization', estimated: false },
   'ec2-underutilized': { label: 'EC2 Instances (underutilized)', category: 'optimization', estimated: true },
+  'rds-underutilized': { label: 'RDS Instances (underutilized)', category: 'optimization', estimated: true },
 };
 ```
 
 - **`waste`** — denaro speso ora, eliminabile cancellando/staccando la risorsa. Contribuisce a `totalWasteMonthlyUsd`, il numero principale e il gate CI (`costAlertThresholdUsd`).
-- **`optimization`** — un'opportunità di risparmio che mantiene la risorsa (gp2→gp3, rightsizing EC2). Mostrata a parte come `totalOptimizationMonthlyUsd`, mai nel totale waste. `ec2-underutilized` è inoltre `estimated: true`: una CPU bassa da sola non dimostra che anche RAM/rete siano altrettanto inutilizzate, quindi la cifra è una stima euristica da verificare prima di agire, non un numero certo.
+- **`optimization`** — un'opportunità di risparmio che mantiene la risorsa (gp2→gp3, rightsizing EC2/RDS). Mostrata a parte come `totalOptimizationMonthlyUsd`, mai nel totale waste. `ec2-underutilized` e `rds-underutilized` sono inoltre `estimated: true`: una CPU bassa da sola non dimostra che anche RAM/rete (EC2) o storage I/O/connessioni (RDS) siano altrettanto inutilizzati, quindi la cifra è una stima euristica da verificare prima di agire, non un numero certo.
 
 `RESOURCE_KIND_LABELS` è derivato da `RESOURCE_KIND_META` (unica fonte di verità) invece di essere mantenuto separatamente.
 
 #### Entità
 
-Le 10 entità (`EbsVolume`, `ElasticIp`, `RdsInstance`, `LoadBalancer`, `Ec2Instance`, `EbsSnapshot`, `NatGateway`, `Gp2Volume`, `IdleEbsVolume`, `UnderutilizedEc2Instance`) implementano `WastedResource` e portano i **fatti** osservati necessari alle decisioni: `LoadBalancer.registeredTargetCount`, `NatGateway.bytesOutLastWindow`, `EbsSnapshot.sourceVolumeExists` / `boundToAmiId`, `Ec2Instance.stoppedSince`, la somma di `VolumeReadOps`/`VolumeWriteOps` di `IdleEbsVolume`, `UnderutilizedEc2Instance.maxCpuPercent`. `Gp2Volume` e `UnderutilizedEc2Instance` sono opportunità di risparmio più che spreco da cancellare: il loro `costEstimate` porta il *risparmio* mensile stimato, non un costo effettivamente pagato.
+Le 11 entità (`EbsVolume`, `ElasticIp`, `RdsInstance`, `LoadBalancer`, `Ec2Instance`, `EbsSnapshot`, `NatGateway`, `Gp2Volume`, `IdleEbsVolume`, `UnderutilizedEc2Instance`, `RdsUnderutilizedInstance`) implementano `WastedResource` e portano i **fatti** osservati necessari alle decisioni: `LoadBalancer.registeredTargetCount`, `NatGateway.bytesOutLastWindow`, `EbsSnapshot.sourceVolumeExists` / `boundToAmiId`, `Ec2Instance.stoppedSince`, la somma di `VolumeReadOps`/`VolumeWriteOps` di `IdleEbsVolume`, `UnderutilizedEc2Instance.maxCpuPercent`, `RdsUnderutilizedInstance.maxCpuPercent`. `Gp2Volume`, `UnderutilizedEc2Instance` e `RdsUnderutilizedInstance` sono opportunità di risparmio più che spreco da cancellare: il loro `costEstimate` porta il *risparmio* mensile stimato, non un costo effettivamente pagato.
 
 #### Waste Policies — dove vive la conoscenza di business
 
