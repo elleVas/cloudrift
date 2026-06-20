@@ -11,7 +11,7 @@ import {
   Ec2UnderutilizedPolicy,
   RdsUnderutilizedPolicy,
 } from './resource-waste-policies';
-import { DEFAULT_IGNORE_TAG } from './waste-policy';
+import { DEFAULT_IGNORE_TAG, DEFAULT_MIN_AGE_DAYS } from './waste-policy';
 import { EbsVolume } from '../entities/ebs-volume.entity';
 import { ElasticIp } from '../entities/elastic-ip.entity';
 import { RdsInstance } from '../entities/rds-instance.entity';
@@ -33,6 +33,9 @@ const region = AwsRegion.create('us-east-1');
 const now = new Date('2026-06-12T00:00:00Z');
 const oldDate = new Date('2025-01-01');
 const yesterday = new Date('2026-06-11T00:00:00Z');
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+/** Exactly `DEFAULT_MIN_AGE_DAYS` before `now` — the exact boundary of the grace period. */
+const exactlyAtMinAge = new Date(now.getTime() - DEFAULT_MIN_AGE_DAYS * MS_PER_DAY);
 
 function makeVolume(overrides: { createTime?: Date; tags?: Record<string, string>; state?: 'available' | 'in-use' } = {}): EbsVolume {
   return new EbsVolume({
@@ -64,6 +67,10 @@ describe('EbsVolumeWastePolicy', () => {
     const verdict = policy.evaluate(makeVolume({ createTime: yesterday }), now);
     expect(verdict.isWaste).toBe(false);
     expect(verdict.reason).toContain('7d');
+  });
+
+  it('flags a volume created exactly minAgeDays ago (grace period boundary)', () => {
+    expect(policy.evaluate(makeVolume({ createTime: exactlyAtMinAge }), now).isWaste).toBe(true);
   });
 
   it('does not flag a volume carrying the ignore tag', () => {
@@ -400,6 +407,11 @@ describe('EbsIdlePolicy', () => {
     expect(lenient.evaluate(makeIdleVolume({ readOps: 80, writeOps: 40 }), now).isWaste).toBe(false);
   });
 
+  it('flags a volume whose total ops equal the max-ops threshold exactly (boundary)', () => {
+    const lenient = new EbsIdlePolicy({}, 100);
+    expect(lenient.evaluate(makeIdleVolume({ readOps: 60, writeOps: 40 }), now).isWaste).toBe(true);
+  });
+
   it('does not flag a volume carrying the ignore tag', () => {
     expect(
       policy.evaluate(makeIdleVolume({ tags: { [DEFAULT_IGNORE_TAG]: 'true' } }), now).isWaste,
@@ -437,6 +449,10 @@ describe('Ec2UnderutilizedPolicy', () => {
 
   it('does not flag an instance with CPU above threshold', () => {
     expect(policy.evaluate(makeInstance({ maxCpuPercent: 10 }), now).isWaste).toBe(false);
+  });
+
+  it('does not flag an instance whose max CPU equals the threshold exactly (boundary)', () => {
+    expect(policy.evaluate(makeInstance({ maxCpuPercent: 5 }), now).isWaste).toBe(false);
   });
 
   it('does not flag a freshly launched instance (grace period)', () => {
@@ -490,6 +506,10 @@ describe('RdsUnderutilizedPolicy', () => {
 
   it('does not flag an instance with CPU above threshold', () => {
     expect(policy.evaluate(makeInstance({ maxCpuPercent: 10 }), now).isWaste).toBe(false);
+  });
+
+  it('does not flag an instance whose max CPU equals the threshold exactly (boundary)', () => {
+    expect(policy.evaluate(makeInstance({ maxCpuPercent: 5 }), now).isWaste).toBe(false);
   });
 
   it('does not flag a freshly created instance (grace period)', () => {

@@ -32,6 +32,12 @@ importers:
       cli-table3:
         specifier: ^0.6.5
         version: 0.6.5
+      cloud-cost-domain:
+        specifier: workspace:*
+        version: link:libs/cloud-cost/domain
+      cloud-cost-infrastructure-aws-adapter:
+        specifier: workspace:*
+        version: link:libs/cloud-cost/infrastructure/aws-adapter
       commander:
         specifier: ^13.1.0
         version: 13.1.0

@@ -129,6 +129,7 @@ describe('AwsRdsUnderutilizedScanner', () => {
     const args = (GetMetricStatisticsCommand as unknown as jest.Mock).mock.calls[0][0];
     expect(args.Namespace).toBe('AWS/RDS');
     expect(args.MetricName).toBe('CPUUtilization');
+    expect(args.Period).toBe(168 * 3600);
     expect(args.Statistics).toEqual(['Average', 'Maximum']);
     expect(args.Dimensions).toEqual([{ Name: 'DBInstanceIdentifier', Value: 'db-1' }]);
   });

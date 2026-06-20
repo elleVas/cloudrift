@@ -120,6 +120,8 @@ describe('AwsEc2UnderutilizedScanner', () => {
 
     const args = (GetMetricStatisticsCommand as unknown as jest.Mock).mock.calls[0][0];
     expect(args.MetricName).toBe('CPUUtilization');
+    expect(args.Namespace).toBe('AWS/EC2');
+    expect(args.Period).toBe(168 * 3600);
     expect(args.Statistics).toEqual(['Average', 'Maximum']);
     expect(args.Dimensions).toEqual([{ Name: 'InstanceId', Value: 'i-1' }]);
   });
