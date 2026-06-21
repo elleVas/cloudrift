@@ -34,7 +34,7 @@ Policies live in one file, [`libs/cloud-cost/domain/src/policies/resource-waste-
 
 ### Infra — scanners
 
-One spec per scanner under [`libs/cloud-cost/infrastructure/aws-adapter/src/scanners/`](../../libs/cloud-cost/infrastructure/aws-adapter/src/scanners/), with the AWS SDK client mocked. Each covers: the candidate filter (e.g. `DescribeVolumes` with `Filters=[status=available]`), pagination, concurrency, SDK errors, and `destroy()` on the client. The four CloudWatch-based scanners (`aws-ebs-idle`, `aws-ec2-underutilized`, `aws-nat-gateway`, `aws-rds-underutilized`) additionally assert the exact `Namespace`, `Period`, `Statistics` and `Dimensions` sent to `GetMetricStatistics` — this is the contract the manual verification script below leans on.
+One spec per scanner under [`libs/cloud-cost/infrastructure/aws-adapter/src/scanners/`](../../libs/cloud-cost/infrastructure/aws-adapter/src/scanners/), with the AWS SDK client mocked. Each covers: the candidate filter (e.g. `DescribeVolumes` with `Filters=[status=available]`), pagination, concurrency, SDK errors, and `destroy()` on the client. Nine scanners are CloudWatch-based (`aws-ebs-idle`, `aws-ec2-underutilized`, `aws-nat-gateway`, `aws-rds-underutilized`, `aws-efs-unused`, `aws-lambda-underutilized`, `aws-s3-no-lifecycle`, `aws-dynamodb-overprovisioned`, `aws-elasticache-idle`) and additionally assert the exact `Namespace`, `Period`, `Statistics` and `Dimensions` sent to `GetMetricStatistics` — this is the contract the manual verification script below leans on for the four it currently covers (`aws-ebs-idle`, `aws-ec2-underutilized`, `aws-nat-gateway`, `aws-rds-underutilized`); the other five aren't wired into that script yet.
 
 ### CLI e2e
 
@@ -42,7 +42,7 @@ One spec per scanner under [`libs/cloud-cost/infrastructure/aws-adapter/src/scan
 
 ## Manual verification against a real AWS account
 
-Mocked SDK calls verify the *shape* of a query; they cannot verify that the shape actually matches what AWS returns for real resources. [`scripts/verify-against-aws.mjs`](../../scripts/verify-against-aws.mjs) closes that gap: it runs all 11 scanners against a real AWS account and prints what they find, next to the static query descriptor that the corresponding scanner spec already enforces in CI.
+Mocked SDK calls verify the *shape* of a query; they cannot verify that the shape actually matches what AWS returns for real resources. [`scripts/verify-against-aws.mjs`](../../scripts/verify-against-aws.mjs) closes that gap: it runs 11 of the 18 scanners — everything shipped before v0.4.0 — against a real AWS account and prints what they find, next to the static query descriptor that the corresponding scanner spec already enforces in CI. The 7 scanners added in v0.4.0 (`log-group`, `eni-orphaned`, `s3-no-lifecycle`, `lambda-underutilized`, `efs-unused`, `dynamodb-overprovisioned`, `elasticache-idle`) aren't wired into this script yet.
 
 It is **not** run by `pnpm test` or by CI — it calls real AWS APIs and must be run by hand against a **sandbox** account.
 
