@@ -75,6 +75,14 @@ export class TablePricingAdapter implements PricingPort {
     return this.lookup(region, 'efs-standard') ?? 0;
   }
 
+  getDynamoDbRcuPricePerHour(region: AwsRegion): number {
+    return this.lookup(region, 'dynamodb-rcu') ?? 0;
+  }
+
+  getDynamoDbWcuPricePerHour(region: AwsRegion): number {
+    return this.lookup(region, 'dynamodb-wcu') ?? 0;
+  }
+
   getPricesAsOf(): string {
     return this.pricesAsOf;
   }

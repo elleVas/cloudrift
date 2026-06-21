@@ -16,6 +16,9 @@ export { AwsEniOrphanedScanner } from './scanners/aws-eni-orphaned.scanner';
 export { AwsS3NoLifecycleScanner } from './scanners/aws-s3-no-lifecycle.scanner';
 export { AwsLambdaUnderutilizedScanner } from './scanners/aws-lambda-underutilized.scanner';
 export { AwsEfsUnusedScanner } from './scanners/aws-efs-unused.scanner';
+export { AwsDynamoDbOverprovisionedScanner } from './scanners/aws-dynamodb-overprovisioned.scanner';
+export { AwsElastiCacheIdleScanner } from './scanners/aws-elasticache-idle.scanner';
+export type { ElastiCacheNodePricingSource } from './scanners/aws-elasticache-idle.scanner';
 export { AwsAdapterError } from './errors/aws-adapter.error';
 export {
   StaticPriceTableAdapter,

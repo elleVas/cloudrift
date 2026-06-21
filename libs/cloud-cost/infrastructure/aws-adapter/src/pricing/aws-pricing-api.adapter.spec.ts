@@ -146,3 +146,29 @@ describe('AwsPricingApiAdapter.getRdsInstancePricePerMonth', () => {
     expect(mockSend).not.toHaveBeenCalled();
   });
 });
+
+describe('AwsPricingApiAdapter.getElastiCacheNodePricePerMonth', () => {
+  it('resolves an unambiguous hourly price to monthly for a known node type', async () => {
+    mockSend.mockResolvedValue({ PriceList: [priceListItem('0.0340000000')] });
+
+    const adapter = new AwsPricingApiAdapter();
+    const price = await adapter.getElastiCacheNodePricePerMonth(euWest1, 'cache.t3.medium');
+
+    expect(price).toBe(+(0.034 * 730).toFixed(4));
+    const filters = (mockSend.mock.calls[0][0] as GetProductsCommand).input.Filters ?? [];
+    expect(filters).toEqual(
+      expect.arrayContaining([
+        { Type: 'TERM_MATCH', Field: 'instanceType', Value: 'cache.t3.medium' },
+        { Type: 'TERM_MATCH', Field: 'productFamily', Value: 'Cache Instance' },
+      ]),
+    );
+  });
+
+  it('returns undefined for a region with no known location mapping', async () => {
+    const adapter = new AwsPricingApiAdapter();
+    const price = await adapter.getElastiCacheNodePricePerMonth(unknownRegion, 'cache.t3.medium');
+
+    expect(price).toBeUndefined();
+    expect(mockSend).not.toHaveBeenCalled();
+  });
+});

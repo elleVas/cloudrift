@@ -104,6 +104,18 @@ describe('parseConfig', () => {
     if (!result.ok) expect(result.error.message).toContain('efsIoBytesMin');
   });
 
+  it('parses thresholds.dynamoCapacityUtilizationPercent', () => {
+    const result = parseConfig(JSON.stringify({ thresholds: { dynamoCapacityUtilizationPercent: 15 } }));
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.thresholds?.dynamoCapacityUtilizationPercent).toBe(15);
+  });
+
+  it('rejects a thresholds.dynamoCapacityUtilizationPercent outside 0-100', () => {
+    const result = parseConfig(JSON.stringify({ thresholds: { dynamoCapacityUtilizationPercent: 150 } }));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.message).toContain('dynamoCapacityUtilizationPercent');
+  });
+
   it('returns empty config for an empty object', () => {
     const result = parseConfig('{}');
     expect(result.ok).toBe(true);

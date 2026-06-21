@@ -15,6 +15,8 @@ import {
   S3NoLifecyclePolicy,
   LambdaUnderutilizedPolicy,
   EfsUnusedPolicy,
+  DynamoDbOverprovisionedPolicy,
+  ElastiCacheIdlePolicy,
 } from './resource-waste-policies';
 import { DEFAULT_IGNORE_TAG, DEFAULT_MIN_AGE_DAYS } from './waste-policy';
 import { EbsVolume } from '../entities/ebs-volume.entity';
@@ -35,6 +37,8 @@ import { OrphanedEni } from '../entities/orphaned-eni.entity';
 import { S3Bucket } from '../entities/s3-bucket.entity';
 import { UnderutilizedLambdaFunction } from '../entities/underutilized-lambda-function.entity';
 import { EfsFileSystem } from '../entities/efs-file-system.entity';
+import { OverprovisionedDynamoDbTable } from '../entities/overprovisioned-dynamodb-table.entity';
+import { IdleElastiCacheCluster } from '../entities/idle-elasticache-cluster.entity';
 import type { EbsSnapshotProps } from '../entities/ebs-snapshot.entity';
 import type { Ec2InstanceProps } from '../entities/ec2-instance.entity';
 import { AwsRegion } from '../value-objects/aws-region.value-object';
@@ -716,5 +720,90 @@ describe('EfsUnusedPolicy', () => {
     expect(lenient.evaluate(makeFs({ numberOfMountTargets: 1, ioBytesLastWindow: 512 }), now).isWaste).toBe(
       true,
     );
+  });
+});
+
+describe('DynamoDbOverprovisionedPolicy', () => {
+  const policy = new DynamoDbOverprovisionedPolicy();
+  const WINDOW_DAYS = 7;
+  const WINDOW_SECONDS = WINDOW_DAYS * 24 * 60 * 60;
+
+  function makeTable(
+    overrides: {
+      consumedReadCapacityUnits?: number;
+      consumedWriteCapacityUnits?: number;
+      creationDateTime?: Date;
+    } = {},
+  ): OverprovisionedDynamoDbTable {
+    return new OverprovisionedDynamoDbTable({
+      tableName: 'my-table',
+      region,
+      accountId: '123456789012',
+      readCapacityUnits: 100,
+      writeCapacityUnits: 100,
+      consumedReadCapacityUnits: overrides.consumedReadCapacityUnits ?? 0,
+      consumedWriteCapacityUnits: overrides.consumedWriteCapacityUnits ?? 0,
+      windowDays: WINDOW_DAYS,
+      creationDateTime: overrides.creationDateTime ?? oldDate,
+      detectedAt: now,
+      tags: {},
+      monthlyCostUsd: 12.5,
+    });
+  }
+
+  it('flags an old table with near-zero utilization', () => {
+    expect(policy.evaluate(makeTable(), now).isWaste).toBe(true);
+  });
+
+  it('does not flag a table with read utilization above threshold', () => {
+    const consumed = 50 * WINDOW_SECONDS; // 50% read utilization
+    expect(policy.evaluate(makeTable({ consumedReadCapacityUnits: consumed }), now).isWaste).toBe(false);
+  });
+
+  it('does not flag a table with write utilization above threshold', () => {
+    const consumed = 50 * WINDOW_SECONDS; // 50% write utilization
+    expect(policy.evaluate(makeTable({ consumedWriteCapacityUnits: consumed }), now).isWaste).toBe(false);
+  });
+
+  it('does not flag a freshly created table (grace period)', () => {
+    expect(policy.evaluate(makeTable({ creationDateTime: yesterday }), now).isWaste).toBe(false);
+  });
+
+  it('honours a custom utilization threshold', () => {
+    const lenient = new DynamoDbOverprovisionedPolicy({}, 60);
+    const consumed = 50 * WINDOW_SECONDS; // 50% utilization, below the 60% custom threshold
+    expect(lenient.evaluate(makeTable({ consumedReadCapacityUnits: consumed }), now).isWaste).toBe(true);
+  });
+});
+
+describe('ElastiCacheIdlePolicy', () => {
+  const policy = new ElastiCacheIdlePolicy();
+
+  function makeCluster(connectionsLastWindow: number, createTime = oldDate): IdleElastiCacheCluster {
+    return new IdleElastiCacheCluster({
+      cacheClusterId: 'my-cluster',
+      region,
+      accountId: '123456789012',
+      cacheNodeType: 'cache.t3.micro',
+      numCacheNodes: 1,
+      connectionsLastWindow,
+      metricWindowHours: 48,
+      createTime,
+      detectedAt: now,
+      tags: {},
+      monthlyCostUsd: 12.41,
+    });
+  }
+
+  it('flags an old cluster with zero connections', () => {
+    expect(policy.evaluate(makeCluster(0), now).isWaste).toBe(true);
+  });
+
+  it('does not flag a cluster with active connections', () => {
+    expect(policy.evaluate(makeCluster(5), now).isWaste).toBe(false);
+  });
+
+  it('does not flag a freshly created cluster (grace period)', () => {
+    expect(policy.evaluate(makeCluster(0, yesterday), now).isWaste).toBe(false);
   });
 });

@@ -221,6 +221,31 @@ export class AwsPricingApiAdapter {
   }
 
   /**
+   * Prezzo on-demand mensile per un node type ElastiCache, risolto on-demand
+   * come `getEc2InstancePricePerMonth` (stessa motivazione: cardinalità dei
+   * node type troppo alta per il prefetch).
+   */
+  async getElastiCacheNodePricePerMonth(
+    region: AwsRegion,
+    cacheNodeType: string,
+  ): Promise<number | undefined> {
+    const location = REGION_TO_LOCATION[region.code];
+    if (!location) return undefined;
+    return this.fetchPrice(
+      {
+        key: `elasticache-${cacheNodeType}`,
+        serviceCode: 'AmazonElastiCache',
+        filters: [
+          { Field: 'instanceType', Value: cacheNodeType },
+          { Field: 'productFamily', Value: 'Cache Instance' },
+        ],
+        unit: 'hourly',
+      },
+      location,
+    );
+  }
+
+  /**
    * Restituisce il prezzo per una spec **solo se i prodotti restituiti
    * concordano su un unico valore**. Filtri ambigui (più valori distinti) ⇒
    * `undefined`, per non rischiare un prezzo sbagliato (peggio del listino).

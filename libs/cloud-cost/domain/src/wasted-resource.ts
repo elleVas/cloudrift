@@ -18,6 +18,8 @@ export const RESOURCE_KINDS = [
   's3-no-lifecycle',
   'lambda-underutilized',
   'efs-unused',
+  'dynamodb-overprovisioned',
+  'elasticache-idle',
 ] as const;
 
 export type ResourceKind = (typeof RESOURCE_KINDS)[number];
@@ -63,6 +65,12 @@ export const RESOURCE_KIND_META: Record<ResourceKind, ResourceKindMeta> = {
   's3-no-lifecycle': { label: 'S3 Buckets (no lifecycle)', category: 'optimization', estimated: true },
   'lambda-underutilized': { label: 'Lambda Functions (underutilized)', category: 'optimization', estimated: false },
   'efs-unused': { label: 'EFS File Systems (unused)', category: 'waste', estimated: false },
+  'dynamodb-overprovisioned': {
+    label: 'DynamoDB Tables (overprovisioned)',
+    category: 'optimization',
+    estimated: true,
+  },
+  'elasticache-idle': { label: 'ElastiCache Clusters (idle)', category: 'waste', estimated: false },
 };
 
 /** Etichette leggibili, derivate da RESOURCE_KIND_META (unica fonte). */

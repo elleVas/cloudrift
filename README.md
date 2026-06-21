@@ -28,8 +28,10 @@
 | **S3 Buckets (no lifecycle)** | No lifecycle configuration — rightsizing candidate | Saving: ~40% of Standard storage cost (estimate — verify access patterns before acting) |
 | **Lambda Functions (underutilized)** | (Near-)zero invocations over 7 days | $0 (hygiene flag — pay-per-use Lambda has no direct cost when unused) |
 | **EFS File Systems (unused)** | No mount targets, or mounted with zero I/O in the last 48h | $0.30/GB-month (Standard storage) |
+| **DynamoDB Tables (overprovisioned)** | PROVISIONED mode, read/write capacity utilization < 10% over 7 days — rightsizing candidate | Saving: ~50% of the provisioned RCU/WCU monthly cost (estimate — verify traffic spikes before acting) |
+| **ElastiCache Clusters (idle)** | Zero client connections in the last 48h, requires `--live-pricing` | Full node-hour cost (node billed regardless of usage) |
 
-Every finding is also tagged `waste` or `optimization`: `waste` is money being spent now and feeds the headline total and the CI gate; `optimization` (gp2→gp3, EC2/RDS underutilized, S3 no-lifecycle, Lambda underutilized) is a saving opportunity that keeps the resource, shown separately and never gated. `EC2/RDS Instances (underutilized)` and `S3 Buckets (no lifecycle)` are additionally *estimates* — verify before acting.
+Every finding is also tagged `waste` or `optimization`: `waste` is money being spent now and feeds the headline total and the CI gate; `optimization` (gp2→gp3, EC2/RDS underutilized, S3 no-lifecycle, Lambda underutilized, DynamoDB overprovisioned) is a saving opportunity that keeps the resource, shown separately and never gated. `EC2/RDS Instances (underutilized)`, `S3 Buckets (no lifecycle)` and `DynamoDB Tables (overprovisioned)` are additionally *estimates* — verify before acting.
 
 > **Honest caveat (Lambda):** we only check invocation count over the lookback window, nothing else. We do **not** rightsize memory allocation — that requires Lambda Insights (extra cost, must be enabled per-function), which isn't part of a zero-extra-IAM read-only scan. A function with zero invocations has, by definition, $0 direct cost (pay-per-use); the value of this finding is hygiene (dead code, unnecessary IAM roles/event sources), not a dollar saving. It also won't catch idle **Provisioned Concurrency**, which *is* billed regardless of invocations — out of scope for now.
 
@@ -351,6 +353,9 @@ The AWS principal needs the following read-only permissions:
     "s3:GetBucketLifecycleConfiguration",
     "lambda:ListFunctions",
     "elasticfilesystem:DescribeFileSystems",
+    "dynamodb:ListTables",
+    "dynamodb:DescribeTable",
+    "elasticache:DescribeCacheClusters",
     "sts:GetCallerIdentity"
   ],
   "Resource": "*"
@@ -455,8 +460,10 @@ No changes to `AnalyzeCloudWasteUseCase`, the summary, or the report DTO are nee
 | **S3 Buckets (no lifecycle)** | Nessuna lifecycle configuration — candidato a rightsizing | Risparmio: ~40% del costo storage Standard (stima — verificare i pattern di accesso prima di agire) |
 | **Lambda Functions (underutilized)** | (Quasi) zero invocazioni in 7 giorni | $0 (segnalazione di igiene — Lambda pay-per-use non ha costo diretto se inutilizzata) |
 | **EFS File Systems (unused)** | Nessun mount target, oppure montato con zero I/O nelle ultime 48h | $0,30/GB-mese (storage Standard) |
+| **DynamoDB Tables (overprovisioned)** | Modalità PROVISIONED, utilizzo capacità read/write < 10% in 7 giorni — candidato a rightsizing | Risparmio: ~50% del costo mensile RCU/WCU provisioned (stima — verificare picchi di traffico prima di agire) |
+| **ElastiCache Clusters (idle)** | Zero connessioni client nelle ultime 48h, richiede `--live-pricing` | Costo pieno node-hour (il nodo è fatturato indipendentemente dall'uso) |
 
-Ogni finding è anche etichettato `waste` o `optimization`: `waste` è denaro speso ora e contribuisce al totale principale e al gate CI; `optimization` (gp2→gp3, EC2/RDS underutilized, S3 no-lifecycle, Lambda underutilized) è un'opportunità di risparmio che mantiene la risorsa, mostrata a parte e mai usata come gate. `EC2/RDS Instances (underutilized)` e `S3 Buckets (no lifecycle)` sono inoltre delle *stime* — da verificare prima di agire.
+Ogni finding è anche etichettato `waste` o `optimization`: `waste` è denaro speso ora e contribuisce al totale principale e al gate CI; `optimization` (gp2→gp3, EC2/RDS underutilized, S3 no-lifecycle, Lambda underutilized, DynamoDB overprovisioned) è un'opportunità di risparmio che mantiene la risorsa, mostrata a parte e mai usata come gate. `EC2/RDS Instances (underutilized)`, `S3 Buckets (no lifecycle)` e `DynamoDB Tables (overprovisioned)` sono inoltre delle *stime* — da verificare prima di agire.
 
 > **Nota onesta (Lambda):** controlliamo solo il numero di invocazioni nella finestra di osservazione, nient'altro. **Non** facciamo rightsizing della memoria — richiederebbe Lambda Insights (costo extra, da attivare per ogni funzione), fuori scope per uno scan read-only senza permessi IAM aggiuntivi. Una funzione con zero invocazioni ha per definizione $0 di costo diretto (pay-per-use); il valore di questo finding è igiene (codice morto, ruoli IAM/event source inutili), non un risparmio in dollari. Non rileva nemmeno la **Provisioned Concurrency** idle, che invece *è* fatturata indipendentemente dalle invocazioni — fuori scope per ora.
 
@@ -793,6 +800,9 @@ Il principal AWS deve avere le seguenti permission in sola lettura:
     "s3:GetBucketLifecycleConfiguration",
     "lambda:ListFunctions",
     "elasticfilesystem:DescribeFileSystems",
+    "dynamodb:ListTables",
+    "dynamodb:DescribeTable",
+    "elasticache:DescribeCacheClusters",
     "sts:GetCallerIdentity"
   ],
   "Resource": "*"
