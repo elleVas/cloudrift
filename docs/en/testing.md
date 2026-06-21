@@ -38,7 +38,7 @@ One spec per scanner under [`libs/cloud-cost/infrastructure/aws-adapter/src/scan
 
 ### CLI e2e
 
-[`apps/cli/src/commands/analyze-waste.command.spec.ts`](../../apps/cli/src/commands/analyze-waste.command.spec.ts) drives the command with a fake `AnalyzeDeps` (no AWS), asserting format selection (table/json/markdown), exit codes (0/1/2), the `--json <file>` and `--pdf <file>` artifacts, and that a partial scan (`summary.scanErrors` non-empty) doesn't crash the command — the exit code stays driven only by the cost threshold, never by scan errors, and the incomplete-scan note (produced by the formatters, see [`waste-report.markdown-formatter.spec.ts`](../../apps/cli/src/formatters/waste-report.markdown-formatter.spec.ts)) reaches stdout.
+[`apps/cli/src/commands/analyze-waste.command.spec.ts`](../../apps/cli/src/commands/analyze-waste.command.spec.ts) drives the command with a fake `AnalyzeDeps` (no AWS), asserting format selection (table/json/markdown), exit codes (0/1/2), the `--json <file>` and `--pdf <file>` artifacts, and that a partial scan (`summary.scanErrors` non-empty) doesn't crash the command — the exit code stays driven only by the cost threshold, never by scan errors, and the incomplete-scan note (produced by the formatters, see [`waste-report.markdown-formatter.spec.ts`](../../apps/cli/src/formatters/waste-report.markdown-formatter.spec.ts)) reaches stdout. `analyze-waste.composition.ts` — the `defaultAnalyzeDeps` implementation the fake stands in for — has no spec of its own by design: it only wires real AWS adapters together (same pattern as `aws-account-id.resolver.ts`), and that wiring is exactly what the fake is meant to bypass in unit tests.
 
 ## Manual verification against a real AWS account
 

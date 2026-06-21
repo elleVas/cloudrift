@@ -16,10 +16,13 @@ utente: cloudrift analyze -r us-east-1 eu-west-1 [--format json|markdown] [--pdf
      Commander.js fa il parse degli argomenti
           │
           ▼
-     analyze-waste.command.ts  (composition root)
+     analyze-waste.command.ts  (orchestra opzioni/config/output)
      1. loadConfig() — cloudrift.config.json / .cloudriftrc / --config
      2. AwsRegion.parse() per regione; config.excludeRegions filtrate via
      3. accountId: --account-id oppure STS GetCallerIdentity
+          │
+          ▼
+     analyze-waste.composition.ts  (composition root: costruisce pricing + scanner)
      4. Pricing: tabella statica ← live API (--live-pricing) ← config.prices (vincono)
      5. Istanzia policy (config + flag) e 9 degli 11 scanner
         (gli altri due, EC2/RDS underutilized, solo con --live-pricing)
@@ -78,7 +81,11 @@ program
 
 ---
 
-### `analyze-waste.command.ts` — Composition root
+### `analyze-waste.command.ts` — Orchestrazione
+
+Risolve le opzioni CLI in config + regioni + account ID, delega la costruzione di pricing/scanner a `analyze-waste.composition.ts` tramite il seam iniettabile `AnalyzeDeps.createAnalysis` (lo stesso fake usato da `analyze-waste.command.spec.ts` per testare senza AWS), poi renderizza il formato scelto e scrive gli artefatti `--json`/`--pdf`.
+
+### `analyze-waste.composition.ts` — Composition root
 
 L'unico punto dove le implementazioni concrete vengono istanziate e iniettate:
 
