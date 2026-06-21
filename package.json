@@ -38,10 +38,12 @@
   },
   "dependencies": {
     "@aws-sdk/client-cloudwatch": "^3.741.0",
+    "@aws-sdk/client-cloudwatch-logs": "^3.1073.0",
     "@aws-sdk/client-ec2": "^3.741.0",
     "@aws-sdk/client-elastic-load-balancing-v2": "^3.741.0",
     "@aws-sdk/client-pricing": "^3.1070.0",
     "@aws-sdk/client-rds": "^3.741.0",
+    "@aws-sdk/client-s3": "^3.1073.0",
     "@aws-sdk/client-sts": "^3.1068.0",
     "chalk": "^4.1.2",
     "cli-table3": "^0.6.5",

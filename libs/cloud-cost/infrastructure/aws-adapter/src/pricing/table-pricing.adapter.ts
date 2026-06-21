@@ -63,6 +63,14 @@ export class TablePricingAdapter implements PricingPort {
     return this.lookup(region, 'nat-gateway') ?? 0;
   }
 
+  getLogGroupPricePerGbMonth(region: AwsRegion): number {
+    return this.lookup(region, 'cw-logs') ?? 0;
+  }
+
+  getS3StandardPricePerGbMonth(region: AwsRegion): number {
+    return this.lookup(region, 's3-standard') ?? 0;
+  }
+
   getPricesAsOf(): string {
     return this.pricesAsOf;
   }

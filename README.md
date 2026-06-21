@@ -23,8 +23,11 @@
 | **EBS Volumes (idle)** | Attached (in-use) but zero I/O in the last 48h | gp3: $0.08/GB-mo · gp2: $0.10/GB-mo · io1: $0.125/GB-mo |
 | **EC2 Instances (underutilized)** | Running, max CPU ≤ 5% over 14 days — rightsizing candidate, requires `--live-pricing` | Saving: ~50% of the instance's monthly cost (estimate — verify RAM/network before acting) |
 | **RDS Instances (underutilized)** | Available, max CPU ≤ 5% over 14 days — rightsizing candidate, requires `--live-pricing` | Saving: ~50% of the instance's monthly cost (estimate — verify storage I/O/connections before acting) |
+| **CloudWatch Log Groups** | No retention policy configured (logs grow forever) | $0.03/GB-month |
+| **Orphaned ENIs** | `Status: available` (not attached to any instance) | $0 (hygiene flag, not a direct cost) |
+| **S3 Buckets (no lifecycle)** | No lifecycle configuration — rightsizing candidate | Saving: ~40% of Standard storage cost (estimate — verify access patterns before acting) |
 
-Every finding is also tagged `waste` or `optimization`: `waste` is money being spent now and feeds the headline total and the CI gate; `optimization` (gp2→gp3, EC2/RDS underutilized) is a saving opportunity that keeps the resource, shown separately and never gated. `EC2/RDS Instances (underutilized)` are additionally *estimates* — verify before acting.
+Every finding is also tagged `waste` or `optimization`: `waste` is money being spent now and feeds the headline total and the CI gate; `optimization` (gp2→gp3, EC2/RDS underutilized, S3 no-lifecycle) is a saving opportunity that keeps the resource, shown separately and never gated. `EC2/RDS Instances (underutilized)` and `S3 Buckets (no lifecycle)` are additionally *estimates* — verify before acting.
 
 > **Honest caveat (rightsizing):** the underutilized check is a single-metric heuristic — max CPU below a threshold over the lookback window, nothing else. It does **not** look at RAM, network throughput, IOPS or connection counts, so it can't tell you *which* smaller instance type actually fits. We do this because it requires no extra IAM permissions and works the same on every account; we don't replace [AWS Compute Optimizer](https://aws.amazon.com/compute-optimizer/), which models multiple metrics and recommends a specific target type. Treat our finding as "go check this instance," not as a sizing recommendation — cross-check with Compute Optimizer (or your own metrics) before resizing.
 
@@ -115,6 +118,9 @@ If everything is configured correctly you'll see tables listing the wasted resou
 
 ---
 
+<details>
+<summary><strong>Usage</strong> — flags, examples, PDF report, partial-failure handling, per-region pricing</summary>
+
 ### Usage
 
 ```sh
@@ -194,6 +200,11 @@ If scanning a resource type fails (e.g. missing CloudWatch permissions for NAT G
 
 Prices are region-aware (defined in `prices.json` in the infrastructure layer). Regions with explicit pricing: `us-east-1`, `us-west-2`, `eu-west-1`, `eu-central-1`, `ap-southeast-1`, `ap-northeast-1`. All other regions fall back to us-east-1 defaults.
 
+</details>
+
+<details>
+<summary><strong>Configuration file</strong> — <code>cloudrift.config.json</code> fields, overrides, false-positive tuning</summary>
+
 ### Configuration file
 
 cloudrift reads `cloudrift.config.json` (or `.cloudriftrc`) from the current directory, or a path passed with `--config`. CLI flags take precedence over the config file, which takes precedence over the built-in defaults. All fields are optional:
@@ -238,6 +249,11 @@ cloudrift reads `cloudrift.config.json` (or `.cloudriftrc`) from the current dir
 > A staging NAT Gateway with no weekend traffic is a classic false positive: widen `cloudwatchWindowHours` to `168` so a quiet weekend doesn't flag it.
 > A batch workload that only spikes CPU once a week needs a wider `utilizationWindowHours` (up to `336`) so a quiet 7-day sample doesn't get flagged as underutilized.
 
+</details>
+
+<details>
+<summary><strong>Pricing sources</strong> — static table, live AWS Pricing API, your overrides</summary>
+
 ### Pricing sources
 
 Costs are resolved from three layers; the most specific wins, per `(region, priceKey)`:
@@ -249,6 +265,11 @@ Costs are resolved from three layers; the most specific wins, per `(region, pric
 Every report shows `prices as of` (the static date, the live fetch date, or `+ custom overrides`).
 
 > **Honest caveat:** even with `--live-pricing`, AWS returns **list** prices, not *your* bill — Savings Plans, Reserved Instances and EDP discounts are not reflected. The `prices` override is the only way to make the report match what you actually pay. Anything the live API can't unambiguously resolve falls back to the static table.
+
+</details>
+
+<details>
+<summary><strong>Use in CI/CD</strong> — GitHub Actions example, budget gate</summary>
 
 ### Use in CI/CD
 
@@ -299,6 +320,8 @@ jobs:
 
 With a `cloudrift.config.json` committed (`{"costAlertThresholdUsd": 500}`), the last step's exit code 2 fails the check automatically — the pipeline blocks when newly created resources push waste over the threshold. Once `@cloudrift/cli` is published, the build/checkout steps collapse to a single `npx @cloudrift/cli@latest analyze …` line.
 
+</details>
+
 ### Required IAM permissions
 
 The AWS principal needs the following read-only permissions:
@@ -313,11 +336,15 @@ The AWS principal needs the following read-only permissions:
     "ec2:DescribeSnapshots",
     "ec2:DescribeImages",
     "ec2:DescribeNatGateways",
+    "ec2:DescribeNetworkInterfaces",
     "cloudwatch:GetMetricStatistics",
     "rds:DescribeDBInstances",
     "elasticloadbalancing:DescribeLoadBalancers",
     "elasticloadbalancing:DescribeTargetGroups",
     "elasticloadbalancing:DescribeTargetHealth",
+    "logs:DescribeLogGroups",
+    "s3:ListAllMyBuckets",
+    "s3:GetBucketLifecycleConfiguration",
     "sts:GetCallerIdentity"
   ],
   "Resource": "*"
@@ -325,6 +352,9 @@ The AWS principal needs the following read-only permissions:
 ```
 
 > `--live-pricing` additionally requires `pricing:GetProducts` (the AWS Pricing API). It is **not** needed for the default static pricing.
+
+<details>
+<summary><strong>Development</strong> — watch mode, per-library tests, lint, typecheck</summary>
 
 ### Development
 
@@ -347,6 +377,8 @@ pnpm nx run-many -t lint
 # Type check
 pnpm nx run-many -t typecheck
 ```
+
+</details>
 
 ### Releasing
 
@@ -412,8 +444,11 @@ No changes to `AnalyzeCloudWasteUseCase`, the summary, or the report DTO are nee
 | **EBS Volumes (idle)** | Attaccati (in-use) ma zero I/O nelle ultime 48h                     | gp3: $0,08/GB-mese · gp2: $0,10/GB-mese · io1: $0,125/GB-mese |
 | **EC2 Instances (underutilized)** | Running, CPU massima ≤ 5% in 14 giorni — candidato a rightsizing, richiede `--live-pricing` | Risparmio: ~50% del costo mensile dell'istanza (stima — verificare RAM/rete prima di agire) |
 | **RDS Instances (underutilized)** | Disponibile (`available`), CPU massima ≤ 5% in 14 giorni — candidato a rightsizing, richiede `--live-pricing` | Risparmio: ~50% del costo mensile dell'istanza (stima — verificare storage I/O/connessioni prima di agire) |
+| **CloudWatch Log Groups** | Nessuna retention policy configurata (i log crescono all'infinito) | $0,03/GB-mese |
+| **ENI orfane** | `Status: available` (non attaccate a nessuna istanza) | $0 (segnalazione di igiene, non un costo diretto) |
+| **S3 Buckets (no lifecycle)** | Nessuna lifecycle configuration — candidato a rightsizing | Risparmio: ~40% del costo storage Standard (stima — verificare i pattern di accesso prima di agire) |
 
-Ogni finding è anche etichettato `waste` o `optimization`: `waste` è denaro speso ora e contribuisce al totale principale e al gate CI; `optimization` (gp2→gp3, EC2/RDS underutilized) è un'opportunità di risparmio che mantiene la risorsa, mostrata a parte e mai usata come gate. `EC2/RDS Instances (underutilized)` sono inoltre delle *stime* — da verificare prima di agire.
+Ogni finding è anche etichettato `waste` o `optimization`: `waste` è denaro speso ora e contribuisce al totale principale e al gate CI; `optimization` (gp2→gp3, EC2/RDS underutilized, S3 no-lifecycle) è un'opportunità di risparmio che mantiene la risorsa, mostrata a parte e mai usata come gate. `EC2/RDS Instances (underutilized)` e `S3 Buckets (no lifecycle)` sono inoltre delle *stime* — da verificare prima di agire.
 
 > **Nota onesta (rightsizing):** il check di sottoutilizzo è un'euristica su una singola metrica — CPU massima sotto una soglia nella finestra di osservazione, nient'altro. **Non** guarda RAM, throughput di rete, IOPS o numero di connessioni, quindi non può dirti *quale* instance type più piccolo sia davvero adatto. Lo facciamo così perché non richiede permessi IAM aggiuntivi e funziona uguale su ogni account; non sostituiamo [AWS Compute Optimizer](https://aws.amazon.com/compute-optimizer/), che modella più metriche e raccomanda un target specifico. Tratta il nostro finding come "vai a controllare questa istanza", non come una raccomandazione di sizing — verifica con Compute Optimizer (o con le tue metriche) prima di ridimensionare.
 
@@ -503,6 +538,9 @@ node apps/cli/dist/main.js analyze -r us-east-1 eu-west-1
 Se tutto è configurato correttamente vedrai tabelle con le risorse sprecate trovate e il totale stimato. Se un account non ha risorse sprecate vedrai un messaggio "No wasted resources found".
 
 ---
+
+<details>
+<summary><strong>Utilizzo</strong> — flag, esempi, report PDF, gestione errori parziali, prezzi per regione</summary>
 
 ### Utilizzo
 
@@ -598,6 +636,11 @@ Se la scansione di un tipo di risorsa fallisce (es. permessi mancanti su CloudWa
 
 I prezzi sono per-regione (file `prices.json` nell'infrastruttura). Regioni supportate con prezzi specifici: `us-east-1`, `us-west-2`, `eu-west-1`, `eu-central-1`, `ap-southeast-1`, `ap-northeast-1`. Per le altre regioni viene usato il prezzo di default (us-east-1).
 
+</details>
+
+<details>
+<summary><strong>File di configurazione</strong> — campi di <code>cloudrift.config.json</code>, override, tuning falsi positivi</summary>
+
 ### File di configurazione
 
 cloudrift legge `cloudrift.config.json` (o `.cloudriftrc`) dalla directory corrente, oppure il percorso passato con `--config`. I flag CLI hanno la precedenza sul file di config, che a sua volta ha la precedenza sui default. Tutti i campi sono opzionali:
@@ -642,6 +685,11 @@ cloudrift legge `cloudrift.config.json` (o `.cloudriftrc`) dalla directory corre
 > Un NAT Gateway di staging senza traffico nel weekend è il classico falso positivo: allarga `cloudwatchWindowHours` a `168` così un weekend tranquillo non lo segnala.
 > Un workload batch che picca la CPU solo una volta a settimana ha bisogno di un `utilizationWindowHours` più ampio (fino a `336`) per non essere segnalato come sottoutilizzato per via di un campione di 7 giorni troppo tranquillo.
 
+</details>
+
+<details>
+<summary><strong>Fonti dei prezzi</strong> — tabella statica, AWS Pricing API live, tuoi override</summary>
+
 ### Fonti dei prezzi
 
 I costi sono risolti da tre livelli; vince il più specifico, per `(regione, chiave)`:
@@ -653,6 +701,11 @@ I costi sono risolti da tre livelli; vince il più specifico, per `(regione, chi
 Ogni report mostra `prices as of` (la data dello statico, quella del fetch live, o `+ custom overrides`).
 
 > **Nota onesta:** anche con `--live-pricing`, AWS restituisce i prezzi di **listino**, non la *tua* bolletta — Savings Plans, Reserved Instances e sconti EDP non sono riflessi. Gli override `prices` sono l'unico modo per far combaciare il report con ciò che paghi davvero. Tutto ciò che il live non riesce a risolvere in modo univoco ricade sulla tabella statica.
+
+</details>
+
+<details>
+<summary><strong>Uso in CI/CD</strong> — esempio GitHub Actions, gate di budget</summary>
 
 ### Uso in CI/CD
 
@@ -703,6 +756,8 @@ jobs:
 
 Con un `cloudrift.config.json` committato (`{"costAlertThresholdUsd": 500}`), il codice di uscita 2 dell'ultimo step fa fallire il check automaticamente — la pipeline si blocca quando nuove risorse spingono lo spreco oltre la soglia. Una volta pubblicato `@cloudrift/cli`, gli step di build/checkout si riducono a una singola riga `npx @cloudrift/cli@latest analyze …`.
 
+</details>
+
 ### Permessi IAM necessari
 
 Il principal AWS deve avere le seguenti permission in sola lettura:
@@ -717,11 +772,15 @@ Il principal AWS deve avere le seguenti permission in sola lettura:
     "ec2:DescribeSnapshots",
     "ec2:DescribeImages",
     "ec2:DescribeNatGateways",
+    "ec2:DescribeNetworkInterfaces",
     "cloudwatch:GetMetricStatistics",
     "rds:DescribeDBInstances",
     "elasticloadbalancing:DescribeLoadBalancers",
     "elasticloadbalancing:DescribeTargetGroups",
     "elasticloadbalancing:DescribeTargetHealth",
+    "logs:DescribeLogGroups",
+    "s3:ListAllMyBuckets",
+    "s3:GetBucketLifecycleConfiguration",
     "sts:GetCallerIdentity"
   ],
   "Resource": "*"
@@ -729,6 +788,9 @@ Il principal AWS deve avere le seguenti permission in sola lettura:
 ```
 
 > `--live-pricing` richiede in più `pricing:GetProducts` (AWS Pricing API). **Non** serve per il pricing statico di default.
+
+<details>
+<summary><strong>Sviluppo</strong> — modalità watch, test per libreria, lint, typecheck</summary>
 
 ### Sviluppo
 
@@ -751,6 +813,8 @@ pnpm nx run-many -t lint
 # Type check
 pnpm nx run-many -t typecheck
 ```
+
+</details>
 
 ### Rilascio
 

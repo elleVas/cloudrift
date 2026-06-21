@@ -151,6 +151,40 @@ export const presenters: PresenterMap = {
     recommend: (db) =>
       `Review RDS ${db.id} (${db.dbInstanceClass} ${db.engine}) in ${db.region.code} for rightsizing — max CPU ${db.maxCpuPercent.toFixed(1)}% over ${db.windowDays}d (verify storage I/O/connections first)`,
   },
+  'log-group': {
+    title: 'CloudWatch Log Groups — No retention policy',
+    head: ['Log Group', 'Region', 'Stored', 'Created'],
+    colWidths: [190, 70, 70, 84, 85],
+    row: (lg) => [
+      lg.id,
+      lg.region.code,
+      `${(lg.storedBytes / 1024 ** 3).toFixed(1)} GB`,
+      day(lg.creationTime),
+    ],
+    recommend: (lg) =>
+      `Set a retention policy on log group ${lg.id} in ${lg.region.code}`,
+  },
+  'eni-orphaned': {
+    title: 'Orphaned ENIs — Not attached (hygiene, no direct cost)',
+    head: ['Network Interface ID', 'Region', 'VPC', 'Subnet'],
+    colWidths: [160, 80, 130, 130, 80],
+    row: (eni) => [eni.id, eni.region.code, eni.vpcId, eni.subnetId],
+    recommend: (eni) =>
+      `Delete orphaned ENI ${eni.id} in ${eni.region.code} — not attached to any instance`,
+  },
+  's3-no-lifecycle': {
+    title: 'S3 Buckets — No lifecycle policy (rightsizing candidate, verify before acting)',
+    head: ['Bucket', 'Region', 'Size', 'Created'],
+    colWidths: [180, 80, 70, 90, 85],
+    row: (b) => [
+      b.id,
+      b.region.code,
+      `${(b.sizeBytes / 1024 ** 3).toFixed(1)} GB`,
+      day(b.creationDate),
+    ],
+    recommend: (b) =>
+      `Configure a lifecycle policy on bucket ${b.id} in ${b.region.code} — ${(b.sizeBytes / 1024 ** 3).toFixed(1)} GB with no tiering/expiration rule`,
+  },
 };
 
 export function presenterFor(kind: ResourceKind): ResourcePresenter {

@@ -11,6 +11,9 @@ export { AwsEc2UnderutilizedScanner } from './scanners/aws-ec2-underutilized.sca
 export type { Ec2InstancePricingSource } from './scanners/aws-ec2-underutilized.scanner';
 export { AwsRdsUnderutilizedScanner } from './scanners/aws-rds-underutilized.scanner';
 export type { RdsInstancePricingSource } from './scanners/aws-rds-underutilized.scanner';
+export { AwsLogGroupScanner } from './scanners/aws-log-group.scanner';
+export { AwsEniOrphanedScanner } from './scanners/aws-eni-orphaned.scanner';
+export { AwsS3NoLifecycleScanner } from './scanners/aws-s3-no-lifecycle.scanner';
 export { AwsAdapterError } from './errors/aws-adapter.error';
 export {
   StaticPriceTableAdapter,

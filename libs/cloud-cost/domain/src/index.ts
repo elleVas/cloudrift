@@ -38,6 +38,12 @@ export { UnderutilizedEc2Instance } from './entities/underutilized-ec2-instance.
 export type { UnderutilizedEc2InstanceProps } from './entities/underutilized-ec2-instance.entity';
 export { RdsUnderutilizedInstance } from './entities/rds-underutilized-instance.entity';
 export type { RdsUnderutilizedInstanceProps } from './entities/rds-underutilized-instance.entity';
+export { LogGroup } from './entities/log-group.entity';
+export type { LogGroupProps } from './entities/log-group.entity';
+export { OrphanedEni } from './entities/orphaned-eni.entity';
+export type { OrphanedEniProps } from './entities/orphaned-eni.entity';
+export { S3Bucket } from './entities/s3-bucket.entity';
+export type { S3BucketProps } from './entities/s3-bucket.entity';
 
 // Value Objects
 export { AwsRegion, InvalidAwsRegionError } from './value-objects/aws-region.value-object';
@@ -64,6 +70,9 @@ export {
   EbsIdlePolicy,
   Ec2UnderutilizedPolicy,
   RdsUnderutilizedPolicy,
+  LogGroupWastePolicy,
+  OrphanedEniWastePolicy,
+  S3NoLifecyclePolicy,
 } from './policies/resource-waste-policies';
 
 // Outbound Ports

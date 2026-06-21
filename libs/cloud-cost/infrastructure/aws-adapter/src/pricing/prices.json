@@ -17,7 +17,9 @@
     "rds-io2":       0.125,
     "rds-standard":  0.100,
     "load-balancer": 16.200,
-    "nat-gateway":   32.400
+    "nat-gateway":   32.400,
+    "cw-logs":       0.030,
+    "s3-standard":   0.023
   },
   "us-east-1": {
     "ebs-gp2":       0.100,
@@ -26,7 +28,9 @@
     "elastic-ip":    3.600,
     "rds-gp2":       0.115,
     "load-balancer": 16.200,
-    "nat-gateway":   32.400
+    "nat-gateway":   32.400,
+    "cw-logs":       0.030,
+    "s3-standard":   0.023
   },
   "us-west-2": {
     "ebs-gp2":       0.100,
@@ -35,7 +39,9 @@
     "elastic-ip":    3.600,
     "rds-gp2":       0.115,
     "load-balancer": 16.200,
-    "nat-gateway":   32.400
+    "nat-gateway":   32.400,
+    "cw-logs":       0.030,
+    "s3-standard":   0.023
   },
   "eu-west-1": {
     "ebs-gp2":       0.110,
@@ -44,7 +50,9 @@
     "elastic-ip":    3.960,
     "rds-gp2":       0.128,
     "load-balancer": 18.400,
-    "nat-gateway":   36.720
+    "nat-gateway":   36.720,
+    "cw-logs":       0.033,
+    "s3-standard":   0.024
   },
   "eu-central-1": {
     "ebs-gp2":       0.119,
@@ -53,7 +61,9 @@
     "elastic-ip":    3.960,
     "rds-gp2":       0.138,
     "load-balancer": 18.980,
-    "nat-gateway":   38.880
+    "nat-gateway":   38.880,
+    "cw-logs":       0.033,
+    "s3-standard":   0.0245
   },
   "ap-southeast-1": {
     "ebs-gp2":       0.114,
@@ -63,7 +73,9 @@
     "elastic-ip":    3.960,
     "rds-gp2":       0.131,
     "load-balancer": 18.250,
-    "nat-gateway":   36.792
+    "nat-gateway":   36.792,
+    "cw-logs":       0.033,
+    "s3-standard":   0.025
   },
   "ap-northeast-1": {
     "ebs-gp2":       0.120,
@@ -72,6 +84,8 @@
     "elastic-ip":    3.960,
     "rds-gp2":       0.142,
     "load-balancer": 19.710,
-    "nat-gateway":   38.880
+    "nat-gateway":   38.880,
+    "cw-logs":       0.033,
+    "s3-standard":   0.025
   }
 }
