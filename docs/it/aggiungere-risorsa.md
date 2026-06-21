@@ -6,6 +6,14 @@ Questa guida descrive come estendere cloudrift per rilevare un nuovo tipo di ris
 
 Come esempio useremo il caso ipotetico di **CloudWatch Log Groups senza retention policy** (log che crescono all'infinito perché `retentionInDays` non è mai stato configurato).
 
+## Glossario
+
+- **kind** — la stringa discriminante che identifica un tipo di risorsa (es. `'nat-gateway'`); guida la union `ResourceKind` e ogni registry che ne deriva (`RESOURCE_KIND_META`, `ResourceKindMap`, presenter).
+- **category** (`'waste'` | `'optimization'`) — `waste` è un costo certo ed eliminabile che concorre a `totalWasteMonthlyUsd` e al gate CI; `optimization` è un'opportunità di risparmio che mantiene la risorsa (es. gp2→gp3).
+- **estimated** — marca un finding come cifra euristica che richiede verifica umana (al momento solo `ec2-underutilized`/`rds-underutilized`), in contrapposizione a un costo misurato direttamente.
+- **policy** — una sottoclasse di `WastePolicy<T>`: logica di giudizio pura (`judge()`) che decide se una risorsa è spreco, dati il periodo di grazia e i tag di esclusione dalla config. Nessuna chiamata AWS.
+- **scanner** — un'implementazione di `WasteScannerPort`: chiama l'SDK AWS, costruisce le entità, applica la policy, ritorna solo i finding che sono spreco.
+
 **Panoramica dei passi (6):**
 
 1. Aggiungi il kind alla union `ResourceKind`
@@ -243,7 +251,7 @@ export class AwsLogGroupScanner implements WasteScannerPort {
 
 Tabella console, PDF e DTO JSON si aggiornano da soli: consumano il registry e `RESOURCE_KIND_LABELS`.
 
-**b)** Registrazione nel composition root (`analyze-waste.command.ts`):
+**b)** Registrazione nel composition root (`analyze-waste.composition.ts`):
 
 ```typescript
 const scanners: WasteScannerPort[] = [
@@ -286,7 +294,7 @@ Aggiungi al README la permission richiesta dal nuovo scanner. Per i log group:
 - [ ] Scanner in `aws-adapter/src/scanners/` con policy applicata + test
 - [ ] `aws-adapter/src/index.ts` aggiornato; dipendenza SDK nel `package.json` root
 - [ ] Presenter in `resource-presenters.ts`
-- [ ] Scanner registrato in `analyze-waste.command.ts`
+- [ ] Scanner registrato in `analyze-waste.composition.ts`
 - [ ] README aggiornato (tabella risorse + permessi IAM)
 
 **Cosa NON va toccato** (se ti ritrovi a modificarli, qualcosa è andato storto): `AnalyzeCloudWasteUseCase`, `WastedResourcesSummary`, `WasteReportDto`, i tre formatter.

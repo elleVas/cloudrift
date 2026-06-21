@@ -167,9 +167,9 @@ if (!parsed.ok) return fail(parsed.error.message); // clean message, exit 1, no 
 
 ## No dependency injection framework
 
-**Choice:** manual constructor injection; the composition root is `analyze-waste.command.ts`.
+**Choice:** manual constructor injection; the composition root is `analyze-waste.composition.ts`, called by `analyze-waste.command.ts` through the injectable `AnalyzeDeps.createAnalysis` seam.
 
-**Why:** the graph is flat — the CLI instantiates pricing, policies and scanners and passes them to the use case. A DI container (InversifyJS, tsyringe) would add configuration and `emitDecoratorMetadata` with no benefit at this scale. The plugin model (`WasteScannerPort[]`) makes the scanner array the only "registry" needed.
+**Why:** the graph is flat — the composition root instantiates pricing, policies and scanners and passes them to the use case; the command just orchestrates options and output around that call. A DI container (InversifyJS, tsyringe) would add configuration and `emitDecoratorMetadata` with no benefit at this scale. The plugin model (`WasteScannerPort[]`) makes the scanner array the only "registry" needed.
 
 ---
 

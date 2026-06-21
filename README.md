@@ -154,6 +154,9 @@ node apps/cli/dist/main.js analyze --pdf
 # Machine-readable output (e.g. to feed a dashboard or CI check)
 node apps/cli/dist/main.js analyze --format json | jq '.totalWasteMonthlyUsd'
 
+# Filter findings with jq (findings is a flat array, fully composable)
+node apps/cli/dist/main.js analyze --format json | jq '.findings[] | select(.category=="waste")'
+
 # Markdown report (e.g. a GitHub Actions PR comment / step summary)
 node apps/cli/dist/main.js analyze --format markdown >> "$GITHUB_STEP_SUMMARY"
 ```
@@ -386,7 +389,7 @@ See [docs/en/adding-a-resource.md](./docs/en/adding-a-resource.md) for a complet
 3. Add a waste policy in `libs/cloud-cost/domain/src/policies/` (grace period and ignore tag come for free from the base class)
 4. Add pricing to `PricingPort`, `StaticPriceTableAdapter` and `prices.json`
 5. Implement the scanner in `libs/cloud-cost/infrastructure/aws-adapter/src/scanners/` (implements `WasteScannerPort`)
-6. Add the presenter entry in `apps/cli/src/formatters/resource-presenters.ts` and register the scanner in `analyze-waste.command.ts`
+6. Add the presenter entry in `apps/cli/src/formatters/resource-presenters.ts` and register the scanner in `analyze-waste.composition.ts`
 
 No changes to `AnalyzeCloudWasteUseCase`, the summary, or the report DTO are needed.
 
@@ -539,6 +542,9 @@ node apps/cli/dist/main.js analyze --pdf
 
 # Output machine-readable (es. per una dashboard o un check CI)
 node apps/cli/dist/main.js analyze --format json | jq '.totalWasteMonthlyUsd'
+
+# Filtra i findings con jq (findings è un array flat, componibile)
+node apps/cli/dist/main.js analyze --format json | jq '.findings[] | select(.category=="waste")'
 
 # Report Markdown (es. commento PR / step summary su GitHub Actions)
 node apps/cli/dist/main.js analyze --format markdown >> "$GITHUB_STEP_SUMMARY"

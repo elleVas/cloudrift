@@ -6,6 +6,14 @@ This guide describes how to extend cloudrift to detect a new type of wasted reso
 
 As an example we will use the hypothetical case of **CloudWatch Log Groups without a retention policy** (logs growing forever because `retentionInDays` was never configured).
 
+## Glossary
+
+- **kind** — the discriminant string identifying a resource type (e.g. `'nat-gateway'`); drives the `ResourceKind` union and every registry derived from it (`RESOURCE_KIND_META`, `ResourceKindMap`, presenters).
+- **category** (`'waste'` | `'optimization'`) — `waste` is a certain, eliminable cost that counts toward `totalWasteMonthlyUsd` and the CI gate; `optimization` is a savings opportunity that keeps the resource (e.g. gp2→gp3).
+- **estimated** — marks a finding as a heuristic figure needing human verification (currently only `ec2-underutilized`/`rds-underutilized`), as opposed to a directly-measured cost.
+- **policy** — a `WastePolicy<T>` subclass: pure judgment logic (`judge()`) deciding if a resource is waste, given grace period and exclusion tags from config. No AWS calls.
+- **scanner** — a `WasteScannerPort` implementation: calls the AWS SDK, builds entities, applies the policy, returns only the findings that are waste.
+
 **Overview of the steps (6):**
 
 1. Add the kind to the `ResourceKind` union
@@ -243,7 +251,7 @@ export class AwsLogGroupScanner implements WasteScannerPort {
 
 Console table, PDF and JSON DTO update themselves: they consume the registry and `RESOURCE_KIND_LABELS`.
 
-**b)** Registration in the composition root (`analyze-waste.command.ts`):
+**b)** Registration in the composition root (`analyze-waste.composition.ts`):
 
 ```typescript
 const scanners: WasteScannerPort[] = [
@@ -286,7 +294,7 @@ Add the permission the new scanner requires to the README. For log groups:
 - [ ] Scanner in `aws-adapter/src/scanners/` with the policy applied + tests
 - [ ] `aws-adapter/src/index.ts` updated; SDK dependency in the root `package.json`
 - [ ] Presenter in `resource-presenters.ts`
-- [ ] Scanner registered in `analyze-waste.command.ts`
+- [ ] Scanner registered in `analyze-waste.composition.ts`
 - [ ] README updated (resource table + IAM permissions)
 
 **What must NOT be touched** (if you find yourself modifying these, something went wrong): `AnalyzeCloudWasteUseCase`, `WastedResourcesSummary`, `WasteReportDto`, the three formatters.
