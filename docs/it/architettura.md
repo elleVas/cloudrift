@@ -33,7 +33,7 @@ Ciò che **non** compra da sola è il multi-cloud: vedi la sezione [Verso il mul
 │  (WastedResource, entità│   │  (Entity, ValueObject,    │
 │   waste policies, ports)│   │   Result, DomainError)    │
 └──────▲──────────────────┘   └───────────────────────────┘
-       │ implementa WasteScannerPort (×10)
+       │ implementa WasteScannerPort (×18)
 ┌──────┴──────────────────────────────────────────────────┐
 │        libs/cloud-cost/infrastructure/aws-adapter       │
 │   (scanner AWS SDK v3, pricing, STS account resolver)   │
@@ -99,6 +99,13 @@ export const RESOURCE_KINDS = [
   'ebs-idle',
   'ec2-underutilized',
   'rds-underutilized',
+  'log-group',
+  'eni-orphaned',
+  's3-no-lifecycle',
+  'lambda-underutilized',
+  'efs-unused',
+  'dynamodb-overprovisioned',
+  'elasticache-idle',
 ] as const;
 
 export type ResourceKind = (typeof RESOURCE_KINDS)[number];
@@ -138,7 +145,7 @@ export const RESOURCE_KIND_META: Record<ResourceKind, ResourceKindMeta> = {
 
 #### Entità
 
-Le 11 entità (`EbsVolume`, `ElasticIp`, `RdsInstance`, `LoadBalancer`, `Ec2Instance`, `EbsSnapshot`, `NatGateway`, `Gp2Volume`, `IdleEbsVolume`, `UnderutilizedEc2Instance`, `RdsUnderutilizedInstance`) implementano `WastedResource` e portano i **fatti** osservati necessari alle decisioni: `LoadBalancer.registeredTargetCount`, `NatGateway.bytesOutLastWindow`, `EbsSnapshot.sourceVolumeExists` / `boundToAmiId`, `Ec2Instance.stoppedSince`, la somma di `VolumeReadOps`/`VolumeWriteOps` di `IdleEbsVolume`, `UnderutilizedEc2Instance.maxCpuPercent`, `RdsUnderutilizedInstance.maxCpuPercent`. `Gp2Volume`, `UnderutilizedEc2Instance` e `RdsUnderutilizedInstance` sono opportunità di risparmio più che spreco da cancellare: il loro `costEstimate` porta il *risparmio* mensile stimato, non un costo effettivamente pagato.
+Le 18 entità (`EbsVolume`, `ElasticIp`, `RdsInstance`, `LoadBalancer`, `Ec2Instance`, `EbsSnapshot`, `NatGateway`, `Gp2Volume`, `IdleEbsVolume`, `UnderutilizedEc2Instance`, `RdsUnderutilizedInstance`, `LogGroup`, `OrphanedEni`, `S3Bucket`, `UnderutilizedLambdaFunction`, `EfsFileSystem`, `OverprovisionedDynamoDbTable`, `IdleElastiCacheCluster`) implementano `WastedResource` e portano i **fatti** osservati necessari alle decisioni: `LoadBalancer.registeredTargetCount`, `NatGateway.bytesOutLastWindow`, `EbsSnapshot.sourceVolumeExists` / `boundToAmiId`, `Ec2Instance.stoppedSince`, la somma di `VolumeReadOps`/`VolumeWriteOps` di `IdleEbsVolume`, `UnderutilizedEc2Instance.maxCpuPercent`, `RdsUnderutilizedInstance.maxCpuPercent`, `LogGroup.hasRetentionPolicy()`, `OrphanedEni.isOrphaned()` (`Status === 'available'`), `S3Bucket.hasLifecyclePolicy()`, `UnderutilizedLambdaFunction.invocationsLastWindow`, `EfsFileSystem.numberOfMountTargets` / `ioBytesLastWindow`, `OverprovisionedDynamoDbTable.avgReadUtilizationPercent` / `avgWriteUtilizationPercent`, `IdleElastiCacheCluster.connectionsLastWindow`. `Gp2Volume`, `UnderutilizedEc2Instance`, `RdsUnderutilizedInstance`, `S3Bucket`, `UnderutilizedLambdaFunction` e `OverprovisionedDynamoDbTable` sono opportunità di risparmio più che spreco da cancellare: il loro `costEstimate` porta il *risparmio* mensile stimato (o, per la segnalazione di igiene Lambda, un flat $0), non un costo effettivamente pagato.
 
 #### Waste Policies — dove vive la conoscenza di business
 
@@ -162,8 +169,15 @@ Ogni policy concreta aggiunge il criterio specifico del tipo:
 | `Ec2UnderutilizedPolicy`  | istanza running, CPU massima ≤ `ec2CpuPercent` (default 5) nella finestra | grace su `launchTime`; registrata solo con `--live-pricing` attivo (serve un prezzo per instance type) |
 | `RdsUnderutilizedPolicy`  | istanza available, CPU massima ≤ `rdsCpuPercent` (default 5) nella finestra | grace su `instanceCreateTime`; registrata solo con `--live-pricing` attivo (serve un prezzo per instance class) |
 | `Gp2UpgradePolicy`        | volume gp2 in uso (risparmio, non spreco) | solo `status=in-use` (i gp2 staccati restano a `ebs-volume`); grace su `createTime` |
+| `LogGroupWastePolicy`     | nessuna retention policy configurata      | grace su `creationTime`                                                          |
+| `OrphanedEniWastePolicy`  | `Status === 'available'` (non attaccata)  | — (le ENI non hanno data di creazione); costo $0 — igiene, non risparmio          |
+| `S3NoLifecyclePolicy`     | nessuna lifecycle configuration           | grace su `creationDate`; risparmio stimato (`estimated: true`)                   |
+| `LambdaUnderutilizedPolicy` | invocazioni ≤ `lambdaInvocationsMin` (default 0) nella finestra | grace su `lastModified`; costo $0 — Lambda pay-per-use non ha costo diretto se inattiva |
+| `EfsUnusedPolicy`         | nessun mount target, oppure montato con I/O ≤ `efsIoBytesMin` (default 0) nella finestra | grace su `creationTime`                                |
+| `DynamoDbOverprovisionedPolicy` | utilizzo read **e** write < `dynamoCapacityUtilizationPercent` (default 10%) nella finestra | grace su `creationDateTime`; risparmio stimato (`estimated: true`) |
+| `ElastiCacheIdlePolicy`   | zero connessioni nella finestra           | grace su `createTime`; registrata solo con `--live-pricing` attivo (serve un prezzo per node type) |
 
-`EbsIdlePolicy`, `Ec2UnderutilizedPolicy` e `RdsUnderutilizedPolicy` ricevono le soglie come parametri del costruttore (`ebsIdleMaxOps`, `ec2CpuPercent`, `rdsCpuPercent`), configurabili via `config.thresholds`.
+`EbsIdlePolicy`, `Ec2UnderutilizedPolicy`, `RdsUnderutilizedPolicy`, `LambdaUnderutilizedPolicy`, `EfsUnusedPolicy` e `DynamoDbOverprovisionedPolicy` ricevono le soglie come parametri del costruttore (`ebsIdleMaxOps`, `ec2CpuPercent`, `rdsCpuPercent`, `lambdaInvocationsMin`, `efsIoBytesMin`, `dynamoCapacityUtilizationPercent`), configurabili via `config.thresholds`.
 
 Le policy sono pura logica di dominio: si testano senza AWS, e i loro parametri arrivano dalla CLI (`--min-age-days`, `--ignore-tag`).
 
@@ -206,7 +220,7 @@ Particolarità:
 
 ### 5. `apps/cli` — Entry point e composition root
 
-`analyze-waste.command.ts` carica il file di config, risolve le opzioni CLI (regioni, min-age, account ID) e orchestra l'esecuzione; delega l'istanziazione effettiva delle implementazioni concrete a `analyze-waste.composition.ts` tramite il seam iniettabile `AnalyzeDeps.createAnalysis` (lo stesso seam che `analyze-waste.command.spec.ts` finge per testare senza AWS). `analyze-waste.composition.ts` è l'unico punto in cui le implementazioni concrete vengono istanziate: costruisce il listino prezzi, le policy (con i parametri da config + CLI) e 9 degli 11 scanner, iniettandoli nel use case. Gli altri due, `AwsEc2UnderutilizedScanner` e `AwsRdsUnderutilizedScanner`, vengono registrati solo se `--live-pricing` è attivo: la loro stima di risparmio richiede un prezzo per instance type/classe che il listino statico non contiene, quindi senza prezzi live non c'è nulla di affidabile da riportare e gli scanner vengono esclusi piuttosto che registrati con una stima a zero. Tornati in `analyze-waste.command.ts`, il risultato passa ai formatter. I quattro formatter (tabella console, PDF, JSON, Markdown) condividono il registry `resource-presenters.ts`, tipizzato `Record<ResourceKind, ResourcePresenter<…>>`: dimenticare il presenter di un nuovo kind è un errore di compilazione. Il formato di output si sceglie con `--format` (`table` | `json` | `markdown`); `markdown` è pensato per CI / commenti PR.
+`analyze-waste.command.ts` carica il file di config, risolve le opzioni CLI (regioni, min-age, account ID) e orchestra l'esecuzione; delega l'istanziazione effettiva delle implementazioni concrete a `analyze-waste.composition.ts` tramite il seam iniettabile `AnalyzeDeps.createAnalysis` (lo stesso seam che `analyze-waste.command.spec.ts` finge per testare senza AWS). `analyze-waste.composition.ts` è l'unico punto in cui le implementazioni concrete vengono istanziate: costruisce il listino prezzi, le policy (con i parametri da config + CLI) e 15 dei 18 scanner, iniettandoli nel use case. Gli altri tre — `AwsEc2UnderutilizedScanner`, `AwsRdsUnderutilizedScanner` e `AwsElastiCacheIdleScanner` — vengono registrati solo se `--live-pricing` è attivo: la loro stima di costo richiede un prezzo per instance type/classe/node type che il listino statico non contiene (troppi tipi distinti da mantenere), quindi senza prezzi live non c'è nulla di affidabile da riportare e gli scanner vengono esclusi piuttosto che registrati con una stima a zero. Tornati in `analyze-waste.command.ts`, il risultato passa ai formatter. I quattro formatter (tabella console, PDF, JSON, Markdown) condividono il registry `resource-presenters.ts`, tipizzato `Record<ResourceKind, ResourcePresenter<…>>`: dimenticare il presenter di un nuovo kind è un errore di compilazione. Il formato di output si sceglie con `--format` (`table` | `json` | `markdown`); `markdown` è pensato per CI / commenti PR.
 
 ---
 
@@ -235,7 +249,7 @@ L'unico tipo AWS-specifico che attraversa il confine inbound è `AwsRegion`. Si 
 
 Due opzioni, da scegliere quando esisterà il requisito reale:
 
-- **Kind aggiuntivi nello stesso contesto** — `'gcp-persistent-disk'`, `'gcp-static-ip'`, … entrano nella union `ResourceKind` con le loro entità (`PersistentDisk`, non un finto `EbsVolume`), policy e scanner (`libs/cloud-cost/infrastructure/gcp-adapter`). Adatta se il prodotto resta "un report di spreco unificato". Il `Promise.all` del coordinatore scala da 11 a N scanner senza modifiche.
+- **Kind aggiuntivi nello stesso contesto** — `'gcp-persistent-disk'`, `'gcp-static-ip'`, … entrano nella union `ResourceKind` con le loro entità (`PersistentDisk`, non un finto `EbsVolume`), policy e scanner (`libs/cloud-cost/infrastructure/gcp-adapter`). Adatta se il prodotto resta "un report di spreco unificato". Il `Promise.all` del coordinatore scala da 18 a N scanner senza modifiche.
 - **Bounded context separato** — `libs/gcp-cost/` con il proprio domain, se le semantiche divergono troppo. Condivide solo `shared/kernel`. La struttura `libs/<context>/` lo prevede già.
 
 La prima opzione è quella raccomandata finché il report resta unificato: il costo marginale di un kind GCP è identico a quello di un kind AWS (entità + policy + scanner + presenter).

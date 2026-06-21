@@ -24,25 +24,30 @@ user: cloudrift analyze -r us-east-1 eu-west-1 [--format json|markdown] [--pdf] 
           ▼
      analyze-waste.composition.ts  (composition root: builds pricing + scanners)
      4. Pricing: static table ← live API (--live-pricing) ← config.prices (wins)
-     5. Instantiates policies (config + flags) and 9 of the 11 scanners
-        (the other two, EC2/RDS underutilized, only with --live-pricing)
+     5. Instantiates policies (config + flags) and 15 of the 18 scanners
+        (the other three — EC2/RDS underutilized, ElastiCache idle —
+         only with --live-pricing: per-type price not in the static table)
           │
           ▼
      AnalyzeCloudWasteUseCase.execute({ regions })
-     Runs the registered scanners in parallel (Promise.all),
+     Runs the registered scanners in parallel (Promise.all, one per ResourceKind),
      each scanner iterates the regions sequentially
           │
-     ┌────┬────┬────┬────┬────┬────┬────┬────┬────┬────┬────┐
-     ▼    ▼    ▼    ▼    ▼    ▼    ▼    ▼    ▼    ▼    ▼    │ (one per ResourceKind)
-   EBS  EIP  RDS  ELB  EC2  Snap  NAT  gp2  EBS  EC2  RDS  │
-  scan  scan scan scan scan scan scan scan  idle under- under-│
-     │    │    │    │    │    │    │    │   scan util*  util* │
-     ▼    ▼    ▼    ▼    ▼    ▼    ▼    ▼    ▼    ▼    ▼
-  EC2  EC2  RDS ELBv2 EC2* EC2** EC2+CW EC2 EC2+CW EC2+CW RDS+CW
-  API  API  API  API  API  API   API   API  API   +Pricing +Pricing
-          │        (* 2 calls; ** 3 calls; CW=CloudWatch, max 5 concurrent)
-          │        (EC2/RDS underutilized: registered only with --live-pricing —
-          │         need a per-instance-type/class price the static table lacks)
+     ┌─────────────┬─────────────┬─────────────┬─────────────┬─────────────┐
+     ▼             ▼             ▼             ▼             ▼             ▼
+   EC2 API       RDS API      ELBv2 API     S3+CW API    Lambda+CW     EFS+CW API
+  (volumes,     (instances,   (target       (buckets,    API          (file systems,
+   instances,    underutil.*)  groups/      lifecycle)   (functions,   mount targets,
+   snapshots,                  health)                    invocations)  I/O)
+   NAT, ENI,
+   underutil.*)
+     │
+     ▼
+  DynamoDB API           CloudWatch Logs API     ElastiCache+CW+Pricing API
+  (tables, capacity)     (log groups, retention)  (clusters, connections)*
+          │        (* CW=CloudWatch, max 5 concurrent; on-demand-priced scanners
+          │         — EC2/RDS underutilized, ElastiCache idle — registered only
+          │         with --live-pricing, since the static table has no per-type price)
           ▼
      Each scanner applies the domain waste policy
      (grace period, exclusion tag, type-specific criteria)
@@ -105,11 +110,13 @@ const policyOptions = { minAgeDays, ignoreTag: options.ignoreTag };
 const scanners: WasteScannerPort[] = [
   new AwsEbsVolumeScanner(pricing, accountId, new EbsVolumeWastePolicy(policyOptions)),
   new AwsElasticIpScanner(pricing, accountId, new ElasticIpWastePolicy(policyOptions)),
-  // … the other 6 always-registered scanners (rds, lb, ec2, snapshot, nat, gp2-upgrade, ebs-idle)
+  // … the other 13 always-registered scanners (rds, lb, ec2, snapshot, nat, gp2-upgrade,
+  // ebs-idle, log-group, eni-orphaned, s3-no-lifecycle, lambda-underutilized, efs-unused,
+  // dynamodb-overprovisioned)
 ];
 
-// EC2 underutilized needs a per-instance-type price (only available live):
-// registered conditionally, not part of the base 9.
+// EC2/RDS underutilized and ElastiCache idle need a per-type price (only available live):
+// registered conditionally, not part of the base 15.
 if (livePricingAdapter) {
   scanners.push(new AwsEc2UnderutilizedScanner(livePricingAdapter, accountId, new Ec2UnderutilizedPolicy(policyOptions)));
 }
@@ -196,6 +203,22 @@ Lists `running` instances, fetches `CPUUtilization` (`Average`, `Maximum`) over 
 
 Same pattern as `AwsEc2UnderutilizedScanner`, applied to RDS. Lists `available` instances (server-side filter, disjoint from `AwsRdsInstanceScanner`, which filters on `stopped`), fetches `CPUUtilization` from the `AWS/RDS` namespace (`Average`, `Maximum`) over the same configurable window (`config.utilizationWindowHours`), and resolves the monthly price **on demand** from the AWS Pricing API (it implements `RdsInstancePricingSource` by duck typing against `AwsPricingApiAdapter`, which maps the `DescribeDBInstances` engine — e.g. `postgres` — to the Pricing API's `databaseEngine` value — `PostgreSQL` — and uses `deploymentOption` for Single-AZ/Multi-AZ; engines with no mapping, such as Aurora, resolve to `undefined`). Without `--live-pricing` the scanner isn't registered, for the same reason as the EC2 scanner. Same savings estimate (half the monthly cost, `RIGHTSIZE_SAVING_FRACTION = 0.5`) and the same `estimated: true` flag: low CPU alone doesn't confirm storage I/O or connections are equally idle.
 
+#### `AwsS3NoLifecycleScanner` — Region-filtered global resource
+
+S3 buckets are **global**, not per-region: `ListBucketsCommand({ BucketRegion: region.code })` uses the (2024+) region filter so each region scan only ever sees the buckets that actually belong to it — without it, the same bucket would be reported once per scanned region. For each bucket it calls `GetBucketLifecycleConfiguration`, treating the `NoSuchLifecycleConfiguration` error name as "no policy" (any other error propagates and fails the scan), and reads `BucketSizeBytes` from CloudWatch (`AWS/S3`, daily metric, `StorageType=StandardStorage`). The estimated saving is a flat fraction (`ESTIMATED_SAVING_FRACTION = 0.4`) of the current Standard storage cost — advisory, since we don't know which objects are actually cold.
+
+#### `AwsEfsUnusedScanner` — No `DescribeMountTargets` needed
+
+`DescribeFileSystems` already returns `NumberOfMountTargets` and `SizeInBytes` per file system, so unlike a naive implementation this scanner needs no second API call to know whether a file system is reachable. CloudWatch (`DataReadIOBytes` + `DataWriteIOBytes`, summed) is only queried for file systems that **do** have a mount target — an orphan file system (zero mount targets) is waste by definition and the metric call is skipped entirely.
+
+#### `AwsDynamoDbOverprovisionedScanner` — Two-level fan-out
+
+The only scanner that needs a fan-out **before** CloudWatch: `ListTables` returns table names only, so a `DescribeTable` call per name (capped via `mapWithConcurrency`) resolves the `BillingModeSummary`/`ProvisionedThroughput` needed to decide if a table is even `PROVISIONED` (vs. `PAY_PER_REQUEST`, which is skipped — there's no fixed capacity to be "over"). Only then does it fetch `ConsumedReadCapacityUnits`/`ConsumedWriteCapacityUnits` for the provisioned tables. Utilization is `consumed / windowSeconds / provisioned`; the policy flags a table only when **both** read and write utilization are below threshold (a table read-heavy and write-light is correctly sized for its heavier dimension, not overprovisioned).
+
+#### `AwsElastiCacheIdleScanner` — Real cost, live-pricing gated like EC2/RDS
+
+Lists clusters, sums `CurrConnections` over the window — zero connections is an unambiguous idle signal (unlike CPU-based heuristics, no threshold tuning needed). Unlike Lambda (genuinely $0 when idle), an ElastiCache node is billed per node-hour regardless of usage, so this is real money — but the node-type price space is as large as EC2's, hence the same on-demand Pricing API resolution (`getElastiCacheNodePricePerMonth`, duck-typed like `Ec2InstancePricingSource`) and the same `--live-pricing` gate. Because the price, once resolved, is exact rather than a heuristic fraction, the kind is `estimated: false` and category `waste` — the only live-pricing-gated scanner that isn't advisory.
+
 ---
 
 ### Entities and Value Objects
@@ -211,6 +234,9 @@ EbsSnapshot.boundToAmiId                   // → not deletable
 Ec2Instance.stoppedSince                   // → grace period on the actual stop
 IdleEbsVolume.totalOps()                   // readOps + writeOps → EbsIdlePolicy
 UnderutilizedEc2Instance.maxCpuPercent     // → Ec2UnderutilizedPolicy
+EfsFileSystem.numberOfMountTargets         // → hasNoMountTargets()
+OverprovisionedDynamoDbTable.avgReadUtilizationPercent  // consumed/provisioned/window
+IdleElastiCacheCluster.connectionsLastWindow            // → isIdle()
 ```
 
 `CostEstimate.of(monthlyCostUsd, description)` is the only factory: price computation lives in the infrastructure (`StaticPriceTableAdapter` + `prices.json`), never in the domain.
@@ -255,7 +281,7 @@ All three share one `PriceTable` shape (`region → { key: USD }` with a `defaul
 - **`config.prices`** are the user's negotiated/enterprise rates and win over both. They are the only way to make the report match the actual bill — even live prices are AWS *list* prices, not your invoice.
 - `getPricesAsOf()` reflects the layer used: the static date, the live fetch date, or `… + custom overrides`.
 
-**Exception: `AwsEc2UnderutilizedScanner` and `AwsRdsUnderutilizedScanner`.** Per-instance-type/class prices aren't in `prices.json` (too many types to maintain) and aren't pre-warmed by `warmUp()`. The two scanners instead call `AwsPricingApiAdapter.getEc2InstancePricePerMonth(region, instanceType)` / `getRdsInstancePricePerMonth(region, instanceClass, engine, deploymentOption)` directly, on demand, for each distinct instance type/class found — which is why these are the only two scanners that need `--live-pricing` to even be registered, rather than degrading gracefully to a static fallback like the others.
+**Exception: `AwsEc2UnderutilizedScanner`, `AwsRdsUnderutilizedScanner` and `AwsElastiCacheIdleScanner`.** Per-instance-type/class/node-type prices aren't in `prices.json` (too many distinct types to maintain) and aren't pre-warmed by `warmUp()`. These three scanners instead call `AwsPricingApiAdapter.getEc2InstancePricePerMonth(region, instanceType)` / `getRdsInstancePricePerMonth(region, instanceClass, engine, deploymentOption)` / `getElastiCacheNodePricePerMonth(region, cacheNodeType)` directly, on demand, for each distinct type found — which is why these are the only three scanners that need `--live-pricing` to even be registered, rather than degrading gracefully to a static fallback like the others. DynamoDB is not an exception here: RCU/WCU prices are uniform per region (not per-table-type), so they live in `prices.json` like any other static price.
 
 ## CI/CD integration
 
