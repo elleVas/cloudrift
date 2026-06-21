@@ -13,6 +13,8 @@ import {
   LogGroupWastePolicy,
   OrphanedEniWastePolicy,
   S3NoLifecyclePolicy,
+  LambdaUnderutilizedPolicy,
+  EfsUnusedPolicy,
 } from './resource-waste-policies';
 import { DEFAULT_IGNORE_TAG, DEFAULT_MIN_AGE_DAYS } from './waste-policy';
 import { EbsVolume } from '../entities/ebs-volume.entity';
@@ -31,6 +33,8 @@ import type { RdsUnderutilizedInstanceProps } from '../entities/rds-underutilize
 import { LogGroup } from '../entities/log-group.entity';
 import { OrphanedEni } from '../entities/orphaned-eni.entity';
 import { S3Bucket } from '../entities/s3-bucket.entity';
+import { UnderutilizedLambdaFunction } from '../entities/underutilized-lambda-function.entity';
+import { EfsFileSystem } from '../entities/efs-file-system.entity';
 import type { EbsSnapshotProps } from '../entities/ebs-snapshot.entity';
 import type { Ec2InstanceProps } from '../entities/ec2-instance.entity';
 import { AwsRegion } from '../value-objects/aws-region.value-object';
@@ -626,5 +630,91 @@ describe('S3NoLifecyclePolicy', () => {
 
   it('does not flag a freshly created bucket (grace period)', () => {
     expect(policy.evaluate(makeBucket(false, yesterday), now).isWaste).toBe(false);
+  });
+});
+
+describe('LambdaUnderutilizedPolicy', () => {
+  const policy = new LambdaUnderutilizedPolicy();
+
+  function makeFn(invocationsLastWindow: number, lastModified = oldDate): UnderutilizedLambdaFunction {
+    return new UnderutilizedLambdaFunction({
+      functionName: 'my-fn',
+      region,
+      accountId: '123456789012',
+      memorySizeMb: 128,
+      invocationsLastWindow,
+      windowDays: 7,
+      lastModified,
+      detectedAt: now,
+      tags: {},
+    });
+  }
+
+  it('flags an old function with zero invocations', () => {
+    expect(policy.evaluate(makeFn(0), now).isWaste).toBe(true);
+  });
+
+  it('does not flag a function with invocations above threshold', () => {
+    expect(policy.evaluate(makeFn(10), now).isWaste).toBe(false);
+  });
+
+  it('does not flag a freshly modified function (grace period)', () => {
+    expect(policy.evaluate(makeFn(0, yesterday), now).isWaste).toBe(false);
+  });
+
+  it('honours a custom invocations threshold', () => {
+    const lenient = new LambdaUnderutilizedPolicy({}, 5);
+    expect(lenient.evaluate(makeFn(3), now).isWaste).toBe(true);
+  });
+});
+
+describe('EfsUnusedPolicy', () => {
+  const policy = new EfsUnusedPolicy();
+
+  function makeFs(
+    overrides: { numberOfMountTargets?: number; ioBytesLastWindow?: number; creationTime?: Date } = {},
+  ): EfsFileSystem {
+    return new EfsFileSystem({
+      fileSystemId: 'fs-1',
+      region,
+      accountId: '123456789012',
+      sizeBytes: 1024 ** 3,
+      numberOfMountTargets: overrides.numberOfMountTargets ?? 0,
+      ioBytesLastWindow: overrides.ioBytesLastWindow ?? 0,
+      metricWindowHours: 48,
+      creationTime: overrides.creationTime ?? oldDate,
+      detectedAt: now,
+      tags: {},
+      monthlyCostUsd: 0.3,
+    });
+  }
+
+  it('flags an old file system with no mount targets', () => {
+    expect(policy.evaluate(makeFs({ numberOfMountTargets: 0 }), now).isWaste).toBe(true);
+  });
+
+  it('flags an old file system mounted but with zero I/O', () => {
+    expect(policy.evaluate(makeFs({ numberOfMountTargets: 1, ioBytesLastWindow: 0 }), now).isWaste).toBe(
+      true,
+    );
+  });
+
+  it('does not flag a file system mounted with I/O activity', () => {
+    expect(
+      policy.evaluate(makeFs({ numberOfMountTargets: 1, ioBytesLastWindow: 2048 }), now).isWaste,
+    ).toBe(false);
+  });
+
+  it('does not flag a freshly created file system (grace period)', () => {
+    expect(policy.evaluate(makeFs({ numberOfMountTargets: 0, creationTime: yesterday }), now).isWaste).toBe(
+      false,
+    );
+  });
+
+  it('honours a custom I/O threshold', () => {
+    const lenient = new EfsUnusedPolicy({}, 1024);
+    expect(lenient.evaluate(makeFs({ numberOfMountTargets: 1, ioBytesLastWindow: 512 }), now).isWaste).toBe(
+      true,
+    );
   });
 });

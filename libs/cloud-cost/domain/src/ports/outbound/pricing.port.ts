@@ -9,6 +9,7 @@ export interface PricingPort {
   getNatGatewayPricePerMonth(region: AwsRegion): number;
   getLogGroupPricePerGbMonth(region: AwsRegion): number;
   getS3StandardPricePerGbMonth(region: AwsRegion): number;
+  getEfsStandardPricePerGbMonth(region: AwsRegion): number;
   /** Data (YYYY-MM) dell'ultima verifica dei prezzi: va mostrata in ogni report. */
   getPricesAsOf(): string;
 }

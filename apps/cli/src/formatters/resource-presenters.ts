@@ -185,6 +185,33 @@ export const presenters: PresenterMap = {
     recommend: (b) =>
       `Configure a lifecycle policy on bucket ${b.id} in ${b.region.code} — ${(b.sizeBytes / 1024 ** 3).toFixed(1)} GB with no tiering/expiration rule`,
   },
+  'lambda-underutilized': {
+    title: 'Lambda Functions — Underutilized (hygiene flag, no direct cost)',
+    head: ['Function', 'Region', 'Memory', 'Invocations', 'Window'],
+    colWidths: [180, 80, 70, 90, 70, 70],
+    row: (fn) => [
+      fn.id,
+      fn.region.code,
+      `${fn.memorySizeMb} MB`,
+      `${fn.invocationsLastWindow}`,
+      `${fn.windowDays}d`,
+    ],
+    recommend: (fn) =>
+      `Review Lambda ${fn.id} in ${fn.region.code} — ${fn.invocationsLastWindow} invocations over ${fn.windowDays}d, consider removing if dead code`,
+  },
+  'efs-unused': {
+    title: 'EFS File Systems — Unused (no mount targets or zero I/O)',
+    head: ['File System ID', 'Region', 'Size', 'Mount Targets'],
+    colWidths: [140, 80, 70, 100, 80],
+    row: (fs) => [
+      fs.id,
+      fs.region.code,
+      `${(fs.sizeBytes / 1024 ** 3).toFixed(1)} GB`,
+      `${fs.numberOfMountTargets}`,
+    ],
+    recommend: (fs) =>
+      `Delete unused EFS ${fs.id} in ${fs.region.code} — ${fs.wasteReason}`,
+  },
 };
 
 export function presenterFor(kind: ResourceKind): ResourcePresenter {
