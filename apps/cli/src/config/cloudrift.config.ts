@@ -51,6 +51,8 @@ export interface CloudriftConfig {
     lambdaInvocationsMin?: number;
     /** Byte I/O totali sotto cui un file system EFS montato è "idle". Default 0. */
     efsIoBytesMin?: number;
+    /** Utilizzo massimo (%) di RCU/WCU sotto cui una tabella DynamoDB è "overprovisioned". Default 10. */
+    dynamoCapacityUtilizationPercent?: number;
   };
 }
 
@@ -194,8 +196,14 @@ export function parseConfig(
       errors.push('thresholds must be an object');
     } else {
       const thresholds: NonNullable<CloudriftConfig['thresholds']> = {};
-      const { ebsIdleMaxOps, ec2CpuPercent, rdsCpuPercent, lambdaInvocationsMin, efsIoBytesMin } =
-        obj.thresholds;
+      const {
+        ebsIdleMaxOps,
+        ec2CpuPercent,
+        rdsCpuPercent,
+        lambdaInvocationsMin,
+        efsIoBytesMin,
+        dynamoCapacityUtilizationPercent,
+      } = obj.thresholds;
       if (ebsIdleMaxOps !== undefined) {
         if (typeof ebsIdleMaxOps === 'number' && Number.isFinite(ebsIdleMaxOps) && ebsIdleMaxOps >= 0) {
           thresholds.ebsIdleMaxOps = ebsIdleMaxOps;
@@ -243,6 +251,18 @@ export function parseConfig(
           thresholds.efsIoBytesMin = efsIoBytesMin;
         } else {
           errors.push('thresholds.efsIoBytesMin must be a non-negative number');
+        }
+      }
+      if (dynamoCapacityUtilizationPercent !== undefined) {
+        if (
+          typeof dynamoCapacityUtilizationPercent === 'number' &&
+          Number.isFinite(dynamoCapacityUtilizationPercent) &&
+          dynamoCapacityUtilizationPercent >= 0 &&
+          dynamoCapacityUtilizationPercent <= 100
+        ) {
+          thresholds.dynamoCapacityUtilizationPercent = dynamoCapacityUtilizationPercent;
+        } else {
+          errors.push('thresholds.dynamoCapacityUtilizationPercent must be a number between 0 and 100');
         }
       }
       config.thresholds = thresholds;

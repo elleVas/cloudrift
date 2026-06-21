@@ -15,6 +15,8 @@ import type { OrphanedEni } from './entities/orphaned-eni.entity';
 import type { S3Bucket } from './entities/s3-bucket.entity';
 import type { UnderutilizedLambdaFunction } from './entities/underutilized-lambda-function.entity';
 import type { EfsFileSystem } from './entities/efs-file-system.entity';
+import type { OverprovisionedDynamoDbTable } from './entities/overprovisioned-dynamodb-table.entity';
+import type { IdleElastiCacheCluster } from './entities/idle-elasticache-cluster.entity';
 
 /**
  * Mappa kind → entità concreta. Permette ai consumer (formatter, frontend)
@@ -37,6 +39,8 @@ export interface ResourceKindMap {
   's3-no-lifecycle': S3Bucket;
   'lambda-underutilized': UnderutilizedLambdaFunction;
   'efs-unused': EfsFileSystem;
+  'dynamodb-overprovisioned': OverprovisionedDynamoDbTable;
+  'elasticache-idle': IdleElastiCacheCluster;
 }
 
 export type FindingsByKind = {

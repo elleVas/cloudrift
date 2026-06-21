@@ -20,7 +20,9 @@
     "nat-gateway":   32.400,
     "cw-logs":       0.030,
     "s3-standard":   0.023,
-    "efs-standard":  0.300
+    "efs-standard":  0.300,
+    "dynamodb-rcu":  0.00013,
+    "dynamodb-wcu":  0.00065
   },
   "us-east-1": {
     "ebs-gp2":       0.100,
@@ -32,7 +34,9 @@
     "nat-gateway":   32.400,
     "cw-logs":       0.030,
     "s3-standard":   0.023,
-    "efs-standard":  0.300
+    "efs-standard":  0.300,
+    "dynamodb-rcu":  0.00013,
+    "dynamodb-wcu":  0.00065
   },
   "us-west-2": {
     "ebs-gp2":       0.100,
@@ -44,7 +48,9 @@
     "nat-gateway":   32.400,
     "cw-logs":       0.030,
     "s3-standard":   0.023,
-    "efs-standard":  0.300
+    "efs-standard":  0.300,
+    "dynamodb-rcu":  0.00013,
+    "dynamodb-wcu":  0.00065
   },
   "eu-west-1": {
     "ebs-gp2":       0.110,
@@ -56,7 +62,9 @@
     "nat-gateway":   36.720,
     "cw-logs":       0.033,
     "s3-standard":   0.024,
-    "efs-standard":  0.330
+    "efs-standard":  0.330,
+    "dynamodb-rcu":  0.00013,
+    "dynamodb-wcu":  0.00065
   },
   "eu-central-1": {
     "ebs-gp2":       0.119,
@@ -68,7 +76,9 @@
     "nat-gateway":   38.880,
     "cw-logs":       0.033,
     "s3-standard":   0.0245,
-    "efs-standard":  0.330
+    "efs-standard":  0.330,
+    "dynamodb-rcu":  0.00013,
+    "dynamodb-wcu":  0.00065
   },
   "ap-southeast-1": {
     "ebs-gp2":       0.114,
@@ -81,7 +91,9 @@
     "nat-gateway":   36.792,
     "cw-logs":       0.033,
     "s3-standard":   0.025,
-    "efs-standard":  0.340
+    "efs-standard":  0.340,
+    "dynamodb-rcu":  0.00013,
+    "dynamodb-wcu":  0.00065
   },
   "ap-northeast-1": {
     "ebs-gp2":       0.120,
@@ -93,6 +105,8 @@
     "nat-gateway":   38.880,
     "cw-logs":       0.033,
     "s3-standard":   0.025,
-    "efs-standard":  0.340
+    "efs-standard":  0.340,
+    "dynamodb-rcu":  0.00013,
+    "dynamodb-wcu":  0.00065
   }
 }

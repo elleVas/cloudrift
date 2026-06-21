@@ -10,6 +10,8 @@ export interface PricingPort {
   getLogGroupPricePerGbMonth(region: AwsRegion): number;
   getS3StandardPricePerGbMonth(region: AwsRegion): number;
   getEfsStandardPricePerGbMonth(region: AwsRegion): number;
+  getDynamoDbRcuPricePerHour(region: AwsRegion): number;
+  getDynamoDbWcuPricePerHour(region: AwsRegion): number;
   /** Data (YYYY-MM) dell'ultima verifica dei prezzi: va mostrata in ogni report. */
   getPricesAsOf(): string;
 }

@@ -48,6 +48,10 @@ export { UnderutilizedLambdaFunction } from './entities/underutilized-lambda-fun
 export type { UnderutilizedLambdaFunctionProps } from './entities/underutilized-lambda-function.entity';
 export { EfsFileSystem } from './entities/efs-file-system.entity';
 export type { EfsFileSystemProps } from './entities/efs-file-system.entity';
+export { OverprovisionedDynamoDbTable } from './entities/overprovisioned-dynamodb-table.entity';
+export type { OverprovisionedDynamoDbTableProps } from './entities/overprovisioned-dynamodb-table.entity';
+export { IdleElastiCacheCluster } from './entities/idle-elasticache-cluster.entity';
+export type { IdleElastiCacheClusterProps } from './entities/idle-elasticache-cluster.entity';
 
 // Value Objects
 export { AwsRegion, InvalidAwsRegionError } from './value-objects/aws-region.value-object';
@@ -79,6 +83,8 @@ export {
   S3NoLifecyclePolicy,
   LambdaUnderutilizedPolicy,
   EfsUnusedPolicy,
+  DynamoDbOverprovisionedPolicy,
+  ElastiCacheIdlePolicy,
 } from './policies/resource-waste-policies';
 
 // Outbound Ports

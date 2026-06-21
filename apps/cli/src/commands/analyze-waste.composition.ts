@@ -17,6 +17,8 @@ import {
   S3NoLifecyclePolicy,
   LambdaUnderutilizedPolicy,
   EfsUnusedPolicy,
+  DynamoDbOverprovisionedPolicy,
+  ElastiCacheIdlePolicy,
 } from 'cloud-cost-domain';
 import type {
   AwsRegion,
@@ -43,6 +45,8 @@ import {
   AwsS3NoLifecycleScanner,
   AwsLambdaUnderutilizedScanner,
   AwsEfsUnusedScanner,
+  AwsDynamoDbOverprovisionedScanner,
+  AwsElastiCacheIdleScanner,
   StaticPriceTableAdapter,
   TablePricingAdapter,
   AwsPricingApiAdapter,
@@ -171,11 +175,22 @@ function buildScanners(
       new EfsUnusedPolicy(policyOptions, ctx.config.thresholds?.efsIoBytesMin ?? 0),
       cloudwatchWindowHours,
     ),
+    new AwsDynamoDbOverprovisionedScanner(
+      pricing,
+      accountId,
+      new DynamoDbOverprovisionedPolicy(
+        policyOptions,
+        ctx.config.thresholds?.dynamoCapacityUtilizationPercent ?? 10,
+      ),
+      utilizationWindowHours,
+    ),
   ];
 
-  // Advisory, gated su --live-pricing: il prezzo per instance type/classe RDS
-  // non rientra nel listino statico (cardinalità troppo alta), quindi senza
-  // prezzi live non c'è risparmio stimabile e gli scanner restano disattivati.
+  // Gated su --live-pricing: il prezzo per instance type/classe RDS/node type
+  // ElastiCache non rientra nel listino statico (cardinalità troppo alta),
+  // quindi senza prezzi live non c'è risparmio stimabile e gli scanner
+  // restano disattivati (EC2/RDS sono advisory; ElastiCache è spreco certo
+  // una volta noto il prezzo, ma resta comunque gated sulla stessa risorsa).
   if (livePricingAdapter) {
     scanners.push(
       new AwsEc2UnderutilizedScanner(
@@ -189,6 +204,12 @@ function buildScanners(
         accountId,
         new RdsUnderutilizedPolicy(policyOptions, ctx.config.thresholds?.rdsCpuPercent ?? 5),
         utilizationWindowHours,
+      ),
+      new AwsElastiCacheIdleScanner(
+        livePricingAdapter,
+        accountId,
+        new ElastiCacheIdlePolicy(policyOptions),
+        cloudwatchWindowHours,
       ),
     );
   }

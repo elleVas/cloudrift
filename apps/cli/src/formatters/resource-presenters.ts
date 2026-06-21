@@ -212,6 +212,36 @@ export const presenters: PresenterMap = {
     recommend: (fs) =>
       `Delete unused EFS ${fs.id} in ${fs.region.code} — ${fs.wasteReason}`,
   },
+  'dynamodb-overprovisioned': {
+    title: 'DynamoDB Tables — Overprovisioned (rightsizing candidate, verify before acting)',
+    head: ['Table', 'Region', 'RCU', 'WCU', 'Read %', 'Write %', 'Window'],
+    colWidths: [150, 72, 50, 50, 70, 70, 60, 80],
+    row: (t) => [
+      t.id,
+      t.region.code,
+      `${t.readCapacityUnits}`,
+      `${t.writeCapacityUnits}`,
+      `${t.avgReadUtilizationPercent.toFixed(1)}%`,
+      `${t.avgWriteUtilizationPercent.toFixed(1)}%`,
+      `${t.windowDays}d`,
+    ],
+    recommend: (t) =>
+      `Review DynamoDB table ${t.id} in ${t.region.code} for rightsizing — ${t.wasteReason}`,
+  },
+  'elasticache-idle': {
+    title: 'ElastiCache Clusters — Idle (zero connections)',
+    head: ['Cluster ID', 'Region', 'Node Type', 'Nodes', 'Created'],
+    colWidths: [140, 72, 90, 50, 84, 80],
+    row: (c) => [
+      c.id,
+      c.region.code,
+      c.cacheNodeType,
+      `${c.numCacheNodes}`,
+      c.createTime.toISOString().split('T')[0],
+    ],
+    recommend: (c) =>
+      `Delete idle ElastiCache cluster ${c.id} (${c.cacheNodeType}) in ${c.region.code} — ${c.wasteReason}`,
+  },
 };
 
 export function presenterFor(kind: ResourceKind): ResourcePresenter {

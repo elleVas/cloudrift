@@ -15,6 +15,8 @@ import type { OrphanedEni } from '../entities/orphaned-eni.entity';
 import type { S3Bucket } from '../entities/s3-bucket.entity';
 import type { UnderutilizedLambdaFunction } from '../entities/underutilized-lambda-function.entity';
 import type { EfsFileSystem } from '../entities/efs-file-system.entity';
+import type { OverprovisionedDynamoDbTable } from '../entities/overprovisioned-dynamodb-table.entity';
+import type { IdleElastiCacheCluster } from '../entities/idle-elasticache-cluster.entity';
 
 export class EbsVolumeWastePolicy extends WastePolicy<EbsVolume> {
   protected judge(volume: EbsVolume, now: Date): WasteVerdict {
@@ -195,6 +197,40 @@ export class EfsUnusedPolicy extends WastePolicy<EfsFileSystem> {
       return notWaste(`created less than ${this.minAgeDays}d ago`);
     }
     return fs.hasNoMountTargets() ? waste('no mount targets') : waste(`zero I/O in last ${fs.metricWindowHours}h`);
+  }
+}
+
+export class DynamoDbOverprovisionedPolicy extends WastePolicy<OverprovisionedDynamoDbTable> {
+  /** maxUtilizationPercent: soglia di utilizzo massimo (read e write) sotto cui la tabella è overprovisioned. */
+  constructor(options: WastePolicyOptions = {}, private readonly maxUtilizationPercent = 10) {
+    super(options);
+  }
+
+  protected judge(table: OverprovisionedDynamoDbTable, now: Date): WasteVerdict {
+    if (
+      table.avgReadUtilizationPercent >= this.maxUtilizationPercent ||
+      table.avgWriteUtilizationPercent >= this.maxUtilizationPercent
+    ) {
+      return notWaste('utilization above threshold');
+    }
+    // Una tabella appena creata potrebbe non aver ancora accumulato traffico reale.
+    if (this.isWithinGracePeriod(table.creationDateTime, now)) {
+      return notWaste(`created less than ${this.minAgeDays}d ago`);
+    }
+    return waste(
+      `read ${table.avgReadUtilizationPercent.toFixed(1)}% / write ${table.avgWriteUtilizationPercent.toFixed(1)}% over ${table.windowDays}d`,
+    );
+  }
+}
+
+export class ElastiCacheIdlePolicy extends WastePolicy<IdleElastiCacheCluster> {
+  protected judge(cluster: IdleElastiCacheCluster, now: Date): WasteVerdict {
+    if (!cluster.isIdle()) return notWaste('has client connections');
+    // Un cluster appena creato potrebbe non aver ancora ricevuto connessioni.
+    if (this.isWithinGracePeriod(cluster.createTime, now)) {
+      return notWaste(`created less than ${this.minAgeDays}d ago`);
+    }
+    return waste(`zero connections in last ${cluster.metricWindowHours}h`);
   }
 }
 

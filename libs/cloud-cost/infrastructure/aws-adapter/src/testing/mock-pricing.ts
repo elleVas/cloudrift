@@ -11,5 +11,7 @@ export const mockPricing: PricingPort = {
   getLogGroupPricePerGbMonth: () => 0.03,
   getS3StandardPricePerGbMonth: () => 0.023,
   getEfsStandardPricePerGbMonth: () => 0.3,
+  getDynamoDbRcuPricePerHour: () => 0.00013,
+  getDynamoDbWcuPricePerHour: () => 0.00065,
   getPricesAsOf: () => '2025-06',
 };
