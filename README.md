@@ -26,8 +26,12 @@
 | **CloudWatch Log Groups** | No retention policy configured (logs grow forever) | $0.03/GB-month |
 | **Orphaned ENIs** | `Status: available` (not attached to any instance) | $0 (hygiene flag, not a direct cost) |
 | **S3 Buckets (no lifecycle)** | No lifecycle configuration — rightsizing candidate | Saving: ~40% of Standard storage cost (estimate — verify access patterns before acting) |
+| **Lambda Functions (underutilized)** | (Near-)zero invocations over 7 days | $0 (hygiene flag — pay-per-use Lambda has no direct cost when unused) |
+| **EFS File Systems (unused)** | No mount targets, or mounted with zero I/O in the last 48h | $0.30/GB-month (Standard storage) |
 
-Every finding is also tagged `waste` or `optimization`: `waste` is money being spent now and feeds the headline total and the CI gate; `optimization` (gp2→gp3, EC2/RDS underutilized, S3 no-lifecycle) is a saving opportunity that keeps the resource, shown separately and never gated. `EC2/RDS Instances (underutilized)` and `S3 Buckets (no lifecycle)` are additionally *estimates* — verify before acting.
+Every finding is also tagged `waste` or `optimization`: `waste` is money being spent now and feeds the headline total and the CI gate; `optimization` (gp2→gp3, EC2/RDS underutilized, S3 no-lifecycle, Lambda underutilized) is a saving opportunity that keeps the resource, shown separately and never gated. `EC2/RDS Instances (underutilized)` and `S3 Buckets (no lifecycle)` are additionally *estimates* — verify before acting.
+
+> **Honest caveat (Lambda):** we only check invocation count over the lookback window, nothing else. We do **not** rightsize memory allocation — that requires Lambda Insights (extra cost, must be enabled per-function), which isn't part of a zero-extra-IAM read-only scan. A function with zero invocations has, by definition, $0 direct cost (pay-per-use); the value of this finding is hygiene (dead code, unnecessary IAM roles/event sources), not a dollar saving. It also won't catch idle **Provisioned Concurrency**, which *is* billed regardless of invocations — out of scope for now.
 
 > **Honest caveat (rightsizing):** the underutilized check is a single-metric heuristic — max CPU below a threshold over the lookback window, nothing else. It does **not** look at RAM, network throughput, IOPS or connection counts, so it can't tell you *which* smaller instance type actually fits. We do this because it requires no extra IAM permissions and works the same on every account; we don't replace [AWS Compute Optimizer](https://aws.amazon.com/compute-optimizer/), which models multiple metrics and recommends a specific target type. Treat our finding as "go check this instance," not as a sizing recommendation — cross-check with Compute Optimizer (or your own metrics) before resizing.
 
@@ -345,6 +349,8 @@ The AWS principal needs the following read-only permissions:
     "logs:DescribeLogGroups",
     "s3:ListAllMyBuckets",
     "s3:GetBucketLifecycleConfiguration",
+    "lambda:ListFunctions",
+    "elasticfilesystem:DescribeFileSystems",
     "sts:GetCallerIdentity"
   ],
   "Resource": "*"
@@ -447,8 +453,12 @@ No changes to `AnalyzeCloudWasteUseCase`, the summary, or the report DTO are nee
 | **CloudWatch Log Groups** | Nessuna retention policy configurata (i log crescono all'infinito) | $0,03/GB-mese |
 | **ENI orfane** | `Status: available` (non attaccate a nessuna istanza) | $0 (segnalazione di igiene, non un costo diretto) |
 | **S3 Buckets (no lifecycle)** | Nessuna lifecycle configuration — candidato a rightsizing | Risparmio: ~40% del costo storage Standard (stima — verificare i pattern di accesso prima di agire) |
+| **Lambda Functions (underutilized)** | (Quasi) zero invocazioni in 7 giorni | $0 (segnalazione di igiene — Lambda pay-per-use non ha costo diretto se inutilizzata) |
+| **EFS File Systems (unused)** | Nessun mount target, oppure montato con zero I/O nelle ultime 48h | $0,30/GB-mese (storage Standard) |
 
-Ogni finding è anche etichettato `waste` o `optimization`: `waste` è denaro speso ora e contribuisce al totale principale e al gate CI; `optimization` (gp2→gp3, EC2/RDS underutilized, S3 no-lifecycle) è un'opportunità di risparmio che mantiene la risorsa, mostrata a parte e mai usata come gate. `EC2/RDS Instances (underutilized)` e `S3 Buckets (no lifecycle)` sono inoltre delle *stime* — da verificare prima di agire.
+Ogni finding è anche etichettato `waste` o `optimization`: `waste` è denaro speso ora e contribuisce al totale principale e al gate CI; `optimization` (gp2→gp3, EC2/RDS underutilized, S3 no-lifecycle, Lambda underutilized) è un'opportunità di risparmio che mantiene la risorsa, mostrata a parte e mai usata come gate. `EC2/RDS Instances (underutilized)` e `S3 Buckets (no lifecycle)` sono inoltre delle *stime* — da verificare prima di agire.
+
+> **Nota onesta (Lambda):** controlliamo solo il numero di invocazioni nella finestra di osservazione, nient'altro. **Non** facciamo rightsizing della memoria — richiederebbe Lambda Insights (costo extra, da attivare per ogni funzione), fuori scope per uno scan read-only senza permessi IAM aggiuntivi. Una funzione con zero invocazioni ha per definizione $0 di costo diretto (pay-per-use); il valore di questo finding è igiene (codice morto, ruoli IAM/event source inutili), non un risparmio in dollari. Non rileva nemmeno la **Provisioned Concurrency** idle, che invece *è* fatturata indipendentemente dalle invocazioni — fuori scope per ora.
 
 > **Nota onesta (rightsizing):** il check di sottoutilizzo è un'euristica su una singola metrica — CPU massima sotto una soglia nella finestra di osservazione, nient'altro. **Non** guarda RAM, throughput di rete, IOPS o numero di connessioni, quindi non può dirti *quale* instance type più piccolo sia davvero adatto. Lo facciamo così perché non richiede permessi IAM aggiuntivi e funziona uguale su ogni account; non sostituiamo [AWS Compute Optimizer](https://aws.amazon.com/compute-optimizer/), che modella più metriche e raccomanda un target specifico. Tratta il nostro finding come "vai a controllare questa istanza", non come una raccomandazione di sizing — verifica con Compute Optimizer (o con le tue metriche) prima di ridimensionare.
 
@@ -781,6 +791,8 @@ Il principal AWS deve avere le seguenti permission in sola lettura:
     "logs:DescribeLogGroups",
     "s3:ListAllMyBuckets",
     "s3:GetBucketLifecycleConfiguration",
+    "lambda:ListFunctions",
+    "elasticfilesystem:DescribeFileSystems",
     "sts:GetCallerIdentity"
   ],
   "Resource": "*"

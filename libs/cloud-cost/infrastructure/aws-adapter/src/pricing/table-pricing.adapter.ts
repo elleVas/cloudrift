@@ -71,6 +71,10 @@ export class TablePricingAdapter implements PricingPort {
     return this.lookup(region, 's3-standard') ?? 0;
   }
 
+  getEfsStandardPricePerGbMonth(region: AwsRegion): number {
+    return this.lookup(region, 'efs-standard') ?? 0;
+  }
+
   getPricesAsOf(): string {
     return this.pricesAsOf;
   }

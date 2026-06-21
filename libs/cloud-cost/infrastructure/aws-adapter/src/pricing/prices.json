@@ -19,7 +19,8 @@
     "load-balancer": 16.200,
     "nat-gateway":   32.400,
     "cw-logs":       0.030,
-    "s3-standard":   0.023
+    "s3-standard":   0.023,
+    "efs-standard":  0.300
   },
   "us-east-1": {
     "ebs-gp2":       0.100,
@@ -30,7 +31,8 @@
     "load-balancer": 16.200,
     "nat-gateway":   32.400,
     "cw-logs":       0.030,
-    "s3-standard":   0.023
+    "s3-standard":   0.023,
+    "efs-standard":  0.300
   },
   "us-west-2": {
     "ebs-gp2":       0.100,
@@ -41,7 +43,8 @@
     "load-balancer": 16.200,
     "nat-gateway":   32.400,
     "cw-logs":       0.030,
-    "s3-standard":   0.023
+    "s3-standard":   0.023,
+    "efs-standard":  0.300
   },
   "eu-west-1": {
     "ebs-gp2":       0.110,
@@ -52,7 +55,8 @@
     "load-balancer": 18.400,
     "nat-gateway":   36.720,
     "cw-logs":       0.033,
-    "s3-standard":   0.024
+    "s3-standard":   0.024,
+    "efs-standard":  0.330
   },
   "eu-central-1": {
     "ebs-gp2":       0.119,
@@ -63,7 +67,8 @@
     "load-balancer": 18.980,
     "nat-gateway":   38.880,
     "cw-logs":       0.033,
-    "s3-standard":   0.0245
+    "s3-standard":   0.0245,
+    "efs-standard":  0.330
   },
   "ap-southeast-1": {
     "ebs-gp2":       0.114,
@@ -75,7 +80,8 @@
     "load-balancer": 18.250,
     "nat-gateway":   36.792,
     "cw-logs":       0.033,
-    "s3-standard":   0.025
+    "s3-standard":   0.025,
+    "efs-standard":  0.340
   },
   "ap-northeast-1": {
     "ebs-gp2":       0.120,
@@ -86,6 +92,7 @@
     "load-balancer": 19.710,
     "nat-gateway":   38.880,
     "cw-logs":       0.033,
-    "s3-standard":   0.025
+    "s3-standard":   0.025,
+    "efs-standard":  0.340
   }
 }

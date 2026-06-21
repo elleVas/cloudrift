@@ -47,6 +47,10 @@ export interface CloudriftConfig {
     ec2CpuPercent?: number;
     /** CPU massima (%) sotto cui un'istanza RDS è "underutilized". Default 5. */
     rdsCpuPercent?: number;
+    /** Invocazioni massime sotto cui una funzione Lambda è "underutilized". Default 0. */
+    lambdaInvocationsMin?: number;
+    /** Byte I/O totali sotto cui un file system EFS montato è "idle". Default 0. */
+    efsIoBytesMin?: number;
   };
 }
 
@@ -190,7 +194,8 @@ export function parseConfig(
       errors.push('thresholds must be an object');
     } else {
       const thresholds: NonNullable<CloudriftConfig['thresholds']> = {};
-      const { ebsIdleMaxOps, ec2CpuPercent, rdsCpuPercent } = obj.thresholds;
+      const { ebsIdleMaxOps, ec2CpuPercent, rdsCpuPercent, lambdaInvocationsMin, efsIoBytesMin } =
+        obj.thresholds;
       if (ebsIdleMaxOps !== undefined) {
         if (typeof ebsIdleMaxOps === 'number' && Number.isFinite(ebsIdleMaxOps) && ebsIdleMaxOps >= 0) {
           thresholds.ebsIdleMaxOps = ebsIdleMaxOps;
@@ -220,6 +225,24 @@ export function parseConfig(
           thresholds.rdsCpuPercent = rdsCpuPercent;
         } else {
           errors.push('thresholds.rdsCpuPercent must be a number between 0 and 100');
+        }
+      }
+      if (lambdaInvocationsMin !== undefined) {
+        if (
+          typeof lambdaInvocationsMin === 'number' &&
+          Number.isFinite(lambdaInvocationsMin) &&
+          lambdaInvocationsMin >= 0
+        ) {
+          thresholds.lambdaInvocationsMin = lambdaInvocationsMin;
+        } else {
+          errors.push('thresholds.lambdaInvocationsMin must be a non-negative number');
+        }
+      }
+      if (efsIoBytesMin !== undefined) {
+        if (typeof efsIoBytesMin === 'number' && Number.isFinite(efsIoBytesMin) && efsIoBytesMin >= 0) {
+          thresholds.efsIoBytesMin = efsIoBytesMin;
+        } else {
+          errors.push('thresholds.efsIoBytesMin must be a non-negative number');
         }
       }
       config.thresholds = thresholds;

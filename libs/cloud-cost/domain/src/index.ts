@@ -44,6 +44,10 @@ export { OrphanedEni } from './entities/orphaned-eni.entity';
 export type { OrphanedEniProps } from './entities/orphaned-eni.entity';
 export { S3Bucket } from './entities/s3-bucket.entity';
 export type { S3BucketProps } from './entities/s3-bucket.entity';
+export { UnderutilizedLambdaFunction } from './entities/underutilized-lambda-function.entity';
+export type { UnderutilizedLambdaFunctionProps } from './entities/underutilized-lambda-function.entity';
+export { EfsFileSystem } from './entities/efs-file-system.entity';
+export type { EfsFileSystemProps } from './entities/efs-file-system.entity';
 
 // Value Objects
 export { AwsRegion, InvalidAwsRegionError } from './value-objects/aws-region.value-object';
@@ -73,6 +77,8 @@ export {
   LogGroupWastePolicy,
   OrphanedEniWastePolicy,
   S3NoLifecyclePolicy,
+  LambdaUnderutilizedPolicy,
+  EfsUnusedPolicy,
 } from './policies/resource-waste-policies';
 
 // Outbound Ports

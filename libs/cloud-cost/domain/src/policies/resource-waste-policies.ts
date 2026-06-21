@@ -13,6 +13,8 @@ import type { RdsUnderutilizedInstance } from '../entities/rds-underutilized-ins
 import type { LogGroup } from '../entities/log-group.entity';
 import type { OrphanedEni } from '../entities/orphaned-eni.entity';
 import type { S3Bucket } from '../entities/s3-bucket.entity';
+import type { UnderutilizedLambdaFunction } from '../entities/underutilized-lambda-function.entity';
+import type { EfsFileSystem } from '../entities/efs-file-system.entity';
 
 export class EbsVolumeWastePolicy extends WastePolicy<EbsVolume> {
   protected judge(volume: EbsVolume, now: Date): WasteVerdict {
@@ -161,6 +163,38 @@ export class S3NoLifecyclePolicy extends WastePolicy<S3Bucket> {
       return notWaste(`created less than ${this.minAgeDays}d ago`);
     }
     return waste('no lifecycle policy');
+  }
+}
+
+export class LambdaUnderutilizedPolicy extends WastePolicy<UnderutilizedLambdaFunction> {
+  /** maxInvocations: soglia di invocazioni massime sotto cui la funzione è sottoutilizzata. */
+  constructor(options: WastePolicyOptions = {}, private readonly maxInvocations = 0) {
+    super(options);
+  }
+
+  protected judge(fn: UnderutilizedLambdaFunction, now: Date): WasteVerdict {
+    if (fn.invocationsLastWindow > this.maxInvocations) return notWaste('invocations above threshold');
+    // Una funzione appena deployata potrebbe non aver ancora ricevuto traffico reale.
+    if (this.isWithinGracePeriod(fn.lastModified, now)) {
+      return notWaste(`last modified less than ${this.minAgeDays}d ago`);
+    }
+    return waste(`${fn.invocationsLastWindow} invocations over ${fn.windowDays}d`);
+  }
+}
+
+export class EfsUnusedPolicy extends WastePolicy<EfsFileSystem> {
+  /** maxIoBytes: soglia di I/O totali sotto cui un file system montato è idle. */
+  constructor(options: WastePolicyOptions = {}, private readonly maxIoBytes = 0) {
+    super(options);
+  }
+
+  protected judge(fs: EfsFileSystem, now: Date): WasteVerdict {
+    const idle = !fs.hasNoMountTargets() && fs.ioBytesLastWindow <= this.maxIoBytes;
+    if (!fs.hasNoMountTargets() && !idle) return notWaste('has I/O activity');
+    if (this.isWithinGracePeriod(fs.creationTime, now)) {
+      return notWaste(`created less than ${this.minAgeDays}d ago`);
+    }
+    return fs.hasNoMountTargets() ? waste('no mount targets') : waste(`zero I/O in last ${fs.metricWindowHours}h`);
   }
 }
 

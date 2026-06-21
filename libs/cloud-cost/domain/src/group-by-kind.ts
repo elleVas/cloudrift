@@ -13,6 +13,8 @@ import type { RdsUnderutilizedInstance } from './entities/rds-underutilized-inst
 import type { LogGroup } from './entities/log-group.entity';
 import type { OrphanedEni } from './entities/orphaned-eni.entity';
 import type { S3Bucket } from './entities/s3-bucket.entity';
+import type { UnderutilizedLambdaFunction } from './entities/underutilized-lambda-function.entity';
+import type { EfsFileSystem } from './entities/efs-file-system.entity';
 
 /**
  * Mappa kind → entità concreta. Permette ai consumer (formatter, frontend)
@@ -33,6 +35,8 @@ export interface ResourceKindMap {
   'log-group': LogGroup;
   'eni-orphaned': OrphanedEni;
   's3-no-lifecycle': S3Bucket;
+  'lambda-underutilized': UnderutilizedLambdaFunction;
+  'efs-unused': EfsFileSystem;
 }
 
 export type FindingsByKind = {

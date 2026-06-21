@@ -80,6 +80,30 @@ describe('parseConfig', () => {
     if (!result.ok) expect(result.error.message).toContain('rdsCpuPercent');
   });
 
+  it('parses thresholds.lambdaInvocationsMin', () => {
+    const result = parseConfig(JSON.stringify({ thresholds: { lambdaInvocationsMin: 5 } }));
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.thresholds?.lambdaInvocationsMin).toBe(5);
+  });
+
+  it('rejects a negative thresholds.lambdaInvocationsMin', () => {
+    const result = parseConfig(JSON.stringify({ thresholds: { lambdaInvocationsMin: -1 } }));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.message).toContain('lambdaInvocationsMin');
+  });
+
+  it('parses thresholds.efsIoBytesMin', () => {
+    const result = parseConfig(JSON.stringify({ thresholds: { efsIoBytesMin: 1024 } }));
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.thresholds?.efsIoBytesMin).toBe(1024);
+  });
+
+  it('rejects a negative thresholds.efsIoBytesMin', () => {
+    const result = parseConfig(JSON.stringify({ thresholds: { efsIoBytesMin: -1 } }));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.message).toContain('efsIoBytesMin');
+  });
+
   it('returns empty config for an empty object', () => {
     const result = parseConfig('{}');
     expect(result.ok).toBe(true);
