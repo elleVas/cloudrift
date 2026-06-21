@@ -10,6 +10,9 @@ import {
   EbsIdlePolicy,
   Ec2UnderutilizedPolicy,
   RdsUnderutilizedPolicy,
+  LogGroupWastePolicy,
+  OrphanedEniWastePolicy,
+  S3NoLifecyclePolicy,
 } from './resource-waste-policies';
 import { DEFAULT_IGNORE_TAG, DEFAULT_MIN_AGE_DAYS } from './waste-policy';
 import { EbsVolume } from '../entities/ebs-volume.entity';
@@ -25,6 +28,9 @@ import { UnderutilizedEc2Instance } from '../entities/underutilized-ec2-instance
 import type { UnderutilizedEc2InstanceProps } from '../entities/underutilized-ec2-instance.entity';
 import { RdsUnderutilizedInstance } from '../entities/rds-underutilized-instance.entity';
 import type { RdsUnderutilizedInstanceProps } from '../entities/rds-underutilized-instance.entity';
+import { LogGroup } from '../entities/log-group.entity';
+import { OrphanedEni } from '../entities/orphaned-eni.entity';
+import { S3Bucket } from '../entities/s3-bucket.entity';
 import type { EbsSnapshotProps } from '../entities/ebs-snapshot.entity';
 import type { Ec2InstanceProps } from '../entities/ec2-instance.entity';
 import { AwsRegion } from '../value-objects/aws-region.value-object';
@@ -529,5 +535,96 @@ describe('RdsUnderutilizedPolicy', () => {
 
   it('includes the rightsizing advisory in the wasteReason', () => {
     expect(makeInstance().wasteReason).toContain('verify storage I/O and connections before rightsizing');
+  });
+});
+
+describe('LogGroupWastePolicy', () => {
+  const policy = new LogGroupWastePolicy();
+
+  function makeGroup(retentionInDays?: number, creationTime = oldDate): LogGroup {
+    return new LogGroup({
+      logGroupName: '/aws/lambda/my-fn',
+      region,
+      accountId: '123456789012',
+      storedBytes: 1024 ** 3,
+      retentionInDays,
+      creationTime,
+      detectedAt: now,
+      tags: {},
+      monthlyCostUsd: 0.03,
+    });
+  }
+
+  it('flags an old log group with no retention policy', () => {
+    expect(policy.evaluate(makeGroup(undefined), now).isWaste).toBe(true);
+  });
+
+  it('does not flag a log group with a retention policy', () => {
+    expect(policy.evaluate(makeGroup(14), now).isWaste).toBe(false);
+  });
+
+  it('does not flag a freshly created log group (grace period)', () => {
+    expect(policy.evaluate(makeGroup(undefined, yesterday), now).isWaste).toBe(false);
+  });
+});
+
+describe('OrphanedEniWastePolicy', () => {
+  const policy = new OrphanedEniWastePolicy();
+
+  function makeEni(status: string, tags: Record<string, string> = {}): OrphanedEni {
+    return new OrphanedEni({
+      networkInterfaceId: 'eni-1',
+      region,
+      accountId: '123456789012',
+      vpcId: 'vpc-1',
+      subnetId: 'subnet-1',
+      status,
+      detectedAt: now,
+      tags,
+    });
+  }
+
+  it('flags an available (unattached) ENI', () => {
+    expect(policy.evaluate(makeEni('available'), now).isWaste).toBe(true);
+  });
+
+  it('does not flag an in-use ENI', () => {
+    expect(policy.evaluate(makeEni('in-use'), now).isWaste).toBe(false);
+  });
+
+  it('does not flag an ENI carrying the ignore tag', () => {
+    expect(
+      policy.evaluate(makeEni('available', { [DEFAULT_IGNORE_TAG]: 'true' }), now).isWaste,
+    ).toBe(false);
+  });
+});
+
+describe('S3NoLifecyclePolicy', () => {
+  const policy = new S3NoLifecyclePolicy();
+
+  function makeBucket(hasLifecyclePolicy: boolean, creationDate = oldDate): S3Bucket {
+    return new S3Bucket({
+      bucketName: 'my-bucket',
+      region,
+      accountId: '123456789012',
+      sizeBytes: 1024 ** 3,
+      hasLifecyclePolicy,
+      creationDate,
+      detectedAt: now,
+      tags: {},
+      monthlyCostUsd: 0.0092,
+    });
+  }
+
+  it('flags an old bucket with no lifecycle policy', () => {
+    expect(policy.evaluate(makeBucket(false), now).isWaste).toBe(true);
+  });
+
+  it('does not flag a bucket with a lifecycle policy', () => {
+    expect(policy.evaluate(makeBucket(true), now).isWaste).toBe(false);
+  });
+
+  it('does not flag a freshly created bucket (grace period)', () => {
+    expect(policy.evaluate(makeBucket(false, yesterday), now).isWaste).toBe(false);
   });
 });

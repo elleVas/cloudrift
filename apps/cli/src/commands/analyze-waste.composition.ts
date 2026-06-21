@@ -12,6 +12,9 @@ import {
   EbsIdlePolicy,
   Ec2UnderutilizedPolicy,
   RdsUnderutilizedPolicy,
+  LogGroupWastePolicy,
+  OrphanedEniWastePolicy,
+  S3NoLifecyclePolicy,
 } from 'cloud-cost-domain';
 import type {
   AwsRegion,
@@ -33,6 +36,9 @@ import {
   AwsEbsIdleScanner,
   AwsEc2UnderutilizedScanner,
   AwsRdsUnderutilizedScanner,
+  AwsLogGroupScanner,
+  AwsEniOrphanedScanner,
+  AwsS3NoLifecycleScanner,
   StaticPriceTableAdapter,
   TablePricingAdapter,
   AwsPricingApiAdapter,
@@ -147,6 +153,9 @@ function buildScanners(
       new EbsIdlePolicy(policyOptions, ctx.config.thresholds?.ebsIdleMaxOps ?? 0),
       cloudwatchWindowHours,
     ),
+    new AwsLogGroupScanner(pricing, accountId, new LogGroupWastePolicy(policyOptions)),
+    new AwsEniOrphanedScanner(accountId, new OrphanedEniWastePolicy(policyOptions)),
+    new AwsS3NoLifecycleScanner(pricing, accountId, new S3NoLifecyclePolicy(policyOptions)),
   ];
 
   // Advisory, gated su --live-pricing: il prezzo per instance type/classe RDS

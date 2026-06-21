@@ -10,6 +10,9 @@ import type { Gp2Volume } from '../entities/gp2-volume.entity';
 import type { IdleEbsVolume } from '../entities/idle-ebs-volume.entity';
 import type { UnderutilizedEc2Instance } from '../entities/underutilized-ec2-instance.entity';
 import type { RdsUnderutilizedInstance } from '../entities/rds-underutilized-instance.entity';
+import type { LogGroup } from '../entities/log-group.entity';
+import type { OrphanedEni } from '../entities/orphaned-eni.entity';
+import type { S3Bucket } from '../entities/s3-bucket.entity';
 
 export class EbsVolumeWastePolicy extends WastePolicy<EbsVolume> {
   protected judge(volume: EbsVolume, now: Date): WasteVerdict {
@@ -131,6 +134,33 @@ export class RdsUnderutilizedPolicy extends WastePolicy<RdsUnderutilizedInstance
       return notWaste(`created less than ${this.minAgeDays}d ago`);
     }
     return waste(`max CPU ${instance.maxCpuPercent.toFixed(1)}% over ${instance.windowDays}d`);
+  }
+}
+
+export class LogGroupWastePolicy extends WastePolicy<LogGroup> {
+  protected judge(group: LogGroup, now: Date): WasteVerdict {
+    if (group.hasRetentionPolicy()) return notWaste('retention policy configured');
+    if (this.isWithinGracePeriod(group.creationTime, now)) {
+      return notWaste(`created less than ${this.minAgeDays}d ago`);
+    }
+    return waste('no retention policy');
+  }
+}
+
+export class OrphanedEniWastePolicy extends WastePolicy<OrphanedEni> {
+  protected judge(eni: OrphanedEni): WasteVerdict {
+    // Le ENI non espongono una data di creazione: nessun periodo di grazia applicabile.
+    return eni.isOrphaned() ? waste('not attached') : notWaste('attached');
+  }
+}
+
+export class S3NoLifecyclePolicy extends WastePolicy<S3Bucket> {
+  protected judge(bucket: S3Bucket, now: Date): WasteVerdict {
+    if (bucket.hasLifecyclePolicy()) return notWaste('lifecycle policy configured');
+    if (this.isWithinGracePeriod(bucket.creationDate, now)) {
+      return notWaste(`created less than ${this.minAgeDays}d ago`);
+    }
+    return waste('no lifecycle policy');
   }
 }
 

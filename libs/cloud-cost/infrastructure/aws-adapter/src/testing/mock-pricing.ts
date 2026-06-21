@@ -8,5 +8,7 @@ export const mockPricing: PricingPort = {
   getRdsStoragePricePerGbMonth: () => 0.115,
   getLoadBalancerPricePerMonth: () => 16.2,
   getNatGatewayPricePerMonth: () => 32.4,
+  getLogGroupPricePerGbMonth: () => 0.03,
+  getS3StandardPricePerGbMonth: () => 0.023,
   getPricesAsOf: () => '2025-06',
 };

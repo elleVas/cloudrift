@@ -13,6 +13,9 @@ export const RESOURCE_KINDS = [
   'ebs-idle',
   'ec2-underutilized',
   'rds-underutilized',
+  'log-group',
+  'eni-orphaned',
+  's3-no-lifecycle',
 ] as const;
 
 export type ResourceKind = (typeof RESOURCE_KINDS)[number];
@@ -53,6 +56,9 @@ export const RESOURCE_KIND_META: Record<ResourceKind, ResourceKindMeta> = {
     category: 'optimization',
     estimated: true,
   },
+  'log-group': { label: 'CloudWatch Log Groups', category: 'waste', estimated: false },
+  'eni-orphaned': { label: 'Orphaned ENIs', category: 'waste', estimated: false },
+  's3-no-lifecycle': { label: 'S3 Buckets (no lifecycle)', category: 'optimization', estimated: true },
 };
 
 /** Etichette leggibili, derivate da RESOURCE_KIND_META (unica fonte). */

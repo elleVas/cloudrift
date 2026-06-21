@@ -10,6 +10,9 @@ import type { Gp2Volume } from './entities/gp2-volume.entity';
 import type { IdleEbsVolume } from './entities/idle-ebs-volume.entity';
 import type { UnderutilizedEc2Instance } from './entities/underutilized-ec2-instance.entity';
 import type { RdsUnderutilizedInstance } from './entities/rds-underutilized-instance.entity';
+import type { LogGroup } from './entities/log-group.entity';
+import type { OrphanedEni } from './entities/orphaned-eni.entity';
+import type { S3Bucket } from './entities/s3-bucket.entity';
 
 /**
  * Mappa kind → entità concreta. Permette ai consumer (formatter, frontend)
@@ -27,6 +30,9 @@ export interface ResourceKindMap {
   'ebs-idle': IdleEbsVolume;
   'ec2-underutilized': UnderutilizedEc2Instance;
   'rds-underutilized': RdsUnderutilizedInstance;
+  'log-group': LogGroup;
+  'eni-orphaned': OrphanedEni;
+  's3-no-lifecycle': S3Bucket;
 }
 
 export type FindingsByKind = {
