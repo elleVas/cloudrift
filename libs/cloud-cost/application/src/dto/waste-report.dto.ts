@@ -4,6 +4,7 @@ import type {
   ResourceKind,
   WastedResourcesSummary,
 } from 'cloud-cost-domain';
+import { REPORT_CONTACT, REPORT_DISCLAIMER } from '../constants/report-disclaimer';
 
 /**
  * Proiezione serializzabile (JSON-safe) del summary: è il contratto dati
@@ -21,6 +22,8 @@ export interface WasteReportDto {
     generatedAt: string;
     pricesAsOf: string;
   };
+  disclaimer: string;
+  contact: { email: string; linkedin: string };
   totalWasteMonthlyUsd: number;
   totalWasteAnnualUsd: number;
   totalOptimizationMonthlyUsd: number;
@@ -94,6 +97,8 @@ export function toWasteReportDto(
       generatedAt: meta.generatedAt.toISOString(),
       pricesAsOf: meta.pricesAsOf,
     },
+    disclaimer: REPORT_DISCLAIMER,
+    contact: REPORT_CONTACT,
     totalWasteMonthlyUsd: round2(summary.totalWasteMonthlyUsd),
     totalWasteAnnualUsd: round2(summary.totalWasteMonthlyUsd * 12),
     totalOptimizationMonthlyUsd: round2(summary.totalOptimizationMonthlyUsd),

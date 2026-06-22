@@ -12,6 +12,7 @@ import type {
   WastedResourcesSummary,
 } from 'cloud-cost-domain';
 import type { WasteReportMeta } from 'cloud-cost-application';
+import { REPORT_CONTACT, REPORT_DISCLAIMER } from 'cloud-cost-application';
 import { presenterFor } from './resource-presenters';
 
 const C = {
@@ -139,6 +140,16 @@ function drawSummaryPage(
       y += 13;
     }
   }
+
+  // Disclaimer + contact
+  y += 18;
+  doc.moveTo(MARGIN, y).lineTo(PAGE_W - MARGIN, y).lineWidth(0.5).strokeColor(C.border).stroke();
+  y += 10;
+  doc.font('Helvetica').fontSize(7).fillColor(C.muted)
+    .text(REPORT_DISCLAIMER, MARGIN, y, { width: CONTENT_W });
+  y += doc.heightOfString(REPORT_DISCLAIMER, { width: CONTENT_W }) + 6;
+  doc.font('Helvetica').fontSize(7).fillColor(C.muted)
+    .text(`Contact: ${REPORT_CONTACT.email} · ${REPORT_CONTACT.linkedin}`, MARGIN, y, { lineBreak: false });
 }
 
 function drawMetricBox(
@@ -156,6 +167,10 @@ function drawMetricBox(
 
 // ─── Detail pages ─────────────────────────────────────────────────────────────
 
+// Larghezza riservata alla colonna "Approved by"; le altre colonne sono scalate
+// per occupare lo spazio restante, indipendentemente dai colWidths del presenter.
+const APPROVED_BY_W = 60;
+
 function drawDetailPages(doc: PDFKit.PDFDocument, summary: WastedResourcesSummary): void {
   const grouped = groupByKind(summary.findings);
 
@@ -169,8 +184,11 @@ function drawDetailPages(doc: PDFKit.PDFDocument, summary: WastedResourcesSummar
     const rows = findings.map((finding: WastedResource) => [
       ...presenter.row(finding),
       `$${finding.costEstimate.monthlyCostUsd.toFixed(2)}/mo`,
+      '______',
     ]);
-    drawTable(doc, [...presenter.head, 'Cost/mo'], rows, presenter.colWidths, y);
+    const scale = (CONTENT_W - APPROVED_BY_W) / presenter.colWidths.reduce((a, b) => a + b, 0);
+    const colWidths = [...presenter.colWidths.map((w) => w * scale), APPROVED_BY_W];
+    drawTable(doc, [...presenter.head, 'Cost/mo', 'Approved by'], rows, colWidths, y);
   }
 }
 

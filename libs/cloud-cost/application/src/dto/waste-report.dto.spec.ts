@@ -1,4 +1,5 @@
 import { toWasteReportDto } from './waste-report.dto';
+import { REPORT_CONTACT, REPORT_DISCLAIMER } from '../constants/report-disclaimer';
 import { AwsRegion, EbsVolume, ElasticIp, Gp2Volume } from 'cloud-cost-domain';
 import type { WastedResourcesSummary } from 'cloud-cost-domain';
 
@@ -57,6 +58,8 @@ describe('toWasteReportDto', () => {
       generatedAt: '2026-06-12T10:00:00.000Z',
       pricesAsOf: '2025-06',
     });
+    expect(dto.disclaimer).toBe(REPORT_DISCLAIMER);
+    expect(dto.contact).toEqual(REPORT_CONTACT);
     expect(dto.totalWasteMonthlyUsd).toBe(11.6);
     expect(dto.totalWasteAnnualUsd).toBe(139.2);
     expect(dto.totalOptimizationMonthlyUsd).toBe(0);

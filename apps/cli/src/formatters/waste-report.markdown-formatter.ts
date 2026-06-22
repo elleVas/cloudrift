@@ -8,6 +8,7 @@ import type {
   FindingCategory,
   WastedResourcesSummary,
 } from 'cloud-cost-domain';
+import { REPORT_CONTACT, REPORT_DISCLAIMER } from 'cloud-cost-application';
 import { presenterFor } from './resource-presenters';
 
 export interface MarkdownReportOptions {
@@ -30,7 +31,11 @@ function esc(cell: string): string {
 }
 
 function footer(meta: { pricesAsOf: string }): string {
-  return `---\n<sub>Estimates use AWS list prices as of ${meta.pricesAsOf}; actual billing may differ.</sub>`;
+  return (
+    `---\n<sub>Estimates use AWS list prices as of ${meta.pricesAsOf}; actual billing may differ.</sub>\n\n` +
+    `<sub>${REPORT_DISCLAIMER}</sub>\n\n` +
+    `<sub>Contact: ${REPORT_CONTACT.email} · [LinkedIn](${REPORT_CONTACT.linkedin})</sub>`
+  );
 }
 
 /**
@@ -186,13 +191,14 @@ export function formatWasteReportAsMarkdown(
         `<summary>${esc(presenter.title)} (${grouped[kind].length}) · ${money(subtotal)}/mo</summary>`,
       );
       lines.push('');
-      const header = [...presenter.head, '$/mo'];
+      const header = [...presenter.head, '$/mo', 'Approved by'];
       lines.push(`| ${header.join(' | ')} |`);
       lines.push(`|${header.map(() => '---').join('|')}|`);
       for (const finding of grouped[kind]) {
         const cells = [
           ...presenter.row(finding).map(esc),
           money(finding.costEstimate.monthlyCostUsd),
+          '______',
         ];
         lines.push(`| ${cells.join(' | ')} |`);
       }

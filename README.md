@@ -8,6 +8,10 @@
 
 **cloudrift** is a command-line tool that scans AWS accounts for wasted resources and estimates the monthly cost of that waste.
 
+> ⚠️ **Disclaimer:** cloudrift is a read-only analysis tool: it reports estimated waste and recommendations only — it never deletes, modifies, or stops any AWS resource. All findings should be validated by your infrastructure team before taking action. The maintainers assume no liability for actions taken based on this report.
+>
+> **Contact:** [raffaelevasini@gmail.com](mailto:raffaelevasini@gmail.com) · [LinkedIn](https://www.linkedin.com/in/raffaele-vasini-87937470/)
+
 ### What it detects
 
 | Resource           | Waste condition                             | Estimated cost (us-east-1)                              |
@@ -439,6 +443,10 @@ No changes to `AnalyzeCloudWasteUseCase`, the summary, or the report DTO are nee
 ## 🇮🇹 Italiano
 
 **cloudrift** è uno strumento da riga di comando che scansiona account AWS alla ricerca di risorse inutilizzate e stima il costo mensile di eventuali sprechi.
+
+> ⚠️ **Disclaimer:** cloudrift è uno strumento di analisi in sola lettura: segnala solo spreco stimato e raccomandazioni — non cancella, modifica o ferma alcuna risorsa AWS. Ogni finding deve essere validato dal tuo team infrastrutturale prima di agire. I maintainer non si assumono alcuna responsabilità per le azioni intraprese sulla base di questo report.
+>
+> **Contatti:** [raffaelevasini@gmail.com](mailto:raffaelevasini@gmail.com) · [LinkedIn](https://www.linkedin.com/in/raffaele-vasini-87937470/)
 
 ### Cosa rileva
 
