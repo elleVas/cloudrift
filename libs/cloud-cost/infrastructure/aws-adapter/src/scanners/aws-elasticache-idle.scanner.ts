@@ -18,21 +18,21 @@ const DEFAULT_LOOKBACK_HOURS = 48;
 const CLOUDWATCH_CONCURRENCY = 5;
 
 /**
- * Il prezzo per node type è risolto on-demand dalla Pricing API (la
- * cardinalità dei node type è troppo alta per il listino statico/il
- * prefetch di `warmUp`): `AwsPricingApiAdapter` soddisfa questa interfaccia
- * per duck typing.
+ * The price per node type is resolved on demand from the Pricing API (the
+ * cardinality of node types is too high for the static price list/the
+ * `warmUp` prefetch): `AwsPricingApiAdapter` satisfies this interface via
+ * duck typing.
  */
 export interface ElastiCacheNodePricingSource {
   getElastiCacheNodePricePerMonth(region: AwsRegion, cacheNodeType: string): Promise<number | undefined>;
 }
 
 /**
- * Rileva cluster ElastiCache con zero connessioni client nella finestra
- * osservata. A differenza di Lambda, un nodo ElastiCache è fatturato per
- * ora indipendentemente dall'uso: zero connessioni è spreco reale, non solo
- * igiene. Richiede `--live-pricing`: senza un prezzo per node type, non c'è
- * risparmio stimabile.
+ * Detects ElastiCache clusters with zero client connections in the observed
+ * window. Unlike Lambda, an ElastiCache node is billed per hour regardless
+ * of usage: zero connections is real waste, not just hygiene. Requires
+ * `--live-pricing`: without a price per node type, no saving can be
+ * estimated.
  */
 export class AwsElastiCacheIdleScanner implements WasteScannerPort {
   readonly kind = 'elasticache-idle' as const;

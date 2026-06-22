@@ -4,9 +4,9 @@ import { CostEstimate } from '../value-objects/cost-estimate.value-object';
 import type { WastedResource } from '../wasted-resource';
 
 /**
- * Volume EBS *attaccato* (in-use) ma con zero (o quasi) I/O nella finestra
- * osservata: si paga lo storage di un disco che non lavora. È spreco a costo
- * pieno, distinto da `ebs-volume` (volumi non attaccati, state=available).
+ * EBS volume *attached* (in-use) but with zero (or near-zero) I/O over the
+ * observed window: you pay for the storage of a disk that does no work. It's full-cost
+ * waste, distinct from `ebs-volume` (unattached volumes, state=available).
  */
 export interface IdleEbsVolumeProps {
   volumeId: string;
@@ -15,9 +15,9 @@ export interface IdleEbsVolumeProps {
   sizeGb: number;
   volumeType: string;
   attachedInstanceId?: string;
-  /** Somma delle operazioni di lettura nella finestra. */
+  /** Sum of read operations in the window. */
   readOps: number;
-  /** Somma delle operazioni di scrittura nella finestra. */
+  /** Sum of write operations in the window. */
   writeOps: number;
   metricWindowHours: number;
   createTime: Date;

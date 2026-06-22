@@ -3,55 +3,55 @@ import { resolve } from 'path';
 import { DomainError, Result } from 'shared-kernel';
 
 /**
- * Nomi di file cercati nel CWD, in ordine di priorità.
+ * File names searched for in the CWD, in priority order.
  */
 const CONFIG_FILENAMES = ['cloudrift.config.json', '.cloudriftrc'] as const;
 
-/** Finestra CloudWatch massima consentita (7 giorni). */
+/** Maximum allowed CloudWatch window (7 days). */
 export const MAX_CLOUDWATCH_WINDOW_HOURS = 168;
 
-/** Finestra massima consentita per i check di utilizzo CPU (14 giorni). */
+/** Maximum allowed window for CPU utilization checks (14 days). */
 export const MAX_UTILIZATION_WINDOW_HOURS = 336;
 
 /**
- * Configurazione opzionale letta da `cloudrift.config.json` o `.cloudriftrc`.
- * Ogni campo è opzionale: i flag CLI hanno la precedenza, poi il file di
- * config, poi i default nel codice.
+ * Optional configuration read from `cloudrift.config.json` or `.cloudriftrc`.
+ * Every field is optional: CLI flags take precedence, then the config file,
+ * then the defaults in code.
  */
 export interface CloudriftConfig {
-  /** Regioni da escludere dallo scan anche se passate via -r. */
+  /** Regions to exclude from the scan even if passed via -r. */
   excludeRegions?: string[];
-  /** Coppie tag=valore che escludono una risorsa (es. { "Environment": "Production" }). */
+  /** tag=value pairs that exclude a resource (e.g. { "Environment": "Production" }). */
   excludeTagValues?: Record<string, string>;
-  /** Finestra temporale (ore) per le metriche CloudWatch "zero-attività" (NAT, EBS idle). Default 48, max 168. */
+  /** Time window (hours) for "zero-activity" CloudWatch metrics (NAT, EBS idle). Default 48, max 168. */
   cloudwatchWindowHours?: number;
-  /** Finestra temporale (ore) per i check di utilizzo CPU (EC2/RDS underutilized). Default 168, max 336. */
+  /** Time window (hours) for CPU utilization checks (EC2/RDS underutilized). Default 168, max 336. */
   utilizationWindowHours?: number;
-  /** Periodo di grazia in giorni. Override di --min-age-days. */
+  /** Grace period in days. Overrides --min-age-days. */
   minAgeDays?: number;
-  /** Tag di esclusione esplicita. Override di --ignore-tag. */
+  /** Explicit exclusion tag. Overrides --ignore-tag. */
   ignoreTag?: string;
-  /** Soglia di costo mensile: se superata, il comando esce con codice 2 (utile in CI). */
+  /** Monthly cost threshold: if exceeded, the command exits with code 2 (useful in CI). */
   costAlertThresholdUsd?: number;
   /**
-   * Override prezzi per regione (tariffe speciali/aziendali). Stessa forma di
-   * `prices.json`: `regione → chiave → USD`, con `default` come fallback.
-   * Vincono su listino statico e su AWS Pricing API.
+   * Price overrides per region (special/enterprise rates). Same shape as
+   * `prices.json`: `region → key → USD`, with `default` as fallback.
+   * These take precedence over the static price list and the AWS Pricing API.
    */
   prices?: Record<string, Record<string, number>>;
-  /** Soglie per-check. */
+  /** Per-check thresholds. */
   thresholds?: {
-    /** Operazioni I/O totali sotto cui un volume EBS attaccato è "idle". Default 0. */
+    /** Total I/O operations below which an attached EBS volume is "idle". Default 0. */
     ebsIdleMaxOps?: number;
-    /** CPU massima (%) sotto cui un'istanza EC2 è "underutilized". Default 5. */
+    /** Maximum CPU (%) below which an EC2 instance is "underutilized". Default 5. */
     ec2CpuPercent?: number;
-    /** CPU massima (%) sotto cui un'istanza RDS è "underutilized". Default 5. */
+    /** Maximum CPU (%) below which an RDS instance is "underutilized". Default 5. */
     rdsCpuPercent?: number;
-    /** Invocazioni massime sotto cui una funzione Lambda è "underutilized". Default 0. */
+    /** Maximum invocations below which a Lambda function is "underutilized". Default 0. */
     lambdaInvocationsMin?: number;
-    /** Byte I/O totali sotto cui un file system EFS montato è "idle". Default 0. */
+    /** Total I/O bytes below which a mounted EFS file system is "idle". Default 0. */
     efsIoBytesMin?: number;
-    /** Utilizzo massimo (%) di RCU/WCU sotto cui una tabella DynamoDB è "overprovisioned". Default 10. */
+    /** Maximum RCU/WCU utilization (%) below which a DynamoDB table is "overprovisioned". Default 10. */
     dynamoCapacityUtilizationPercent?: number;
   };
 }
@@ -63,8 +63,8 @@ export class ConfigError extends DomainError {
 }
 
 /**
- * Carica la configurazione dal CWD (o da un percorso esplicito).
- * Nessun file trovato → config vuota (tutto da CLI/default).
+ * Loads the configuration from the CWD (or from an explicit path).
+ * No file found → empty config (everything from CLI/defaults).
  */
 export async function loadConfig(
   cwd: string,
@@ -96,9 +96,9 @@ async function tryRead(path: string): Promise<string | undefined> {
 }
 
 /**
- * Validazione pura del contenuto del file (separata dall'IO per testabilità).
- * Chiavi sconosciute vengono ignorate (forward-compatible); le chiavi note
- * vengono validate per tipo e l'errore aggrega tutti i problemi trovati.
+ * Pure validation of the file content (separated from IO for testability).
+ * Unknown keys are ignored (forward-compatible); known keys are
+ * validated by type and the error aggregates all the problems found.
  */
 export function parseConfig(
   raw: string,

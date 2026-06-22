@@ -16,12 +16,12 @@ export interface UnderutilizedLambdaFunctionProps {
 }
 
 /**
- * Funzione Lambda con (quasi) zero invocazioni nella finestra osservata.
- * Lambda è pay-per-use: una funzione inattiva non genera alcun costo diretto
- * (a differenza di Provisioned Concurrency, non rilevata qui), quindi il
- * valore del finding è igiene/cleanup, non un risparmio in dollari — stesso
- * principio di `eni-orphaned`. Non stimiamo un possibile rightsizing della
- * memoria: richiederebbe Lambda Insights, non disponibile via Describe* puro.
+ * Lambda function with (near) zero invocations over the observed window.
+ * Lambda is pay-per-use: an inactive function generates no direct cost
+ * (unlike Provisioned Concurrency, not detected here), so the
+ * value of the finding is hygiene/cleanup, not a saving in dollars — same
+ * principle as `eni-orphaned`. We do not estimate a possible memory
+ * rightsizing: it would require Lambda Insights, not available via plain Describe*.
  */
 export class UnderutilizedLambdaFunction extends Entity<string> implements WastedResource {
   private readonly props: Readonly<UnderutilizedLambdaFunctionProps>;

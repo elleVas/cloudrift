@@ -17,14 +17,14 @@ import { mapWithConcurrency } from '../utils/map-with-concurrency';
 const DEFAULT_WINDOW_HOURS = 168;
 const CLOUDWATCH_CONCURRENCY = 5;
 const PRICING_CONCURRENCY = 5;
-/** Risparmio stimato da un downsize di un tier (advisory, da verificare). */
+/** Estimated saving from downsizing a tier (advisory, to be verified). */
 const RIGHTSIZE_SAVING_FRACTION = 0.5;
 
 /**
- * Il prezzo per classe di istanza RDS è risolto on-demand dalla Pricing API
- * (la cardinalità di classe × engine × deployment è troppo alta per il
- * listino statico/il prefetch di `warmUp`): `AwsPricingApiAdapter` soddisfa
- * questa interfaccia per duck typing.
+ * The price per RDS instance class is resolved on demand from the Pricing
+ * API (the cardinality of class × engine × deployment is too high for the
+ * static price list/the `warmUp` prefetch): `AwsPricingApiAdapter` satisfies
+ * this interface via duck typing.
  */
 export interface RdsInstancePricingSource {
   getRdsInstancePricePerMonth(
@@ -54,13 +54,13 @@ function priceSpecOf(db: DBInstance): RdsPriceSpec {
 }
 
 /**
- * Rileva istanze RDS *available* con CPU massima sotto soglia sull'intera
- * finestra di osservazione: probabile sovradimensionamento. Advisory
- * (categoria optimization, stima): CPU bassa non garantisce che storage I/O
- * o connessioni siano altrettanto sottoutilizzati, va verificato prima di un
- * rightsizing. Disgiunto da `rds-instance` (quello rileva le istanze
- * `stopped`). Richiede `--live-pricing`: senza un prezzo per classe di
- * istanza, non c'è risparmio stimabile.
+ * Detects *available* RDS instances with maximum CPU below a threshold over
+ * the entire observation window: likely oversizing. Advisory (optimization
+ * category, estimate): low CPU does not guarantee that storage I/O or
+ * connections are equally underutilized, it must be verified before a
+ * rightsizing. Disjoint from `rds-instance` (which detects `stopped`
+ * instances). Requires `--live-pricing`: without a price per instance
+ * class, no saving can be estimated.
  */
 export class AwsRdsUnderutilizedScanner implements WasteScannerPort {
   readonly kind = 'rds-underutilized' as const;

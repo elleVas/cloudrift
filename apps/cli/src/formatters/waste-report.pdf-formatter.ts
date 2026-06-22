@@ -167,8 +167,8 @@ function drawMetricBox(
 
 // ─── Detail pages ─────────────────────────────────────────────────────────────
 
-// Larghezza riservata alla colonna "Approved by"; le altre colonne sono scalate
-// per occupare lo spazio restante, indipendentemente dai colWidths del presenter.
+// Width reserved for the "Approved by" column; the other columns are scaled
+// to fill the remaining space, independently of the presenter's colWidths.
 const APPROVED_BY_W = 60;
 
 function drawDetailPages(doc: PDFKit.PDFDocument, summary: WastedResourcesSummary): void {
@@ -226,7 +226,7 @@ function drawTable(
   let rowsInSegment = 1;
 
   for (let i = 0; i < rows.length; i++) {
-    // Salto pagina: chiude il bordo del segmento corrente e ridisegna l'header.
+    // Page break: closes the current segment's border and redraws the header.
     if (y + ROW_H > PAGE_H - MARGIN) {
       strokeSegmentBorder(rowsInSegment);
       doc.addPage();

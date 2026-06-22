@@ -30,8 +30,8 @@ export class AwsEbsSnapshotScanner implements WasteScannerPort {
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
     const client = new EC2Client({ region: region.code });
     try {
-      // Tre sorgenti in parallelo: snapshot, volumi esistenti e AMI registrate
-      // (gli snapshot referenziati da un'AMI non sono cancellabili).
+      // Three sources in parallel: snapshots, existing volumes and registered
+      // AMIs (snapshots referenced by an AMI cannot be deleted).
       const [snapshots, volumes, images] = await Promise.all([
         paginate<Snapshot>(async (cursor) => {
           const r = await client.send(

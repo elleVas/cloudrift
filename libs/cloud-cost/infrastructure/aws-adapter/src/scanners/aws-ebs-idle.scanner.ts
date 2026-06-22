@@ -23,10 +23,11 @@ const DEFAULT_LOOKBACK_HOURS = 48;
 const CLOUDWATCH_CONCURRENCY = 5;
 
 /**
- * Rileva i volumi EBS *attaccati* (in-use) ma senza I/O nella finestra
- * osservata: storage pagato per un disco fermo. Distinto da `ebs-volume`
- * (volumi non attaccati). Per ogni volume somma `VolumeReadOps` +
- * `VolumeWriteOps` da CloudWatch; la soglia/decisione è della policy.
+ * Detects EBS volumes that are *attached* (in-use) but with no I/O in the
+ * observed window: storage paid for an idle disk. Distinct from
+ * `ebs-volume` (unattached volumes). For each volume it sums
+ * `VolumeReadOps` + `VolumeWriteOps` from CloudWatch; the threshold/decision
+ * belongs to the policy.
  */
 export class AwsEbsIdleScanner implements WasteScannerPort {
   readonly kind = 'ebs-idle' as const;

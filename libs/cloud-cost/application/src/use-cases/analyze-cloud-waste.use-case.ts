@@ -10,12 +10,12 @@ import type {
 } from 'cloud-cost-domain';
 
 /**
- * Coordinatore generico: esegue gli scanner registrati (uno per tipo di
- * risorsa) in parallelo tra loro e in sequenza sulle regioni, per non
- * concentrare chiamate simultanee sulle stesse API regionali.
+ * Generic coordinator: runs the registered scanners (one per resource
+ * type) in parallel with each other and in sequence over the regions, so as not
+ * to concentrate simultaneous calls on the same regional APIs.
  *
- * Gli errori sono raccolti per (scanner, regione): il fallimento di una
- * regione non scarta i risultati delle altre, né quelli degli altri scanner.
+ * Errors are collected per (scanner, region): the failure of one
+ * region does not discard the results of the others, nor those of the other scanners.
  */
 export class AnalyzeCloudWasteUseCase implements FindWastedResourcesUseCasePort {
   constructor(private readonly scanners: readonly WasteScannerPort[]) {}

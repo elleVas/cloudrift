@@ -18,7 +18,7 @@ import { mapWithConcurrency } from '../utils/map-with-concurrency';
 const DEFAULT_WINDOW_HOURS = 168;
 const DESCRIBE_CONCURRENCY = 5;
 const CLOUDWATCH_CONCURRENCY = 5;
-/** Risparmio stimato da un downsize della capacità provisioned (advisory, da verificare). */
+/** Estimated saving from downsizing the provisioned capacity (advisory, to be verified). */
 const RIGHTSIZE_SAVING_FRACTION = 0.5;
 
 function isProvisioned(table: TableDescription): boolean {
@@ -29,10 +29,10 @@ function isProvisioned(table: TableDescription): boolean {
 }
 
 /**
- * Rileva tabelle DynamoDB in modalità PROVISIONED con capacità RCU/WCU
- * consumata ben sotto quella allocata. `ListTables` restituisce solo i nomi:
- * serve un `DescribeTable` per tabella (fan-out) per leggere la capacità
- * provisioned, poi CloudWatch per quella consumata.
+ * Detects DynamoDB tables in PROVISIONED mode with consumed RCU/WCU
+ * capacity well below the allocated one. `ListTables` only returns the
+ * names: a `DescribeTable` per table (fan-out) is needed to read the
+ * provisioned capacity, then CloudWatch for the consumed one.
  */
 export class AwsDynamoDbOverprovisionedScanner implements WasteScannerPort {
   readonly kind = 'dynamodb-overprovisioned' as const;

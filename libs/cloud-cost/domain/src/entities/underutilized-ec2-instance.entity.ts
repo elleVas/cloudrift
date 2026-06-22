@@ -4,12 +4,12 @@ import { CostEstimate } from '../value-objects/cost-estimate.value-object';
 import type { WastedResource } from '../wasted-resource';
 
 /**
- * Istanza EC2 *running* con CPU massima sotto soglia sull'intera finestra di
- * osservazione: probabile sovradimensionamento. Advisory, non spreco certo —
- * CPU bassa non garantisce che RAM/rete siano altrettanto sottoutilizzate,
- * va verificato prima di un rightsizing (es. AWS Compute Optimizer).
- * `monthlyCostUsd` qui è il *risparmio* stimato da un downsize di un tier,
- * non il costo dell'istanza.
+ * EC2 instance that is *running* with maximum CPU below threshold over the entire
+ * observation window: likely oversized. Advisory, not definite waste —
+ * low CPU does not guarantee RAM/network are equally underutilized,
+ * must be verified before a rightsizing (e.g. AWS Compute Optimizer).
+ * `monthlyCostUsd` here is the *saving* estimated from a tier downsize,
+ * not the cost of the instance.
  */
 export interface UnderutilizedEc2InstanceProps {
   instanceId: string;

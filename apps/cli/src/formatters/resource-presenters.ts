@@ -1,15 +1,15 @@
 import type { ResourceKind, ResourceKindMap, WastedResource } from 'cloud-cost-domain';
 
 /**
- * Presentazione per tipo di risorsa, condivisa da formatter console e PDF.
- * Aggiungere un nuovo ResourceKind obbliga (via compilatore) ad aggiungere
- * qui il relativo presenter — unico punto di modifica lato CLI.
+ * Presentation per resource type, shared by the console and PDF formatters.
+ * Adding a new ResourceKind forces (via the compiler) adding the
+ * corresponding presenter here — the single point of change on the CLI side.
  */
 export interface ResourcePresenter<T extends WastedResource = WastedResource> {
   title: string;
-  /** Intestazioni colonne, costo escluso (aggiunto dai formatter come ultima colonna). */
+  /** Column headers, cost excluded (added by the formatters as the last column). */
   head: string[];
-  /** Larghezze colonne PDF; l'ultimo elemento è la colonna costo. */
+  /** PDF column widths; the last element is the cost column. */
   colWidths: number[];
   row(resource: T): string[];
   recommend(resource: T): string;

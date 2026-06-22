@@ -27,8 +27,8 @@ export class AwsEbsVolumeScanner implements WasteScannerPort {
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
     const client = new EC2Client({ region: region.code });
     try {
-      // Prefiltro server-side: i volumi 'available' sono il sovrainsieme dei
-      // candidati; la decisione finale (grace period, tag) spetta alla policy.
+      // Server-side prefilter: 'available' volumes are the superset of
+      // candidates; the final decision (grace period, tag) is up to the policy.
       const rawVolumes = await paginate<Volume>(async (cursor) => {
         const r = await client.send(
           new DescribeVolumesCommand({

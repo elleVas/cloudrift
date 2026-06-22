@@ -8,9 +8,9 @@ export interface EbsSnapshotProps {
   region: AwsRegion;
   accountId: string;
   sourceVolumeId: string;
-  /** False se il volume sorgente non esiste più (snapshot orfano). */
+  /** False if the source volume no longer exists (orphaned snapshot). */
   sourceVolumeExists: boolean;
-  /** AMI registrata che referenzia lo snapshot: se presente, non è cancellabile. */
+  /** Registered AMI that references the snapshot: if present, it is not deletable. */
   boundToAmiId?: string;
   sizeGb: number;
   startTime: Date;

@@ -15,10 +15,10 @@ export interface OrphanedEniProps {
 }
 
 /**
- * ENI con Status=available (non attaccata a nessuna istanza/ENI requester).
- * Costo marginale, spesso $0: AWS non fattura le ENI inattive di per sé, ma
- * accumulano limiti account e indicano automazione/cleanup mancante — è una
- * segnalazione di igiene, non un risparmio diretto.
+ * ENI with Status=available (not attached to any instance/ENI requester).
+ * Marginal cost, often $0: AWS does not bill inactive ENIs per se, but
+ * they accumulate against account limits and indicate missing automation/cleanup — it's a
+ * hygiene flag, not a direct saving.
  */
 export class OrphanedEni extends Entity<string> implements WastedResource {
   private readonly props: Readonly<OrphanedEniProps>;

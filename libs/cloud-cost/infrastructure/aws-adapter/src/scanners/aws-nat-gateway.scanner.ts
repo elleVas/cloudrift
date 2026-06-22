@@ -20,8 +20,8 @@ import { paginate } from '../utils/paginate';
 import { mapWithConcurrency } from '../utils/map-with-concurrency';
 
 const DEFAULT_LOOKBACK_HOURS = 48;
-// Limita le chiamate CloudWatch simultanee per non incorrere in throttling
-// su account con molti NAT Gateway.
+// Limits concurrent CloudWatch calls to avoid throttling on accounts
+// with many NAT Gateways.
 const CLOUDWATCH_CONCURRENCY = 5;
 
 export class AwsNatGatewayScanner implements WasteScannerPort {

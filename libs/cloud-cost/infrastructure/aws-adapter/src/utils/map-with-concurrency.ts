@@ -1,7 +1,7 @@
 /**
- * Esegue `fn` su ogni elemento con al massimo `limit` chiamate in volo,
- * preservando l'ordine dei risultati. Serve a non saturare i rate limit
- * delle API AWS (es. CloudWatch) su account con molte risorse.
+ * Runs `fn` over each item with at most `limit` calls in flight, preserving
+ * result order. Keeps AWS API rate limits (e.g. CloudWatch) from being
+ * saturated on accounts with many resources.
  */
 export async function mapWithConcurrency<T, R>(
   items: readonly T[],

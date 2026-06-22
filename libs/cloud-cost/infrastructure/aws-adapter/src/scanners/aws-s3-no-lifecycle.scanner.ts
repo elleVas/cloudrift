@@ -17,13 +17,13 @@ import { mapWithConcurrency } from '../utils/map-with-concurrency';
 
 const METRIC_CONCURRENCY = 5;
 const METRIC_LOOKBACK_DAYS = 2;
-/** Frazione del costo storage Standard considerata risparmio potenziale abilitando una lifecycle policy (stima euristica). */
+/** Fraction of the Standard storage cost considered a potential saving by enabling a lifecycle policy (heuristic estimate). */
 const ESTIMATED_SAVING_FRACTION = 0.4;
 
 /**
- * Rileva i bucket S3 senza alcuna lifecycle policy configurata. I bucket
- * sono globali: `ListBucketsCommand` filtra per `BucketRegion` così ogni
- * regione scansionata vede solo i bucket che le appartengono davvero.
+ * Detects S3 buckets with no lifecycle policy configured. Buckets are
+ * global: `ListBucketsCommand` filters by `BucketRegion` so each scanned
+ * region only sees the buckets that actually belong to it.
  */
 export class AwsS3NoLifecycleScanner implements WasteScannerPort {
   readonly kind = 's3-no-lifecycle' as const;

@@ -14,9 +14,9 @@ export interface ResourceScanError {
 
 export interface WastedResourcesSummary {
   findings: WastedResource[];
-  /** Somma dei finding di categoria `waste` (l'headline e il gate CI). */
+  /** Sum of `waste`-category findings (the headline and the CI gate). */
   totalWasteMonthlyUsd: number;
-  /** Somma dei finding di categoria `optimization` (mostrata a parte). */
+  /** Sum of `optimization`-category findings (shown separately). */
   totalOptimizationMonthlyUsd: number;
   scanErrors: ResourceScanError[];
 }
