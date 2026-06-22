@@ -18,10 +18,10 @@ const DEFAULT_LOOKBACK_HOURS = 48;
 const CLOUDWATCH_CONCURRENCY = 5;
 
 /**
- * Rileva file system EFS senza mount target (inutilizzabili) o con mount
- * target ma zero I/O nella finestra osservata (montati ma inattivi).
- * `DescribeFileSystems` espone già `NumberOfMountTargets` e `SizeInBytes`:
- * non serve `DescribeMountTargets`.
+ * Detects EFS file systems with no mount targets (unusable) or with mount
+ * targets but zero I/O in the observed window (mounted but inactive).
+ * `DescribeFileSystems` already exposes `NumberOfMountTargets` and
+ * `SizeInBytes`: no need for `DescribeMountTargets`.
  */
 export class AwsEfsUnusedScanner implements WasteScannerPort {
   readonly kind = 'efs-unused' as const;

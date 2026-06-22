@@ -25,7 +25,7 @@ export interface Ec2InstanceProps {
   state: Ec2InstanceState;
   launchTime: Date;
   detectedAt: Date;
-  /** Quando l'istanza è stata fermata, se ricostruibile da StateTransitionReason. */
+  /** When the instance was stopped, if reconstructible from StateTransitionReason. */
   stoppedSince?: Date;
   attachedVolumes: AttachedVolume[];
   tags: Record<string, string>;

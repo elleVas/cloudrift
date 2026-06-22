@@ -9,16 +9,16 @@ import { AwsAdapterError } from '../errors/aws-adapter.error';
 import { mapWithConcurrency } from '../utils/map-with-concurrency';
 import type { PriceTable, RegionPrices } from './table-pricing.adapter';
 
-/** Il Pricing API risiede solo in alcune regioni; us-east-1 è sempre valida. */
+/** The Pricing API only lives in some regions; us-east-1 is always valid. */
 const PRICING_API_REGION = 'us-east-1';
-/** Convenzione AWS per convertire i prezzi orari in mensili. */
+/** AWS convention for converting hourly prices into monthly ones. */
 const HOURS_PER_MONTH = 730;
-/** Chiamate Pricing simultanee per regione (l'API ha rate limit bassi). */
+/** Concurrent Pricing calls per region (the API has low rate limits). */
 const PRICING_CONCURRENCY = 5;
 
 /**
- * Mappa codice regione → "location" leggibile usata dal Pricing API.
- * Le regioni non presenti vengono lasciate al listino statico.
+ * Maps region code → human-readable "location" used by the Pricing API.
+ * Regions not present are left to the static price list.
  */
 const REGION_TO_LOCATION: Record<string, string> = {
   'us-east-1': 'US East (N. Virginia)',
@@ -45,9 +45,10 @@ const REGION_TO_LOCATION: Record<string, string> = {
 };
 
 /**
- * Mappa engine RDS (valore di `DescribeDBInstances`) → `databaseEngine` del
- * Pricing API. Engine assenti (es. varianti Aurora) restituiscono `undefined`
- * da `getRdsInstancePricePerMonth`: meglio nessun prezzo che uno sbagliato.
+ * Maps RDS engine (value from `DescribeDBInstances`) → Pricing API
+ * `databaseEngine`. Missing engines (e.g. Aurora variants) cause
+ * `getRdsInstancePricePerMonth` to return `undefined`: better no price than
+ * a wrong one.
  */
 const RDS_ENGINE_TO_PRICING_ENGINE: Record<string, string> = {
   postgres: 'PostgreSQL',
@@ -66,19 +67,19 @@ const RDS_ENGINE_TO_PRICING_ENGINE: Record<string, string> = {
 type PriceUnit = 'gb-month' | 'hourly';
 
 interface PriceSpec {
-  /** Chiave nella PriceTable (deve combaciare con quelle di prices.json). */
+  /** Key in the PriceTable (must match the ones in prices.json). */
   key: string;
   serviceCode: string;
-  /** Filtri TERM_MATCH oltre a `location` (aggiunto automaticamente). */
+  /** TERM_MATCH filters in addition to `location` (added automatically). */
   filters: Array<{ Field: string; Value: string }>;
   unit: PriceUnit;
 }
 
 /**
- * Specifiche di prezzo recuperate dal Pricing API. Ogni voce mappa una chiave
- * della PriceTable a un prodotto AWS tramite ServiceCode + filtri. La routine
- * di fetch è generica e accetta un prezzo solo se i filtri identificano un
- * unico valore (vedi `fetchPrice`): filtri ambigui ⇒ fallback allo statico.
+ * Price specs fetched from the Pricing API. Each entry maps a PriceTable key
+ * to an AWS product via ServiceCode + filters. The fetch routine is generic
+ * and only accepts a price if the filters identify a single value (see
+ * `fetchPrice`): ambiguous filters ⇒ fallback to the static list.
  */
 const PRICE_SPECS: readonly PriceSpec[] = [
   ...(['gp3', 'gp2', 'io1', 'io2', 'st1', 'sc1', 'standard'] as const).map(
@@ -116,9 +117,10 @@ const PRICE_SPECS: readonly PriceSpec[] = [
 ];
 
 /**
- * Adapter che recupera i prezzi dall'AWS Pricing API. Non implementa
- * direttamente `PricingPort`: produce una `PriceTable` via `warmUp` che il
- * composition root fonde con il listino statico e gli override dell'utente.
+ * Adapter that fetches prices from the AWS Pricing API. It does not
+ * implement `PricingPort` directly: it produces a `PriceTable` via `warmUp`
+ * that the composition root merges with the static price list and the
+ * user's overrides.
  */
 export class AwsPricingApiAdapter {
   constructor(
@@ -126,9 +128,9 @@ export class AwsPricingApiAdapter {
   ) {}
 
   /**
-   * Recupera i prezzi per le regioni richieste e ne costruisce una PriceTable.
-   * Una chiave assente (regione sconosciuta, filtro ambiguo, prodotto non
-   * trovato) viene semplicemente omessa: il merge la lascia allo statico.
+   * Fetches prices for the requested regions and builds a PriceTable from
+   * them. A missing key (unknown region, ambiguous filter, product not
+   * found) is simply omitted: the merge leaves it to the static list.
    */
   async warmUp(regions: readonly AwsRegion[]): Promise<Result<PriceTable>> {
     try {
@@ -158,10 +160,10 @@ export class AwsPricingApiAdapter {
   }
 
   /**
-   * Prezzo on-demand mensile per un singolo instance type, risolto on-demand
-   * (non rientra in `warmUp`/`PRICE_SPECS`: la cardinalità degli instance
-   * type è troppo alta per un prefetch). Va chiamato solo per i type
-   * effettivamente osservati durante uno scan.
+   * Monthly on-demand price for a single instance type, resolved on demand
+   * (not part of `warmUp`/`PRICE_SPECS`: the cardinality of instance types
+   * is too high for a prefetch). Should only be called for the types
+   * actually observed during a scan.
    */
   async getEc2InstancePricePerMonth(
     region: AwsRegion,
@@ -188,11 +190,11 @@ export class AwsPricingApiAdapter {
   }
 
   /**
-   * Prezzo on-demand mensile per una classe di istanza RDS, risolto on-demand
-   * come `getEc2InstancePricePerMonth` (stessa motivazione: cardinalità
-   * troppo alta per il prefetch). Richiede una mappatura engine → engine del
-   * Pricing API (vedi `RDS_ENGINE_TO_PRICING_ENGINE`): engine non mappati
-   * (es. Aurora) restituiscono `undefined`.
+   * Monthly on-demand price for an RDS instance class, resolved on demand
+   * like `getEc2InstancePricePerMonth` (same reasoning: cardinality too high
+   * for prefetch). Requires an engine → Pricing API engine mapping (see
+   * `RDS_ENGINE_TO_PRICING_ENGINE`): unmapped engines (e.g. Aurora) return
+   * `undefined`.
    */
   async getRdsInstancePricePerMonth(
     region: AwsRegion,
@@ -221,9 +223,9 @@ export class AwsPricingApiAdapter {
   }
 
   /**
-   * Prezzo on-demand mensile per un node type ElastiCache, risolto on-demand
-   * come `getEc2InstancePricePerMonth` (stessa motivazione: cardinalità dei
-   * node type troppo alta per il prefetch).
+   * Monthly on-demand price for an ElastiCache node type, resolved on demand
+   * like `getEc2InstancePricePerMonth` (same reasoning: node type
+   * cardinality too high for prefetch).
    */
   async getElastiCacheNodePricePerMonth(
     region: AwsRegion,
@@ -246,9 +248,9 @@ export class AwsPricingApiAdapter {
   }
 
   /**
-   * Restituisce il prezzo per una spec **solo se i prodotti restituiti
-   * concordano su un unico valore**. Filtri ambigui (più valori distinti) ⇒
-   * `undefined`, per non rischiare un prezzo sbagliato (peggio del listino).
+   * Returns the price for a spec **only if the returned products agree on a
+   * single value**. Ambiguous filters (more than one distinct value) ⇒
+   * `undefined`, to avoid risking a wrong price (worse than the price list).
    */
   private async fetchPrice(spec: PriceSpec, location: string): Promise<number | undefined> {
     const filters: Filter[] = [
@@ -273,8 +275,8 @@ export class AwsPricingApiAdapter {
 }
 
 /**
- * Estrae i prezzi OnDemand (USD, > 0) da una voce PriceList. La voce è una
- * stringa JSON (o già un oggetto, a seconda della versione SDK).
+ * Extracts the OnDemand prices (USD, > 0) from a PriceList entry. The entry
+ * is a JSON string (or already an object, depending on the SDK version).
  */
 export function extractOnDemandUsd(item: unknown): number[] {
   let product: unknown;

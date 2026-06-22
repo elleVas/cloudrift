@@ -18,26 +18,26 @@ import { mapWithConcurrency } from '../utils/map-with-concurrency';
 const DEFAULT_WINDOW_HOURS = 168;
 const CLOUDWATCH_CONCURRENCY = 5;
 const PRICING_CONCURRENCY = 5;
-/** Risparmio stimato da un downsize di un tier (advisory, da verificare). */
+/** Estimated saving from downsizing a tier (advisory, to be verified). */
 const RIGHTSIZE_SAVING_FRACTION = 0.5;
 
 /**
- * Il prezzo per-instance-type è risolto on-demand dalla Pricing API (la
- * cardinalità degli instance type è troppo alta per il listino statico/il
- * prefetch di `warmUp`): `AwsPricingApiAdapter` soddisfa questa interfaccia
- * per duck typing.
+ * The per-instance-type price is resolved on demand from the Pricing API
+ * (the cardinality of instance types is too high for the static price
+ * list/the `warmUp` prefetch): `AwsPricingApiAdapter` satisfies this
+ * interface via duck typing.
  */
 export interface Ec2InstancePricingSource {
   getEc2InstancePricePerMonth(region: AwsRegion, instanceType: string): Promise<number | undefined>;
 }
 
 /**
- * Rileva istanze EC2 *running* con CPU massima sotto soglia sull'intera
- * finestra di osservazione: probabile sovradimensionamento. Advisory
- * (categoria optimization, stima): CPU bassa non garantisce che RAM/rete
- * siano altrettanto sottoutilizzate, va verificato prima di un rightsizing.
- * Richiede `--live-pricing`: senza un prezzo per instance type, non c'è
- * risparmio stimabile.
+ * Detects *running* EC2 instances with maximum CPU below a threshold over
+ * the entire observation window: likely oversizing. Advisory (optimization
+ * category, estimate): low CPU does not guarantee that RAM/network are
+ * equally underutilized, it must be verified before a rightsizing. Requires
+ * `--live-pricing`: without a price per instance type, no saving can be
+ * estimated.
  */
 export class AwsEc2UnderutilizedScanner implements WasteScannerPort {
   readonly kind = 'ec2-underutilized' as const;

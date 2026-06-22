@@ -6,9 +6,10 @@ import {
 } from './table-pricing.adapter';
 
 /**
- * La tabella prezzi built-in, estratta da `prices.json` scartando i campi di
- * metadati (`_comment`, `pricesAsOf`) e tenendo solo le tabelle per regione.
- * Esportata per poterla comporre con le altre fonti (live API, override utente).
+ * The built-in price table, extracted from `prices.json` by discarding the
+ * metadata fields (`_comment`, `pricesAsOf`) and keeping only the per-region
+ * tables. Exported so it can be composed with other sources (live API, user
+ * overrides).
  */
 export const BUILTIN_PRICE_TABLE: PriceTable = Object.fromEntries(
   Object.entries(priceTable as Record<string, unknown>).filter(
@@ -16,12 +17,12 @@ export const BUILTIN_PRICE_TABLE: PriceTable = Object.fromEntries(
   ) as Array<[string, RegionPrices]>,
 );
 
-/** Data (YYYY-MM) di ultima verifica del listino built-in. */
+/** Date (YYYY-MM) the built-in price list was last verified. */
 export const BUILTIN_PRICES_AS_OF: string = priceTable.pricesAsOf;
 
 /**
- * Adapter di pricing basato sul listino statico `prices.json`. È il fallback
- * sempre disponibile quando non sono configurati prezzi live o manuali.
+ * Pricing adapter based on the static `prices.json` price list. It is the
+ * always-available fallback when no live or manual prices are configured.
  */
 export class StaticPriceTableAdapter extends TablePricingAdapter {
   constructor() {

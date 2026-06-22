@@ -12,6 +12,6 @@ export interface PricingPort {
   getEfsStandardPricePerGbMonth(region: AwsRegion): number;
   getDynamoDbRcuPricePerHour(region: AwsRegion): number;
   getDynamoDbWcuPricePerHour(region: AwsRegion): number;
-  /** Data (YYYY-MM) dell'ultima verifica dei prezzi: va mostrata in ogni report. */
+  /** Date (YYYY-MM) prices were last verified: must be shown in every report. */
   getPricesAsOf(): string;
 }

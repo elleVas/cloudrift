@@ -3,8 +3,8 @@ import type { WasteReportMeta } from 'cloud-cost-application';
 import type { WastedResourcesSummary } from 'cloud-cost-domain';
 
 /**
- * Proietta il summary nel WasteReportDto serializzabile: lo stesso contratto
- * dati che un futuro frontend o un endpoint HTTP esporrebbero.
+ * Projects the summary into the serializable WasteReportDto: the same data
+ * contract a future frontend or HTTP endpoint would expose.
  */
 export function formatWasteReportAsJson(
   summary: WastedResourcesSummary,

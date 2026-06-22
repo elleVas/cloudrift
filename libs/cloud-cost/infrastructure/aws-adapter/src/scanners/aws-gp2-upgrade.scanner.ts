@@ -15,12 +15,13 @@ import { AwsAdapterError } from '../errors/aws-adapter.error';
 import { paginate } from '../utils/paginate';
 
 /**
- * Rileva i volumi gp2 *attaccati e in uso* aggiornabili a gp3: stesso baseline
- * di performance, costo inferiore. Non è spreco da cancellare, è un risparmio.
+ * Detects gp2 volumes that are *attached and in use* and upgradable to gp3:
+ * same performance baseline, lower cost. It's not waste to delete, it's a
+ * saving.
  *
- * Prefiltro server-side: `volume-type=gp2` AND `status=in-use`. I gp2 *non*
- * attaccati (available) sono già gestiti dal flusso `ebs-volume`, quindi non
- * c'è doppio conteggio.
+ * Server-side prefilter: `volume-type=gp2` AND `status=in-use`. gp2 volumes
+ * that are *not* attached (available) are already handled by the
+ * `ebs-volume` flow, so there's no double counting.
  */
 export class AwsGp2UpgradeScanner implements WasteScannerPort {
   readonly kind = 'ebs-gp2-upgrade' as const;

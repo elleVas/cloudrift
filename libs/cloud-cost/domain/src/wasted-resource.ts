@@ -25,18 +25,18 @@ export const RESOURCE_KINDS = [
 export type ResourceKind = (typeof RESOURCE_KINDS)[number];
 
 /**
- * Categoria di un finding:
- * - `waste`: denaro speso ora, eliminabile cancellando/staccando la risorsa.
- *   Contribuisce al **totale waste** (l'headline e il gate CI).
- * - `optimization`: opportunità di risparmio mantenendo la risorsa (es. gp2→gp3,
- *   rightsizing). Mostrata a parte, NON nel totale waste.
+ * Category of a finding:
+ * - `waste`: money spent now, eliminable by deleting/detaching the resource.
+ *   Contributes to the **total waste** (the headline and the CI gate).
+ * - `optimization`: savings opportunity while keeping the resource (e.g. gp2→gp3,
+ *   rightsizing). Shown separately, NOT in the waste total.
  */
 export type FindingCategory = 'waste' | 'optimization';
 
 export interface ResourceKindMeta {
   label: string;
   category: FindingCategory;
-  /** Il risparmio è una stima euristica (rightsizing) anziché un valore certo. */
+  /** The saving is a heuristic estimate (rightsizing) rather than a definite value. */
   estimated: boolean;
 }
 
@@ -73,7 +73,7 @@ export const RESOURCE_KIND_META: Record<ResourceKind, ResourceKindMeta> = {
   'elasticache-idle': { label: 'ElastiCache Clusters (idle)', category: 'waste', estimated: false },
 };
 
-/** Etichette leggibili, derivate da RESOURCE_KIND_META (unica fonte). */
+/** Human-readable labels, derived from RESOURCE_KIND_META (single source). */
 export const RESOURCE_KIND_LABELS: Record<ResourceKind, string> = Object.fromEntries(
   RESOURCE_KINDS.map((kind) => [kind, RESOURCE_KIND_META[kind].label]),
 ) as Record<ResourceKind, string>;
@@ -87,10 +87,10 @@ export function isEstimated(kind: ResourceKind): boolean {
 }
 
 /**
- * Contratto comune di ogni risorsa segnalata come spreco.
- * È l'unico tipo che attraversa il confine inbound: coordinatore,
- * summary e formatter dipendono solo da questa interfaccia, mai
- * dalle entità concrete.
+ * Common contract for every resource reported as waste.
+ * It's the only type that crosses the inbound boundary: coordinator,
+ * summary, and formatters depend only on this interface, never
+ * on the concrete entities.
  */
 export interface WastedResource {
   readonly id: string;

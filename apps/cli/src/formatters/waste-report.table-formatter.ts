@@ -44,7 +44,7 @@ export function formatWasteReportAsTable(
 
   renderKindTables('waste');
 
-  // Sezione separata: opportunità di risparmio, NON conteggiate nel totale waste.
+  // Separate section: savings opportunities, NOT counted in the waste total.
   const hasOptimizations = summary.totalOptimizationMonthlyUsd > 0 ||
     RESOURCE_KINDS.some((k) => RESOURCE_KIND_META[k].category === 'optimization' && grouped[k].length > 0);
   if (hasOptimizations) {

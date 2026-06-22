@@ -12,15 +12,15 @@ export interface S3BucketProps {
   creationDate: Date;
   detectedAt: Date;
   tags: Record<string, string>;
-  /** Stima euristica del risparmio mensile abilitando una lifecycle policy. */
+  /** Heuristic estimate of the monthly saving from enabling a lifecycle policy. */
   monthlyCostUsd: number;
 }
 
 /**
- * Bucket S3 senza alcuna lifecycle policy configurata. Categoria
- * `optimization` + `estimated: true`: non sappiamo quanta parte dei dati sia
- * realmente "fredda", quindi il risparmio è una stima euristica da verificare,
- * non un valore certo come per `ebs-gp2-upgrade`.
+ * S3 bucket with no lifecycle policy configured. Category
+ * `optimization` + `estimated: true`: we don't know how much of the data is
+ * actually "cold", so the saving is a heuristic estimate to verify,
+ * not a definite value as for `ebs-gp2-upgrade`.
  */
 export class S3Bucket extends Entity<string> implements WastedResource {
   private readonly props: Readonly<S3BucketProps>;

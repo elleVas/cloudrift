@@ -9,7 +9,7 @@ export interface EfsFileSystemProps {
   accountId: string;
   sizeBytes: number;
   numberOfMountTargets: number;
-  /** Somma di DataReadIOBytes + DataWriteIOBytes nella finestra di osservazione. */
+  /** Sum of DataReadIOBytes + DataWriteIOBytes over the observation window. */
   ioBytesLastWindow: number;
   metricWindowHours: number;
   creationTime: Date;

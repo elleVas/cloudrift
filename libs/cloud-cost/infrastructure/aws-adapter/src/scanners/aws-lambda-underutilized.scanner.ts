@@ -18,10 +18,10 @@ const DEFAULT_WINDOW_HOURS = 168;
 const CLOUDWATCH_CONCURRENCY = 5;
 
 /**
- * Rileva funzioni Lambda con (quasi) zero invocazioni nella finestra
- * osservata. Lambda è pay-per-use: senza invocazioni il costo diretto è $0
- * (Provisioned Concurrency non è rilevata qui) — il valore è igiene/cleanup,
- * non un risparmio in dollari.
+ * Detects Lambda functions with (almost) zero invocations in the observed
+ * window. Lambda is pay-per-use: without invocations the direct cost is $0
+ * (Provisioned Concurrency is not detected here) — the value is
+ * hygiene/cleanup, not a dollar saving.
  */
 export class AwsLambdaUnderutilizedScanner implements WasteScannerPort {
   readonly kind = 'lambda-underutilized' as const;

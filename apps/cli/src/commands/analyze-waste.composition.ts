@@ -58,7 +58,7 @@ import {
 import type { PriceTable } from 'cloud-cost-infrastructure-aws-adapter';
 import { loadConfig, type CloudriftConfig, type ConfigError } from '../config/cloudrift.config';
 
-/** Contesto risolto passato a `createAnalysis` per costruire pricing + scanner. */
+/** Resolved context passed to `createAnalysis` to build pricing + scanners. */
 export interface AnalysisContext {
   regions: AwsRegion[];
   config: CloudriftConfig;
@@ -76,9 +76,9 @@ export interface Analysis {
 }
 
 /**
- * Seam di injection: tutto ciò che tocca AWS passa da qui. Il default compone
- * gli scanner reali; i test CLI iniettano fake per verificare formato, exit
- * code e routing dello stdout senza credenziali AWS.
+ * Injection seam: everything that touches AWS passes through here. The default
+ * composes the real scanners; the CLI tests inject fakes to verify format, exit
+ * code, and stdout routing without AWS credentials.
  */
 export interface AnalyzeDeps {
   loadConfig(cwd: string, explicitPath?: string): Promise<Result<CloudriftConfig, ConfigError>>;
@@ -92,16 +92,16 @@ interface BuiltPricing {
 }
 
 /**
- * Pricing a livelli: listino statico (base) ← AWS Pricing API live (--live-pricing)
- * ← override utente (config.prices, vincono).
+ * Layered pricing: static price list (base) ← live AWS Pricing API (--live-pricing)
+ * ← user overrides (config.prices, take precedence).
  */
 async function buildPricing(ctx: AnalysisContext): Promise<BuiltPricing> {
   let priceTable: PriceTable = BUILTIN_PRICE_TABLE;
   let pricesAsOf = BUILTIN_PRICES_AS_OF;
   let layered = false;
-  // L'EC2 underutilized scanner risolve il prezzo per-instance-type on-demand
-  // dalla stessa istanza di AwsPricingApiAdapter: senza --live-pricing non c'è
-  // un prezzo per instance type, quindi lo scanner non viene registrato.
+  // The EC2 underutilized scanner resolves the on-demand per-instance-type price
+  // from the same AwsPricingApiAdapter instance: without --live-pricing there is
+  // no price per instance type, so the scanner is not registered.
   let livePricingAdapter: AwsPricingApiAdapter | undefined;
 
   if (ctx.livePricing) {
@@ -134,7 +134,7 @@ async function buildPricing(ctx: AnalysisContext): Promise<BuiltPricing> {
   return { pricing, livePricingAdapter };
 }
 
-/** Scanner sempre attivi + scanner advisory gated su --live-pricing. */
+/** Always-on scanners + advisory scanners gated on --live-pricing. */
 function buildScanners(
   ctx: AnalysisContext,
   pricing: PricingPort,
@@ -186,11 +186,11 @@ function buildScanners(
     ),
   ];
 
-  // Gated su --live-pricing: il prezzo per instance type/classe RDS/node type
-  // ElastiCache non rientra nel listino statico (cardinalità troppo alta),
-  // quindi senza prezzi live non c'è risparmio stimabile e gli scanner
-  // restano disattivati (EC2/RDS sono advisory; ElastiCache è spreco certo
-  // una volta noto il prezzo, ma resta comunque gated sulla stessa risorsa).
+  // Gated on --live-pricing: the price per instance type/RDS class/ElastiCache
+  // node type isn't in the static price list (cardinality too high),
+  // so without live prices there's no estimable saving and the scanners
+  // remain disabled (EC2/RDS are advisory; ElastiCache is definite waste
+  // once the price is known, but it's still gated on the same resource).
   if (livePricingAdapter) {
     scanners.push(
       new AwsEc2UnderutilizedScanner(
@@ -217,7 +217,7 @@ function buildScanners(
   return scanners;
 }
 
-/** Composizione reale: pricing a livelli + scanner AWS (uno advisory gated su --live-pricing) + use case generico. */
+/** Real composition: layered pricing + AWS scanners (one advisory, gated on --live-pricing) + generic use case. */
 async function defaultCreateAnalysis(ctx: AnalysisContext): Promise<Analysis> {
   const { pricing, livePricingAdapter } = await buildPricing(ctx);
   const scanners = buildScanners(ctx, pricing, livePricingAdapter);

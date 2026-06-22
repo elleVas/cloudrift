@@ -68,7 +68,7 @@ export class AwsLoadBalancerScanner implements WasteScannerPort {
     }
   }
 
-  // Più preciso del solo "esistono target group": un LB può avere TG configurati ma vuoti.
+  // More precise than just "target groups exist": an LB can have TGs configured but empty.
   private async countRegisteredTargets(
     client: ElasticLoadBalancingV2Client,
     lb: AwsLoadBalancer,

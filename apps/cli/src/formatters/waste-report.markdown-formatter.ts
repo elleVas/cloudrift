@@ -12,7 +12,7 @@ import { REPORT_CONTACT, REPORT_DISCLAIMER } from 'cloud-cost-application';
 import { presenterFor } from './resource-presenters';
 
 export interface MarkdownReportOptions {
-  /** Se valorizzata, il report mostra se il TOTALE WASTE supera la soglia (CI). */
+  /** If set, the report shows whether the TOTAL WASTE exceeds the threshold (CI). */
   costAlertThresholdUsd?: number;
 }
 
@@ -22,7 +22,7 @@ function money(n: number): string {
   return `$${n.toFixed(2)}`;
 }
 
-/** Neutralizza i caratteri che romperebbero una cella di tabella markdown. */
+/** Neutralizes characters that would break a markdown table cell. */
 function esc(cell: string): string {
   return cell
     .replace(/\|/g, '\\|')
@@ -39,9 +39,9 @@ function footer(meta: { pricesAsOf: string }): string {
 }
 
 /**
- * Render Markdown pensato per i commenti automatici sulle Pull Request.
- * Headline e soglia CI si basano sul **totale waste**; le opportunità di
- * ottimizzazione (gp2→gp3, rightsizing) sono in una sezione a parte.
+ * Markdown render designed for automated comments on Pull Requests.
+ * The headline and CI threshold are based on the **total waste**; the
+ * optimization opportunities (gp2→gp3, rightsizing) are in a separate section.
  */
 export function formatWasteReportAsMarkdown(
   summary: WastedResourcesSummary,
@@ -82,7 +82,7 @@ export function formatWasteReportAsMarkdown(
     return lines.join('\n');
   }
 
-  // Headline: solo waste.
+  // Headline: waste only.
   lines.push(
     `**💸 ${money(waste)}/month** of waste ` +
       `(**${money(waste * 12)}/year**) across ${countOf('waste')} resource(s).`,
@@ -97,7 +97,7 @@ export function formatWasteReportAsMarkdown(
   }
   lines.push('');
 
-  // Breakdown waste.
+  // Waste breakdown.
   lines.push('### Waste breakdown');
   lines.push('');
   lines.push('| Resource type | Count | $/month |');
@@ -118,7 +118,7 @@ export function formatWasteReportAsMarkdown(
 
   renderDetails('waste');
 
-  // Sezione optimization (a parte, non nel totale waste).
+  // Optimization section (separate, not in the waste total).
   if (countOf('optimization') > 0) {
     lines.push('### Optimization opportunities');
     lines.push('');
@@ -146,7 +146,7 @@ export function formatWasteReportAsMarkdown(
     renderDetails('optimization');
   }
 
-  // Raccomandazioni principali (ordinate per costo decrescente, tutte le categorie).
+  // Top recommendations (sorted by descending cost, all categories).
   const recommendations = RESOURCE_KINDS.flatMap((kind) =>
     grouped[kind].map((finding) => ({
       text: presenterFor(kind).recommend(finding),

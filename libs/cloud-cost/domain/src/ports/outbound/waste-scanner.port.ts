@@ -3,10 +3,10 @@ import type { ResourceKind, WastedResource } from '../../wasted-resource';
 import type { AwsRegion } from '../../value-objects/aws-region.value-object';
 
 /**
- * Porta outbound unica per la rilevazione dello spreco: ogni tipo di
- * risorsa è un'implementazione (plugin) di questa porta. Il contratto
- * richiede che lo scanner restituisca solo risorse già confermate come
- * spreco dalla relativa waste policy di dominio.
+ * Single outbound port for waste detection: each resource type is
+ * an implementation (plugin) of this port. The contract
+ * requires the scanner to return only resources already confirmed as
+ * waste by the corresponding domain waste policy.
  */
 export interface WasteScannerPort {
   readonly kind: ResourceKind;

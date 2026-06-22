@@ -171,6 +171,6 @@ describe('AwsEbsVolumeScanner', () => {
   });
 });
 
-// Garantisce che il mock pricing resti allineato al PricingPort reale.
+// Ensures the mock pricing stays aligned with the real PricingPort.
 const _typecheck: PricingPort = mockPricing;
 void _typecheck;

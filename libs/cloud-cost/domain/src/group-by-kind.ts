@@ -19,8 +19,8 @@ import type { OverprovisionedDynamoDbTable } from './entities/overprovisioned-dy
 import type { IdleElastiCacheCluster } from './entities/idle-elasticache-cluster.entity';
 
 /**
- * Mappa kind → entità concreta. Permette ai consumer (formatter, frontend)
- * di recuperare il tipo specifico a partire dal kind senza cast manuali.
+ * Map kind → concrete entity. Allows consumers (formatters, frontend)
+ * to retrieve the specific type from the kind without manual casts.
  */
 export interface ResourceKindMap {
   'ebs-volume': EbsVolume;

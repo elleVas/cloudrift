@@ -1,20 +1,20 @@
 import type { PricingPort, AwsRegion } from 'cloud-cost-domain';
 
-/** Prezzi di una singola regione: chiave (es. "ebs-gp3", "nat-gateway") → USD. */
+/** Prices for a single region: key (e.g. "ebs-gp3", "nat-gateway") → USD. */
 export type RegionPrices = Record<string, number>;
 
 /**
- * Tabella prezzi: `regione → prezzi`, con una chiave speciale `default` usata
- * come fallback per le regioni non elencate. È la forma condivisa da tutte le
- * fonti di prezzo (listino statico, AWS Pricing API, override dell'utente),
- * così le sorgenti si compongono con un semplice merge.
+ * Price table: `region → prices`, with a special `default` key used as a
+ * fallback for regions not listed. It's the shared shape used by all price
+ * sources (static price list, AWS Pricing API, user overrides), so the
+ * sources can be composed with a simple merge.
  */
 export type PriceTable = Record<string, RegionPrices>;
 
 /**
- * Fonde due tabelle prezzi a livello di (regione, chiave): i valori di
- * `overlay` vincono su quelli di `base`. Usato per stratificare le fonti:
- * statico (base) ← live API ← override dell'utente (vince).
+ * Merges two price tables at the (region, key) level: `overlay` values win
+ * over `base` ones. Used to layer the sources: static (base) ← live API ←
+ * user override (wins).
  */
 export function mergePriceTables(base: PriceTable, overlay: PriceTable): PriceTable {
   const result: PriceTable = {};
@@ -25,9 +25,9 @@ export function mergePriceTables(base: PriceTable, overlay: PriceTable): PriceTa
 }
 
 /**
- * Adapter di pricing che legge da una `PriceTable` in memoria. I getter sono
- * sincroni: qualunque fonte asincrona (AWS Pricing API) deve prima
- * materializzare la propria tabella, poi comporla qui.
+ * Pricing adapter that reads from an in-memory `PriceTable`. The getters are
+ * synchronous: any asynchronous source (AWS Pricing API) must first
+ * materialize its own table, then compose it here.
  */
 export class TablePricingAdapter implements PricingPort {
   constructor(

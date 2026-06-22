@@ -10,9 +10,9 @@ export interface NatGatewayProps {
   vpcId: string;
   createTime: Date;
   detectedAt: Date;
-  /** Bytes inviati verso la destinazione nella finestra di osservazione. */
+  /** Bytes sent to destination over the observation window. */
   bytesOutLastWindow: number;
-  /** Ampiezza della finestra di osservazione in ore. */
+  /** Width of the observation window, in hours. */
   metricWindowHours: number;
   tags: Record<string, string>;
   monthlyCostUsd: number;

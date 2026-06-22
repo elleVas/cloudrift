@@ -21,7 +21,7 @@ import type { IdleElastiCacheCluster } from '../entities/idle-elasticache-cluste
 export class EbsVolumeWastePolicy extends WastePolicy<EbsVolume> {
   protected judge(volume: EbsVolume, now: Date): WasteVerdict {
     if (!volume.isUnattached()) return notWaste('volume is attached');
-    // AWS non espone la data di detach: l'età del volume è l'unico proxy disponibile.
+    // AWS does not expose the detach date: the volume's age is the only available proxy.
     if (this.isWithinGracePeriod(volume.createTime, now)) {
       return notWaste(`created less than ${this.minAgeDays}d ago`);
     }
@@ -31,15 +31,15 @@ export class EbsVolumeWastePolicy extends WastePolicy<EbsVolume> {
 
 export class ElasticIpWastePolicy extends WastePolicy<ElasticIp> {
   protected judge(ip: ElasticIp): WasteVerdict {
-    // Gli Elastic IP non hanno data di creazione: nessun periodo di grazia applicabile.
+    // Elastic IPs have no creation date: no grace period applicable.
     return ip.isUnassociated() ? waste('unassociated') : notWaste('associated');
   }
 }
 
 export class RdsInstanceWastePolicy extends WastePolicy<RdsInstance> {
   protected judge(db: RdsInstance): WasteVerdict {
-    // AWS riavvia automaticamente un'istanza stopped dopo 7 giorni: se la vediamo
-    // stopped è per definizione recente, quindi il periodo di grazia non si applica.
+    // AWS automatically restarts a stopped instance after 7 days: if we see it
+    // stopped it is by definition recent, so the grace period does not apply.
     return db.isStopped()
       ? waste('stopped (storage and backups still billed)')
       : notWaste('not stopped');
@@ -71,7 +71,7 @@ export class EbsSnapshotWastePolicy extends WastePolicy<EbsSnapshot> {
   protected judge(snapshot: EbsSnapshot, now: Date): WasteVerdict {
     if (!snapshot.isOrphan()) return notWaste('source volume still exists');
     if (snapshot.boundToAmiId) {
-      // Uno snapshot referenziato da un'AMI registrata non è cancellabile.
+      // A snapshot referenced by a registered AMI is not deletable.
       return notWaste(`in use by AMI ${snapshot.boundToAmiId}`);
     }
     if (this.isWithinGracePeriod(snapshot.startTime, now)) {
@@ -84,8 +84,8 @@ export class EbsSnapshotWastePolicy extends WastePolicy<EbsSnapshot> {
 export class NatGatewayWastePolicy extends WastePolicy<NatGateway> {
   protected judge(gateway: NatGateway, now: Date): WasteVerdict {
     if (!gateway.isIdle()) return notWaste('has outbound traffic');
-    // Un gateway più giovane del periodo di grazia potrebbe semplicemente
-    // non aver ancora ricevuto traffico (es. ambiente appena creato).
+    // A gateway younger than the grace period might simply
+    // not have received traffic yet (e.g. a newly created environment).
     if (this.isWithinGracePeriod(gateway.createTime, now)) {
       return notWaste(`created less than ${this.minAgeDays}d ago`);
     }
@@ -94,14 +94,14 @@ export class NatGatewayWastePolicy extends WastePolicy<NatGateway> {
 }
 
 export class EbsIdlePolicy extends WastePolicy<IdleEbsVolume> {
-  /** maxOps: soglia di operazioni I/O totali sotto la quale il volume è idle. */
+  /** maxOps: threshold of total I/O operations below which the volume is idle. */
   constructor(options: WastePolicyOptions = {}, private readonly maxOps = 0) {
     super(options);
   }
 
   protected judge(volume: IdleEbsVolume, now: Date): WasteVerdict {
     if (volume.totalOps() > this.maxOps) return notWaste('has I/O activity');
-    // Un volume appena creato potrebbe non aver ancora ricevuto I/O.
+    // A newly created volume might not have received I/O yet.
     if (this.isWithinGracePeriod(volume.createTime, now)) {
       return notWaste(`created less than ${this.minAgeDays}d ago`);
     }
@@ -110,14 +110,14 @@ export class EbsIdlePolicy extends WastePolicy<IdleEbsVolume> {
 }
 
 export class Ec2UnderutilizedPolicy extends WastePolicy<UnderutilizedEc2Instance> {
-  /** maxCpuPercent: soglia di CPU massima sotto cui l'istanza è sottoutilizzata. */
+  /** maxCpuPercent: maximum CPU threshold below which the instance is underutilized. */
   constructor(options: WastePolicyOptions = {}, private readonly maxCpuPercent = 5) {
     super(options);
   }
 
   protected judge(instance: UnderutilizedEc2Instance, now: Date): WasteVerdict {
     if (instance.maxCpuPercent >= this.maxCpuPercent) return notWaste('CPU above threshold');
-    // Un'istanza appena lanciata potrebbe non aver ancora accumulato traffico reale.
+    // A just-launched instance might not have accumulated real traffic yet.
     if (this.isWithinGracePeriod(instance.launchTime, now)) {
       return notWaste(`launched less than ${this.minAgeDays}d ago`);
     }
@@ -126,14 +126,14 @@ export class Ec2UnderutilizedPolicy extends WastePolicy<UnderutilizedEc2Instance
 }
 
 export class RdsUnderutilizedPolicy extends WastePolicy<RdsUnderutilizedInstance> {
-  /** maxCpuPercent: soglia di CPU massima sotto cui l'istanza RDS è sottoutilizzata. */
+  /** maxCpuPercent: maximum CPU threshold below which the RDS instance is underutilized. */
   constructor(options: WastePolicyOptions = {}, private readonly maxCpuPercent = 5) {
     super(options);
   }
 
   protected judge(instance: RdsUnderutilizedInstance, now: Date): WasteVerdict {
     if (instance.maxCpuPercent >= this.maxCpuPercent) return notWaste('CPU above threshold');
-    // Un'istanza appena creata potrebbe non aver ancora accumulato traffico reale.
+    // A just-created instance might not have accumulated real traffic yet.
     if (this.isWithinGracePeriod(instance.instanceCreateTime, now)) {
       return notWaste(`created less than ${this.minAgeDays}d ago`);
     }
@@ -153,7 +153,7 @@ export class LogGroupWastePolicy extends WastePolicy<LogGroup> {
 
 export class OrphanedEniWastePolicy extends WastePolicy<OrphanedEni> {
   protected judge(eni: OrphanedEni): WasteVerdict {
-    // Le ENI non espongono una data di creazione: nessun periodo di grazia applicabile.
+    // ENIs do not expose a creation date: no grace period applicable.
     return eni.isOrphaned() ? waste('not attached') : notWaste('attached');
   }
 }
@@ -169,14 +169,14 @@ export class S3NoLifecyclePolicy extends WastePolicy<S3Bucket> {
 }
 
 export class LambdaUnderutilizedPolicy extends WastePolicy<UnderutilizedLambdaFunction> {
-  /** maxInvocations: soglia di invocazioni massime sotto cui la funzione è sottoutilizzata. */
+  /** maxInvocations: maximum invocations threshold below which the function is underutilized. */
   constructor(options: WastePolicyOptions = {}, private readonly maxInvocations = 0) {
     super(options);
   }
 
   protected judge(fn: UnderutilizedLambdaFunction, now: Date): WasteVerdict {
     if (fn.invocationsLastWindow > this.maxInvocations) return notWaste('invocations above threshold');
-    // Una funzione appena deployata potrebbe non aver ancora ricevuto traffico reale.
+    // A just-deployed function might not have received real traffic yet.
     if (this.isWithinGracePeriod(fn.lastModified, now)) {
       return notWaste(`last modified less than ${this.minAgeDays}d ago`);
     }
@@ -185,7 +185,7 @@ export class LambdaUnderutilizedPolicy extends WastePolicy<UnderutilizedLambdaFu
 }
 
 export class EfsUnusedPolicy extends WastePolicy<EfsFileSystem> {
-  /** maxIoBytes: soglia di I/O totali sotto cui un file system montato è idle. */
+  /** maxIoBytes: total I/O threshold below which a mounted file system is idle. */
   constructor(options: WastePolicyOptions = {}, private readonly maxIoBytes = 0) {
     super(options);
   }
@@ -201,7 +201,7 @@ export class EfsUnusedPolicy extends WastePolicy<EfsFileSystem> {
 }
 
 export class DynamoDbOverprovisionedPolicy extends WastePolicy<OverprovisionedDynamoDbTable> {
-  /** maxUtilizationPercent: soglia di utilizzo massimo (read e write) sotto cui la tabella è overprovisioned. */
+  /** maxUtilizationPercent: maximum utilization threshold (read and write) below which the table is overprovisioned. */
   constructor(options: WastePolicyOptions = {}, private readonly maxUtilizationPercent = 10) {
     super(options);
   }
@@ -213,7 +213,7 @@ export class DynamoDbOverprovisionedPolicy extends WastePolicy<OverprovisionedDy
     ) {
       return notWaste('utilization above threshold');
     }
-    // Una tabella appena creata potrebbe non aver ancora accumulato traffico reale.
+    // A just-created table might not have accumulated real traffic yet.
     if (this.isWithinGracePeriod(table.creationDateTime, now)) {
       return notWaste(`created less than ${this.minAgeDays}d ago`);
     }
@@ -226,7 +226,7 @@ export class DynamoDbOverprovisionedPolicy extends WastePolicy<OverprovisionedDy
 export class ElastiCacheIdlePolicy extends WastePolicy<IdleElastiCacheCluster> {
   protected judge(cluster: IdleElastiCacheCluster, now: Date): WasteVerdict {
     if (!cluster.isIdle()) return notWaste('has client connections');
-    // Un cluster appena creato potrebbe non aver ancora ricevuto connessioni.
+    // A just-created cluster might not have received connections yet.
     if (this.isWithinGracePeriod(cluster.createTime, now)) {
       return notWaste(`created less than ${this.minAgeDays}d ago`);
     }
@@ -236,9 +236,9 @@ export class ElastiCacheIdlePolicy extends WastePolicy<IdleElastiCacheCluster> {
 
 export class Gp2UpgradePolicy extends WastePolicy<Gp2Volume> {
   protected judge(volume: Gp2Volume, now: Date): WasteVerdict {
-    // Il prefiltro server-side garantisce già volume-type=gp2 in-use;
-    // applichiamo solo il periodo di grazia per non segnalare risorse
-    // appena create (infrastruttura ancora in fase di setup).
+    // The server-side prefilter already guarantees volume-type=gp2 in-use;
+    // we only apply the grace period so as not to flag resources that
+    // were just created (infrastructure still being set up).
     if (this.isWithinGracePeriod(volume.createTime, now)) {
       return notWaste(`created less than ${this.minAgeDays}d ago`);
     }

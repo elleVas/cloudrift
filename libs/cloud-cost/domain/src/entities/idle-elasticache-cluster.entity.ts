@@ -9,7 +9,7 @@ export interface IdleElastiCacheClusterProps {
   accountId: string;
   cacheNodeType: string;
   numCacheNodes: number;
-  /** Somma di CurrConnections nella finestra di osservazione. */
+  /** Sum of CurrConnections over the observation window. */
   connectionsLastWindow: number;
   metricWindowHours: number;
   createTime: Date;

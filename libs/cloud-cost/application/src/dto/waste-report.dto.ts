@@ -7,13 +7,13 @@ import type {
 import { REPORT_CONTACT, REPORT_DISCLAIMER } from '../constants/report-disclaimer';
 
 /**
- * Proiezione serializzabile (JSON-safe) del summary: è il contratto dati
- * per qualunque presentazione — CLI, PDF, API HTTP o frontend. Non contiene
- * classi né Date: solo primitivi e stringhe ISO.
+ * Serializable (JSON-safe) projection of the summary: it's the data contract
+ * for any presentation — CLI, PDF, HTTP API, or frontend. It contains no
+ * classes or Dates: only primitives and ISO strings.
  *
- * I finding sono divisi in due categorie: `waste` (spreco, conta nel totale
- * waste / gate CI) e `optimization` (opportunità di risparmio, a parte). Le
- * voci `estimated` sono stime (rightsizing) da verificare.
+ * Findings are split into two categories: `waste` (waste, counts toward the
+ * waste total / CI gate) and `optimization` (savings opportunity, separate). The
+ * `estimated` entries are estimates (rightsizing) to be verified.
  */
 export interface WasteReportDto {
   meta: {

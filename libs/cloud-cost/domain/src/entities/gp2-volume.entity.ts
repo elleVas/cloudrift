@@ -4,13 +4,13 @@ import { CostEstimate } from '../value-objects/cost-estimate.value-object';
 import type { WastedResource } from '../wasted-resource';
 
 /**
- * Volume EBS gp2 *attaccato e in uso*, candidato all'upgrade a gp3.
- * Non è spreco da cancellare: è un'ottimizzazione a costo zero (gp3 ha lo
- * stesso baseline di performance ma costa meno). `monthlyCostUsd` qui
- * rappresenta il *risparmio* mensile, non il costo della risorsa.
+ * gp2 EBS volume *attached and in use*, candidate for upgrade to gp3.
+ * It is not waste to delete: it's a zero-cost optimization (gp3 has the
+ * same performance baseline but costs less). `monthlyCostUsd` here
+ * represents the monthly *saving*, not the cost of the resource.
  *
- * I volumi gp2 *non* attaccati (state=available) sono gestiti come spreco
- * dal flusso `ebs-volume`, quindi non vengono mai conteggiati due volte.
+ * gp2 volumes that are *not* attached (state=available) are handled as waste
+ * by the `ebs-volume` flow, so they are never counted twice.
  */
 export interface Gp2VolumeProps {
   volumeId: string;
@@ -20,7 +20,7 @@ export interface Gp2VolumeProps {
   createTime: Date;
   detectedAt: Date;
   tags: Record<string, string>;
-  /** Risparmio mensile stimato passando da gp2 a gp3, in USD. */
+  /** Estimated monthly saving from switching from gp2 to gp3, in USD. */
   monthlyCostUsd: number;
 }
 

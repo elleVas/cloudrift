@@ -9,23 +9,23 @@ export interface OverprovisionedDynamoDbTableProps {
   accountId: string;
   readCapacityUnits: number;
   writeCapacityUnits: number;
-  /** Somma di ConsumedReadCapacityUnits nella finestra di osservazione. */
+  /** Sum of ConsumedReadCapacityUnits over the observation window. */
   consumedReadCapacityUnits: number;
-  /** Somma di ConsumedWriteCapacityUnits nella finestra di osservazione. */
+  /** Sum of ConsumedWriteCapacityUnits over the observation window. */
   consumedWriteCapacityUnits: number;
   windowDays: number;
   creationDateTime: Date;
   detectedAt: Date;
   tags: Record<string, string>;
-  /** Risparmio mensile stimato da un downsize della capacità provisioned. */
+  /** Estimated monthly saving from a downsize of the provisioned capacity. */
   monthlyCostUsd: number;
 }
 
 /**
- * Tabella DynamoDB in modalità PROVISIONED con capacità RCU/WCU consumata
- * ben sotto quella allocata. Advisory (categoria optimization, stima): la
- * CPU bassa non garantisce che il traffico sia sempre basso (picchi non
- * coperti dalla finestra), va verificato prima di un downsize.
+ * DynamoDB table in PROVISIONED mode with consumed RCU/WCU capacity
+ * well below the allocated amount. Advisory (optimization category, estimate): low
+ * CPU does not guarantee traffic is always low (spikes not
+ * covered by the window), must be verified before a downsize.
  */
 export class OverprovisionedDynamoDbTable extends Entity<string> implements WastedResource {
   private readonly props: Readonly<OverprovisionedDynamoDbTableProps>;

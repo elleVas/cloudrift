@@ -6,13 +6,13 @@ export interface WasteVerdict {
 }
 
 export interface WastePolicyOptions {
-  /** Età minima (in giorni) prima che una risorsa possa essere considerata spreco. */
+  /** Minimum age (in days) before a resource can be considered waste. */
   minAgeDays?: number;
-  /** Tag che esclude esplicitamente una risorsa dal report. */
+  /** Tag that explicitly excludes a resource from the report. */
   ignoreTag?: string;
   /**
-   * Coppie tag=valore che escludono una risorsa dal report
-   * (es. { Environment: 'Production' }). Il match è esatto, case-sensitive.
+   * tag=value pairs that exclude a resource from the report
+   * (e.g. { Environment: 'Production' }). The match is exact, case-sensitive.
    */
   excludeTagValues?: Record<string, string>;
 }
@@ -31,9 +31,9 @@ export function notWaste(reason: string): WasteVerdict {
 }
 
 /**
- * Decide se una risorsa candidata è davvero spreco. Gli scanner raccolgono
- * candidati (un sovrainsieme); la policy applica le regole di business:
- * tag di esclusione, periodo di grazia e i criteri specifici per tipo.
+ * Decides whether a candidate resource is really waste. Scanners collect
+ * candidates (a superset); the policy applies the business rules:
+ * exclusion tag, grace period, and the type-specific criteria.
  */
 export abstract class WastePolicy<T extends WastedResource> {
   protected readonly minAgeDays: number;

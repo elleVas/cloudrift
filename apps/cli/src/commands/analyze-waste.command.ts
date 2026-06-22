@@ -36,7 +36,7 @@ function fail(message: string): void {
   process.exitCode = 1;
 }
 
-/** Periodo di grazia: CLI > config > default. */
+/** Grace period: CLI > config > default. */
 function resolveMinAgeDays(
   options: AnalyzeWasteOptions,
   config: CloudriftConfig,
@@ -53,7 +53,7 @@ function resolveMinAgeDays(
   return Result.ok(minAgeDays);
 }
 
-/** Regioni richieste: parse Result-based (niente throw su input), poi esclusione da config. */
+/** Requested regions: Result-based parse (no throw on input), then exclusion from config. */
 function resolveRegions(
   options: AnalyzeWasteOptions,
   config: CloudriftConfig,
@@ -80,7 +80,7 @@ function resolveRegions(
   return Result.ok({ regions, skipped });
 }
 
-/** --json / --pdf sono artefatti su file, indipendenti dal formato di stdout. */
+/** --json / --pdf are file artifacts, independent of the stdout format. */
 async function writeArtifacts(
   result: WastedResourcesSummary,
   meta: WasteReportMeta,
@@ -109,9 +109,9 @@ async function writeArtifacts(
 }
 
 /**
- * Soglia di costo per le pipeline: exit code 2 quando il totale WASTE la supera
- * (le opportunità di ottimizzazione, stimate, non concorrono al gate).
- * Il messaggio va su stderr per non sporcare l'output machine-readable su stdout.
+ * Cost threshold for pipelines: exit code 2 when the total WASTE exceeds it
+ * (optimization opportunities, being estimates, do not count toward the gate).
+ * The message goes to stderr so it doesn't pollute the machine-readable output on stdout.
  */
 function applyCostGate(summary: WastedResourcesSummary, config: CloudriftConfig): void {
   if (
@@ -130,12 +130,12 @@ function applyCostGate(summary: WastedResourcesSummary, config: CloudriftConfig)
 }
 
 /**
- * Composition root del comando `analyze`. Risolve opzioni e config, delega a
- * `deps.createAnalysis` la costruzione di pricing + scanner (l'unico punto che
- * tocca AWS, definito in `analyze-waste.composition.ts`), poi renderizza, scrive
- * gli artefatti e applica il gate di soglia.
+ * Composition root for the `analyze` command. Resolves options and config, delegates to
+ * `deps.createAnalysis` the construction of pricing + scanners (the only point that
+ * touches AWS, defined in `analyze-waste.composition.ts`), then renders, writes
+ * the artifacts, and applies the threshold gate.
  *
- * Precedenza dei parametri: flag CLI > file di config > default nel codice.
+ * Parameter precedence: CLI flags > config file > defaults in code.
  */
 export async function analyzeWasteCommand(
   options: AnalyzeWasteOptions,
@@ -145,8 +145,8 @@ export async function analyzeWasteCommand(
   if (!OUTPUT_FORMATS.includes(format)) {
     return fail(`--format must be one of: ${OUTPUT_FORMATS.join(', ')}. Got "${options.format}".`);
   }
-  // In modalità machine-readable lo stdout deve contenere SOLO il report:
-  // il chrome umano (banner, conferme) viene instradato su stderr.
+  // In machine-readable mode stdout must contain ONLY the report:
+  // human chrome (banner, confirmations) is routed to stderr.
   const quietStdout = format !== 'table';
   const info = quietStdout
     ? (msg: string) => console.error(msg)
@@ -211,7 +211,7 @@ export async function analyzeWasteCommand(
     pricesAsOf,
   };
 
-  // Il report scelto va SEMPRE su stdout (così è componibile in pipeline:
+  // The chosen report ALWAYS goes to stdout (so it's pipeline-composable:
   // `--format json | jq`, `--format markdown >> $GITHUB_STEP_SUMMARY`).
   let rendered: string;
   if (format === 'json') {

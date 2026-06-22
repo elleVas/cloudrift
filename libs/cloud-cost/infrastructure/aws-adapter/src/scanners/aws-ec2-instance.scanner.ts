@@ -19,8 +19,8 @@ import { Ec2Instance, Ec2InstanceWastePolicy } from 'cloud-cost-domain';
 import { AwsAdapterError } from '../errors/aws-adapter.error';
 import { paginate } from '../utils/paginate';
 
-// AWS riporta il momento dello stop solo dentro StateTransitionReason,
-// come stringa "User initiated (2026-06-01 12:34:56 GMT)".
+// AWS only reports the stop time inside StateTransitionReason,
+// as a string like "User initiated (2026-06-01 12:34:56 GMT)".
 function parseStoppedSince(stateTransitionReason: string | undefined): Date | undefined {
   const match = stateTransitionReason?.match(/\((.+) GMT\)/);
   if (!match) return undefined;
@@ -101,7 +101,7 @@ export class AwsEc2InstanceScanner implements WasteScannerPort {
     }
   }
 
-  // DescribeInstances non riporta dimensione/tipo dei volumi: serve una seconda chiamata.
+  // DescribeInstances doesn't report volume size/type: a second call is needed.
   private async resolveVolumes(
     client: EC2Client,
     rawInstances: Instance[],

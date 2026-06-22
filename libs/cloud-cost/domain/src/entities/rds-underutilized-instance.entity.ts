@@ -4,12 +4,12 @@ import { CostEstimate } from '../value-objects/cost-estimate.value-object';
 import type { WastedResource } from '../wasted-resource';
 
 /**
- * Istanza RDS *available* con CPU massima sotto soglia sull'intera finestra di
- * osservazione: probabile sovradimensionamento. Advisory, non spreco certo —
- * CPU bassa non garantisce che storage I/O o connessioni siano altrettanto
- * sottoutilizzati, va verificato prima di un rightsizing.
- * `monthlyCostUsd` qui è il *risparmio* stimato da un downsize di un tier,
- * non il costo dell'istanza.
+ * RDS instance that is *available* with maximum CPU below threshold over the entire
+ * observation window: likely oversized. Advisory, not definite waste —
+ * low CPU does not guarantee storage I/O or connections are equally
+ * underutilized, must be verified before a rightsizing.
+ * `monthlyCostUsd` here is the *saving* estimated from a tier downsize,
+ * not the cost of the instance.
  */
 export interface RdsUnderutilizedInstanceProps {
   dbInstanceIdentifier: string;
