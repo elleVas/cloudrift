@@ -149,7 +149,17 @@ function drawSummaryPage(
     .text(REPORT_DISCLAIMER, MARGIN, y, { width: CONTENT_W });
   y += doc.heightOfString(REPORT_DISCLAIMER, { width: CONTENT_W }) + 6;
   doc.font('Helvetica').fontSize(7).fillColor(C.muted)
-    .text(`Contact: ${REPORT_CONTACT.email} · ${REPORT_CONTACT.linkedin}`, MARGIN, y, { lineBreak: false });
+    .text('Contact: ', MARGIN, y, { continued: true, lineBreak: false })
+    .fillColor(C.primary)
+    .text(REPORT_CONTACT.email, {
+      continued: true,
+      link: `mailto:${REPORT_CONTACT.email}`,
+      underline: true,
+    })
+    .fillColor(C.muted)
+    .text(' · ', { continued: true, lineBreak: false })
+    .fillColor(C.primary)
+    .text('LinkedIn', { link: REPORT_CONTACT.linkedin, underline: true });
 }
 
 function drawMetricBox(

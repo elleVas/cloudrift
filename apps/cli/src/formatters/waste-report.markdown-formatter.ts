@@ -34,7 +34,8 @@ function footer(meta: { pricesAsOf: string }): string {
   return (
     `---\n<sub>Estimates use AWS list prices as of ${meta.pricesAsOf}; actual billing may differ.</sub>\n\n` +
     `<sub>${REPORT_DISCLAIMER}</sub>\n\n` +
-    `<sub>Contact: ${REPORT_CONTACT.email} · [LinkedIn](${REPORT_CONTACT.linkedin})</sub>`
+    `<sub>Contact: ${REPORT_CONTACT.email} · ` +
+      `<a href="${REPORT_CONTACT.linkedin}" target="_blank" rel="noopener noreferrer">LinkedIn</a></sub>`
   );
 }
 
