@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { DomainError, Result, ValueObject } from 'shared-kernel';
 
 interface AwsRegionProps {

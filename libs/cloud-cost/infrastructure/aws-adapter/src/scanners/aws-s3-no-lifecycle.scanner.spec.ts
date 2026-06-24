@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { S3Client, ListBucketsCommand } from '@aws-sdk/client-s3';
 import { CloudWatchClient, GetMetricStatisticsCommand } from '@aws-sdk/client-cloudwatch';
 import { AwsS3NoLifecycleScanner } from './aws-s3-no-lifecycle.scanner';

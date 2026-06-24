@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { ElastiCacheClient } from '@aws-sdk/client-elasticache';
 import { CloudWatchClient, GetMetricStatisticsCommand } from '@aws-sdk/client-cloudwatch';
 import { AwsElastiCacheIdleScanner } from './aws-elasticache-idle.scanner';

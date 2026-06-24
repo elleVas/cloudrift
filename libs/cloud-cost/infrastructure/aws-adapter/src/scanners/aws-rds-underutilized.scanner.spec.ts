@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { RDSClient, DescribeDBInstancesCommand } from '@aws-sdk/client-rds';
 import {
   CloudWatchClient,

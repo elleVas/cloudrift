@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { DomainError } from './domain.error';
 
 class ConcreteError extends DomainError {

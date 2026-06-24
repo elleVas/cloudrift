@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 export abstract class ValueObject<T extends object> {
   constructor(protected readonly props: Readonly<T>) {}
 

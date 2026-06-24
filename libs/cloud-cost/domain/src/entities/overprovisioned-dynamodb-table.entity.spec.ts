@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { OverprovisionedDynamoDbTable } from './overprovisioned-dynamodb-table.entity';
 import type { OverprovisionedDynamoDbTableProps } from './overprovisioned-dynamodb-table.entity';
 import { AwsRegion } from '../value-objects/aws-region.value-object';

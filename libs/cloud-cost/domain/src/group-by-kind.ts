@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { RESOURCE_KINDS, type ResourceKind, type WastedResource } from './wasted-resource';
 import type { EbsVolume } from './entities/ebs-volume.entity';
 import type { ElasticIp } from './entities/elastic-ip.entity';

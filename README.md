@@ -168,7 +168,7 @@ node apps/cli/dist/main.js analyze -r us-east-1 eu-west-1 ap-southeast-1
 # Disable the grace period (report resources of any age)
 node apps/cli/dist/main.js analyze --min-age-days 0
 
-# Export a PDF report with auto-generated filename (cloudrift-report-YYYY-MM-DD.pdf)
+# Export a PDF report with an auto-generated filename (reports/AWS_report_YYYY_MM_DD.pdf)
 node apps/cli/dist/main.js analyze --pdf
 
 # Machine-readable output (e.g. to feed a dashboard or CI check)
@@ -192,7 +192,7 @@ The `--pdf` flag generates a PDF alongside the normal console output. The report
 
 ```sh
 # After running with --pdf you will see:
-#   Generating PDF report... saved to /path/to/cloudrift-report-2026-06-09.pdf
+#   Generating PDF report... saved to /path/to/reports/AWS_report_2026_06_09.pdf
 ```
 
 **Partial failure handling:**
@@ -444,6 +444,10 @@ See [docs/en/adding-a-resource.md](./docs/en/adding-a-resource.md) for a complet
 
 No changes to `AnalyzeCloudWasteUseCase`, the summary, or the report DTO are needed.
 
+## License
+
+Apache License 2.0 — see [LICENSE.md](./LICENSE.md). Free to use, modify, and distribute, including commercially.
+
 ## 🇮🇹 Italiano
 
 **cloudrift** è uno strumento da riga di comando che scansiona account AWS alla ricerca di risorse inutilizzate e stima il costo mensile di eventuali sprechi.
@@ -604,7 +608,7 @@ node apps/cli/dist/main.js analyze -r us-east-1 eu-west-1 ap-southeast-1
 # Disattiva il periodo di grazia (segnala risorse di qualsiasi età)
 node apps/cli/dist/main.js analyze --min-age-days 0
 
-# Esporta un report PDF con nome automatico (cloudrift-report-YYYY-MM-DD.pdf)
+# Esporta un report PDF con nome automatico (reports/AWS_report_YYYY_MM_DD.pdf)
 node apps/cli/dist/main.js analyze --pdf
 
 # Output machine-readable (es. per una dashboard o un check CI)
@@ -628,7 +632,7 @@ Il flag `--pdf` genera un PDF in aggiunta all'output console. Il report contiene
 
 ```sh
 # Dopo aver eseguito con --pdf vedrai:
-#   Generating PDF report... saved to /path/to/cloudrift-report-2026-06-09.pdf
+#   Generating PDF report... saved to /path/to/reports/AWS_report_2026_06_09.pdf
 ```
 
 **Output di esempio:**
@@ -881,6 +885,10 @@ Tutta la documentazione è nella cartella [`docs/`](./docs/) — italiano in [`d
 | [docs/it/aggiungere-risorsa.md](./docs/it/aggiungere-risorsa.md)     | Guida passo per passo per aggiungere un nuovo tipo di risorsa     |
 | [docs/it/test.md](./docs/it/test.md)                                 | Piramide dei test, dove vive ogni livello, verifica manuale AWS   |
 | [docs/it/rilascio.md](./docs/it/rilascio.md)                         | Come `@cloudrift/cli` viene buildato e pubblicato su npm           |
+
+## Licenza
+
+Apache License 2.0 — vedi [LICENSE.md](./LICENSE.md). Libero da usare, modificare e distribuire, anche commercialmente.
 
 ---
 

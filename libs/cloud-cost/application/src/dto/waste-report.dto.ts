@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { RESOURCE_KIND_META, groupByKind } from 'cloud-cost-domain';
 import type {
   FindingCategory,

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 export { DomainError } from './errors/domain.error';
 export { Result } from './types/result.type';
 export type { Success, Failure } from './types/result.type';

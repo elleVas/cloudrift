@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { IdleElastiCacheCluster } from './idle-elasticache-cluster.entity';
 import type { IdleElastiCacheClusterProps } from './idle-elasticache-cluster.entity';
 import { AwsRegion } from '../value-objects/aws-region.value-object';

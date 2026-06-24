@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { CloudWatchClient, GetMetricStatisticsCommand } from '@aws-sdk/client-cloudwatch';
 import { AwsDynamoDbOverprovisionedScanner } from './aws-dynamodb-overprovisioned.scanner';

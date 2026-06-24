@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { RdsInstance } from './rds-instance.entity';
 import { AwsRegion } from '../value-objects/aws-region.value-object';
 

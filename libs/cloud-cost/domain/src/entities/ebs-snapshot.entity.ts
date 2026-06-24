@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { Entity } from 'shared-kernel';
 import { AwsRegion } from '../value-objects/aws-region.value-object';
 import { CostEstimate } from '../value-objects/cost-estimate.value-object';

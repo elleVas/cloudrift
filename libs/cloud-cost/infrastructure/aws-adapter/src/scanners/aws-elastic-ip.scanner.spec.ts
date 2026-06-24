@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { EC2Client, DescribeAddressesCommand } from '@aws-sdk/client-ec2';
 import { AwsElasticIpScanner } from './aws-elastic-ip.scanner';
 import { AwsRegion } from 'cloud-cost-domain';

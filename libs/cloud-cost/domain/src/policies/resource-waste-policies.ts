@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { WastePolicy, waste, notWaste, type WasteVerdict, type WastePolicyOptions } from './waste-policy';
 import type { EbsVolume } from '../entities/ebs-volume.entity';
 import type { ElasticIp } from '../entities/elastic-ip.entity';

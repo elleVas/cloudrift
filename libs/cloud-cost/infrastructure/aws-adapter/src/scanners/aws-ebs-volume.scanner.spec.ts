@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { EC2Client, DescribeVolumesCommand } from '@aws-sdk/client-ec2';
 import { AwsEbsVolumeScanner } from './aws-ebs-volume.scanner';
 import { AwsRegion, type PricingPort } from 'cloud-cost-domain';

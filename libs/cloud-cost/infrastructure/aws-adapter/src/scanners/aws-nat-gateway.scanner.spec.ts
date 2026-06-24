@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { EC2Client } from '@aws-sdk/client-ec2';
 import {
   CloudWatchClient,

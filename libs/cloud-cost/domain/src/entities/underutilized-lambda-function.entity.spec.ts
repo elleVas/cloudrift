@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { UnderutilizedLambdaFunction } from './underutilized-lambda-function.entity';
 import type { UnderutilizedLambdaFunctionProps } from './underutilized-lambda-function.entity';
 import { AwsRegion } from '../value-objects/aws-region.value-object';

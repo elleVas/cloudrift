@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { EbsSnapshot } from './ebs-snapshot.entity';
 import type { EbsSnapshotProps } from './ebs-snapshot.entity';
 import { AwsRegion } from '../value-objects/aws-region.value-object';

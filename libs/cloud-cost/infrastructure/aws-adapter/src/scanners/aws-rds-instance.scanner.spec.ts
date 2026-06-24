@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { RDSClient, DescribeDBInstancesCommand } from '@aws-sdk/client-rds';
 import { AwsRdsInstanceScanner } from './aws-rds-instance.scanner';
 import { AwsRegion } from 'cloud-cost-domain';

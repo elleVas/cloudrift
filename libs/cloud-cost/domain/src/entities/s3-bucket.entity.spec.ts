@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { S3Bucket } from './s3-bucket.entity';
 import type { S3BucketProps } from './s3-bucket.entity';
 import { AwsRegion } from '../value-objects/aws-region.value-object';

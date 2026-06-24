@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 export const REPORT_DISCLAIMER =
   'cloudrift is a read-only analysis tool: it reports estimated waste and recommendations ' +
   'only — it never deletes, modifies, or stops any AWS resource. All findings should be ' +

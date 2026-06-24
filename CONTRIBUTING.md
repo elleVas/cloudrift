@@ -6,7 +6,7 @@ By participating in this project you agree to abide by the [Code of Conduct](./C
 
 ## License note
 
-cloudrift is distributed under a custom non-commercial license (see [LICENSE.md](./LICENSE.md)): free for personal, educational, research, and evaluation use; commercial use requires a separate agreement with the copyright holder. By submitting a contribution, you agree that it is licensed under the same terms as the rest of the project.
+cloudrift is distributed under the [Apache License 2.0](./LICENSE.md). By submitting a contribution, you agree that it is licensed under the same terms as the rest of the project (see Section 5, "Submission of Contributions").
 
 ## Prerequisites
 

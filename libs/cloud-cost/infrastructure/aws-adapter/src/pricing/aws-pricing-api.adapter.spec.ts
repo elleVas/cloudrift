@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { PricingClient, GetProductsCommand } from '@aws-sdk/client-pricing';
 import { AwsRegion } from 'cloud-cost-domain';
 import { AwsPricingApiAdapter, extractOnDemandUsd } from './aws-pricing-api.adapter';

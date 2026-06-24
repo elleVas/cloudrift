@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { RdsUnderutilizedInstance } from './rds-underutilized-instance.entity';
 import type { RdsUnderutilizedInstanceProps } from './rds-underutilized-instance.entity';
 import { AwsRegion } from '../value-objects/aws-region.value-object';
