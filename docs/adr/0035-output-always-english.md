@@ -17,4 +17,3 @@ Every user-facing output — PDF, JSON, markdown, stdout/stderr — stays Englis
 ## Consequences
 
 Any new formatter or user-facing string must be authored in English from the start. The verification method here — a broad word-list grep, not just accented characters — is the standard check to reuse for any future IT→EN audit.
-</content>

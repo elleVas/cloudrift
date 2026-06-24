@@ -18,4 +18,3 @@ Layered DDD architecture (domain / application / infrastructure / CLI), with eve
 ## Consequences
 
 Explicitly more structure than the bare minimum for a tool this size — justified only because policies, resource types, and presentations (terminal/PDF/JSON/markdown, maybe a frontend later) are all expected to keep growing. If none of those three directions were true, this would be over-engineered (see `docs/en/architecture.md`).
-</content>

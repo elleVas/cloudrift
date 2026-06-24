@@ -17,4 +17,3 @@ Scan for them anyway (`eni-orphaned`), as a hygiene finding (`FindingCategory` k
 ## Consequences
 
 The report includes a $0-cost finding category. Labels and category metadata make clear to the reader that this is a hygiene signal, not a cost saving.
-</content>

@@ -18,4 +18,3 @@ Modular AWS SDK v3 clients (`@aws-sdk/client-ec2`, `client-rds`, etc.), one clie
 ## Consequences
 
 Predictable, explainable concurrency behavior. Throttling risk is bounded by design rather than discovered by trial and error in production.
-</content>

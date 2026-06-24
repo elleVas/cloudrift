@@ -17,4 +17,3 @@ Hold off on bumping the version, tagging, or publishing to npm until the user ex
 ## Consequences
 
 Completed work can sit on a branch/PR for a while without being "released." "Tests pass" must never be treated as equivalent to "ready to publish."
-</content>

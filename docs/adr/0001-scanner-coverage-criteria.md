@@ -18,4 +18,3 @@ A service qualifies for a scanner only if it accumulates a **fixed cost at rest*
 ## Consequences
 
 Keeps `WastedResource` semantically coherent. New-scanner requests for pay-per-use services get a fast, consistent answer instead of a fresh debate each time. See `docs/en/technical-choices.md` for how this maps onto the current 18-scanner list.
-</content>

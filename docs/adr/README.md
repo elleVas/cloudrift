@@ -11,7 +11,7 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 | ADR | Title |
 |---|---|
 | [0001](0001-scanner-coverage-criteria.md) | Scanner coverage criteria: fixed cost at rest only |
-| [0002](0002-localstack-e2e-scope.md) | LocalStack e2e scope limited to 14/18 scanners |
+| [0002](0002-localstack-e2e-scope.md) | LocalStack e2e scope limited to 13/18 scanners |
 | [0003](0003-redshift-deferred.md) | Redshift deferred out of v0.4.0 |
 | [0004](0004-orphaned-eni-included.md) | Orphaned ENI scanner included despite ~$0 savings |
 | [0005](0005-disclaimer-contact-in-application-layer.md) | Disclaimer/contact centralized in the application layer |
@@ -65,4 +65,9 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 |---|---|
 | [0034](0034-pdfkit-link-linebreak-bug.md) | PDF links via pdfkit's `link` option, never combined with `lineBreak: false` |
 | [0035](0035-output-always-english.md) | Report output is always in English |
-</content>
+
+## Testing
+
+| ADR | Title |
+|---|---|
+| [0036](0036-ec2-underutilized-excluded-from-localstack-e2e.md) | `ec2-underutilized` excluded from the LocalStack e2e harness |

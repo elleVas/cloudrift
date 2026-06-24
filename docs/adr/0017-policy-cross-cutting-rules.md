@@ -17,4 +17,3 @@ The `WastePolicy<T>` base class applies two rules before any type-specific crite
 ## Consequences
 
 Every new policy gets both protections for free by extending the base class. The two CLI flags (`--min-age-days`, `--ignore-tag`) behave consistently across all scanners.
-</content>

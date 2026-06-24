@@ -17,4 +17,3 @@ Reports need the AWS account ID; the credentials used for the scan already know 
 ## Consequences
 
 Account ID is correct by construction in the common case. STS is a soft dependency: its failure degrades the report rather than aborting it.
-</content>

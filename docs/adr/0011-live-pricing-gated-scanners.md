@@ -18,4 +18,3 @@ The composition root (`analyze-waste.composition.ts`) registers these three scan
 ## Consequences
 
 These three checks don't run at all without `--live-pricing`. This is documented behavior (see `docs/en/technical-choices.md`), not a hidden gap.
-</content>

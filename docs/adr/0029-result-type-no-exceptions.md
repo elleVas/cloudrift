@@ -17,4 +17,3 @@ An explicit `Result<T, E>` type is used across layer boundaries instead of throw
 ## Consequences
 
 Expected failures produce a clean message and exit code 1, with no stack trace. The throwing `create()` path is reserved and documented as test-fixture-only, so it's never accidentally reached with real external input.
-</content>

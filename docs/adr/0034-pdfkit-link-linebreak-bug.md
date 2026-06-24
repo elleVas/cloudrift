@@ -17,4 +17,3 @@ Use pdfkit's `link` option to add URI annotations, verified by inspecting the ge
 ## Consequences
 
 A documented landmine for any future pdfkit text/link code in this codebase: `lineBreak: false` and `link` must never be set together on the same `.text()` call.
-</content>

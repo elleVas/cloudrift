@@ -18,4 +18,3 @@ Tests are written in `.spec.ts` and need to run without a separate compile step.
 ## Consequences
 
 Test runs don't re-typecheck, relying on the separate `typecheck` target for type safety. Converting jest configs to `.ts` would require adding `ts-node` as a new dependency.
-</content>

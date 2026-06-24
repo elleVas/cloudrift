@@ -18,4 +18,3 @@ Cross-package imports and a bundled CLI executable both needed to work without f
 ## Consequences
 
 `node apps/cli/dist/main.js` works with zero extra steps after build. If the libraries ever need to be consumed directly as ESM by Node outside a bundler, extensions will have to be emitted or a dedicated build step added — not needed today.
-</content>

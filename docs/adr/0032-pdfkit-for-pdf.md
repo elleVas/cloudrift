@@ -18,4 +18,3 @@
 ## Consequences
 
 PDF generation uses a low-level, verbose-but-predictable API (manual layout, page-break logic). Clickable links needed a specific workaround — see [ADR-0034](0034-pdfkit-link-linebreak-bug.md).
-</content>

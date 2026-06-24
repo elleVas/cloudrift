@@ -17,4 +17,3 @@ pnpm only. A single `pnpm-lock.yaml` is committed. Internal library dependencies
 ## Consequences
 
 Lockfiles from other package managers (`package-lock.json`, `yarn.lock`) must never be committed. All tooling and CI scripts must invoke pnpm specifically.
-</content>

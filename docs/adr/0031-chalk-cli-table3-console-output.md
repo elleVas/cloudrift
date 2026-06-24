@@ -17,4 +17,3 @@ Terminal output needs colors and aligned tables, plus a clean machine-readable m
 ## Consequences
 
 `--json` to stdout is safely pipeable into other tools. Only the file-output path (`--json --output report.json`) coexists with a printed table view.
-</content>

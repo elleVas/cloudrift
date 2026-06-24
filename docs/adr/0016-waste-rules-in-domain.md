@@ -17,4 +17,3 @@ Every waste rule is an explicit `WastePolicy<T>` in `domain/src/policies/`, eval
 ## Consequences
 
 Domain rules are pure functions, tested with fake dates/entities and no AWS mocking. Adapters may still pre-filter server-side purely as a performance optimization.
-</content>

@@ -17,4 +17,3 @@ Add `disclaimer` and `contact` as **top-level** fields on `WasteReportDto`.
 ## Consequences
 
 `WasteReportDto` has a slightly flatter shape than it might otherwise have. Existing `meta`-shaped tests were left untouched.
-</content>

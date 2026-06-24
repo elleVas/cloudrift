@@ -19,4 +19,3 @@ Commander.js, using `parseAsync` for the async handler.
 ## Consequences
 
 Low-friction CLI definition. Would need re-evaluation only if the CLI grows multiple subcommand "plugins" the way oclif specializes in.
-</content>

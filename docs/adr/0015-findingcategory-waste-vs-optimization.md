@@ -17,4 +17,3 @@ Tag every `ResourceKind` in `RESOURCE_KIND_META` with `category: 'waste' | 'opti
 ## Consequences
 
 Reports show two distinct totals. `estimated: true` further flags numbers that need human judgment before acting (e.g. low CPU alone doesn't prove RAM/network or storage I/O are equally idle for `ec2-underutilized`/`rds-underutilized`).
-</content>

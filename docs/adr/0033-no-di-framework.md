@@ -17,4 +17,3 @@ Manual constructor injection. `analyze-waste.composition.ts` is the single compo
 ## Consequences
 
 Revisit only if the graph stops being flat — e.g. if conditional/lazy wiring grows significantly beyond the current `--live-pricing` scanner-gating ([ADR-0011](0011-live-pricing-gated-scanners.md)).
-</content>

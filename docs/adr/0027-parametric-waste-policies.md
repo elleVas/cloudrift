@@ -17,4 +17,3 @@ Two cross-cutting CLI flags apply to every policy: `--min-age-days` (default 7) 
 ## Consequences
 
 The CLI surface stays small and discoverable. Advanced per-check tuning lives in the config file and docs, not the flag list.
-</content>

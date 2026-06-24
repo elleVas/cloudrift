@@ -19,4 +19,3 @@ Single Nx repository with a pnpm workspace. Nx targets (`build`, `test`, `typech
 ## Consequences
 
 Initial Nx configuration complexity is higher than a single project, but pays off once there are more than two libraries to orchestrate — already true here.
-</content>

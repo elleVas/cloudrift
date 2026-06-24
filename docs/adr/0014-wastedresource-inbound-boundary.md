@@ -17,4 +17,3 @@ Coordinator, summary, formatters, and DTO depend only on the `WastedResource` in
 ## Consequences
 
 Adding a resource kind is a compiler-guided checklist (one line in the `ResourceKind` union, then follow the type errors), not a manual search. This is "pragmatic OCP": one modification point exists, but the compiler walks you through everywhere else.
-</content>

@@ -18,4 +18,3 @@ Document a concrete 3-phase path (generalize the inbound `AwsRegion` boundary in
 ## Consequences
 
 AWS-specific naming stays in the ubiquitous language (`EbsVolume`, not `Disk`) until a second provider is a real, funded requirement. See `docs/en/architecture.md#towards-multi-cloud` for the full phase breakdown.
-</content>

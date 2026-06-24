@@ -17,4 +17,3 @@ Any such server-side filter is treated purely as a performance optimization prod
 ## Consequences
 
 Adapters can be tuned for API call efficiency without ever risking a policy regression; the policy is always re-evaluated against whatever the filter returns.
-</content>

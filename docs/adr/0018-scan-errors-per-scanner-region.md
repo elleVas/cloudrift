@@ -17,4 +17,3 @@ Errors are collected as `ResourceScanError { kind, region, error }`. The summary
 ## Consequences
 
 Users see a partial report plus explicit warnings instead of an opaque failure. Error granularity is deliberately fine — per (scanner, region) pair, not per run or per region alone.
-</content>

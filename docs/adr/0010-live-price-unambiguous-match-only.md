@@ -17,4 +17,3 @@ Accept a live price only if the filter resolves to **exactly one value**; otherw
 ## Consequences
 
 Live pricing is conservative by design — some prices stay on the static table even with `--live-pricing` enabled, and that's intentional, not a bug.
-</content>

@@ -18,4 +18,3 @@ Put `REPORT_DISCLAIMER` and `REPORT_CONTACT` in `libs/cloud-cost/application/src
 ## Consequences
 
 One constant feeds the markdown footer, the PDF summary page, and the DTO's top-level `disclaimer`/`contact` fields (see [ADR-0006](0006-dto-disclaimer-contact-top-level.md)). Changing the wording or contact details is a one-file change.
-</content>

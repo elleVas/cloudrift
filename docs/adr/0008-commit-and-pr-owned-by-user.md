@@ -18,4 +18,3 @@ The assistant implements and verifies (`pnpm nx run-many -t lint,test,build,type
 ## Consequences
 
 Every phase ends with staged-but-uncommitted changes. Commit messages, PR descriptions, and the decision of *when* to commit are always the user's.
-</content>

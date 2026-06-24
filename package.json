@@ -8,7 +8,8 @@
     "test": "nx run-many -t test",
     "lint": "nx run-many -t lint",
     "typecheck": "nx run-many -t typecheck",
-    "verify:aws": "node scripts/verify-against-aws.mjs"
+    "verify:aws": "node scripts/verify-against-aws.mjs",
+    "e2e:localstack": "nx run cli:e2e-localstack"
   },
   "devDependencies": {
     "@eslint/compat": "^1.4.1",

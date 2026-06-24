@@ -1,6 +1,6 @@
-# ADR-0002: LocalStack e2e scope limited to 14/18 scanners
+# ADR-0002: LocalStack e2e scope limited to 13/18 scanners
 
-- **Status:** Accepted (2026-06-21), implementation in progress
+- **Status:** Accepted (2026-06-21), implemented (2026-06-24, see ADR-0036 for the `ec2-underutilized` exclusion discovered during implementation)
 
 ## Context
 
@@ -8,9 +8,9 @@ An e2e harness needs a live-ish AWS environment without burning real cloud cost 
 
 ## Decision
 
-Use LocalStack Community/Hobby (free) for the 14 scanners it covers (EC2/EBS/EIP/S3/Lambda/DynamoDB/CloudWatch-based). `rds-instance`, `rds-underutilized`, `elasticache-idle` and `efs-unused` are left out of the e2e harness because LocalStack's free tier doesn't emulate RDS/ElastiCache/EFS; they remain covered only by the manual `scripts/verify-against-aws.mjs` against a real account.
+Use LocalStack Community/Hobby (free, requires a free registered account and `LOCALSTACK_AUTH_TOKEN` — discovered during implementation, not anonymous as originally assumed) for the scanners it covers (EC2/EBS/EIP/S3/Lambda/DynamoDB/CloudWatch-based). `rds-instance`, `rds-underutilized`, `elasticache-idle` and `efs-unused` are left out of the e2e harness because LocalStack's free tier doesn't emulate RDS/ElastiCache/EFS; they remain covered only by the manual `scripts/verify-against-aws.mjs` against a real account. `ec2-underutilized` is also excluded — see ADR-0036.
 
-No scanner code changes: AWS SDK v3 already supports `AWS_ENDPOINT_URL` natively, so pointing at LocalStack is purely an env-var override at the test-script level.
+Scanner code changes were needed after all: the S3 SDK client defaults to virtual-hosted-style addressing, which doesn't resolve against a non-AWS endpoint like LocalStack. `AwsS3NoLifecycleScanner` now sets `forcePathStyle: true` when `AWS_ENDPOINT_URL` is set, with no effect on real AWS usage.
 
 ## Alternatives Considered
 
@@ -19,5 +19,4 @@ No scanner code changes: AWS SDK v3 already supports `AWS_ENDPOINT_URL` natively
 
 ## Consequences
 
-e2e coverage is intentionally partial (14/18); the gap is documented (`docs/en/testing.md`), not hidden. New harness pieces: `docker-compose.localstack.yml`, `scripts/seed-localstack.mjs`, `scripts/e2e-localstack.mjs`, a dedicated opt-in Nx target (not wired into `lint`/`test`/`build`/`typecheck`). Known risk to verify during implementation: LocalStack community support for `nat-gateway` and `load-balancer` has historically been partial — if either doesn't work, exclude it without blocking the rest.
-</content>
+e2e coverage is intentionally partial (13/18); the gap is documented (`docs/en/testing.md`), not hidden. Harness pieces: `docker-compose.localstack.yml`, `scripts/seed-localstack.mjs`, `scripts/e2e-localstack.mjs`, a dedicated opt-in Nx target (not wired into `lint`/`test`/`build`/`typecheck`), and a dedicated CI job requiring the `LOCALSTACK_AUTH_TOKEN` repo secret. `nat-gateway` seeds and scans successfully. `load-balancer` does not — LocalStack's Hobby plan flatly rejects `elbv2` calls with a license error (not the "partial support" originally assumed); it's treated as a soft-missing kind so the harness doesn't fail on it.

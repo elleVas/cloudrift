@@ -17,4 +17,3 @@ Today's only presentations are terminal, PDF, JSON, and markdown — but a web f
 ## Consequences
 
 A frontend becomes an addition (new `apps/api` composition root + a fourth presenter) rather than a refactor of the core. See `docs/en/architecture.md#frontend-readiness`.
-</content>

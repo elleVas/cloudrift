@@ -17,4 +17,3 @@ Defer Redshift to v0.4.1. Pure sequencing — no technical blocker, and it fits 
 ## Consequences
 
 Idle-Redshift-cluster detection remains a known, intentional gap until v0.4.1.
-</content>

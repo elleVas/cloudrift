@@ -17,4 +17,3 @@ Same cardinality problem as [ADR-0011](0011-live-pricing-gated-scanners.md), spe
 ## Consequences
 
 Pricing API call volume scales with the number of distinct instance types actually in use, not with AWS's full catalog. This is the one scanner that doesn't fit the three-layer model in [ADR-0009](0009-three-pricing-layers.md) — by design.
-</content>

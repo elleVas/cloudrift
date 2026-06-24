@@ -18,4 +18,3 @@ Resolve a price for `(region, key)` from, in priority order: (1) the user's `pri
 ## Consequences
 
 Price getters stay synchronous (the live adapter warms up before the scan starts). Swapping or adding a pricing source never touches scanners or domain code — this is the payoff of the `PricingPort` abstraction.
-</content>
