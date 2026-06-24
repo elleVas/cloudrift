@@ -58,6 +58,43 @@ pnpm nx run cli:e2e-localstack   # or: pnpm e2e:localstack
 
 Requires Docker. Not wired into `lint`/`test`/`build`/`typecheck` — it's an opt-in Nx target with its own CI job (`e2e-localstack` in `.github/workflows/ci.yml`), which reads the token from the `LOCALSTACK_AUTH_TOKEN` repository secret.
 
+### Manual inspection (table / PDF) against LocalStack
+
+`scripts/e2e-localstack.mjs` only captures JSON to assert on it, then tears the container down — it never shows a table or generates a PDF. To actually look at a report against LocalStack data, drive the pieces by hand instead of the harness:
+
+```sh
+# 0. One-time, if not already built
+pnpm nx run cli:build
+
+# 1. Auth token (same one used by the harness)
+export LOCALSTACK_AUTH_TOKEN=<your-token>
+
+# 2. Start LocalStack and wait for it to be healthy
+docker compose -f docker-compose.localstack.yml up -d --wait
+
+# 3. Point the AWS SDK at LocalStack for this shell session
+export AWS_ENDPOINT_URL=http://localhost:4566
+export AWS_ACCESS_KEY_ID=test
+export AWS_SECRET_ACCESS_KEY=test
+export AWS_DEFAULT_REGION=us-east-1
+export AWS_REGION=us-east-1
+
+# 4. Seed the wasted resources (seed-localstack.mjs is runnable standalone)
+node scripts/seed-localstack.mjs
+
+# 5. Inspect as a console table...
+node apps/cli/dist/main.js analyze --regions us-east-1 --min-age-days 0 --format table
+
+# 6. ...or as a PDF
+node apps/cli/dist/main.js analyze --regions us-east-1 --min-age-days 0 --pdf ./report.pdf
+
+# 7. Repeat step 5/6 as many times as needed — the container and seeded
+#    data stay put until you tear it down
+
+# 8. Tear down when done
+docker compose -f docker-compose.localstack.yml down -v
+```
+
 ## Manual verification against a real AWS account
 
 Mocked SDK calls verify the *shape* of a query; they cannot verify that the shape actually matches what AWS returns for real resources. [`scripts/verify-against-aws.mjs`](../../scripts/verify-against-aws.mjs) closes that gap: it runs 11 of the 18 scanners — everything shipped before v0.4.0 — against a real AWS account and prints what they find, next to the static query descriptor that the corresponding scanner spec already enforces in CI. The 7 scanners added in v0.4.0 (`log-group`, `eni-orphaned`, `s3-no-lifecycle`, `lambda-underutilized`, `efs-unused`, `dynamodb-overprovisioned`, `elasticache-idle`) aren't wired into this script yet.
