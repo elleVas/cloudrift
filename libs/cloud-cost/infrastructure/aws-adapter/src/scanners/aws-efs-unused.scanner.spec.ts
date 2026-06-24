@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { EFSClient } from '@aws-sdk/client-efs';
 import { CloudWatchClient, GetMetricStatisticsCommand } from '@aws-sdk/client-cloudwatch';
 import { AwsEfsUnusedScanner } from './aws-efs-unused.scanner';

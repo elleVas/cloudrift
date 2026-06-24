@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { StaticPriceTableAdapter } from './static-price-table.adapter';
 import { AwsRegion } from 'cloud-cost-domain';
 

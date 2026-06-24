@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { LoadBalancer } from './load-balancer.entity';
 import { AwsRegion } from '../value-objects/aws-region.value-object';
 

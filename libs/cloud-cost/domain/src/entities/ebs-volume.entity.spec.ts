@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { EbsVolume } from './ebs-volume.entity';
 import { AwsRegion } from '../value-objects/aws-region.value-object';
 

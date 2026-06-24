@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { EC2Client, DescribeVolumesCommand } from '@aws-sdk/client-ec2';
 import { AwsGp2UpgradeScanner } from './aws-gp2-upgrade.scanner';
 import { AwsRegion, type Gp2Volume } from 'cloud-cost-domain';

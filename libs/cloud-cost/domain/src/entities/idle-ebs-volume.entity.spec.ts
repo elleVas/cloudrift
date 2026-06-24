@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { IdleEbsVolume } from './idle-ebs-volume.entity';
 import type { IdleEbsVolumeProps } from './idle-ebs-volume.entity';
 import { AwsRegion } from '../value-objects/aws-region.value-object';

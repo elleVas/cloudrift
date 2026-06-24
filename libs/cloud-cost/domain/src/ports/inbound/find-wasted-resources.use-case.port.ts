@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import type { Result } from 'shared-kernel';
 import type { ResourceKind, WastedResource } from '../../wasted-resource';
 import type { AwsRegion } from '../../value-objects/aws-region.value-object';

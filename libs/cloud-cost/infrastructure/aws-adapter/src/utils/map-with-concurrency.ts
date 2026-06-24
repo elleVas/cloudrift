@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 /**
  * Runs `fn` over each item with at most `limit` calls in flight, preserving
  * result order. Keeps AWS API rate limits (e.g. CloudWatch) from being

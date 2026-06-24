@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SPDX-License-Identifier: Apache-2.0
 import { program } from 'commander';
 import { analyzeWasteCommand } from './commands/analyze-waste.command';
 

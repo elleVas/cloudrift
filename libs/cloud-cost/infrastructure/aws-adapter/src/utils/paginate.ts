@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 export async function paginate<TItem>(
   fetchPage: (cursor: string | undefined) => Promise<{ items: TItem[]; cursor: string | undefined }>,
 ): Promise<TItem[]> {

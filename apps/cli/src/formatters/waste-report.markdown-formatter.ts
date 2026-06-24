@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import {
   RESOURCE_KINDS,
   RESOURCE_KIND_LABELS,

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import Table from 'cli-table3';
 import chalk from 'chalk';
 import {

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { STSClient, GetCallerIdentityCommand } from '@aws-sdk/client-sts';
 
 /**

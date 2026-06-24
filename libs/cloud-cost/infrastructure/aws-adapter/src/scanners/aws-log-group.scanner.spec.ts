@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { CloudWatchLogsClient } from '@aws-sdk/client-cloudwatch-logs';
 import { AwsLogGroupScanner } from './aws-log-group.scanner';
 import { AwsRegion } from 'cloud-cost-domain';

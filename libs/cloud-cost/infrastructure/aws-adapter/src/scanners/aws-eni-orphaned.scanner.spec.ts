@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { EC2Client, DescribeNetworkInterfacesCommand } from '@aws-sdk/client-ec2';
 import { AwsEniOrphanedScanner } from './aws-eni-orphaned.scanner';
 import { AwsRegion } from 'cloud-cost-domain';

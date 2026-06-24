@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { LambdaClient } from '@aws-sdk/client-lambda';
 import { CloudWatchClient, GetMetricStatisticsCommand } from '@aws-sdk/client-cloudwatch';
 import { AwsLambdaUnderutilizedScanner } from './aws-lambda-underutilized.scanner';

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { UnderutilizedEc2Instance } from './underutilized-ec2-instance.entity';
 import type { UnderutilizedEc2InstanceProps } from './underutilized-ec2-instance.entity';
 import { AwsRegion } from '../value-objects/aws-region.value-object';

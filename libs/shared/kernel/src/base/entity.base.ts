@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 export abstract class Entity<TId> {
   constructor(protected readonly _id: TId) {}
 

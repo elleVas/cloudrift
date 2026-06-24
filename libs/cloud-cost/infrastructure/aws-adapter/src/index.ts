@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 export { AwsEbsVolumeScanner } from './scanners/aws-ebs-volume.scanner';
 export { AwsElasticIpScanner } from './scanners/aws-elastic-ip.scanner';
 export { AwsRdsInstanceScanner } from './scanners/aws-rds-instance.scanner';

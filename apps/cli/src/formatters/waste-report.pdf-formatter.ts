@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import PDFDocument from 'pdfkit';
 import { createWriteStream } from 'fs';
 import {

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { ElasticIp } from './elastic-ip.entity';
 import type { ElasticIpProps } from './elastic-ip.entity';
 import { AwsRegion } from '../value-objects/aws-region.value-object';

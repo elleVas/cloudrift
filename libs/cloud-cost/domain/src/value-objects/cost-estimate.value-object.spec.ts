@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { CostEstimate } from './cost-estimate.value-object';
 
 describe('CostEstimate', () => {

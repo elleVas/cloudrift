@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { Gp2Volume } from './gp2-volume.entity';
 import type { Gp2VolumeProps } from './gp2-volume.entity';
 import { AwsRegion } from '../value-objects/aws-region.value-object';

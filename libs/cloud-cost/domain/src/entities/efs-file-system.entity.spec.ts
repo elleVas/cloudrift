@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { EfsFileSystem } from './efs-file-system.entity';
 import type { EfsFileSystemProps } from './efs-file-system.entity';
 import { AwsRegion } from '../value-objects/aws-region.value-object';

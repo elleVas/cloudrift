@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import type { PricingPort, AwsRegion } from 'cloud-cost-domain';
 
 /** Prices for a single region: key (e.g. "ebs-gp3", "nat-gateway") → USD. */

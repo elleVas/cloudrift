@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { NatGateway } from './nat-gateway.entity';
 import type { NatGatewayProps } from './nat-gateway.entity';
 import { AwsRegion } from '../value-objects/aws-region.value-object';

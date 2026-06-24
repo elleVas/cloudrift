@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { toWasteReportDto } from './waste-report.dto';
 import { REPORT_CONTACT, REPORT_DISCLAIMER } from '../constants/report-disclaimer';
 import { AwsRegion, EbsVolume, ElasticIp, Gp2Volume } from 'cloud-cost-domain';

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Wasted resource model
 export {
   RESOURCE_KINDS,

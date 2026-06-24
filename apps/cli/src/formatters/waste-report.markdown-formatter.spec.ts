@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { AwsRegion, EbsVolume, Gp2Volume } from 'cloud-cost-domain';
 import type { WastedResourcesSummary } from 'cloud-cost-domain';
 import type { WasteReportMeta } from 'cloud-cost-application';

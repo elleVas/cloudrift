@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { AwsRegion } from 'cloud-cost-domain';
 import {
   TablePricingAdapter,

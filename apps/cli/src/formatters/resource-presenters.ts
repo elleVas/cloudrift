@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import type { ResourceKind, ResourceKindMap, WastedResource } from 'cloud-cost-domain';
 
 /**

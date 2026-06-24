@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { readFile } from 'fs/promises';
 import { resolve } from 'path';
 import { DomainError, Result } from 'shared-kernel';

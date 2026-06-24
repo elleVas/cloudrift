@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { Ec2Instance } from './ec2-instance.entity';
 import { AwsRegion } from '../value-objects/aws-region.value-object';
 

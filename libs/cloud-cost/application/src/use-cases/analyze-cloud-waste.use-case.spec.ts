@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { AnalyzeCloudWasteUseCase } from './analyze-cloud-waste.use-case';
 import {
   AwsRegion,

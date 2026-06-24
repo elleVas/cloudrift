@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import type { AwsRegion } from '../../value-objects/aws-region.value-object';
 
 export interface PricingPort {

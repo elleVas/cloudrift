@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { toWasteReportDto } from 'cloud-cost-application';
 import type { WasteReportMeta } from 'cloud-cost-application';
 import type { WastedResourcesSummary } from 'cloud-cost-domain';
