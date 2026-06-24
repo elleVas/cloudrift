@@ -1,0 +1,68 @@
+# Architecture Decision Records
+
+This log captures decisions made over the course of building cloudrift — both purely technical/architectural ones and process/scope decisions that shape how the project evolves. Unlike the rest of `docs/`, ADRs are **English-only**: they are an internal engineering log, not user-facing documentation.
+
+**Convention:** ADRs are append-only. When a decision changes, add a new ADR that supersedes the old one (update the old one's Status to `Superseded by ADR-XXXX`) — never edit history in place.
+
+Each entry follows: Context → Decision → Alternatives Considered → Consequences.
+
+## Process & scope
+
+| ADR | Title |
+|---|---|
+| [0001](0001-scanner-coverage-criteria.md) | Scanner coverage criteria: fixed cost at rest only |
+| [0002](0002-localstack-e2e-scope.md) | LocalStack e2e scope limited to 14/18 scanners |
+| [0003](0003-redshift-deferred.md) | Redshift deferred out of v0.4.0 |
+| [0004](0004-orphaned-eni-included.md) | Orphaned ENI scanner included despite ~$0 savings |
+| [0005](0005-disclaimer-contact-in-application-layer.md) | Disclaimer/contact centralized in the application layer |
+| [0006](0006-dto-disclaimer-contact-top-level.md) | Disclaimer/contact as top-level DTO fields, not under `meta` |
+| [0007](0007-no-release-until-requested.md) | No version bump/tag/publish until explicitly requested |
+| [0008](0008-commit-and-pr-owned-by-user.md) | Commit and PR always owned by the user |
+
+## Pricing
+
+| ADR | Title |
+|---|---|
+| [0009](0009-three-pricing-layers.md) | Three pricing layers, in priority order |
+| [0010](0010-live-price-unambiguous-match-only.md) | Live price accepted only on unambiguous filter match |
+| [0011](0011-live-pricing-gated-scanners.md) | EC2/RDS/ElastiCache underutilized scanners gated behind `--live-pricing` |
+| [0012](0012-ec2-price-on-demand.md) | EC2 per-instance-type price fetched on demand |
+
+## Architecture
+
+| ADR | Title |
+|---|---|
+| [0013](0013-ddd-hexagonal-plugin-model.md) | DDD + Hexagonal architecture with a plugin model |
+| [0014](0014-wastedresource-inbound-boundary.md) | `WastedResource` as the sole inbound-boundary type |
+| [0015](0015-findingcategory-waste-vs-optimization.md) | `FindingCategory` split: waste vs. optimization |
+| [0016](0016-waste-rules-in-domain.md) | Waste rules live in the domain, not in AWS API filters |
+| [0017](0017-policy-cross-cutting-rules.md) | Two cross-cutting rules in every `WastePolicy` |
+| [0018](0018-scan-errors-per-scanner-region.md) | Scan errors collected per (scanner, region) pair |
+| [0019](0019-server-side-filter-optimization-only.md) | Server-side filtering is an optimization only, never the decision |
+| [0020](0020-multicloud-path-deferred.md) | Multi-cloud: path kept open, not built now |
+| [0021](0021-wastereportdto-frontend-contract.md) | `WasteReportDto` as the future frontend's API contract |
+
+## Stack
+
+| ADR | Title |
+|---|---|
+| [0022](0022-nx-monorepo-pnpm-workspace.md) | Nx monorepo + pnpm workspace |
+| [0023](0023-pnpm-sole-package-manager.md) | pnpm as the sole package manager |
+| [0024](0024-esnext-bundler-resolution.md) | `module: ESNext` + `moduleResolution: bundler`, no extensions in relative imports |
+| [0025](0025-aws-sdk-v3-concurrency-rules.md) | AWS SDK v3 modular clients with explicit concurrency rules |
+| [0026](0026-account-id-via-sts.md) | Account ID resolved via STS, not asked from the user |
+| [0027](0027-parametric-waste-policies.md) | Parametric waste policies instead of hardcoded heuristics |
+| [0028](0028-ts-jest-for-tests.md) | ts-jest for tests |
+| [0029](0029-result-type-no-exceptions.md) | `Result<T, E>` instead of exceptions, including for user input |
+| [0030](0030-commander-for-cli.md) | Commander.js for CLI parsing |
+| [0031](0031-chalk-cli-table3-console-output.md) | chalk + cli-table3 for console output |
+| [0032](0032-pdfkit-for-pdf.md) | pdfkit for PDF report generation |
+| [0033](0033-no-di-framework.md) | No dependency injection framework |
+
+## Reporting
+
+| ADR | Title |
+|---|---|
+| [0034](0034-pdfkit-link-linebreak-bug.md) | PDF links via pdfkit's `link` option, never combined with `lineBreak: false` |
+| [0035](0035-output-always-english.md) | Report output is always in English |
+</content>
