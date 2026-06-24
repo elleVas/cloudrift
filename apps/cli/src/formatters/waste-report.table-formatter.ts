@@ -7,6 +7,7 @@ import {
   groupByKind,
 } from 'cloud-cost-domain';
 import type { FindingCategory, WastedResourcesSummary } from 'cloud-cost-domain';
+import { REPORT_CONTACT } from 'cloud-cost-application';
 import { presenterFor } from './resource-presenters';
 
 export interface TableReportMeta {
@@ -89,7 +90,12 @@ export function formatWasteReportAsTable(
   }
   lines.push(
     chalk.dim(
-      `  Estimates based on AWS list prices as of ${meta.pricesAsOf}; actual billing may differ.\n`,
+      `  Estimates based on AWS list prices as of ${meta.pricesAsOf}; actual billing may differ.`,
+    ),
+  );
+  lines.push(
+    chalk.dim(
+      `  Contact: ${REPORT_CONTACT.email} · ${REPORT_CONTACT.github} · ${REPORT_CONTACT.linkedin}\n`,
     ),
   );
 

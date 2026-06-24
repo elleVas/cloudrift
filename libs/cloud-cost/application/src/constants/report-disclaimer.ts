@@ -6,5 +6,6 @@ export const REPORT_DISCLAIMER =
 
 export const REPORT_CONTACT = {
   email: 'raffaelevasini@gmail.com',
+  github: 'https://github.com/elleVas',
   linkedin: 'https://www.linkedin.com/in/raffaele-vasini-87937470/',
 } as const;

@@ -1,16 +1,27 @@
 import chalk from 'chalk';
-import { resolve } from 'path';
-import { writeFile } from 'fs/promises';
+import { dirname, resolve } from 'path';
+import { mkdir, writeFile } from 'fs/promises';
 import { Result } from 'shared-kernel';
-import { AwsRegion, DEFAULT_IGNORE_TAG, DEFAULT_MIN_AGE_DAYS } from 'cloud-cost-domain';
-import type { WastedResourcesSummary, WastePolicyOptions } from 'cloud-cost-domain';
+import {
+  AwsRegion,
+  DEFAULT_IGNORE_TAG,
+  DEFAULT_MIN_AGE_DAYS,
+} from 'cloud-cost-domain';
+import type {
+  WastedResourcesSummary,
+  WastePolicyOptions,
+} from 'cloud-cost-domain';
 import type { WasteReportMeta } from 'cloud-cost-application';
 import type { CloudriftConfig } from '../config/cloudrift.config';
 import { formatWasteReportAsTable } from '../formatters/waste-report.table-formatter';
 import { formatWasteReportAsJson } from '../formatters/waste-report.json-formatter';
 import { formatWasteReportAsMarkdown } from '../formatters/waste-report.markdown-formatter';
 import { generateWasteReportPdf } from '../formatters/waste-report.pdf-formatter';
-import { defaultAnalyzeDeps, type AnalyzeDeps } from './analyze-waste.composition';
+import { renderBanner, delay } from '../ascii-banner';
+import {
+  defaultAnalyzeDeps,
+  type AnalyzeDeps,
+} from './analyze-waste.composition';
 
 export type { AnalyzeDeps };
 
@@ -47,7 +58,9 @@ function resolveMinAgeDays(
   const minAgeDays = Number(options.minAgeDays);
   if (!Number.isInteger(minAgeDays) || minAgeDays < 0) {
     return Result.fail(
-      new Error(`--min-age-days must be a non-negative integer, got "${options.minAgeDays}".`),
+      new Error(
+        `--min-age-days must be a non-negative integer, got "${options.minAgeDays}".`,
+      ),
     );
   }
   return Result.ok(minAgeDays);
@@ -73,7 +86,9 @@ function resolveRegions(
 
   if (regions.length === 0) {
     return Result.fail(
-      new Error('No regions left to scan: all requested regions are listed in excludeRegions.'),
+      new Error(
+        'No regions left to scan: all requested regions are listed in excludeRegions.',
+      ),
     );
   }
 
@@ -87,20 +102,24 @@ async function writeArtifacts(
   options: AnalyzeWasteOptions,
   info: (msg: string) => void,
 ): Promise<void> {
-  const day = meta.generatedAt.toISOString().split('T')[0];
+  const day = meta.generatedAt.toISOString().split('T')[0].replaceAll('-', '_');
 
   if (options.json !== undefined && options.json !== false) {
-    const filename =
-      typeof options.json === 'string' ? options.json : `cloudrift-report-${day}.json`;
-    const jsonPath = resolve(process.cwd(), filename);
+    const jsonPath =
+      typeof options.json === 'string'
+        ? resolve(process.cwd(), options.json)
+        : resolve(process.cwd(), 'reports', `AWS_report_${day}.json`);
+    await mkdir(dirname(jsonPath), { recursive: true });
     await writeFile(jsonPath, formatWasteReportAsJson(result, meta));
     info(chalk.green(`  JSON report saved to ${jsonPath}`));
   }
 
   if (options.pdf !== undefined && options.pdf !== false) {
-    const filename =
-      typeof options.pdf === 'string' ? options.pdf : `cloudrift-report-${day}.pdf`;
-    const outputPath = resolve(process.cwd(), filename);
+    const outputPath =
+      typeof options.pdf === 'string'
+        ? resolve(process.cwd(), options.pdf)
+        : resolve(process.cwd(), 'reports', `AWS_report_${day}.pdf`);
+    await mkdir(dirname(outputPath), { recursive: true });
 
     info(chalk.bold('  Generating PDF report...'));
     await generateWasteReportPdf(result, meta, outputPath);
@@ -113,7 +132,10 @@ async function writeArtifacts(
  * (optimization opportunities, being estimates, do not count toward the gate).
  * The message goes to stderr so it doesn't pollute the machine-readable output on stdout.
  */
-function applyCostGate(summary: WastedResourcesSummary, config: CloudriftConfig): void {
+function applyCostGate(
+  summary: WastedResourcesSummary,
+  config: CloudriftConfig,
+): void {
   if (
     config.costAlertThresholdUsd === undefined ||
     summary.totalWasteMonthlyUsd <= config.costAlertThresholdUsd
@@ -140,10 +162,13 @@ function applyCostGate(summary: WastedResourcesSummary, config: CloudriftConfig)
 export async function analyzeWasteCommand(
   options: AnalyzeWasteOptions,
   deps: AnalyzeDeps = defaultAnalyzeDeps,
+  bannerDelayMs = 3000,
 ): Promise<void> {
   const format = (options.format ?? 'table') as OutputFormat;
   if (!OUTPUT_FORMATS.includes(format)) {
-    return fail(`--format must be one of: ${OUTPUT_FORMATS.join(', ')}. Got "${options.format}".`);
+    return fail(
+      `--format must be one of: ${OUTPUT_FORMATS.join(', ')}. Got "${options.format}".`,
+    );
   }
   // In machine-readable mode stdout must contain ONLY the report:
   // human chrome (banner, confirmations) is routed to stderr.
@@ -151,6 +176,11 @@ export async function analyzeWasteCommand(
   const info = quietStdout
     ? (msg: string) => console.error(msg)
     : (msg: string) => console.log(msg);
+
+  if (!quietStdout) {
+    console.log(`\n${renderBanner()}\n`);
+    if (bannerDelayMs > 0) await delay(bannerDelayMs);
+  }
 
   const configResult = await deps.loadConfig(process.cwd(), options.config);
   if (!configResult.ok) return fail(configResult.error.message);
@@ -170,10 +200,12 @@ export async function analyzeWasteCommand(
   if (!regionsResult.ok) return fail(regionsResult.error.message);
   const { regions, skipped } = regionsResult.value;
 
-  const accountId = options.accountId ?? (await deps.resolveAccountId()) ?? 'unknown';
+  const accountId =
+    options.accountId ?? (await deps.resolveAccountId()) ?? 'unknown';
 
   if (!quietStdout) {
-    const accountLabel = accountId !== 'unknown' ? ` (account ${accountId})` : '';
+    const accountLabel =
+      accountId !== 'unknown' ? ` (account ${accountId})` : '';
     console.log(
       chalk.bold.blue(
         `\n  Scanning ${regions.map((r) => r.code).join(', ')}${accountLabel} for wasted cloud resources...\n`,

@@ -1,5 +1,9 @@
 # cloudrift
 
+<p align="center">
+  <img src="docs/assets/cli-banner.png" alt="cloudrift CLI banner" />
+</p>
+
 > 🇮🇹 [Italiano](#-italiano) · 🇬🇧 [English](#-english)
 
 ---
@@ -10,7 +14,7 @@
 
 > ⚠️ **Disclaimer:** cloudrift is a read-only analysis tool: it reports estimated waste and recommendations only — it never deletes, modifies, or stops any AWS resource. All findings should be validated by your infrastructure team before taking action. The maintainers assume no liability for actions taken based on this report.
 >
-> **Contact:** [raffaelevasini@gmail.com](mailto:raffaelevasini@gmail.com) · <a href="https://www.linkedin.com/in/raffaele-vasini-87937470/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+> **Contact:** [raffaelevasini@gmail.com](mailto:raffaelevasini@gmail.com) · <a href="https://github.com/elleVas" target="_blank" rel="noopener noreferrer">GitHub</a> · <a href="https://www.linkedin.com/in/raffaele-vasini-87937470/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
 
 ### What it detects
 
@@ -446,7 +450,7 @@ No changes to `AnalyzeCloudWasteUseCase`, the summary, or the report DTO are nee
 
 > ⚠️ **Disclaimer:** cloudrift è uno strumento di analisi in sola lettura: segnala solo spreco stimato e raccomandazioni — non cancella, modifica o ferma alcuna risorsa AWS. Ogni finding deve essere validato dal tuo team infrastrutturale prima di agire. I maintainer non si assumono alcuna responsabilità per le azioni intraprese sulla base di questo report.
 >
-> **Contatti:** [raffaelevasini@gmail.com](mailto:raffaelevasini@gmail.com) · <a href="https://www.linkedin.com/in/raffaele-vasini-87937470/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+> **Contatti:** [raffaelevasini@gmail.com](mailto:raffaelevasini@gmail.com) · <a href="https://github.com/elleVas" target="_blank" rel="noopener noreferrer">GitHub</a> · <a href="https://www.linkedin.com/in/raffaele-vasini-87937470/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
 
 ### Cosa rileva
 

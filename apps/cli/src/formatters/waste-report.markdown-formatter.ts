@@ -35,6 +35,7 @@ function footer(meta: { pricesAsOf: string }): string {
     `---\n<sub>Estimates use AWS list prices as of ${meta.pricesAsOf}; actual billing may differ.</sub>\n\n` +
     `<sub>${REPORT_DISCLAIMER}</sub>\n\n` +
     `<sub>Contact: ${REPORT_CONTACT.email} · ` +
+      `<a href="${REPORT_CONTACT.github}" target="_blank" rel="noopener noreferrer">GitHub</a> · ` +
       `<a href="${REPORT_CONTACT.linkedin}" target="_blank" rel="noopener noreferrer">LinkedIn</a></sub>`
   );
 }
@@ -192,14 +193,13 @@ export function formatWasteReportAsMarkdown(
         `<summary>${esc(presenter.title)} (${grouped[kind].length}) · ${money(subtotal)}/mo</summary>`,
       );
       lines.push('');
-      const header = [...presenter.head, '$/mo', 'Approved by'];
+      const header = [...presenter.head, '$/mo'];
       lines.push(`| ${header.join(' | ')} |`);
       lines.push(`|${header.map(() => '---').join('|')}|`);
       for (const finding of grouped[kind]) {
         const cells = [
           ...presenter.row(finding).map(esc),
           money(finding.costEstimate.monthlyCostUsd),
-          '______',
         ];
         lines.push(`| ${cells.join(' | ')} |`);
       }
