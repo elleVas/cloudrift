@@ -85,7 +85,9 @@ node scripts/seed-localstack.mjs
 # 5. Inspect as a console table...
 node apps/cli/dist/main.js analyze --regions us-east-1 --min-age-days 0 --format table
 
-# 6. ...or as a PDF
+# 6. ...or as a PDF — omit a path to get the default reports/AWS_report_<date>.pdf,
+#    or pass one explicitly to write it wherever you want instead:
+node apps/cli/dist/main.js analyze --regions us-east-1 --min-age-days 0 --pdf
 node apps/cli/dist/main.js analyze --regions us-east-1 --min-age-days 0 --pdf ./report.pdf
 
 # 7. Repeat step 5/6 as many times as needed — the container and seeded

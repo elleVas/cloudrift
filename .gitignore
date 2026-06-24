@@ -5,6 +5,11 @@ dist
 tmp
 out-tsc
 
+# generated reports
+/reports
+/report.json
+/report.pdf
+
 # dependencies
 node_modules
 

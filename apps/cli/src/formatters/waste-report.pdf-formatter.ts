@@ -24,6 +24,11 @@ const C = {
   tableHeader: '#f3f4f6',
   rowAlt: '#f9fafb',
   border: '#d1d5db',
+  // Masthead band — Ayu Dark, matching the CLI banner's palette.
+  bannerBg: '#0b0e14',
+  bannerTitle: '#f2f0ea',
+  bannerSubtitle: '#8a93a6',
+  bannerAccent: '#53bdfa',
 };
 
 const PAGE_W = 595.28;
@@ -31,6 +36,70 @@ const PAGE_H = 841.89;
 const MARGIN = 48;
 const CONTENT_W = PAGE_W - MARGIN * 2;
 const ROW_H = 20;
+const LINE_H = 11;
+const MAX_CELL_LINES = 2;
+
+/** A row's height grows past ROW_H only when one of its cells actually wraps. */
+function rowHeightForLines(lineCount: number): number {
+  return lineCount <= 1 ? ROW_H : lineCount * LINE_H + 8;
+}
+
+// Footer layout constants (gap above the divider, then divider → disclaimer →
+// contact line), used both to reserve bottom space on every page and to draw it.
+const FOOTER_GAP = 18;
+const FOOTER_TOP_PAD = 10;
+const FOOTER_MID_PAD = 6;
+const FOOTER_CONTACT_H = 12;
+
+/** Forces a section onto a fresh page when it wouldn't otherwise fit, so
+ * fixed-position blocks (which don't self-paginate like drawTable) never
+ * straddle a page boundary. `contentBottom` is the page's content limit,
+ * already excluding the space reserved for the per-page footer. */
+function ensureSpace(
+  doc: PDFKit.PDFDocument,
+  y: number,
+  needed: number,
+  contentBottom: number,
+): number {
+  if (y + needed > contentBottom) {
+    doc.addPage();
+    return MARGIN;
+  }
+  return y;
+}
+
+/** Disclaimer text height at the footer's font, measured once per document. */
+function measureDisclaimerHeight(doc: PDFKit.PDFDocument): number {
+  return doc.font('Helvetica').fontSize(7).heightOfString(REPORT_DISCLAIMER, { width: CONTENT_W });
+}
+
+/** Draws the disclaimer + contact footer at a fixed position near the bottom
+ * of whichever page is currently active — called on every page via 'pageAdded'
+ * so it's never orphaned on its own page and never missing from any page. */
+function drawFooter(doc: PDFKit.PDFDocument, disclaimerH: number): void {
+  let y = PAGE_H - MARGIN - (FOOTER_TOP_PAD + disclaimerH + FOOTER_MID_PAD + FOOTER_CONTACT_H);
+  doc.moveTo(MARGIN, y).lineTo(PAGE_W - MARGIN, y).lineWidth(0.5).strokeColor(C.border).stroke();
+  y += FOOTER_TOP_PAD;
+  doc.font('Helvetica').fontSize(7).fillColor(C.muted)
+    .text(REPORT_DISCLAIMER, MARGIN, y, { width: CONTENT_W });
+  y += disclaimerH + FOOTER_MID_PAD;
+  doc.font('Helvetica').fontSize(7).fillColor(C.muted)
+    .text('Contact: ', MARGIN, y, { continued: true, lineBreak: false })
+    .fillColor(C.primary)
+    .text(REPORT_CONTACT.email, {
+      continued: true,
+      link: `mailto:${REPORT_CONTACT.email}`,
+      underline: true,
+    })
+    .fillColor(C.muted)
+    .text(' · ', { continued: true, lineBreak: false })
+    .fillColor(C.primary)
+    .text('GitHub', { continued: true, link: REPORT_CONTACT.github, underline: true })
+    .fillColor(C.muted)
+    .text(' · ', { continued: true, lineBreak: false })
+    .fillColor(C.primary)
+    .text('LinkedIn', { link: REPORT_CONTACT.linkedin, underline: true });
+}
 
 export function generateWasteReportPdf(
   summary: WastedResourcesSummary,
@@ -38,14 +107,23 @@ export function generateWasteReportPdf(
   outputPath: string,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ size: 'A4', margin: 0, autoFirstPage: true });
+    const doc = new PDFDocument({ size: 'A4', margin: 0, autoFirstPage: false });
     const stream = createWriteStream(outputPath);
     doc.pipe(stream);
     stream.on('finish', resolve);
     stream.on('error', reject);
 
-    drawSummaryPage(doc, summary, meta);
-    drawDetailPages(doc, summary);
+    const disclaimerH = measureDisclaimerHeight(doc);
+    const contentBottom =
+      PAGE_H - MARGIN - (FOOTER_GAP + FOOTER_TOP_PAD + disclaimerH + FOOTER_MID_PAD + FOOTER_CONTACT_H);
+
+    // Every page (the first one included, since autoFirstPage is off) gets
+    // its footer drawn here, right when it's created — see drawFooter above.
+    doc.on('pageAdded', () => drawFooter(doc, disclaimerH));
+    doc.addPage();
+
+    drawSummaryPage(doc, summary, meta, contentBottom);
+    drawDetailPages(doc, summary, contentBottom);
 
     doc.end();
   });
@@ -57,17 +135,21 @@ function drawSummaryPage(
   doc: PDFKit.PDFDocument,
   summary: WastedResourcesSummary,
   meta: WasteReportMeta,
+  contentBottom: number,
 ): void {
-  let y = MARGIN;
+  // Masthead: a full-bleed dark band (same Ayu Dark palette as the CLI
+  // banner) instead of a thin colored wordmark floating on white.
+  const bandH = 84;
+  doc.rect(0, 0, PAGE_W, bandH).fill(C.bannerBg);
+  doc.font('Helvetica-Bold').fontSize(28).fillColor(C.bannerTitle)
+    .text('CloudRift', MARGIN, 20, { lineBreak: false });
+  doc.font('Helvetica').fontSize(11).fillColor(C.bannerSubtitle)
+    .text('AWS Waste Detection Report', MARGIN, 54, { lineBreak: false });
+  doc.rect(MARGIN, bandH - 6, 56, 3).fill(C.bannerAccent);
 
-  // Title
-  doc.font('Helvetica-Bold').fontSize(24).fillColor(C.primary)
-    .text('CloudRift', MARGIN, y, { lineBreak: false });
-  doc.font('Helvetica').fontSize(11).fillColor(C.muted)
-    .text('AWS Waste Detection Report', MARGIN, y + 30, { lineBreak: false });
+  let y = bandH + 24;
 
   // Metadata
-  y += 58;
   const metaParts: string[] = [
     `Generated: ${meta.generatedAt.toISOString().split('T')[0]}`,
   ];
@@ -91,16 +173,21 @@ function drawSummaryPage(
   const monthlyLabel = isIncomplete ? `$${monthly.toFixed(2)}/mo *` : `$${monthly.toFixed(2)}/mo`;
   const annualLabel = isIncomplete ? `$${annual.toFixed(2)}/yr *` : `$${annual.toFixed(2)}/yr`;
 
+  y = ensureSpace(doc, y, 90, contentBottom);
   drawMetricBox(doc, MARGIN, y, 152, 'MONTHLY WASTE', monthlyLabel, C.danger);
   drawMetricBox(doc, MARGIN + 162, y, 152, 'ANNUAL WASTE', annualLabel, C.warning);
   drawMetricBox(doc, MARGIN + 324, y, 123, 'RESOURCES FOUND', String(total), C.text);
 
-  // Waste breakdown
+  // Waste breakdown — measured up front so the whole table moves to a fresh
+  // page instead of splitting awkwardly mid-table when it doesn't fit here.
   y += 90;
   doc.font('Helvetica-Bold').fontSize(10.5).fillColor(C.text)
     .text('Waste breakdown by resource type', MARGIN, y, { lineBreak: false });
   y += 16;
-  y = drawTable(doc, ['Resource type', 'Found', 'Est. cost/month'], buildBreakdownRows(summary, 'waste'), [290, 60, 149], y);
+  const breakdownRows = buildBreakdownRows(summary, 'waste');
+  const breakdownColWidths = [290, 60, 149];
+  y = ensureSpace(doc, y, measureTableHeight(doc, ['Resource type', 'Found', 'Est. cost/month'], breakdownRows, breakdownColWidths), contentBottom);
+  y = drawTable(doc, ['Resource type', 'Found', 'Est. cost/month'], breakdownRows, breakdownColWidths, y, contentBottom);
 
   // Optimization opportunities (separate — not counted in the waste total)
   const optimizationRows = buildBreakdownRows(summary, 'optimization');
@@ -115,51 +202,40 @@ function drawSummaryPage(
         MARGIN, y, { width: CONTENT_W },
       );
     y += 18;
-    y = drawTable(doc, ['Resource type', 'Found', 'Est. saving/month'], optimizationRows, [290, 60, 149], y);
+    const optimizationColWidths = [290, 60, 149];
+    y = ensureSpace(doc, y, measureTableHeight(doc, ['Resource type', 'Found', 'Est. saving/month'], optimizationRows, optimizationColWidths), contentBottom);
+    y = drawTable(doc, ['Resource type', 'Found', 'Est. saving/month'], optimizationRows, optimizationColWidths, y, contentBottom);
   }
 
   // Recommendations
   const wins = buildQuickWins(summary);
   if (wins.length > 0) {
     y += 20;
+    y = ensureSpace(doc, y, 16 + measureRecommendationsHeight(doc, wins), contentBottom);
     doc.font('Helvetica-Bold').fontSize(10.5).fillColor(C.text)
       .text('Top recommendations — sorted by monthly impact', MARGIN, y, { lineBreak: false });
     y += 16;
-    y = drawRecommendations(doc, wins, y);
+    y = drawRecommendations(doc, wins, y, contentBottom);
   }
 
-  // Warnings
+  // Warnings — each message is measured and advanced by its actual wrapped
+  // height; a fixed per-line increment here previously made long warnings
+  // (e.g. LocalStack's multi-line error text) overlap the next one.
   if (summary.scanErrors.length > 0) {
     y += 16;
+    y = ensureSpace(doc, y, 14, contentBottom);
     doc.font('Helvetica-Bold').fontSize(9).fillColor(C.warning)
       .text('* Scan warnings — partial results:', MARGIN, y, { lineBreak: false });
     y += 14;
     for (const { kind, region, error } of summary.scanErrors) {
-      doc.font('Helvetica').fontSize(8.5).fillColor(C.warning)
-        .text(`• ${RESOURCE_KIND_LABELS[kind]} in ${region}: ${error.message}`, MARGIN + 8, y, { width: CONTENT_W - 8 });
-      y += 13;
+      const text = `• ${RESOURCE_KIND_LABELS[kind]} in ${region}: ${error.message}`;
+      doc.font('Helvetica').fontSize(8.5);
+      const lineH = doc.heightOfString(text, { width: CONTENT_W - 8 });
+      y = ensureSpace(doc, y, lineH + 4, contentBottom);
+      doc.fillColor(C.warning).text(text, MARGIN + 8, y, { width: CONTENT_W - 8 });
+      y += lineH + 4;
     }
   }
-
-  // Disclaimer + contact
-  y += 18;
-  doc.moveTo(MARGIN, y).lineTo(PAGE_W - MARGIN, y).lineWidth(0.5).strokeColor(C.border).stroke();
-  y += 10;
-  doc.font('Helvetica').fontSize(7).fillColor(C.muted)
-    .text(REPORT_DISCLAIMER, MARGIN, y, { width: CONTENT_W });
-  y += doc.heightOfString(REPORT_DISCLAIMER, { width: CONTENT_W }) + 6;
-  doc.font('Helvetica').fontSize(7).fillColor(C.muted)
-    .text('Contact: ', MARGIN, y, { continued: true, lineBreak: false })
-    .fillColor(C.primary)
-    .text(REPORT_CONTACT.email, {
-      continued: true,
-      link: `mailto:${REPORT_CONTACT.email}`,
-      underline: true,
-    })
-    .fillColor(C.muted)
-    .text(' · ', { continued: true, lineBreak: false })
-    .fillColor(C.primary)
-    .text('LinkedIn', { link: REPORT_CONTACT.linkedin, underline: true });
 }
 
 function drawMetricBox(
@@ -177,11 +253,11 @@ function drawMetricBox(
 
 // ─── Detail pages ─────────────────────────────────────────────────────────────
 
-// Width reserved for the "Approved by" column; the other columns are scaled
-// to fill the remaining space, independently of the presenter's colWidths.
-const APPROVED_BY_W = 60;
-
-function drawDetailPages(doc: PDFKit.PDFDocument, summary: WastedResourcesSummary): void {
+function drawDetailPages(
+  doc: PDFKit.PDFDocument,
+  summary: WastedResourcesSummary,
+  contentBottom: number,
+): void {
   const grouped = groupByKind(summary.findings);
 
   for (const kind of RESOURCE_KINDS) {
@@ -194,11 +270,10 @@ function drawDetailPages(doc: PDFKit.PDFDocument, summary: WastedResourcesSummar
     const rows = findings.map((finding: WastedResource) => [
       ...presenter.row(finding),
       `$${finding.costEstimate.monthlyCostUsd.toFixed(2)}/mo`,
-      '______',
     ]);
-    const scale = (CONTENT_W - APPROVED_BY_W) / presenter.colWidths.reduce((a, b) => a + b, 0);
-    const colWidths = [...presenter.colWidths.map((w) => w * scale), APPROVED_BY_W];
-    drawTable(doc, [...presenter.head, 'Cost/mo', 'Approved by'], rows, colWidths, y);
+    const scale = CONTENT_W / presenter.colWidths.reduce((a, b) => a + b, 0);
+    const colWidths = presenter.colWidths.map((w) => w * scale);
+    drawTable(doc, [...presenter.head, 'Cost/mo'], rows, colWidths, y, contentBottom);
   }
 }
 
@@ -210,66 +285,29 @@ function sectionHeader(doc: PDFKit.PDFDocument, title: string): number {
 
 // ─── Table primitive ──────────────────────────────────────────────────────────
 
-function drawTable(
-  doc: PDFKit.PDFDocument,
-  headers: string[],
-  rows: string[][],
-  colWidths: number[],
-  startY: number,
-): number {
-  const totalW = colWidths.reduce((a, b) => a + b, 0);
-  let segmentStartY = startY;
-  let y = startY;
-
-  const strokeSegmentBorder = (rowsDrawn: number) => {
-    doc.rect(MARGIN, segmentStartY, totalW, rowsDrawn * ROW_H)
-      .lineWidth(0.5).strokeColor(C.border).stroke();
-  };
-
-  const drawHeader = () => {
-    doc.rect(MARGIN, y, totalW, ROW_H).fill(C.tableHeader);
-    renderRow(doc, headers, colWidths, y, true);
-    y += ROW_H;
-  };
-
-  drawHeader();
-  let rowsInSegment = 1;
-
-  for (let i = 0; i < rows.length; i++) {
-    // Page break: closes the current segment's border and redraws the header.
-    if (y + ROW_H > PAGE_H - MARGIN) {
-      strokeSegmentBorder(rowsInSegment);
-      doc.addPage();
-      y = MARGIN;
-      segmentStartY = y;
-      drawHeader();
-      rowsInSegment = 1;
+/** Greedy word-wrap up to `maxLines`; anything left over is folded into the
+ * last line and ellipsized, so a cell never grows past its line budget. */
+function wrapToLines(doc: PDFKit.PDFDocument, text: string, maxW: number, maxLines: number): string[] {
+  const words = text.split(' ');
+  const lines: string[] = [];
+  let current = '';
+  for (const word of words) {
+    const candidate = current ? `${current} ${word}` : word;
+    if (current && doc.widthOfString(candidate) > maxW) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = candidate;
     }
-    doc.rect(MARGIN, y, totalW, ROW_H).fill(i % 2 === 0 ? '#ffffff' : C.rowAlt);
-    renderRow(doc, rows[i], colWidths, y, false);
-    y += ROW_H;
-    rowsInSegment++;
   }
+  if (current) lines.push(current);
 
-  strokeSegmentBorder(rowsInSegment);
-  return y;
-}
+  if (lines.length <= maxLines) return lines;
 
-function renderRow(
-  doc: PDFKit.PDFDocument,
-  cells: string[],
-  colWidths: number[],
-  y: number,
-  bold: boolean,
-): void {
-  let x = MARGIN;
-  for (let i = 0; i < cells.length; i++) {
-    const w = colWidths[i];
-    const text = clip(doc, cells[i], w - 8);
-    doc.font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(8.5).fillColor(C.text)
-      .text(text, x + 4, y + 6, { width: w - 8, lineBreak: false });
-    x += w;
-  }
+  const kept = lines.slice(0, maxLines - 1);
+  const rest = lines.slice(maxLines - 1).join(' ');
+  kept.push(clip(doc, rest, maxW));
+  return kept;
 }
 
 function clip(doc: PDFKit.PDFDocument, text: string, maxW: number): string {
@@ -277,6 +315,98 @@ function clip(doc: PDFKit.PDFDocument, text: string, maxW: number): string {
   let s = text;
   while (s.length > 0 && doc.widthOfString(s + '…') > maxW) s = s.slice(0, -1);
   return s + '…';
+}
+
+/** Wraps every cell in a row (up to MAX_CELL_LINES) — font/size must be set
+ * BEFORE measuring, since doc.widthOfString() uses whatever font is active. */
+function wrapRow(doc: PDFKit.PDFDocument, cells: string[], colWidths: number[], bold: boolean): string[][] {
+  doc.font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(8.5);
+  return cells.map((cell, i) => wrapToLines(doc, cell, colWidths[i] - 8, MAX_CELL_LINES));
+}
+
+function renderWrappedRow(
+  doc: PDFKit.PDFDocument,
+  wrapped: string[][],
+  colWidths: number[],
+  y: number,
+  bold: boolean,
+): void {
+  doc.font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(8.5).fillColor(C.text);
+  let x = MARGIN;
+  for (let i = 0; i < wrapped.length; i++) {
+    const w = colWidths[i];
+    wrapped[i].forEach((line, li) => {
+      doc.text(line, x + 4, y + 6 + li * LINE_H, { width: w - 8, lineBreak: false });
+    });
+    x += w;
+  }
+}
+
+/** Total height a table would need if drawn in one block — used to decide
+ * whether to push it onto a fresh page instead of splitting it mid-table. */
+function measureTableHeight(
+  doc: PDFKit.PDFDocument,
+  headers: string[],
+  rows: string[][],
+  colWidths: number[],
+): number {
+  let total = rowHeightForLines(Math.max(...wrapRow(doc, headers, colWidths, true).map((l) => l.length)));
+  for (const row of rows) {
+    total += rowHeightForLines(Math.max(...wrapRow(doc, row, colWidths, false).map((l) => l.length)));
+  }
+  return total;
+}
+
+function drawTable(
+  doc: PDFKit.PDFDocument,
+  headers: string[],
+  rows: string[][],
+  colWidths: number[],
+  startY: number,
+  contentBottom: number,
+): number {
+  const totalW = colWidths.reduce((a, b) => a + b, 0);
+  let segmentStartY = startY;
+  let segmentH = 0;
+  let y = startY;
+
+  const strokeSegmentBorder = () => {
+    if (segmentH === 0) return;
+    doc.rect(MARGIN, segmentStartY, totalW, segmentH)
+      .lineWidth(0.5).strokeColor(C.border).stroke();
+  };
+
+  const drawHeader = () => {
+    const wrapped = wrapRow(doc, headers, colWidths, true);
+    const h = rowHeightForLines(Math.max(...wrapped.map((l) => l.length)));
+    doc.rect(MARGIN, y, totalW, h).fill(C.tableHeader);
+    renderWrappedRow(doc, wrapped, colWidths, y, true);
+    y += h;
+    segmentH += h;
+  };
+
+  drawHeader();
+
+  for (let i = 0; i < rows.length; i++) {
+    const wrapped = wrapRow(doc, rows[i], colWidths, false);
+    const h = rowHeightForLines(Math.max(...wrapped.map((l) => l.length)));
+    // Page break: closes the current segment's border and redraws the header.
+    if (y + h > contentBottom) {
+      strokeSegmentBorder();
+      doc.addPage();
+      y = MARGIN;
+      segmentStartY = y;
+      segmentH = 0;
+      drawHeader();
+    }
+    doc.rect(MARGIN, y, totalW, h).fill(i % 2 === 0 ? '#ffffff' : C.rowAlt);
+    renderWrappedRow(doc, wrapped, colWidths, y, false);
+    y += h;
+    segmentH += h;
+  }
+
+  strokeSegmentBorder();
+  return y;
 }
 
 // ─── Recommendations ──────────────────────────────────────────────────────────
@@ -296,25 +426,73 @@ function buildQuickWins(summary: WastedResourcesSummary): QuickWin[] {
     .slice(0, 8);
 }
 
-function drawRecommendations(doc: PDFKit.PDFDocument, wins: QuickWin[], startY: number): number {
+// Fixed overhead around the label column: 22 (index area) + 74 (gap, monthly
+// cost width and its own gap, all folded into the annual column's x-offset)
+// + 40 (annual cost width) + 8 (right padding, so "/yr" doesn't sit flush
+// against the table border) = 144. labelW must leave exactly this much room.
+const RECOMMENDATION_FIXED_W = 144;
+
+function recommendationLabelWidth(): number {
+  return CONTENT_W - RECOMMENDATION_FIXED_W;
+}
+
+/** Total height the recommendations block would need in one piece — same
+ * "measure before drawing" idea as measureTableHeight, for the keep-together
+ * page break below. */
+function measureRecommendationsHeight(doc: PDFKit.PDFDocument, wins: QuickWin[]): number {
+  doc.font('Helvetica').fontSize(8.5);
+  const labelW = recommendationLabelWidth();
+  return wins.reduce(
+    (total, { label }) => total + rowHeightForLines(wrapToLines(doc, label, labelW, MAX_CELL_LINES).length),
+    0,
+  );
+}
+
+function drawRecommendations(
+  doc: PDFKit.PDFDocument,
+  wins: QuickWin[],
+  startY: number,
+  contentBottom: number,
+): number {
   let y = startY;
-  const labelW = CONTENT_W - 130;
+  let segmentStartY = startY;
+  let segmentH = 0;
+  const labelW = recommendationLabelWidth();
+
+  const strokeSegmentBorder = () => {
+    if (segmentH === 0) return;
+    doc.rect(MARGIN, segmentStartY, CONTENT_W, segmentH)
+      .lineWidth(0.5).strokeColor(C.border).stroke();
+  };
 
   for (let i = 0; i < wins.length; i++) {
-    const { label, monthlyCostUsd } = wins[i];
+    doc.font('Helvetica').fontSize(8.5);
+    const labelLines = wrapToLines(doc, wins[i].label, labelW, MAX_CELL_LINES);
+    const h = rowHeightForLines(labelLines.length);
+
+    if (y + h > contentBottom) {
+      strokeSegmentBorder();
+      doc.addPage();
+      y = MARGIN;
+      segmentStartY = y;
+      segmentH = 0;
+    }
+
+    const { monthlyCostUsd } = wins[i];
     const annual = monthlyCostUsd * 12;
     const bg = i % 2 === 0 ? '#ffffff' : C.rowAlt;
 
-    doc.rect(MARGIN, y, CONTENT_W, ROW_H).fill(bg);
+    doc.rect(MARGIN, y, CONTENT_W, h).fill(bg);
 
     // Index
     doc.font('Helvetica-Bold').fontSize(8.5).fillColor(C.muted)
       .text(`${i + 1}.`, MARGIN + 4, y + 6, { width: 16, lineBreak: false });
 
-    // Label
-    const clippedLabel = clip(doc, label, labelW);
-    doc.font('Helvetica').fontSize(8.5).fillColor(C.text)
-      .text(clippedLabel, MARGIN + 22, y + 6, { width: labelW, lineBreak: false });
+    // Label — wrapped above, up to MAX_CELL_LINES, instead of clipped to one.
+    doc.font('Helvetica').fontSize(8.5).fillColor(C.text);
+    labelLines.forEach((line, li) => {
+      doc.text(line, MARGIN + 22, y + 6 + li * LINE_H, { width: labelW, lineBreak: false });
+    });
 
     // Monthly cost
     doc.font('Helvetica-Bold').fontSize(8.5).fillColor(C.danger)
@@ -324,13 +502,11 @@ function drawRecommendations(doc: PDFKit.PDFDocument, wins: QuickWin[], startY: 
     doc.font('Helvetica').fontSize(8).fillColor(C.muted)
       .text(`$${annual.toFixed(0)}/yr`, MARGIN + 22 + labelW + 74, y + 6, { width: 40, align: 'right', lineBreak: false });
 
-    y += ROW_H;
+    y += h;
+    segmentH += h;
   }
 
-  // Border around whole block
-  doc.rect(MARGIN, startY, CONTENT_W, wins.length * ROW_H)
-    .lineWidth(0.5).strokeColor(C.border).stroke();
-
+  strokeSegmentBorder();
   return y;
 }
 

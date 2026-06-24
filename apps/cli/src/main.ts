@@ -42,11 +42,11 @@ program
   )
   .option(
     '--pdf [filename]',
-    'Also write a PDF report to disk (optional filename, defaults to cloudrift-report-YYYY-MM-DD.pdf)',
+    'Also write a PDF report to disk (optional filename, defaults to reports/AWS_report_YYYY_MM_DD.pdf)',
   )
   .option(
     '--json [filename]',
-    'Also write a JSON report to disk (optional filename, defaults to cloudrift-report-YYYY-MM-DD.json)',
+    'Also write a JSON report to disk (optional filename, defaults to reports/AWS_report_YYYY_MM_DD.json)',
   )
   .action((options) => analyzeWasteCommand(options));
 

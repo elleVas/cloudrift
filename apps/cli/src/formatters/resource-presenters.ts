@@ -167,7 +167,11 @@ export const presenters: PresenterMap = {
   'eni-orphaned': {
     title: 'Orphaned ENIs — Not attached (hygiene, no direct cost)',
     head: ['Network Interface ID', 'Region', 'VPC', 'Subnet'],
-    colWidths: [160, 80, 130, 130, 80],
+    // Subnet IDs ("subnet-...") are the longest of the four ID-like values
+    // here (24 chars vs. 21 for eni-/vpc-), so they need the widest column —
+    // it was previously tied with VPC while Network Interface ID (also 21
+    // chars) was overallocated, clipping the subnet column.
+    colWidths: [115, 65, 110, 140, 65],
     row: (eni) => [eni.id, eni.region.code, eni.vpcId, eni.subnetId],
     recommend: (eni) =>
       `Delete orphaned ENI ${eni.id} in ${eni.region.code} — not attached to any instance`,
