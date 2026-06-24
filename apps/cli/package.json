@@ -64,6 +64,15 @@
           "command": "node apps/cli/scripts/make-dist-package.mjs"
         }
       },
+      "e2e-localstack": {
+        "dependsOn": [
+          "build"
+        ],
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "node scripts/e2e-localstack.mjs"
+        }
+      },
       "build": {
         "executor": "@nx/esbuild:esbuild",
         "outputs": [

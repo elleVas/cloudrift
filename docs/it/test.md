@@ -2,7 +2,7 @@
 
 > 🇬🇧 [English version](../en/testing.md)
 
-Questo documento descrive la piramide dei test di cloudrift: cosa copre ciascun livello, dove trovare esempi concreti e come verificare manualmente gli scanner contro un account AWS sandbox reale.
+Questo documento descrive la piramide dei test di cloudrift: cosa copre ciascun livello, dove trovare esempi concreti, come lanciare l'harness e2e su LocalStack e come verificare manualmente gli scanner contro un account AWS sandbox reale.
 
 ## La piramide
 
@@ -15,6 +15,8 @@ Questo documento descrive la piramide dei test di cloudrift: cosa copre ciascun 
         │  Dominio (entity/policy)│   logica pura: regole di spreco, boundary, niente I/O
         └─────────────────────────┘
         ┌─────────────────────────┐
+        │  e2e LocalStack (free)  │   scripts/e2e-localstack.mjs (questo doc), 13/18 scanner
+        ├─────────────────────────┤
         │  Verifica manuale AWS   │   scripts/verify-against-aws.mjs (questo doc)
         └─────────────────────────┘
 ```
@@ -39,6 +41,59 @@ Uno spec per scanner in [`libs/cloud-cost/infrastructure/aws-adapter/src/scanner
 ### CLI e2e
 
 [`apps/cli/src/commands/analyze-waste.command.spec.ts`](../../apps/cli/src/commands/analyze-waste.command.spec.ts) pilota il comando con un `AnalyzeDeps` fake (niente AWS), verificando la scelta del formato (table/json/markdown), gli exit code (0/1/2), gli artefatti `--json <file>` e `--pdf <file>`, e che uno scan parziale (`summary.scanErrors` non vuoto) non faccia crashare il comando — l'exit code resta dettato solo dalla soglia di costo, mai dagli errori di scan, e la nota di scan incompleto (prodotta dai formatter, vedi [`waste-report.markdown-formatter.spec.ts`](../../apps/cli/src/formatters/waste-report.markdown-formatter.spec.ts)) arriva fino a stdout. `analyze-waste.composition.ts` — l'implementazione `defaultAnalyzeDeps` che il fake sostituisce — non ha un suo spec per scelta: si limita a cablare insieme gli adapter AWS reali (stesso pattern di `aws-account-id.resolver.ts`), ed è esattamente quel cablaggio che il fake serve a bypassare nei test unitari.
+
+## Harness e2e su LocalStack
+
+Gli spec sopra mockano l'SDK AWS, quindi verificano la *forma* di una query ma non lanciano mai davvero il binario CLI buildato contro qualcosa. [`scripts/e2e-localstack.mjs`](../../scripts/e2e-localstack.mjs) chiude questo gap senza costi né credenziali AWS reali: avvia un container [LocalStack](https://www.localstack.cloud/) (`docker-compose.localstack.yml`), semina una risorsa sprecata/ottimizzabile per ogni kind (`scripts/seed-localstack.mjs`), lancia `cloudrift analyze` buildato contro quel container, verifica che ogni kind atteso produca un finding, e smonta il container — anche in caso di fallimento.
+
+Lo scope è 13 dei 18 scanner (vedi [ADR-0002](../adr/0002-localstack-e2e-scope.md) e [ADR-0036](../adr/0036-ec2-underutilized-excluded-from-localstack-e2e.md)): `rds-instance`, `rds-underutilized`, `elasticache-idle`, `efs-unused` (il piano Hobby gratuito di LocalStack non emula RDS/ElastiCache/EFS) ed `ec2-underutilized` (il match con la Pricing API di cui ha bisogno non è affidabile sul piano Hobby) sono esclusi e restano coperti solo dallo script di verifica manuale AWS più sotto. `load-balancer` è nella lista dei kind attesi ma trattato come soft-missing: il piano Hobby di LocalStack rifiuta del tutto le chiamate `elbv2`, quindi un finding mancante lì è un warning, non un fallimento.
+
+**Setup (una tantum):** registra un account gratuito su [app.localstack.cloud](https://app.localstack.cloud) e prendi il tuo Auth Token dalla dashboard — anche il piano Hobby gratuito ne richiede uno, il container si rifiuta di partire senza.
+
+```sh
+export LOCALSTACK_AUTH_TOKEN=<il-tuo-token>
+pnpm nx run cli:build
+pnpm nx run cli:e2e-localstack   # oppure: pnpm e2e:localstack
+```
+
+Richiede Docker. Non è cablato in `lint`/`test`/`build`/`typecheck` — è un target Nx opt-in con un suo job CI dedicato (`e2e-localstack` in `.github/workflows/ci.yml`), che legge il token dal secret di repository `LOCALSTACK_AUTH_TOKEN`.
+
+### Ispezione manuale (tabella / PDF) contro LocalStack
+
+`scripts/e2e-localstack.mjs` cattura il JSON solo per le sue asserzioni, poi smonta il container — non mostra mai una tabella né genera un PDF. Per guardare davvero un report con i dati di LocalStack, pilota i singoli pezzi a mano invece dell'harness:
+
+```sh
+# 0. Una tantum, se non già buildato
+pnpm nx run cli:build
+
+# 1. Token di autenticazione (lo stesso usato dall'harness)
+export LOCALSTACK_AUTH_TOKEN=<il-tuo-token>
+
+# 2. Avvia LocalStack e aspetta che sia healthy
+docker compose -f docker-compose.localstack.yml up -d --wait
+
+# 3. Punta l'SDK AWS verso LocalStack per questa sessione di shell
+export AWS_ENDPOINT_URL=http://localhost:4566
+export AWS_ACCESS_KEY_ID=test
+export AWS_SECRET_ACCESS_KEY=test
+export AWS_DEFAULT_REGION=us-east-1
+export AWS_REGION=us-east-1
+
+# 4. Semina le risorse sprecate (seed-localstack.mjs è eseguibile da solo)
+node scripts/seed-localstack.mjs
+
+# 5. Ispeziona come tabella a terminale...
+node apps/cli/dist/main.js analyze --regions us-east-1 --min-age-days 0 --format table
+
+# 6. ...oppure come PDF
+node apps/cli/dist/main.js analyze --regions us-east-1 --min-age-days 0 --pdf ./report.pdf
+
+# 7. Ripeti il passo 5/6 quante volte vuoi — container e dati seedati
+#    restano lì finché non li smonti
+
+# 8. Smonta tutto quando hai finito
+docker compose -f docker-compose.localstack.yml down -v
+```
 
 ## Verifica manuale contro un account AWS reale
 

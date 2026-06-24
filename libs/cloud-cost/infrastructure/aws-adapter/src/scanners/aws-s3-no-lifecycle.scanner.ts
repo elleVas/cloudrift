@@ -35,7 +35,10 @@ export class AwsS3NoLifecycleScanner implements WasteScannerPort {
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
-    const s3 = new S3Client({ region: region.code });
+    const s3 = new S3Client({
+      region: region.code,
+      forcePathStyle: !!process.env.AWS_ENDPOINT_URL,
+    });
     const cw = new CloudWatchClient({ region: region.code });
     try {
       const rawBuckets = await paginate<Bucket>(async (cursor) => {
