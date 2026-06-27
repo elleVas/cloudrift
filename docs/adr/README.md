@@ -74,3 +74,4 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 |---|---|
 | [0036](0036-ec2-underutilized-excluded-from-localstack-e2e.md) | `ec2-underutilized` excluded from the LocalStack e2e harness |
 | [0039](0039-cloudwatch-localstack-incompatibility.md) | `GetMetricStatistics` fails on LocalStack 4.0 — CloudWatch scanners marked soft |
+| [0040](0040-localstack-bumped-4-14-0-cloudwatch-fixed.md) | LocalStack bumped to 4.14.0 — CloudWatch incompatibility resolved |

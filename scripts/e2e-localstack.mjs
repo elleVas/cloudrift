@@ -7,7 +7,7 @@
 //
 // Scope: 16 of 29 scanners (see docs/adr/0002-localstack-e2e-scope.md,
 // docs/adr/0036-ec2-underutilized-excluded-from-localstack-e2e.md, and
-// docs/adr/0039-cloudwatch-localstack-incompatibility.md for the Phase 5.5
+// docs/adr/0040-localstack-bumped-4-14-0-cloudwatch-fixed.md for the Phase 5.5
 // additions). Not wired into lint/test/build/typecheck — opt-in via:
 //
 //   pnpm nx run cli:e2e-localstack
@@ -47,24 +47,15 @@ const EXPECTED_KINDS = [
   'dynamodb-overprovisioned',
   // Phase 5.5 (ADR-0038): 3 of the 4 always-on new scanners — fsx-idle-filesystem
   // is excluded entirely (LocalStack rejects FSx outright, same as RDS/EFS).
-  // All 3 below are soft — see SOFT_KINDS and ADR-0039.
+  // Hard-required like the rest, since ADR-0040 fixed the CloudWatch
+  // protocol incompatibility that previously made these soft.
   'kinesis-provisioned-idle-stream',
   'vpn-connection-idle',
   'transit-gateway-idle-attachment',
 ];
 // Historically partial LocalStack Community support — a missed finding here
 // is a warning, not a hard failure (see docs/adr/0002-localstack-e2e-scope.md).
-// kinesis/vpn/transit-gateway: resources are created correctly (confirmed via
-// direct AWS CLI calls against the container) but GetMetricStatistics fails
-// outright on LocalStack 4.0 for every CloudWatch-backed scanner, old and
-// new alike — see docs/adr/0039-cloudwatch-localstack-incompatibility.md.
-const SOFT_KINDS = new Set([
-  'load-balancer',
-  'nat-gateway',
-  'kinesis-provisioned-idle-stream',
-  'vpn-connection-idle',
-  'transit-gateway-idle-attachment',
-]);
+const SOFT_KINDS = new Set(['load-balancer', 'nat-gateway']);
 
 function dockerCompose(...args) {
   const r = spawnSync('docker', ['compose', '-f', composeFile, ...args], {

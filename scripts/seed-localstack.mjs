@@ -22,11 +22,13 @@
 // CloudWatch-backed scanners (nat-gateway, ebs-idle, lambda-underutilized,
 // dynamodb-overprovisioned, and the 3 seeded above) need no explicit metric
 // seeding: every scanner treats a missing datapoint as zero usage
-// (`Datapoints?.[0]?.Sum ?? 0`). On LocalStack 4.0, GetMetricStatistics
-// currently fails outright with a JSON/XML deserialization error for every
-// scanner that calls it (confirmed 2026-06-27, pre-existing — not introduced
-// by Phase 5.5): the call itself, not the scanner logic, is the problem. See
-// docs/adr/0039-cloudwatch-localstack-incompatibility.md.
+// (`Datapoints?.[0]?.Sum ?? 0`), and LocalStack's CloudWatch
+// GetMetricStatistics simply returns no datapoints for metrics nobody ever
+// pushed — which is already "idle" by definition. This required bumping
+// LocalStack to 4.14.0 (see docs/adr/0040-localstack-bumped-4-14-0-cloudwatch-fixed.md):
+// 4.0 predated LocalStack's support for the JSON protocol CloudWatch now
+// negotiates by default, and GetMetricStatistics failed outright on every
+// scanner that called it.
 //
 // Only called by scripts/e2e-localstack.mjs; not a standalone CI/test target.
 
@@ -289,9 +291,6 @@ export async function seedLocalstack(regionCode) {
 
   // Phase 5.5 (ADR-0038): 3 of the 4 always-on new scanners — fsx-idle-filesystem
   // is not seeded at all, LocalStack rejects FSx outright (see the file header).
-  // Resources are created fine; the scan itself currently fails on all 3 due to
-  // a CloudWatch/LocalStack incompatibility unrelated to this seed step (see
-  // docs/adr/0039-cloudwatch-localstack-incompatibility.md).
   await seed('kinesis-provisioned-idle-stream', async () => {
     await kinesis.send(
       new CreateStreamCommand({

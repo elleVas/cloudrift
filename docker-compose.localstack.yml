@@ -4,9 +4,11 @@ services:
   localstack:
     # Pinned, not `latest`: as of 2026-06, the `latest` tag resolves to the
     # Pro/Enterprise image, which refuses to start at all without a paid
-    # license token (even for free/Community-tier services). 4.0 is the last
-    # confirmed Community-only image that starts with no token.
-    image: localstack/localstack:4.0
+    # license token (even for free/Community-tier services). 4.14.0 is the
+    # newest confirmed Community-only image that starts with no token and
+    # includes the CloudWatch multi-protocol fix (see
+    # docs/adr/0039-cloudwatch-localstack-incompatibility.md).
+    image: localstack/localstack:4.14.0
     ports:
       - '4566:4566'
     environment:

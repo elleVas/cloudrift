@@ -1,6 +1,6 @@
 # ADR-0039: GetMetricStatistics fails on LocalStack 4.0 — CloudWatch scanners marked soft
 
-- **Status:** Accepted (2026-06-27)
+- **Status:** Superseded by [ADR-0040](0040-localstack-bumped-4-14-0-cloudwatch-fixed.md) (2026-06-27)
 
 ## Context
 
