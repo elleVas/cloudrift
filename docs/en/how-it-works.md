@@ -79,10 +79,11 @@ program
   .option('--ignore-tag <tag>', 'resources carrying this tag are excluded …', 'cloudrift:ignore')
   .option('--pdf [filename]', 'Export a PDF report …')
   .option('--json [filename]', 'Output the report as JSON …')
+  .option('--silent', 'suppress all stdout output …')
   .action(analyzeWasteCommand);
 ```
 
-`--pdf` and `--json` accept an optional filename. `--json` with no filename prints **only** the JSON to stdout (the table output is suppressed), making the command composable: `cloudrift analyze --json | jq '.totalWasteMonthlyUsd'`.
+`--pdf` and `--json` accept an optional filename and are file artifacts, independent of `--format`: by default the chosen `--format` (table) still prints to stdout *in addition to* writing the file. To get JSON only on stdout (composable: `cloudrift analyze --format json | jq '.totalWasteMonthlyUsd'`), pass `--format json` explicitly. To suppress stdout entirely and only write the file(s), add `--silent`.
 
 ---
 
@@ -261,7 +262,7 @@ export const presenters: PresenterMap = {
 - **JSON** (`waste-report.json-formatter.ts`): serializes `toWasteReportDto(summary, meta)` — the data contract for dashboards, CI or a future frontend. Every finding carries its `category` and `estimated` flag.
 - **Markdown** (`waste-report.markdown-formatter.ts`): a Pull-Request-ready report (totals, breakdown, collapsible `<details>` per kind, top recommendations, cost-threshold callout, a separate "Total optimization" row) for `--format markdown` in CI.
 
-`--format` (`table` | `json` | `markdown`) selects what goes to stdout; `--pdf` / `--json [filename]` write additional files. In machine-readable formats the human chrome is routed to stderr so stdout carries only the report.
+`--format` (`table` | `json` | `markdown`) selects what goes to stdout; `--pdf` / `--json [filename]` write additional files, independent of `--format`. In machine-readable formats the human chrome is routed to stderr so stdout carries only the report. `--silent` suppresses stdout entirely (chrome and report), for file-only runs.
 
 ---
 

@@ -41,6 +41,7 @@ export interface AnalyzeWasteOptions {
   json?: string | boolean;
   minAgeDays?: string;
   ignoreTag?: string;
+  silent?: boolean;
 }
 
 function fail(message: string): void {
@@ -172,11 +173,16 @@ export async function analyzeWasteCommand(
     );
   }
   // In machine-readable mode stdout must contain ONLY the report:
-  // human chrome (banner, confirmations) is routed to stderr.
-  const quietStdout = format !== 'table';
-  const info = quietStdout
-    ? (msg: string) => console.error(msg)
-    : (msg: string) => console.log(msg);
+  // human chrome (banner, confirmations) is routed to stderr. --silent goes
+  // further: no chrome and no report at all, just the file artifacts (if any) —
+  // errors and the cost-gate alert still surface, same as every other mode.
+  const silent = options.silent === true;
+  const quietStdout = format !== 'table' || silent;
+  const info = silent
+    ? () => undefined
+    : quietStdout
+      ? (msg: string) => console.error(msg)
+      : (msg: string) => console.log(msg);
 
   if (!quietStdout) {
     console.log(`\n${renderBanner()}\n`);
@@ -245,18 +251,21 @@ export async function analyzeWasteCommand(
   };
 
   // The chosen report ALWAYS goes to stdout (so it's pipeline-composable:
-  // `--format json | jq`, `--format markdown >> $GITHUB_STEP_SUMMARY`).
-  let rendered: string;
-  if (format === 'json') {
-    rendered = formatWasteReportAsJson(result.value, meta);
-  } else if (format === 'markdown') {
-    rendered = formatWasteReportAsMarkdown(result.value, meta, {
-      costAlertThresholdUsd: config.costAlertThresholdUsd,
-    });
-  } else {
-    rendered = formatWasteReportAsTable(result.value, meta);
+  // `--format json | jq`, `--format markdown >> $GITHUB_STEP_SUMMARY`) —
+  // unless --silent asked for file artifacts only.
+  if (!silent) {
+    let rendered: string;
+    if (format === 'json') {
+      rendered = formatWasteReportAsJson(result.value, meta);
+    } else if (format === 'markdown') {
+      rendered = formatWasteReportAsMarkdown(result.value, meta, {
+        costAlertThresholdUsd: config.costAlertThresholdUsd,
+      });
+    } else {
+      rendered = formatWasteReportAsTable(result.value, meta);
+    }
+    console.log(rendered);
   }
-  console.log(rendered);
 
   await writeArtifacts(result.value, meta, options, info);
   applyCostGate(result.value, config);

@@ -79,10 +79,11 @@ program
   .option('--ignore-tag <tag>', 'resources carrying this tag are excluded …', 'cloudrift:ignore')
   .option('--pdf [filename]', 'Export a PDF report …')
   .option('--json [filename]', 'Output the report as JSON …')
+  .option('--silent', 'suppress all stdout output …')
   .action(analyzeWasteCommand);
 ```
 
-`--pdf` e `--json` accettano un filename opzionale. `--json` senza filename stampa **solo** il JSON su stdout (l'output tabellare viene soppresso), così il comando è componibile: `cloudrift analyze --json | jq '.totalWasteMonthlyUsd'`.
+`--pdf` e `--json` accettano un filename opzionale e sono file artifacts, indipendenti da `--format`: di default il `--format` scelto (table) continua comunque a essere stampato su stdout *in aggiunta* alla scrittura del file. Per avere solo JSON su stdout (componibile: `cloudrift analyze --format json | jq '.totalWasteMonthlyUsd'`) passa esplicitamente `--format json`. Per sopprimere del tutto stdout e scrivere solo il/i file, aggiungi `--silent`.
 
 ---
 
@@ -261,7 +262,7 @@ export const presenters: PresenterMap = {
 - **JSON** (`waste-report.json-formatter.ts`): serializza `toWasteReportDto(summary, meta)` — il contratto dati per dashboard, CI o un futuro frontend. Ogni finding porta il proprio `category` e il flag `estimated`.
 - **Markdown** (`waste-report.markdown-formatter.ts`): un report pronto per le Pull Request (totali, breakdown, `<details>` collassabile per kind, raccomandazioni principali, callout sulla soglia di costo, una riga separata "Total optimization") per `--format markdown` in CI.
 
-`--format` (`table` | `json` | `markdown`) sceglie cosa va su stdout; `--pdf` / `--json [filename]` scrivono file aggiuntivi. Nei formati machine-readable il chrome umano va su stderr, così su stdout resta solo il report.
+`--format` (`table` | `json` | `markdown`) sceglie cosa va su stdout; `--pdf` / `--json [filename]` scrivono file aggiuntivi, indipendenti da `--format`. Nei formati machine-readable il chrome umano va su stderr, così su stdout resta solo il report. `--silent` sopprime del tutto stdout (chrome e report), per esecuzioni solo-file.
 
 ---
 

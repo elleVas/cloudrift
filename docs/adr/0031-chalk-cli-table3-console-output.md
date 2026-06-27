@@ -8,7 +8,7 @@ Terminal output needs colors and aligned tables, plus a clean machine-readable m
 
 ## Decision
 
-`chalk` for colors (automatic color-support detection), `cli-table3` for aligned, readable tables. With `--json` and no output filename, table output is suppressed entirely to keep stdout clean for piping.
+`chalk` for colors (automatic color-support detection), `cli-table3` for aligned, readable tables. `--format json` (not `--json`, which is a file artifact — see [analyze-waste.command.ts](../../apps/cli/src/commands/analyze-waste.command.ts)) suppresses table output entirely to keep stdout clean for piping.
 
 ## Alternatives Considered
 
@@ -16,4 +16,4 @@ Terminal output needs colors and aligned tables, plus a clean machine-readable m
 
 ## Consequences
 
-`--json` to stdout is safely pipeable into other tools. Only the file-output path (`--json --output report.json`) coexists with a printed table view.
+`--format json` to stdout is safely pipeable into other tools. The file-output flags (`--json`/`--pdf`) are independent of `--format` and by default coexist with a printed table view; `--silent` (added later) suppresses that printed view for file-only runs.

@@ -148,7 +148,7 @@ if (!parsed.ok) return fail(parsed.error.message); // clean message, exit 1, no 
 
 **Choice:** `chalk` for colors and `cli-table3` for tables.
 
-**Why:** automatic color-support handling; aligned, readable tables. With `--json` and no filename, the table output is suppressed to keep the machine-readable stdout clean.
+**Why:** automatic color-support handling; aligned, readable tables. `--format json` (not `--json`, which is a file artifact, independent of `--format`) suppresses the table to keep machine-readable stdout clean; `--silent` suppresses it for file-only runs regardless of `--format`.
 
 ---
 

@@ -16,55 +16,22 @@
 >
 > **Contact:** [raffaelevasini@gmail.com](mailto:raffaelevasini@gmail.com) · <a href="https://github.com/elleVas" target="_blank" rel="noopener noreferrer">GitHub</a> · <a href="https://www.linkedin.com/in/raffaele-vasini-87937470/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
 
-### What it detects
+**📑 Table of contents**
 
-| Resource           | Waste condition                             | Estimated cost (us-east-1)                              |
-| ------------------ | ------------------------------------------- | ------------------------------------------------------- |
-| **EBS Volumes**    | Unattached (`state: available`)             | gp3: $0.08/GB-mo · gp2: $0.10/GB-mo · io1: $0.125/GB-mo |
-| **Elastic IPs**    | Unassociated (no EC2/NAT binding)           | $3.60/month fixed                                       |
-| **RDS Instances**  | Stopped (still billed for storage)          | gp2/gp3: $0.115/GB-month                                |
-| **Load Balancers** | No registered targets (ALB/NLB)             | ~$16.20/month fixed                                     |
-| **EC2 Instances**  | Stopped — attached EBS volumes keep billing | Sum of attached EBS volumes                             |
-| **EBS Snapshots**  | Source volume deleted (orphan snapshots)    | $0.05/GB-month                                          |
-| **NAT Gateways**   | Zero outbound traffic in the last 48h       | ~$32.40/month fixed                                     |
-| **EBS gp2→gp3**    | In-use gp2 volume upgradeable to gp3 (savings, not waste) | Saving: gp2 − gp3 price × GB (≈ $0.02/GB-mo) |
-| **EBS Volumes (idle)** | Attached (in-use) but zero I/O in the last 48h | gp3: $0.08/GB-mo · gp2: $0.10/GB-mo · io1: $0.125/GB-mo |
-| **EC2 Instances (underutilized)** | Running, max CPU ≤ 5% over 14 days — rightsizing candidate, requires `--live-pricing` | Saving: ~50% of the instance's monthly cost (estimate — verify RAM/network before acting) |
-| **RDS Instances (underutilized)** | Available, max CPU ≤ 5% over 14 days — rightsizing candidate, requires `--live-pricing` | Saving: ~50% of the instance's monthly cost (estimate — verify storage I/O/connections before acting) |
-| **CloudWatch Log Groups** | No retention policy configured (logs grow forever) | $0.03/GB-month |
-| **Orphaned ENIs** | `Status: available` (not attached to any instance) | $0 (hygiene flag, not a direct cost) |
-| **S3 Buckets (no lifecycle)** | No lifecycle configuration — rightsizing candidate | Saving: ~40% of Standard storage cost (estimate — verify access patterns before acting) |
-| **Lambda Functions (underutilized)** | (Near-)zero invocations over 7 days | $0 (hygiene flag — pay-per-use Lambda has no direct cost when unused) |
-| **EFS File Systems (unused)** | No mount targets, or mounted with zero I/O in the last 48h | $0.30/GB-month (Standard storage) |
-| **DynamoDB Tables (overprovisioned)** | PROVISIONED mode, read/write capacity utilization < 10% over 7 days — rightsizing candidate | Saving: ~50% of the provisioned RCU/WCU monthly cost (estimate — verify traffic spikes before acting) |
-| **ElastiCache Clusters (idle)** | Zero client connections in the last 48h, requires `--live-pricing` | Full node-hour cost (node billed regardless of usage) |
-| **Redshift Clusters (idle)** | Zero database connections in the last 48h, requires `--live-pricing` | Full node-hour cost × number of nodes |
-| **OpenSearch Domains (idle)** | Zero search/indexing requests in the last 48h, requires `--live-pricing` | Full instance-hour cost × instance count |
-| **MSK Clusters (idle)** | Provisioned mode, zero broker traffic in the last 48h, requires `--live-pricing` | Full broker-hour cost × number of brokers |
-| **FSx File Systems (idle)** | Zero read/write I/O in the last 48h | $0.093–$0.14/GB-month depending on file system type |
-| **DocumentDB Instances (idle)** | Zero database connections in the last 48h, requires `--live-pricing` | Full instance-hour cost |
-| **Neptune Instances (idle)** | Zero query traffic in the last 48h, requires `--live-pricing` | Full instance-hour cost |
-| **Amazon MQ Brokers (idle)** | Zero network traffic in the last 48h, requires `--live-pricing` | Full broker-hour cost (×2 for ACTIVE_STANDBY_MULTI_AZ) |
-| **WorkSpaces (idle)** | AlwaysOn, no user connection in the last 30 days, requires `--live-pricing` | Full bundle monthly cost |
-| **Site-to-Site VPN Connections (idle)** | Zero tunnel traffic in the last 48h | ~$36.50/month fixed |
-| **Transit Gateway Attachments (idle)** | Zero traffic in the last 48h | ~$36.50/month fixed |
-| **Kinesis Streams (idle, Provisioned mode)** | Zero incoming records in the last 48h (On-Demand mode out of scope — pay-per-use) | ~$10.95/month per shard |
-
-Every finding is also tagged `waste` or `optimization`: `waste` is money being spent now and feeds the headline total and the CI gate; `optimization` (gp2→gp3, EC2/RDS underutilized, S3 no-lifecycle, Lambda underutilized, DynamoDB overprovisioned) is a saving opportunity that keeps the resource, shown separately and never gated. `EC2/RDS Instances (underutilized)`, `S3 Buckets (no lifecycle)` and `DynamoDB Tables (overprovisioned)` are additionally *estimates* — verify before acting.
-
-> **Honest caveat (Lambda):** we only check invocation count over the lookback window, nothing else. We do **not** rightsize memory allocation — that requires Lambda Insights (extra cost, must be enabled per-function), which isn't part of a zero-extra-IAM read-only scan. A function with zero invocations has, by definition, $0 direct cost (pay-per-use); the value of this finding is hygiene (dead code, unnecessary IAM roles/event sources), not a dollar saving. It also won't catch idle **Provisioned Concurrency**, which *is* billed regardless of invocations — out of scope for now.
-
-> **Honest caveat (rightsizing):** the underutilized check is a single-metric heuristic — max CPU below a threshold over the lookback window, nothing else. It does **not** look at RAM, network throughput, IOPS or connection counts, so it can't tell you *which* smaller instance type actually fits. We do this because it requires no extra IAM permissions and works the same on every account; we don't replace [AWS Compute Optimizer](https://aws.amazon.com/compute-optimizer/), which models multiple metrics and recommends a specific target type. Treat our finding as "go check this instance," not as a sizing recommendation — cross-check with Compute Optimizer (or your own metrics) before resizing.
-
-**False-positive guards (waste policies):**
-
-- **Grace period** — resources younger than 7 days (configurable via `--min-age-days`) are never reported. For EC2 the stop time is reconstructed from `StateTransitionReason`; for NAT Gateways and Load Balancers the creation time is used.
-- **Exclusion tag** — any resource tagged `cloudrift:ignore` (configurable via `--ignore-tag`) is skipped.
-- **AMI-bound snapshots** — orphan snapshots referenced by a registered AMI are not reported (they cannot be deleted anyway).
-
-> Prices vary by region. The tool uses region-specific pricing for: `us-east-1`, `us-west-2`, `eu-west-1`, `eu-central-1`, `ap-southeast-1`, `ap-northeast-1`. Every report states the date the price table was last verified (`prices as of`).
-
-> **No npm package yet.** `@cloudrift/cli` is not published on npm — the [release workflow](#releasing) exists but hasn't been triggered with a version tag. For now, build and run from source: see [Quick Start](#quick-start) below. Every command in this README uses `node apps/cli/dist/main.js …` accordingly.
+- [Prerequisites](#prerequisites)
+- [Quick Start](#quick-start)
+- [What it detects](#what-it-detects)
+- [Usage](#usage)
+- [Configuration file](#configuration-file)
+- [Pricing sources](#pricing-sources)
+- [Use in CI/CD](#use-in-cicd)
+- [Required IAM permissions](#required-iam-permissions)
+- [Development](#development)
+- [Releasing](#releasing)
+- [Architecture](#architecture)
+- [Technical documentation](#technical-documentation)
+- [Adding a new resource type](#adding-a-new-resource-type)
+- [License](#license)
 
 ### Prerequisites
 
@@ -143,6 +110,58 @@ If everything is configured correctly you'll see tables listing the wasted resou
 
 ---
 
+### What it detects
+
+| Resource           | Waste condition                             | Estimated cost (us-east-1)                              |
+| ------------------ | ------------------------------------------- | ------------------------------------------------------- |
+| **EBS Volumes**    | Unattached (`state: available`)             | gp3: $0.08/GB-mo · gp2: $0.10/GB-mo · io1: $0.125/GB-mo |
+| **Elastic IPs**    | Unassociated (no EC2/NAT binding)           | $3.60/month fixed                                       |
+| **RDS Instances**  | Stopped (still billed for storage)          | gp2/gp3: $0.115/GB-month                                |
+| **Load Balancers** | No registered targets (ALB/NLB)             | ~$16.20/month fixed                                     |
+| **EC2 Instances**  | Stopped — attached EBS volumes keep billing | Sum of attached EBS volumes                             |
+| **EBS Snapshots**  | Source volume deleted (orphan snapshots)    | $0.05/GB-month                                          |
+| **NAT Gateways**   | Zero outbound traffic in the last 48h       | ~$32.40/month fixed                                     |
+| **EBS gp2→gp3**    | In-use gp2 volume upgradeable to gp3 (savings, not waste) | Saving: gp2 − gp3 price × GB (≈ $0.02/GB-mo) |
+| **EBS Volumes (idle)** | Attached (in-use) but zero I/O in the last 48h | gp3: $0.08/GB-mo · gp2: $0.10/GB-mo · io1: $0.125/GB-mo |
+| **EC2 Instances (underutilized)** | Running, max CPU ≤ 5% over 14 days — rightsizing candidate, requires `--live-pricing` | Saving: ~50% of the instance's monthly cost (estimate — verify RAM/network before acting) |
+| **RDS Instances (underutilized)** | Available, max CPU ≤ 5% over 14 days — rightsizing candidate, requires `--live-pricing` | Saving: ~50% of the instance's monthly cost (estimate — verify storage I/O/connections before acting) |
+| **CloudWatch Log Groups** | No retention policy configured (logs grow forever) | $0.03/GB-month |
+| **Orphaned ENIs** | `Status: available` (not attached to any instance) | $0 (hygiene flag, not a direct cost) |
+| **S3 Buckets (no lifecycle)** | No lifecycle configuration — rightsizing candidate | Saving: ~40% of Standard storage cost (estimate — verify access patterns before acting) |
+| **Lambda Functions (underutilized)** | (Near-)zero invocations over 7 days | $0 (hygiene flag — pay-per-use Lambda has no direct cost when unused) |
+| **EFS File Systems (unused)** | No mount targets, or mounted with zero I/O in the last 48h | $0.30/GB-month (Standard storage) |
+| **DynamoDB Tables (overprovisioned)** | PROVISIONED mode, read/write capacity utilization < 10% over 7 days — rightsizing candidate | Saving: ~50% of the provisioned RCU/WCU monthly cost (estimate — verify traffic spikes before acting) |
+| **ElastiCache Clusters (idle)** | Zero client connections in the last 48h, requires `--live-pricing` | Full node-hour cost (node billed regardless of usage) |
+| **Redshift Clusters (idle)** | Zero database connections in the last 48h, requires `--live-pricing` | Full node-hour cost × number of nodes |
+| **OpenSearch Domains (idle)** | Zero search/indexing requests in the last 48h, requires `--live-pricing` | Full instance-hour cost × instance count |
+| **MSK Clusters (idle)** | Provisioned mode, zero broker traffic in the last 48h, requires `--live-pricing` | Full broker-hour cost × number of brokers |
+| **FSx File Systems (idle)** | Zero read/write I/O in the last 48h | $0.093–$0.14/GB-month depending on file system type |
+| **DocumentDB Instances (idle)** | Zero database connections in the last 48h, requires `--live-pricing` | Full instance-hour cost |
+| **Neptune Instances (idle)** | Zero query traffic in the last 48h, requires `--live-pricing` | Full instance-hour cost |
+| **Amazon MQ Brokers (idle)** | Zero network traffic in the last 48h, requires `--live-pricing` | Full broker-hour cost (×2 for ACTIVE_STANDBY_MULTI_AZ) |
+| **WorkSpaces (idle)** | AlwaysOn, no user connection in the last 30 days, requires `--live-pricing` | Full bundle monthly cost |
+| **Site-to-Site VPN Connections (idle)** | Zero tunnel traffic in the last 48h | ~$36.50/month fixed |
+| **Transit Gateway Attachments (idle)** | Zero traffic in the last 48h | ~$36.50/month fixed |
+| **Kinesis Streams (idle, Provisioned mode)** | Zero incoming records in the last 48h (On-Demand mode out of scope — pay-per-use) | ~$10.95/month per shard |
+
+Every finding is also tagged `waste` or `optimization`: `waste` is money being spent now and feeds the headline total and the CI gate; `optimization` (gp2→gp3, EC2/RDS underutilized, S3 no-lifecycle, Lambda underutilized, DynamoDB overprovisioned) is a saving opportunity that keeps the resource, shown separately and never gated. `EC2/RDS Instances (underutilized)`, `S3 Buckets (no lifecycle)` and `DynamoDB Tables (overprovisioned)` are additionally *estimates* — verify before acting.
+
+> **Honest caveat (Lambda):** we only check invocation count over the lookback window, nothing else. We do **not** rightsize memory allocation — that requires Lambda Insights (extra cost, must be enabled per-function), which isn't part of a zero-extra-IAM read-only scan. A function with zero invocations has, by definition, $0 direct cost (pay-per-use); the value of this finding is hygiene (dead code, unnecessary IAM roles/event sources), not a dollar saving. It also won't catch idle **Provisioned Concurrency**, which *is* billed regardless of invocations — out of scope for now.
+
+> **Honest caveat (rightsizing):** the underutilized check is a single-metric heuristic — max CPU below a threshold over the lookback window, nothing else. It does **not** look at RAM, network throughput, IOPS or connection counts, so it can't tell you *which* smaller instance type actually fits. We do this because it requires no extra IAM permissions and works the same on every account; we don't replace [AWS Compute Optimizer](https://aws.amazon.com/compute-optimizer/), which models multiple metrics and recommends a specific target type. Treat our finding as "go check this instance," not as a sizing recommendation — cross-check with Compute Optimizer (or your own metrics) before resizing.
+
+**False-positive guards (waste policies):**
+
+- **Grace period** — resources younger than 7 days (configurable via `--min-age-days`) are never reported. For EC2 the stop time is reconstructed from `StateTransitionReason`; for NAT Gateways and Load Balancers the creation time is used.
+- **Exclusion tag** — any resource tagged `cloudrift:ignore` (configurable via `--ignore-tag`) is skipped.
+- **AMI-bound snapshots** — orphan snapshots referenced by a registered AMI are not reported (they cannot be deleted anyway).
+
+> Prices vary by region. The tool uses region-specific pricing for: `us-east-1`, `us-west-2`, `eu-west-1`, `eu-central-1`, `ap-southeast-1`, `ap-northeast-1`. Every report states the date the price table was last verified (`prices as of`).
+
+> **No npm package yet.** `@cloudrift/cli` is not published on npm — the [release workflow](#releasing) exists but hasn't been triggered with a version tag. For now, build and run from source: see [Quick Start](#quick-start) above. Every command in this README uses `node apps/cli/dist/main.js …` accordingly.
+
+---
+
 <details>
 <summary><strong>Usage</strong> — flags, examples, PDF report, partial-failure handling, per-region pricing</summary>
 
@@ -163,9 +182,12 @@ node apps/cli/dist/main.js analyze [options]
 | `--ignore-tag <tag>`         | Resources carrying this tag are excluded from the report (overrides config)                                   | `cloudrift:ignore` |
 | `--pdf [filename]`           | Also write a PDF report to disk (defaults to `cloudrift-report-YYYY-MM-DD.pdf`)                                | —                  |
 | `--json [filename]`          | Also write a JSON report to disk (defaults to `cloudrift-report-YYYY-MM-DD.json`)                              | —                  |
+| `--silent`                   | Suppress all stdout output (banner, report, confirmations) — use with `--pdf`/`--json` for file-only output    | off                |
 | `-h, --help`                 | Show help                                                                                                      | —                  |
 
-> **stdout vs. file artifacts:** `--format` controls what goes to **stdout** (the report itself). `--json` / `--pdf` write **additional files** to disk and are independent of `--format`. In machine-readable formats (`json`, `markdown`) all human messages are routed to stderr, so stdout carries only the report — ideal for piping.
+> **stdout vs. file artifacts:** `--format` controls what goes to **stdout** (the report itself). `--json` / `--pdf` write **additional files** to disk and are independent of `--format` — by default the chosen `--format` still prints to stdout *in addition to* writing those files (so e.g. `--pdf` alone still shows the table by default). Add `--silent` for file-only output with nothing printed to the terminal. In machine-readable formats (`json`, `markdown`) all human messages are routed to stderr, so stdout carries only the report — ideal for piping. Errors and the cost-gate alert always surface on stderr, even with `--silent`.
+>
+> **Flag order with `--pdf`/`--json`:** their filename is an *optional* value (`--pdf [filename]`), so it's only picked up if it immediately follows the flag — `--pdf --silent ./report.pdf` fails ("too many arguments") because `--silent` blocks `--pdf` from seeing the filename, leaving `./report.pdf` with nothing to attach to. Either keep the filename right after the flag (`--pdf ./report.pdf --silent`), or use `=` to make order irrelevant: `--pdf=./report.pdf --silent --format json`.
 
 **Examples:**
 
@@ -182,6 +204,9 @@ node apps/cli/dist/main.js analyze --min-age-days 0
 # Export a PDF report with an auto-generated filename (reports/AWS_report_YYYY_MM_DD.pdf)
 node apps/cli/dist/main.js analyze --pdf
 
+# Same, but with nothing printed to the terminal — just the file
+node apps/cli/dist/main.js analyze --pdf ./report.pdf --silent
+
 # Machine-readable output (e.g. to feed a dashboard or CI check)
 node apps/cli/dist/main.js analyze --format json | jq '.totalWasteMonthlyUsd'
 
@@ -194,7 +219,7 @@ node apps/cli/dist/main.js analyze --format markdown >> "$GITHUB_STEP_SUMMARY"
 
 **PDF report:**
 
-The `--pdf` flag generates a PDF alongside the normal console output. The report contains:
+The `--pdf` flag generates a PDF alongside the normal console output (add `--silent` to suppress the console output and get only the file). The report contains:
 
 - **Executive summary** — monthly and annual waste totals, resource count, per-type breakdown
 - **Top recommendations** — up to 8 items sorted by monthly savings potential, with estimated annual saving
@@ -467,55 +492,21 @@ Apache License 2.0 — see [LICENSE.md](./LICENSE.md). Free to use, modify, and 
 >
 > **Contatti:** [raffaelevasini@gmail.com](mailto:raffaelevasini@gmail.com) · <a href="https://github.com/elleVas" target="_blank" rel="noopener noreferrer">GitHub</a> · <a href="https://www.linkedin.com/in/raffaele-vasini-87937470/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
 
-### Cosa rileva
+**📑 Indice**
 
-| Risorsa            | Condizione di spreco                                                    | Costo stimato (us-east-1)                                     |
-| ------------------ | ----------------------------------------------------------------------- | ------------------------------------------------------------- |
-| **EBS Volumes**    | Non attaccati a nessuna istanza (`state: available`)                    | gp3: $0,08/GB-mese · gp2: $0,10/GB-mese · io1: $0,125/GB-mese |
-| **Elastic IP**     | Non associati a EC2 o NAT Gateway                                       | $3,60/mese fisso                                              |
-| **RDS Instances**  | Ferme (`stopped`), ancora a pagamento per lo storage                    | gp2: $0,115/GB-mese · gp3: $0,115/GB-mese                     |
-| **Load Balancers** | Nessun target registrato (ALB/NLB)                                      | ~$16,20/mese fisso                                            |
-| **EC2 Instances**  | Ferme (`stopped`), i volumi EBS attaccati continuano a essere fatturati | Somma dei volumi EBS attaccati                                |
-| **EBS Snapshots**  | Volume sorgente cancellato (snapshot orfani)                            | $0,05/GB-mese                                                 |
-| **NAT Gateways**   | Zero traffico in uscita nelle ultime 48h                                | ~$32,40/mese fisso                                            |
-| **EBS gp2→gp3**    | Volume gp2 in uso aggiornabile a gp3 (risparmio, non spreco)            | Risparmio: prezzo gp2 − gp3 × GB (≈ $0,02/GB-mese)           |
-| **EBS Volumes (idle)** | Attaccati (in-use) ma zero I/O nelle ultime 48h                     | gp3: $0,08/GB-mese · gp2: $0,10/GB-mese · io1: $0,125/GB-mese |
-| **EC2 Instances (underutilized)** | Running, CPU massima ≤ 5% in 14 giorni — candidato a rightsizing, richiede `--live-pricing` | Risparmio: ~50% del costo mensile dell'istanza (stima — verificare RAM/rete prima di agire) |
-| **RDS Instances (underutilized)** | Disponibile (`available`), CPU massima ≤ 5% in 14 giorni — candidato a rightsizing, richiede `--live-pricing` | Risparmio: ~50% del costo mensile dell'istanza (stima — verificare storage I/O/connessioni prima di agire) |
-| **CloudWatch Log Groups** | Nessuna retention policy configurata (i log crescono all'infinito) | $0,03/GB-mese |
-| **ENI orfane** | `Status: available` (non attaccate a nessuna istanza) | $0 (segnalazione di igiene, non un costo diretto) |
-| **S3 Buckets (no lifecycle)** | Nessuna lifecycle configuration — candidato a rightsizing | Risparmio: ~40% del costo storage Standard (stima — verificare i pattern di accesso prima di agire) |
-| **Lambda Functions (underutilized)** | (Quasi) zero invocazioni in 7 giorni | $0 (segnalazione di igiene — Lambda pay-per-use non ha costo diretto se inutilizzata) |
-| **EFS File Systems (unused)** | Nessun mount target, oppure montato con zero I/O nelle ultime 48h | $0,30/GB-mese (storage Standard) |
-| **DynamoDB Tables (overprovisioned)** | Modalità PROVISIONED, utilizzo capacità read/write < 10% in 7 giorni — candidato a rightsizing | Risparmio: ~50% del costo mensile RCU/WCU provisioned (stima — verificare picchi di traffico prima di agire) |
-| **ElastiCache Clusters (idle)** | Zero connessioni client nelle ultime 48h, richiede `--live-pricing` | Costo pieno node-hour (il nodo è fatturato indipendentemente dall'uso) |
-| **Redshift Clusters (idle)** | Zero connessioni al database nelle ultime 48h, richiede `--live-pricing` | Costo pieno node-hour × numero di nodi |
-| **OpenSearch Domains (idle)** | Zero richieste di ricerca/indicizzazione nelle ultime 48h, richiede `--live-pricing` | Costo pieno instance-hour × numero di istanze |
-| **MSK Clusters (idle)** | Modalità Provisioned, zero traffico broker nelle ultime 48h, richiede `--live-pricing` | Costo pieno broker-hour × numero di broker |
-| **FSx File Systems (idle)** | Zero I/O di lettura/scrittura nelle ultime 48h | $0,093–$0,14/GB-mese a seconda del tipo di file system |
-| **DocumentDB Instances (idle)** | Zero connessioni al database nelle ultime 48h, richiede `--live-pricing` | Costo pieno instance-hour |
-| **Neptune Instances (idle)** | Zero traffico di query nelle ultime 48h, richiede `--live-pricing` | Costo pieno instance-hour |
-| **Amazon MQ Brokers (idle)** | Zero traffico di rete nelle ultime 48h, richiede `--live-pricing` | Costo pieno broker-hour (×2 per ACTIVE_STANDBY_MULTI_AZ) |
-| **WorkSpaces (idle)** | AlwaysOn, nessuna connessione utente negli ultimi 30 giorni, richiede `--live-pricing` | Costo pieno mensile del bundle |
-| **Connessioni VPN Site-to-Site (idle)** | Zero traffico nei tunnel nelle ultime 48h | ~$36,50/mese fisso |
-| **Transit Gateway Attachments (idle)** | Zero traffico nelle ultime 48h | ~$36,50/mese fisso |
-| **Kinesis Streams (idle, modalità Provisioned)** | Zero record in ingresso nelle ultime 48h (modalità On-Demand fuori scope — pay-per-use) | ~$10,95/mese per shard |
-
-Ogni finding è anche etichettato `waste` o `optimization`: `waste` è denaro speso ora e contribuisce al totale principale e al gate CI; `optimization` (gp2→gp3, EC2/RDS underutilized, S3 no-lifecycle, Lambda underutilized, DynamoDB overprovisioned) è un'opportunità di risparmio che mantiene la risorsa, mostrata a parte e mai usata come gate. `EC2/RDS Instances (underutilized)`, `S3 Buckets (no lifecycle)` e `DynamoDB Tables (overprovisioned)` sono inoltre delle *stime* — da verificare prima di agire.
-
-> **Nota onesta (Lambda):** controlliamo solo il numero di invocazioni nella finestra di osservazione, nient'altro. **Non** facciamo rightsizing della memoria — richiederebbe Lambda Insights (costo extra, da attivare per ogni funzione), fuori scope per uno scan read-only senza permessi IAM aggiuntivi. Una funzione con zero invocazioni ha per definizione $0 di costo diretto (pay-per-use); il valore di questo finding è igiene (codice morto, ruoli IAM/event source inutili), non un risparmio in dollari. Non rileva nemmeno la **Provisioned Concurrency** idle, che invece *è* fatturata indipendentemente dalle invocazioni — fuori scope per ora.
-
-> **Nota onesta (rightsizing):** il check di sottoutilizzo è un'euristica su una singola metrica — CPU massima sotto una soglia nella finestra di osservazione, nient'altro. **Non** guarda RAM, throughput di rete, IOPS o numero di connessioni, quindi non può dirti *quale* instance type più piccolo sia davvero adatto. Lo facciamo così perché non richiede permessi IAM aggiuntivi e funziona uguale su ogni account; non sostituiamo [AWS Compute Optimizer](https://aws.amazon.com/compute-optimizer/), che modella più metriche e raccomanda un target specifico. Tratta il nostro finding come "vai a controllare questa istanza", non come una raccomandazione di sizing — verifica con Compute Optimizer (o con le tue metriche) prima di ridimensionare.
-
-**Protezioni contro i falsi positivi (waste policies):**
-
-- **Periodo di grazia** — le risorse più giovani di 7 giorni (configurabile con `--min-age-days`) non vengono mai segnalate. Per le EC2 la data di stop è ricostruita da `StateTransitionReason`; per NAT Gateway e Load Balancer si usa la data di creazione.
-- **Tag di esclusione** — qualunque risorsa con il tag `cloudrift:ignore` (configurabile con `--ignore-tag`) viene saltata.
-- **Snapshot legati ad AMI** — gli snapshot orfani referenziati da un'AMI registrata non vengono segnalati (non sarebbero comunque cancellabili).
-
-> I prezzi variano per regione. Il tool usa prezzi specifici per: `us-east-1`, `us-west-2`, `eu-west-1`, `eu-central-1`, `ap-southeast-1`, `ap-northeast-1`. Ogni report indica la data di ultima verifica del listino (`prices as of`).
-
-> **Nessun pacchetto npm ancora.** `@cloudrift/cli` non è pubblicato su npm — il [workflow di rilascio](#rilascio) esiste ma non è ancora stato attivato con un tag di versione. Per ora va compilato ed eseguito dai sorgenti: vedi [Guida rapida](#guida-rapida) qui sotto. Ogni comando in questo README usa quindi `node apps/cli/dist/main.js …`.
+- [Prerequisiti](#prerequisiti)
+- [Guida rapida](#guida-rapida)
+- [Cosa rileva](#cosa-rileva)
+- [Utilizzo](#utilizzo)
+- [File di configurazione](#file-di-configurazione)
+- [Fonti dei prezzi](#fonti-dei-prezzi)
+- [Uso in CI/CD](#uso-in-cicd)
+- [Permessi IAM necessari](#permessi-iam-necessari)
+- [Sviluppo](#sviluppo)
+- [Rilascio](#rilascio)
+- [Architettura](#architettura)
+- [Documentazione tecnica](#documentazione-tecnica)
+- [Licenza](#licenza)
 
 ### Prerequisiti
 
@@ -594,6 +585,58 @@ Se tutto è configurato correttamente vedrai tabelle con le risorse sprecate tro
 
 ---
 
+### Cosa rileva
+
+| Risorsa            | Condizione di spreco                                                    | Costo stimato (us-east-1)                                     |
+| ------------------ | ----------------------------------------------------------------------- | ------------------------------------------------------------- |
+| **EBS Volumes**    | Non attaccati a nessuna istanza (`state: available`)                    | gp3: $0,08/GB-mese · gp2: $0,10/GB-mese · io1: $0,125/GB-mese |
+| **Elastic IP**     | Non associati a EC2 o NAT Gateway                                       | $3,60/mese fisso                                              |
+| **RDS Instances**  | Ferme (`stopped`), ancora a pagamento per lo storage                    | gp2: $0,115/GB-mese · gp3: $0,115/GB-mese                     |
+| **Load Balancers** | Nessun target registrato (ALB/NLB)                                      | ~$16,20/mese fisso                                            |
+| **EC2 Instances**  | Ferme (`stopped`), i volumi EBS attaccati continuano a essere fatturati | Somma dei volumi EBS attaccati                                |
+| **EBS Snapshots**  | Volume sorgente cancellato (snapshot orfani)                            | $0,05/GB-mese                                                 |
+| **NAT Gateways**   | Zero traffico in uscita nelle ultime 48h                                | ~$32,40/mese fisso                                            |
+| **EBS gp2→gp3**    | Volume gp2 in uso aggiornabile a gp3 (risparmio, non spreco)            | Risparmio: prezzo gp2 − gp3 × GB (≈ $0,02/GB-mese)           |
+| **EBS Volumes (idle)** | Attaccati (in-use) ma zero I/O nelle ultime 48h                     | gp3: $0,08/GB-mese · gp2: $0,10/GB-mese · io1: $0,125/GB-mese |
+| **EC2 Instances (underutilized)** | Running, CPU massima ≤ 5% in 14 giorni — candidato a rightsizing, richiede `--live-pricing` | Risparmio: ~50% del costo mensile dell'istanza (stima — verificare RAM/rete prima di agire) |
+| **RDS Instances (underutilized)** | Disponibile (`available`), CPU massima ≤ 5% in 14 giorni — candidato a rightsizing, richiede `--live-pricing` | Risparmio: ~50% del costo mensile dell'istanza (stima — verificare storage I/O/connessioni prima di agire) |
+| **CloudWatch Log Groups** | Nessuna retention policy configurata (i log crescono all'infinito) | $0,03/GB-mese |
+| **ENI orfane** | `Status: available` (non attaccate a nessuna istanza) | $0 (segnalazione di igiene, non un costo diretto) |
+| **S3 Buckets (no lifecycle)** | Nessuna lifecycle configuration — candidato a rightsizing | Risparmio: ~40% del costo storage Standard (stima — verificare i pattern di accesso prima di agire) |
+| **Lambda Functions (underutilized)** | (Quasi) zero invocazioni in 7 giorni | $0 (segnalazione di igiene — Lambda pay-per-use non ha costo diretto se inutilizzata) |
+| **EFS File Systems (unused)** | Nessun mount target, oppure montato con zero I/O nelle ultime 48h | $0,30/GB-mese (storage Standard) |
+| **DynamoDB Tables (overprovisioned)** | Modalità PROVISIONED, utilizzo capacità read/write < 10% in 7 giorni — candidato a rightsizing | Risparmio: ~50% del costo mensile RCU/WCU provisioned (stima — verificare picchi di traffico prima di agire) |
+| **ElastiCache Clusters (idle)** | Zero connessioni client nelle ultime 48h, richiede `--live-pricing` | Costo pieno node-hour (il nodo è fatturato indipendentemente dall'uso) |
+| **Redshift Clusters (idle)** | Zero connessioni al database nelle ultime 48h, richiede `--live-pricing` | Costo pieno node-hour × numero di nodi |
+| **OpenSearch Domains (idle)** | Zero richieste di ricerca/indicizzazione nelle ultime 48h, richiede `--live-pricing` | Costo pieno instance-hour × numero di istanze |
+| **MSK Clusters (idle)** | Modalità Provisioned, zero traffico broker nelle ultime 48h, richiede `--live-pricing` | Costo pieno broker-hour × numero di broker |
+| **FSx File Systems (idle)** | Zero I/O di lettura/scrittura nelle ultime 48h | $0,093–$0,14/GB-mese a seconda del tipo di file system |
+| **DocumentDB Instances (idle)** | Zero connessioni al database nelle ultime 48h, richiede `--live-pricing` | Costo pieno instance-hour |
+| **Neptune Instances (idle)** | Zero traffico di query nelle ultime 48h, richiede `--live-pricing` | Costo pieno instance-hour |
+| **Amazon MQ Brokers (idle)** | Zero traffico di rete nelle ultime 48h, richiede `--live-pricing` | Costo pieno broker-hour (×2 per ACTIVE_STANDBY_MULTI_AZ) |
+| **WorkSpaces (idle)** | AlwaysOn, nessuna connessione utente negli ultimi 30 giorni, richiede `--live-pricing` | Costo pieno mensile del bundle |
+| **Connessioni VPN Site-to-Site (idle)** | Zero traffico nei tunnel nelle ultime 48h | ~$36,50/mese fisso |
+| **Transit Gateway Attachments (idle)** | Zero traffico nelle ultime 48h | ~$36,50/mese fisso |
+| **Kinesis Streams (idle, modalità Provisioned)** | Zero record in ingresso nelle ultime 48h (modalità On-Demand fuori scope — pay-per-use) | ~$10,95/mese per shard |
+
+Ogni finding è anche etichettato `waste` o `optimization`: `waste` è denaro speso ora e contribuisce al totale principale e al gate CI; `optimization` (gp2→gp3, EC2/RDS underutilized, S3 no-lifecycle, Lambda underutilized, DynamoDB overprovisioned) è un'opportunità di risparmio che mantiene la risorsa, mostrata a parte e mai usata come gate. `EC2/RDS Instances (underutilized)`, `S3 Buckets (no lifecycle)` e `DynamoDB Tables (overprovisioned)` sono inoltre delle *stime* — da verificare prima di agire.
+
+> **Nota onesta (Lambda):** controlliamo solo il numero di invocazioni nella finestra di osservazione, nient'altro. **Non** facciamo rightsizing della memoria — richiederebbe Lambda Insights (costo extra, da attivare per ogni funzione), fuori scope per uno scan read-only senza permessi IAM aggiuntivi. Una funzione con zero invocazioni ha per definizione $0 di costo diretto (pay-per-use); il valore di questo finding è igiene (codice morto, ruoli IAM/event source inutili), non un risparmio in dollari. Non rileva nemmeno la **Provisioned Concurrency** idle, che invece *è* fatturata indipendentemente dalle invocazioni — fuori scope per ora.
+
+> **Nota onesta (rightsizing):** il check di sottoutilizzo è un'euristica su una singola metrica — CPU massima sotto una soglia nella finestra di osservazione, nient'altro. **Non** guarda RAM, throughput di rete, IOPS o numero di connessioni, quindi non può dirti *quale* instance type più piccolo sia davvero adatto. Lo facciamo così perché non richiede permessi IAM aggiuntivi e funziona uguale su ogni account; non sostituiamo [AWS Compute Optimizer](https://aws.amazon.com/compute-optimizer/), che modella più metriche e raccomanda un target specifico. Tratta il nostro finding come "vai a controllare questa istanza", non come una raccomandazione di sizing — verifica con Compute Optimizer (o con le tue metriche) prima di ridimensionare.
+
+**Protezioni contro i falsi positivi (waste policies):**
+
+- **Periodo di grazia** — le risorse più giovani di 7 giorni (configurabile con `--min-age-days`) non vengono mai segnalate. Per le EC2 la data di stop è ricostruita da `StateTransitionReason`; per NAT Gateway e Load Balancer si usa la data di creazione.
+- **Tag di esclusione** — qualunque risorsa con il tag `cloudrift:ignore` (configurabile con `--ignore-tag`) viene saltata.
+- **Snapshot legati ad AMI** — gli snapshot orfani referenziati da un'AMI registrata non vengono segnalati (non sarebbero comunque cancellabili).
+
+> I prezzi variano per regione. Il tool usa prezzi specifici per: `us-east-1`, `us-west-2`, `eu-west-1`, `eu-central-1`, `ap-southeast-1`, `ap-northeast-1`. Ogni report indica la data di ultima verifica del listino (`prices as of`).
+
+> **Nessun pacchetto npm ancora.** `@cloudrift/cli` non è pubblicato su npm — il [workflow di rilascio](#rilascio) esiste ma non è ancora stato attivato con un tag di versione. Per ora va compilato ed eseguito dai sorgenti: vedi [Guida rapida](#guida-rapida) qui sopra. Ogni comando in questo README usa quindi `node apps/cli/dist/main.js …`.
+
+---
+
 <details>
 <summary><strong>Utilizzo</strong> — flag, esempi, report PDF, gestione errori parziali, prezzi per regione</summary>
 
@@ -614,9 +657,12 @@ node apps/cli/dist/main.js analyze [opzioni]
 | `--ignore-tag <tag>`         | Le risorse con questo tag vengono escluse dal report (ha precedenza sul config)                                     | `cloudrift:ignore` |
 | `--pdf [filename]`           | Scrive anche un report PDF su disco (default `cloudrift-report-YYYY-MM-DD.pdf`)                                      | —                  |
 | `--json [filename]`          | Scrive anche un report JSON su disco (default `cloudrift-report-YYYY-MM-DD.json`)                                   | —                  |
+| `--silent`                   | Sopprime tutto l'output su stdout (banner, report, conferme) — usalo con `--pdf`/`--json` per ottenere solo il file | off                |
 | `-h, --help`                 | Mostra l'help                                                                                                        | —                  |
 
-> **stdout vs. file:** `--format` controlla cosa va su **stdout** (il report). `--json` / `--pdf` scrivono **file aggiuntivi** su disco, indipendenti da `--format`. Nei formati machine-readable (`json`, `markdown`) tutti i messaggi umani vanno su stderr, così su stdout resta solo il report — ideale per il piping.
+> **stdout vs. file:** `--format` controlla cosa va su **stdout** (il report). `--json` / `--pdf` scrivono **file aggiuntivi** su disco, indipendenti da `--format` — di default il `--format` scelto continua comunque a essere stampato su stdout *in aggiunta* alla scrittura di quei file (quindi es. `--pdf` da solo mostra comunque la tabella). Aggiungi `--silent` per ottenere solo il file, senza nulla stampato a terminale. Nei formati machine-readable (`json`, `markdown`) tutti i messaggi umani vanno su stderr, così su stdout resta solo il report — ideale per il piping. Errori e l'alert della soglia di costo vanno sempre su stderr, anche con `--silent`.
+>
+> **Ordine dei flag con `--pdf`/`--json`:** il filename è un valore *opzionale* (`--pdf [filename]`), quindi viene raccolto solo se segue immediatamente il flag — `--pdf --silent ./report.pdf` fallisce ("too many arguments") perché `--silent` impedisce a `--pdf` di vedere il filename, lasciando `./report.pdf` senza nulla a cui agganciarsi. Tieni il filename subito dopo il flag (`--pdf ./report.pdf --silent`), oppure usa `=` per rendere l'ordine irrilevante: `--pdf=./report.pdf --silent --format json`.
 
 **Esempi:**
 
@@ -633,6 +679,9 @@ node apps/cli/dist/main.js analyze --min-age-days 0
 # Esporta un report PDF con nome automatico (reports/AWS_report_YYYY_MM_DD.pdf)
 node apps/cli/dist/main.js analyze --pdf
 
+# Come sopra, ma senza nulla stampato a terminale — solo il file
+node apps/cli/dist/main.js analyze --pdf ./report.pdf --silent
+
 # Output machine-readable (es. per una dashboard o un check CI)
 node apps/cli/dist/main.js analyze --format json | jq '.totalWasteMonthlyUsd'
 
@@ -645,7 +694,7 @@ node apps/cli/dist/main.js analyze --format markdown >> "$GITHUB_STEP_SUMMARY"
 
 **Report PDF:**
 
-Il flag `--pdf` genera un PDF in aggiunta all'output console. Il report contiene:
+Il flag `--pdf` genera un PDF in aggiunta all'output console (aggiungi `--silent` per sopprimere l'output console e ottenere solo il file). Il report contiene:
 
 - **Executive summary** — totale spreco mensile e annuale, numero di risorse, breakdown per tipo
 - **Top raccomandazioni** — fino a 8 voci ordinate per impatto mensile, con risparmio annuale stimato
