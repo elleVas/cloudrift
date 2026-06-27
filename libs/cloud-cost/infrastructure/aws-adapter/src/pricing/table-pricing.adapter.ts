@@ -84,6 +84,22 @@ export class TablePricingAdapter implements PricingPort {
     return this.lookup(region, 'dynamodb-wcu') ?? 0;
   }
 
+  getFsxStoragePricePerGbMonth(region: AwsRegion, fileSystemType: string): number {
+    return this.lookup(region, `fsx-${fileSystemType.toLowerCase()}`) ?? this.table.default?.['fsx-windows'] ?? 0;
+  }
+
+  getVpnConnectionPricePerMonth(region: AwsRegion): number {
+    return this.lookup(region, 'vpn-connection') ?? 0;
+  }
+
+  getTransitGatewayAttachmentPricePerMonth(region: AwsRegion): number {
+    return this.lookup(region, 'transit-gateway-attachment') ?? 0;
+  }
+
+  getKinesisShardPricePerMonth(region: AwsRegion): number {
+    return this.lookup(region, 'kinesis-shard') ?? 0;
+  }
+
   getPricesAsOf(): string {
     return this.pricesAsOf;
   }

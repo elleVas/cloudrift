@@ -2,7 +2,11 @@
 # Not part of lint/test/build/typecheck — opt-in e2e harness, see docs/adr/0002-localstack-e2e-scope.md.
 services:
   localstack:
-    image: localstack/localstack:latest
+    # Pinned, not `latest`: as of 2026-06, the `latest` tag resolves to the
+    # Pro/Enterprise image, which refuses to start at all without a paid
+    # license token (even for free/Community-tier services). 4.0 is the last
+    # confirmed Community-only image that starts with no token.
+    image: localstack/localstack:4.0
     ports:
       - '4566:4566'
     environment:

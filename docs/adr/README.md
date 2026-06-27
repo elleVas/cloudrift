@@ -18,6 +18,7 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 | [0006](0006-dto-disclaimer-contact-top-level.md) | Disclaimer/contact as top-level DTO fields, not under `meta` |
 | [0007](0007-no-release-until-requested.md) | No version bump/tag/publish until explicitly requested |
 | [0008](0008-commit-and-pr-owned-by-user.md) | Commit and PR always owned by the user |
+| [0038](0038-eleven-fixed-cost-scanners-phase-5-5.md) | 11 new fixed-cost scanners in v0.5.0 Phase 5.5 |
 
 ## Pricing
 
@@ -27,6 +28,7 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 | [0010](0010-live-price-unambiguous-match-only.md) | Live price accepted only on unambiguous filter match |
 | [0011](0011-live-pricing-gated-scanners.md) | EC2/RDS/ElastiCache underutilized scanners gated behind `--live-pricing` |
 | [0012](0012-ec2-price-on-demand.md) | EC2 per-instance-type price fetched on demand |
+| [0037](0037-pricing-extension-query-api-not-bulk.md) | New scanners' pricing extends the Query API, not the Bulk API |
 
 ## Architecture
 
@@ -71,3 +73,4 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 | ADR | Title |
 |---|---|
 | [0036](0036-ec2-underutilized-excluded-from-localstack-e2e.md) | `ec2-underutilized` excluded from the LocalStack e2e harness |
+| [0039](0039-cloudwatch-localstack-incompatibility.md) | `GetMetricStatistics` fails on LocalStack 4.0 — CloudWatch scanners marked soft |

@@ -22,7 +22,14 @@
     "s3-standard":   0.023,
     "efs-standard":  0.300,
     "dynamodb-rcu":  0.00013,
-    "dynamodb-wcu":  0.00065
+    "dynamodb-wcu":  0.00065,
+    "fsx-windows":   0.130,
+    "fsx-lustre":    0.140,
+    "fsx-ontap":     0.124,
+    "fsx-openzfs":   0.093,
+    "vpn-connection": 36.500,
+    "transit-gateway-attachment": 36.500,
+    "kinesis-shard": 10.950
   },
   "us-east-1": {
     "ebs-gp2":       0.100,

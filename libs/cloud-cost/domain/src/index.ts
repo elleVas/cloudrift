@@ -53,6 +53,28 @@ export { OverprovisionedDynamoDbTable } from './entities/overprovisioned-dynamod
 export type { OverprovisionedDynamoDbTableProps } from './entities/overprovisioned-dynamodb-table.entity';
 export { IdleElastiCacheCluster } from './entities/idle-elasticache-cluster.entity';
 export type { IdleElastiCacheClusterProps } from './entities/idle-elasticache-cluster.entity';
+export { RedshiftCluster } from './entities/redshift-cluster.entity';
+export type { RedshiftClusterProps } from './entities/redshift-cluster.entity';
+export { OpenSearchDomain } from './entities/opensearch-domain.entity';
+export type { OpenSearchDomainProps } from './entities/opensearch-domain.entity';
+export { MskCluster } from './entities/msk-cluster.entity';
+export type { MskClusterProps } from './entities/msk-cluster.entity';
+export { FsxFileSystem } from './entities/fsx-file-system.entity';
+export type { FsxFileSystemProps } from './entities/fsx-file-system.entity';
+export { DocumentDbInstance } from './entities/documentdb-instance.entity';
+export type { DocumentDbInstanceProps } from './entities/documentdb-instance.entity';
+export { NeptuneInstance } from './entities/neptune-instance.entity';
+export type { NeptuneInstanceProps } from './entities/neptune-instance.entity';
+export { MqBroker } from './entities/mq-broker.entity';
+export type { MqBrokerProps } from './entities/mq-broker.entity';
+export { Workspace } from './entities/workspace.entity';
+export type { WorkspaceProps } from './entities/workspace.entity';
+export { VpnConnection } from './entities/vpn-connection.entity';
+export type { VpnConnectionProps } from './entities/vpn-connection.entity';
+export { TransitGatewayAttachment } from './entities/transit-gateway-attachment.entity';
+export type { TransitGatewayAttachmentProps } from './entities/transit-gateway-attachment.entity';
+export { KinesisStream } from './entities/kinesis-stream.entity';
+export type { KinesisStreamProps } from './entities/kinesis-stream.entity';
 
 // Value Objects
 export { AwsRegion, InvalidAwsRegionError } from './value-objects/aws-region.value-object';
@@ -86,6 +108,17 @@ export {
   EfsUnusedPolicy,
   DynamoDbOverprovisionedPolicy,
   ElastiCacheIdlePolicy,
+  RedshiftIdleClusterPolicy,
+  OpenSearchIdleDomainPolicy,
+  MskIdleClusterPolicy,
+  FsxIdleFilesystemPolicy,
+  DocumentDbIdleInstancePolicy,
+  NeptuneIdleInstancePolicy,
+  MqIdleBrokerPolicy,
+  WorkspacesIdlePolicy,
+  VpnConnectionIdlePolicy,
+  TransitGatewayIdleAttachmentPolicy,
+  KinesisProvisionedIdleStreamPolicy,
 } from './policies/resource-waste-policies';
 
 // Outbound Ports

@@ -18,6 +18,17 @@ import type { UnderutilizedLambdaFunction } from '../entities/underutilized-lamb
 import type { EfsFileSystem } from '../entities/efs-file-system.entity';
 import type { OverprovisionedDynamoDbTable } from '../entities/overprovisioned-dynamodb-table.entity';
 import type { IdleElastiCacheCluster } from '../entities/idle-elasticache-cluster.entity';
+import type { RedshiftCluster } from '../entities/redshift-cluster.entity';
+import type { OpenSearchDomain } from '../entities/opensearch-domain.entity';
+import type { MskCluster } from '../entities/msk-cluster.entity';
+import type { FsxFileSystem } from '../entities/fsx-file-system.entity';
+import type { DocumentDbInstance } from '../entities/documentdb-instance.entity';
+import type { NeptuneInstance } from '../entities/neptune-instance.entity';
+import type { MqBroker } from '../entities/mq-broker.entity';
+import type { Workspace } from '../entities/workspace.entity';
+import type { VpnConnection } from '../entities/vpn-connection.entity';
+import type { TransitGatewayAttachment } from '../entities/transit-gateway-attachment.entity';
+import type { KinesisStream } from '../entities/kinesis-stream.entity';
 
 export class EbsVolumeWastePolicy extends WastePolicy<EbsVolume> {
   protected judge(volume: EbsVolume, now: Date): WasteVerdict {
@@ -232,6 +243,115 @@ export class ElastiCacheIdlePolicy extends WastePolicy<IdleElastiCacheCluster> {
       return notWaste(`created less than ${this.minAgeDays}d ago`);
     }
     return waste(`zero connections in last ${cluster.metricWindowHours}h`);
+  }
+}
+
+export class RedshiftIdleClusterPolicy extends WastePolicy<RedshiftCluster> {
+  protected judge(cluster: RedshiftCluster, now: Date): WasteVerdict {
+    if (!cluster.isIdle()) return notWaste('has database connections');
+    if (this.isWithinGracePeriod(cluster.clusterCreateTime, now)) {
+      return notWaste(`created less than ${this.minAgeDays}d ago`);
+    }
+    return waste(`zero connections in last ${cluster.metricWindowHours}h`);
+  }
+}
+
+export class OpenSearchIdleDomainPolicy extends WastePolicy<OpenSearchDomain> {
+  protected judge(domain: OpenSearchDomain): WasteVerdict {
+    // DescribeDomains exposes no creation date: no grace period applicable.
+    return domain.isIdle() ? waste('no search/indexing traffic') : notWaste('has search/indexing traffic');
+  }
+}
+
+export class MskIdleClusterPolicy extends WastePolicy<MskCluster> {
+  protected judge(cluster: MskCluster, now: Date): WasteVerdict {
+    if (!cluster.isIdle()) return notWaste('has broker traffic');
+    if (this.isWithinGracePeriod(cluster.creationTime, now)) {
+      return notWaste(`created less than ${this.minAgeDays}d ago`);
+    }
+    return waste(`zero broker traffic in last ${cluster.metricWindowHours}h`);
+  }
+}
+
+export class FsxIdleFilesystemPolicy extends WastePolicy<FsxFileSystem> {
+  protected judge(fs: FsxFileSystem, now: Date): WasteVerdict {
+    if (!fs.isIdle()) return notWaste('has I/O activity');
+    if (this.isWithinGracePeriod(fs.creationTime, now)) {
+      return notWaste(`created less than ${this.minAgeDays}d ago`);
+    }
+    return waste(`zero I/O in last ${fs.metricWindowHours}h`);
+  }
+}
+
+export class DocumentDbIdleInstancePolicy extends WastePolicy<DocumentDbInstance> {
+  protected judge(instance: DocumentDbInstance, now: Date): WasteVerdict {
+    if (!instance.isIdle()) return notWaste('has database connections');
+    if (this.isWithinGracePeriod(instance.instanceCreateTime, now)) {
+      return notWaste(`created less than ${this.minAgeDays}d ago`);
+    }
+    return waste(`zero connections in last ${instance.metricWindowHours}h`);
+  }
+}
+
+export class NeptuneIdleInstancePolicy extends WastePolicy<NeptuneInstance> {
+  protected judge(instance: NeptuneInstance, now: Date): WasteVerdict {
+    if (!instance.isIdle()) return notWaste('has query traffic');
+    if (this.isWithinGracePeriod(instance.instanceCreateTime, now)) {
+      return notWaste(`created less than ${this.minAgeDays}d ago`);
+    }
+    return waste(`zero query traffic in last ${instance.metricWindowHours}h`);
+  }
+}
+
+export class MqIdleBrokerPolicy extends WastePolicy<MqBroker> {
+  protected judge(broker: MqBroker, now: Date): WasteVerdict {
+    if (!broker.isIdle()) return notWaste('has network traffic');
+    if (this.isWithinGracePeriod(broker.created, now)) {
+      return notWaste(`created less than ${this.minAgeDays}d ago`);
+    }
+    return waste(`zero network traffic in last ${broker.metricWindowHours}h`);
+  }
+}
+
+export class WorkspacesIdlePolicy extends WastePolicy<Workspace> {
+  /** windowDays: days since the last user connection below which an AlwaysOn WorkSpace is "idle". */
+  constructor(options: WastePolicyOptions = {}, private readonly windowDays = 30) {
+    super(options);
+  }
+
+  protected judge(workspace: Workspace, now: Date): WasteVerdict {
+    return workspace.isIdle(now, this.windowDays)
+      ? waste(workspace.wasteReason)
+      : notWaste('user connected within the window');
+  }
+}
+
+export class VpnConnectionIdlePolicy extends WastePolicy<VpnConnection> {
+  protected judge(connection: VpnConnection): WasteVerdict {
+    // DescribeVpnConnections exposes no creation date: no grace period applicable.
+    return connection.isIdle()
+      ? waste(`zero tunnel traffic in last ${connection.metricWindowHours}h`)
+      : notWaste('has tunnel traffic');
+  }
+}
+
+export class TransitGatewayIdleAttachmentPolicy extends WastePolicy<TransitGatewayAttachment> {
+  protected judge(attachment: TransitGatewayAttachment, now: Date): WasteVerdict {
+    if (!attachment.isIdle()) return notWaste('has traffic');
+    if (this.isWithinGracePeriod(attachment.creationTime, now)) {
+      return notWaste(`created less than ${this.minAgeDays}d ago`);
+    }
+    return waste(`zero traffic in last ${attachment.metricWindowHours}h`);
+  }
+}
+
+export class KinesisProvisionedIdleStreamPolicy extends WastePolicy<KinesisStream> {
+  protected judge(stream: KinesisStream, now: Date): WasteVerdict {
+    if (!stream.isIdle()) return notWaste('has incoming records');
+    if (this.isWithinGracePeriod(stream.streamCreationTimestamp, now)) {
+      return notWaste(`created less than ${this.minAgeDays}d ago`);
+    }
+    return waste(`zero incoming records in last ${stream.metricWindowHours}h`);
   }
 }
 
