@@ -1,14 +1,32 @@
-// Creates the minimal AWS resources needed to trigger each of the 13
+// Creates the minimal AWS resources needed to trigger each of the
 // LocalStack-coverable waste findings (see docs/adr/0002-localstack-e2e-scope.md
 // and docs/adr/0036-ec2-underutilized-excluded-from-localstack-e2e.md for the
 // scope and why rds-instance/rds-underutilized/elasticache-idle/efs-unused/
 // ec2-underutilized are NOT here).
 //
+// Phase 5.5 (ADR-0038): of the 11 new scanners, only 3 are seeded here
+// (vpn-connection-idle, transit-gateway-idle-attachment,
+// kinesis-provisioned-idle-stream). The other 8 are out of scope for this
+// harness, confirmed empirically on 2026-06-27 against LocalStack 4.0:
+// - fsx-idle-filesystem: LocalStack rejects every FSx call outright
+//   ("API for service 'fsx' not yet implemented or pro feature"), so no
+//   seed is attempted — same treatment as rds-instance/elasticache-idle/
+//   efs-unused (see docs/adr/0002-localstack-e2e-scope.md).
+// - redshift/opensearch/msk/documentdb/neptune/mq/workspaces: require
+//   `--live-pricing` to be scanned at all (ADR-0037) — the AWS Pricing API
+//   is a real signed endpoint that doesn't work against LocalStack's fake
+//   credentials, regardless of whether the underlying service itself is
+//   LocalStack-mockable.
+// All 8 stay on `scripts/verify-against-aws.mjs` manual verification.
+//
 // CloudWatch-backed scanners (nat-gateway, ebs-idle, lambda-underutilized,
-// dynamodb-overprovisioned) need no explicit metric seeding: every scanner
-// treats a missing datapoint as zero usage (`Datapoints?.[0]?.Sum ?? 0`), and
-// LocalStack's CloudWatch GetMetricStatistics simply returns no datapoints
-// for metrics nobody ever pushed — which is already "idle" by definition.
+// dynamodb-overprovisioned, and the 3 seeded above) need no explicit metric
+// seeding: every scanner treats a missing datapoint as zero usage
+// (`Datapoints?.[0]?.Sum ?? 0`). On LocalStack 4.0, GetMetricStatistics
+// currently fails outright with a JSON/XML deserialization error for every
+// scanner that calls it (confirmed 2026-06-27, pre-existing — not introduced
+// by Phase 5.5): the call itself, not the scanner logic, is the problem. See
+// docs/adr/0039-cloudwatch-localstack-incompatibility.md.
 //
 // Only called by scripts/e2e-localstack.mjs; not a standalone CI/test target.
 
@@ -23,6 +41,7 @@ import { S3Client, PutBucketLifecycleConfigurationCommand } from '@aws-sdk/clien
 import { LambdaClient } from '@aws-sdk/client-lambda';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { CloudWatchLogsClient } from '@aws-sdk/client-cloudwatch-logs';
+import { KinesisClient, CreateStreamCommand } from '@aws-sdk/client-kinesis';
 import {
   CreateVpcCommand,
   CreateSubnetCommand,
@@ -36,6 +55,11 @@ import {
   AllocateAddressCommand,
   CreateNatGatewayCommand,
   CreateNetworkInterfaceCommand,
+  CreateCustomerGatewayCommand,
+  CreateVpnGatewayCommand,
+  CreateVpnConnectionCommand,
+  CreateTransitGatewayCommand,
+  CreateTransitGatewayVpcAttachmentCommand,
 } from '@aws-sdk/client-ec2';
 import {
   CreateLoadBalancerCommand,
@@ -88,6 +112,7 @@ export async function seedLocalstack(regionCode) {
   const lambda = new LambdaClient({ region: regionCode });
   const dynamodb = new DynamoDBClient({ region: regionCode });
   const logs = new CloudWatchLogsClient({ region: regionCode });
+  const kinesis = new KinesisClient({ region: regionCode });
 
   async function seed(kind, fn) {
     try {
@@ -262,7 +287,53 @@ export async function seedLocalstack(regionCode) {
     // Zero consumption against a provisioned table is the waste condition.
   });
 
-  for (const client of [ec2, elbv2, s3, lambda, dynamodb, logs]) client.destroy();
+  // Phase 5.5 (ADR-0038): 3 of the 4 always-on new scanners — fsx-idle-filesystem
+  // is not seeded at all, LocalStack rejects FSx outright (see the file header).
+  // Resources are created fine; the scan itself currently fails on all 3 due to
+  // a CloudWatch/LocalStack incompatibility unrelated to this seed step (see
+  // docs/adr/0039-cloudwatch-localstack-incompatibility.md).
+  await seed('kinesis-provisioned-idle-stream', async () => {
+    await kinesis.send(
+      new CreateStreamCommand({
+        StreamName: `cloudrift-e2e-${Date.now()}`,
+        ShardCount: 1,
+        StreamModeDetails: { StreamMode: 'PROVISIONED' },
+      }),
+    );
+  });
+
+  await seed('vpn-connection-idle', async () => {
+    const cgw = await ec2.send(
+      new CreateCustomerGatewayCommand({ BgpAsn: 65000, PublicIp: '203.0.113.1', Type: 'ipsec.1' }),
+    );
+    const vgw = await ec2.send(new CreateVpnGatewayCommand({ Type: 'ipsec.1' }));
+    await ec2.send(
+      new CreateVpnConnectionCommand({
+        CustomerGatewayId: cgw.CustomerGateway.CustomerGatewayId,
+        VpnGatewayId: vgw.VpnGateway.VpnGatewayId,
+        Type: 'ipsec.1',
+      }),
+    );
+  });
+
+  await seed('transit-gateway-idle-attachment', async () => {
+    if (!subnetIdA) throw new Error('no subnet available');
+    const tgw = await ec2.send(new CreateTransitGatewayCommand({}));
+    const vpc = await ec2.send(new CreateVpcCommand({ CidrBlock: '10.1.0.0/16' }));
+    const vpcId = vpc.Vpc.VpcId;
+    const sub = await ec2.send(
+      new CreateSubnetCommand({ VpcId: vpcId, CidrBlock: '10.1.1.0/24', AvailabilityZone: AZ_A }),
+    );
+    await ec2.send(
+      new CreateTransitGatewayVpcAttachmentCommand({
+        TransitGatewayId: tgw.TransitGateway.TransitGatewayId,
+        VpcId: vpcId,
+        SubnetIds: [sub.Subnet.SubnetId],
+      }),
+    );
+  });
+
+  for (const client of [ec2, elbv2, s3, lambda, dynamodb, logs, kinesis]) client.destroy();
 
   return { seeded, skipped };
 }

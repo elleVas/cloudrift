@@ -1,6 +1,6 @@
 # ADR-0003: Redshift deferred out of v0.4.0
 
-- **Status:** Accepted (2026-06-21)
+- **Status:** Superseded by [ADR-0038](0038-eleven-fixed-cost-scanners-phase-5-5.md) (2026-06-27)
 
 ## Context
 

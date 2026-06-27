@@ -20,6 +20,24 @@ export { AwsEfsUnusedScanner } from './scanners/aws-efs-unused.scanner';
 export { AwsDynamoDbOverprovisionedScanner } from './scanners/aws-dynamodb-overprovisioned.scanner';
 export { AwsElastiCacheIdleScanner } from './scanners/aws-elasticache-idle.scanner';
 export type { ElastiCacheNodePricingSource } from './scanners/aws-elasticache-idle.scanner';
+export { AwsRedshiftIdleScanner } from './scanners/aws-redshift-idle.scanner';
+export type { RedshiftNodePricingSource } from './scanners/aws-redshift-idle.scanner';
+export { AwsOpenSearchIdleScanner } from './scanners/aws-opensearch-idle.scanner';
+export type { OpenSearchInstancePricingSource } from './scanners/aws-opensearch-idle.scanner';
+export { AwsMskIdleScanner } from './scanners/aws-msk-idle.scanner';
+export type { MskBrokerPricingSource } from './scanners/aws-msk-idle.scanner';
+export { AwsFsxIdleScanner } from './scanners/aws-fsx-idle.scanner';
+export { AwsDocumentDbIdleScanner } from './scanners/aws-documentdb-idle.scanner';
+export type { DocDbInstancePricingSource } from './scanners/aws-documentdb-idle.scanner';
+export { AwsNeptuneIdleScanner } from './scanners/aws-neptune-idle.scanner';
+export type { NeptuneInstancePricingSource } from './scanners/aws-neptune-idle.scanner';
+export { AwsMqIdleScanner } from './scanners/aws-mq-idle.scanner';
+export type { MqBrokerPricingSource } from './scanners/aws-mq-idle.scanner';
+export { AwsWorkspacesIdleScanner } from './scanners/aws-workspaces-idle.scanner';
+export type { WorkSpacesBundlePricingSource } from './scanners/aws-workspaces-idle.scanner';
+export { AwsVpnConnectionIdleScanner } from './scanners/aws-vpn-connection-idle.scanner';
+export { AwsTransitGatewayIdleScanner } from './scanners/aws-transit-gateway-idle.scanner';
+export { AwsKinesisIdleScanner } from './scanners/aws-kinesis-idle.scanner';
 export { AwsAdapterError } from './errors/aws-adapter.error';
 export {
   StaticPriceTableAdapter,

@@ -247,6 +247,99 @@ export const presenters: PresenterMap = {
     recommend: (c) =>
       `Delete idle ElastiCache cluster ${c.id} (${c.cacheNodeType}) in ${c.region.code} — ${c.wasteReason}`,
   },
+  'redshift-idle-cluster': {
+    title: 'Redshift Clusters — Idle (zero connections, requires --live-pricing)',
+    head: ['Cluster Identifier', 'Region', 'Node Type', 'Nodes', 'Created'],
+    colWidths: [130, 70, 90, 50, 84, 80],
+    row: (c) => [c.id, c.region.code, c.nodeType, `${c.numberOfNodes}`, day(c.clusterCreateTime)],
+    recommend: (c) =>
+      `Delete or pause idle Redshift cluster ${c.id} (${c.nodeType}) in ${c.region.code} — ${c.wasteReason}`,
+  },
+  'opensearch-idle-domain': {
+    title: 'OpenSearch Domains — Idle (zero search/indexing traffic, requires --live-pricing)',
+    head: ['Domain', 'Region', 'Instance Type', 'Instances'],
+    colWidths: [140, 80, 100, 60, 80],
+    row: (d) => [d.id, d.region.code, d.instanceType, `${d.instanceCount}`],
+    recommend: (d) =>
+      `Delete idle OpenSearch domain ${d.id} (${d.instanceType}) in ${d.region.code} — ${d.wasteReason}`,
+  },
+  'msk-idle-cluster': {
+    title: 'MSK Clusters — Idle (zero broker traffic, requires --live-pricing)',
+    head: ['Cluster Name', 'Region', 'Broker Type', 'Brokers', 'Created'],
+    colWidths: [140, 70, 90, 50, 84, 80],
+    row: (c) => [c.id, c.region.code, c.brokerInstanceType, `${c.numberOfBrokerNodes}`, day(c.creationTime)],
+    recommend: (c) =>
+      `Delete idle MSK cluster ${c.id} (${c.brokerInstanceType}) in ${c.region.code} — ${c.wasteReason}`,
+  },
+  'fsx-idle-filesystem': {
+    title: 'FSx File Systems — Idle (zero I/O)',
+    head: ['File System ID', 'Region', 'Type', 'Size', 'Created'],
+    colWidths: [130, 70, 70, 60, 84, 80],
+    row: (fs) => [fs.id, fs.region.code, fs.fileSystemType, `${fs.storageCapacityGiB} GiB`, day(fs.creationTime)],
+    recommend: (fs) =>
+      `Delete idle FSx file system ${fs.id} (${fs.fileSystemType}) in ${fs.region.code} — ${fs.wasteReason}`,
+  },
+  'documentdb-idle-instance': {
+    title: 'DocumentDB Instances — Idle (zero connections, requires --live-pricing)',
+    head: ['Identifier', 'Region', 'Class', 'Created'],
+    colWidths: [130, 70, 90, 84, 80],
+    row: (db) => [db.id, db.region.code, db.dbInstanceClass, day(db.instanceCreateTime)],
+    recommend: (db) =>
+      `Delete idle DocumentDB instance ${db.id} (${db.dbInstanceClass}) in ${db.region.code} — ${db.wasteReason}`,
+  },
+  'neptune-idle-instance': {
+    title: 'Neptune Instances — Idle (zero query traffic, requires --live-pricing)',
+    head: ['Identifier', 'Region', 'Class', 'Created'],
+    colWidths: [130, 70, 90, 84, 80],
+    row: (db) => [db.id, db.region.code, db.dbInstanceClass, day(db.instanceCreateTime)],
+    recommend: (db) =>
+      `Delete idle Neptune instance ${db.id} (${db.dbInstanceClass}) in ${db.region.code} — ${db.wasteReason}`,
+  },
+  'mq-idle-broker': {
+    title: 'Amazon MQ Brokers — Idle (zero network traffic, requires --live-pricing)',
+    head: ['Broker', 'Region', 'Instance Type', 'Deployment', 'Created'],
+    colWidths: [130, 70, 90, 90, 84, 70],
+    row: (b) => [b.brokerName, b.region.code, b.hostInstanceType, b.deploymentMode, day(b.created)],
+    recommend: (b) =>
+      `Delete idle MQ broker ${b.brokerName} (${b.hostInstanceType}) in ${b.region.code} — ${b.wasteReason}`,
+  },
+  'workspaces-idle': {
+    title: 'WorkSpaces — Idle (AlwaysOn, no recent user connection, requires --live-pricing)',
+    head: ['WorkSpace ID', 'Region', 'Compute Type', 'Last Connection'],
+    colWidths: [130, 70, 90, 100, 80],
+    row: (w) => [
+      w.id,
+      w.region.code,
+      w.computeTypeName,
+      w.lastKnownUserConnectionTimestamp ? day(w.lastKnownUserConnectionTimestamp) : 'never',
+    ],
+    recommend: (w) =>
+      `Terminate or convert to AutoStop idle WorkSpace ${w.id} (${w.computeTypeName}) in ${w.region.code} — ${w.wasteReason}`,
+  },
+  'vpn-connection-idle': {
+    title: 'Site-to-Site VPN Connections — Idle (zero tunnel traffic)',
+    head: ['VPN Connection ID', 'Region', 'Gateway'],
+    colWidths: [140, 80, 160, 80],
+    row: (v) => [v.id, v.region.code, v.transitGatewayId ?? v.vpnGatewayId ?? 'unknown'],
+    recommend: (v) =>
+      `Delete idle VPN connection ${v.id} in ${v.region.code} — ${v.wasteReason}`,
+  },
+  'transit-gateway-idle-attachment': {
+    title: 'Transit Gateway Attachments — Idle (zero traffic)',
+    head: ['Attachment ID', 'Region', 'Transit Gateway', 'Type'],
+    colWidths: [150, 80, 150, 70, 80],
+    row: (a) => [a.id, a.region.code, a.transitGatewayId, a.resourceType],
+    recommend: (a) =>
+      `Delete idle Transit Gateway attachment ${a.id} (${a.resourceType}) in ${a.region.code} — ${a.wasteReason}`,
+  },
+  'kinesis-provisioned-idle-stream': {
+    title: 'Kinesis Streams — Idle (Provisioned mode, zero incoming records)',
+    head: ['Stream Name', 'Region', 'Open Shards', 'Created'],
+    colWidths: [150, 80, 70, 84, 80],
+    row: (s) => [s.id, s.region.code, `${s.openShardCount}`, day(s.streamCreationTimestamp)],
+    recommend: (s) =>
+      `Delete or scale down idle Kinesis stream ${s.id} in ${s.region.code} — ${s.wasteReason}`,
+  },
 };
 
 export function presenterFor(kind: ResourceKind): ResourcePresenter {

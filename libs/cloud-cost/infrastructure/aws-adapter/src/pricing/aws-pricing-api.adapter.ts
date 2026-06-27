@@ -115,6 +115,39 @@ const PRICE_SPECS: readonly PriceSpec[] = [
     ],
     unit: 'hourly',
   },
+  // Phase 5.5 (ADR-0038): low-cardinality fixed-SKU prices, prefetched like
+  // the specs above. Best-effort filters per ADR-0010: an ambiguous/wrong
+  // match yields `undefined` and the static `prices.json` entry is used
+  // instead — never a wrong price.
+  ...(['WINDOWS', 'LUSTRE', 'ONTAP', 'OPENZFS'] as const).map(
+    (fsType): PriceSpec => ({
+      key: `fsx-${fsType.toLowerCase()}`,
+      serviceCode: 'AmazonFSx',
+      filters: [
+        { Field: 'productFamily', Value: 'Storage' },
+        { Field: 'fileSystemType', Value: fsType },
+      ],
+      unit: 'gb-month',
+    }),
+  ),
+  {
+    key: 'vpn-connection',
+    serviceCode: 'AmazonVPC',
+    filters: [{ Field: 'productFamily', Value: 'VPN Connection' }],
+    unit: 'hourly',
+  },
+  {
+    key: 'transit-gateway-attachment',
+    serviceCode: 'AmazonVPC',
+    filters: [{ Field: 'productFamily', Value: 'Transit Gateway' }],
+    unit: 'hourly',
+  },
+  {
+    key: 'kinesis-shard',
+    serviceCode: 'AmazonKinesis',
+    filters: [{ Field: 'productFamily', Value: 'Kinesis Streams' }, { Field: 'group', Value: 'Kinesis-ShardHour' }],
+    unit: 'hourly',
+  },
 ];
 
 /**
@@ -241,6 +274,135 @@ export class AwsPricingApiAdapter {
         filters: [
           { Field: 'instanceType', Value: cacheNodeType },
           { Field: 'productFamily', Value: 'Cache Instance' },
+        ],
+        unit: 'hourly',
+      },
+      location,
+    );
+  }
+
+  /**
+   * Monthly on-demand price for a Redshift node type, resolved on demand
+   * like `getEc2InstancePricePerMonth` (cardinality too high for prefetch).
+   */
+  async getRedshiftNodePricePerMonth(region: AwsRegion, nodeType: string): Promise<number | undefined> {
+    const location = REGION_TO_LOCATION[region.code];
+    if (!location) return undefined;
+    return this.fetchPrice(
+      {
+        key: `redshift-${nodeType}`,
+        serviceCode: 'AmazonRedshift',
+        filters: [
+          { Field: 'instanceType', Value: nodeType },
+          { Field: 'productFamily', Value: 'Compute Instance' },
+        ],
+        unit: 'hourly',
+      },
+      location,
+    );
+  }
+
+  /** Monthly on-demand price for an OpenSearch/Elasticsearch instance type, resolved on demand. */
+  async getOpenSearchInstancePricePerMonth(region: AwsRegion, instanceType: string): Promise<number | undefined> {
+    const location = REGION_TO_LOCATION[region.code];
+    if (!location) return undefined;
+    return this.fetchPrice(
+      {
+        key: `opensearch-${instanceType}`,
+        serviceCode: 'AmazonES',
+        filters: [
+          { Field: 'instanceType', Value: instanceType },
+          { Field: 'productFamily', Value: 'ES Instance' },
+        ],
+        unit: 'hourly',
+      },
+      location,
+    );
+  }
+
+  /** Monthly on-demand price for an MSK broker instance type, resolved on demand. */
+  async getMskBrokerPricePerMonth(region: AwsRegion, brokerInstanceType: string): Promise<number | undefined> {
+    const location = REGION_TO_LOCATION[region.code];
+    if (!location) return undefined;
+    return this.fetchPrice(
+      {
+        key: `msk-${brokerInstanceType}`,
+        serviceCode: 'AmazonMSK',
+        filters: [
+          { Field: 'instanceType', Value: brokerInstanceType },
+          { Field: 'productFamily', Value: 'Kafka Broker' },
+        ],
+        unit: 'hourly',
+      },
+      location,
+    );
+  }
+
+  /** Monthly on-demand price for a DocumentDB instance class, resolved on demand. */
+  async getDocDbInstancePricePerMonth(region: AwsRegion, dbInstanceClass: string): Promise<number | undefined> {
+    const location = REGION_TO_LOCATION[region.code];
+    if (!location) return undefined;
+    return this.fetchPrice(
+      {
+        key: `docdb-${dbInstanceClass}`,
+        serviceCode: 'AmazonDocDB',
+        filters: [
+          { Field: 'instanceType', Value: dbInstanceClass },
+          { Field: 'productFamily', Value: 'Database Instance' },
+        ],
+        unit: 'hourly',
+      },
+      location,
+    );
+  }
+
+  /** Monthly on-demand price for a Neptune instance class, resolved on demand. */
+  async getNeptuneInstancePricePerMonth(region: AwsRegion, dbInstanceClass: string): Promise<number | undefined> {
+    const location = REGION_TO_LOCATION[region.code];
+    if (!location) return undefined;
+    return this.fetchPrice(
+      {
+        key: `neptune-${dbInstanceClass}`,
+        serviceCode: 'AmazonNeptune',
+        filters: [
+          { Field: 'instanceType', Value: dbInstanceClass },
+          { Field: 'productFamily', Value: 'Database Instance' },
+        ],
+        unit: 'hourly',
+      },
+      location,
+    );
+  }
+
+  /** Monthly on-demand price for an Amazon MQ broker instance type, resolved on demand. */
+  async getMqBrokerPricePerMonth(region: AwsRegion, hostInstanceType: string): Promise<number | undefined> {
+    const location = REGION_TO_LOCATION[region.code];
+    if (!location) return undefined;
+    return this.fetchPrice(
+      {
+        key: `mq-${hostInstanceType}`,
+        serviceCode: 'AmazonMQ',
+        filters: [
+          { Field: 'instanceType', Value: hostInstanceType },
+          { Field: 'productFamily', Value: 'Broker Instance' },
+        ],
+        unit: 'hourly',
+      },
+      location,
+    );
+  }
+
+  /** Monthly price for a WorkSpaces AlwaysOn bundle compute type, resolved on demand. */
+  async getWorkSpacesBundlePricePerMonth(region: AwsRegion, computeTypeName: string): Promise<number | undefined> {
+    const location = REGION_TO_LOCATION[region.code];
+    if (!location) return undefined;
+    return this.fetchPrice(
+      {
+        key: `workspaces-${computeTypeName}`,
+        serviceCode: 'AmazonWorkSpaces',
+        filters: [
+          { Field: 'computeType', Value: computeTypeName },
+          { Field: 'runningMode', Value: 'AlwaysOn' },
         ],
         unit: 'hourly',
       },

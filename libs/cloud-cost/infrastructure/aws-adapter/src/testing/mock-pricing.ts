@@ -14,5 +14,9 @@ export const mockPricing: PricingPort = {
   getEfsStandardPricePerGbMonth: () => 0.3,
   getDynamoDbRcuPricePerHour: () => 0.00013,
   getDynamoDbWcuPricePerHour: () => 0.00065,
+  getFsxStoragePricePerGbMonth: () => 0.13,
+  getVpnConnectionPricePerMonth: () => 36.5,
+  getTransitGatewayAttachmentPricePerMonth: () => 36.5,
+  getKinesisShardPricePerMonth: () => 10.95,
   getPricesAsOf: () => '2025-06',
 };

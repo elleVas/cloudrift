@@ -20,6 +20,17 @@ import {
   EfsUnusedPolicy,
   DynamoDbOverprovisionedPolicy,
   ElastiCacheIdlePolicy,
+  RedshiftIdleClusterPolicy,
+  OpenSearchIdleDomainPolicy,
+  MskIdleClusterPolicy,
+  FsxIdleFilesystemPolicy,
+  DocumentDbIdleInstancePolicy,
+  NeptuneIdleInstancePolicy,
+  MqIdleBrokerPolicy,
+  WorkspacesIdlePolicy,
+  VpnConnectionIdlePolicy,
+  TransitGatewayIdleAttachmentPolicy,
+  KinesisProvisionedIdleStreamPolicy,
 } from 'cloud-cost-domain';
 import type {
   AwsRegion,
@@ -48,6 +59,17 @@ import {
   AwsEfsUnusedScanner,
   AwsDynamoDbOverprovisionedScanner,
   AwsElastiCacheIdleScanner,
+  AwsRedshiftIdleScanner,
+  AwsOpenSearchIdleScanner,
+  AwsMskIdleScanner,
+  AwsFsxIdleScanner,
+  AwsDocumentDbIdleScanner,
+  AwsNeptuneIdleScanner,
+  AwsMqIdleScanner,
+  AwsWorkspacesIdleScanner,
+  AwsVpnConnectionIdleScanner,
+  AwsTransitGatewayIdleScanner,
+  AwsKinesisIdleScanner,
   StaticPriceTableAdapter,
   TablePricingAdapter,
   AwsPricingApiAdapter,
@@ -185,6 +207,27 @@ function buildScanners(
       ),
       utilizationWindowHours,
     ),
+    // Phase 5.5 (ADR-0038): low-cardinality fixed-SKU prices, always-on like
+    // the scanners above (ADR-0037).
+    new AwsFsxIdleScanner(pricing, accountId, new FsxIdleFilesystemPolicy(policyOptions), cloudwatchWindowHours),
+    new AwsVpnConnectionIdleScanner(
+      pricing,
+      accountId,
+      new VpnConnectionIdlePolicy(policyOptions),
+      cloudwatchWindowHours,
+    ),
+    new AwsTransitGatewayIdleScanner(
+      pricing,
+      accountId,
+      new TransitGatewayIdleAttachmentPolicy(policyOptions),
+      cloudwatchWindowHours,
+    ),
+    new AwsKinesisIdleScanner(
+      pricing,
+      accountId,
+      new KinesisProvisionedIdleStreamPolicy(policyOptions),
+      cloudwatchWindowHours,
+    ),
   ];
 
   // Gated on --live-pricing: the price per instance type/RDS class/ElastiCache
@@ -212,6 +255,45 @@ function buildScanners(
         new ElastiCacheIdlePolicy(policyOptions),
         cloudwatchWindowHours,
       ),
+      // Phase 5.5 (ADR-0038): per-instance/node/broker-type pricing, same
+      // reasoning as EC2/RDS/ElastiCache above (ADR-0037).
+      new AwsRedshiftIdleScanner(
+        livePricingAdapter,
+        accountId,
+        new RedshiftIdleClusterPolicy(policyOptions),
+        cloudwatchWindowHours,
+      ),
+      new AwsOpenSearchIdleScanner(
+        livePricingAdapter,
+        accountId,
+        new OpenSearchIdleDomainPolicy(policyOptions),
+        cloudwatchWindowHours,
+      ),
+      new AwsMskIdleScanner(
+        livePricingAdapter,
+        accountId,
+        new MskIdleClusterPolicy(policyOptions),
+        cloudwatchWindowHours,
+      ),
+      new AwsDocumentDbIdleScanner(
+        livePricingAdapter,
+        accountId,
+        new DocumentDbIdleInstancePolicy(policyOptions),
+        cloudwatchWindowHours,
+      ),
+      new AwsNeptuneIdleScanner(
+        livePricingAdapter,
+        accountId,
+        new NeptuneIdleInstancePolicy(policyOptions),
+        cloudwatchWindowHours,
+      ),
+      new AwsMqIdleScanner(
+        livePricingAdapter,
+        accountId,
+        new MqIdleBrokerPolicy(policyOptions),
+        cloudwatchWindowHours,
+      ),
+      new AwsWorkspacesIdleScanner(livePricingAdapter, accountId, new WorkspacesIdlePolicy(policyOptions)),
     );
   }
 

@@ -21,6 +21,17 @@ export const RESOURCE_KINDS = [
   'efs-unused',
   'dynamodb-overprovisioned',
   'elasticache-idle',
+  'redshift-idle-cluster',
+  'opensearch-idle-domain',
+  'msk-idle-cluster',
+  'fsx-idle-filesystem',
+  'documentdb-idle-instance',
+  'neptune-idle-instance',
+  'mq-idle-broker',
+  'workspaces-idle',
+  'vpn-connection-idle',
+  'transit-gateway-idle-attachment',
+  'kinesis-provisioned-idle-stream',
 ] as const;
 
 export type ResourceKind = (typeof RESOURCE_KINDS)[number];
@@ -72,6 +83,25 @@ export const RESOURCE_KIND_META: Record<ResourceKind, ResourceKindMeta> = {
     estimated: true,
   },
   'elasticache-idle': { label: 'ElastiCache Clusters (idle)', category: 'waste', estimated: false },
+  'redshift-idle-cluster': { label: 'Redshift Clusters (idle)', category: 'waste', estimated: false },
+  'opensearch-idle-domain': { label: 'OpenSearch Domains (idle)', category: 'waste', estimated: false },
+  'msk-idle-cluster': { label: 'MSK Clusters (idle)', category: 'waste', estimated: false },
+  'fsx-idle-filesystem': { label: 'FSx File Systems (idle)', category: 'waste', estimated: false },
+  'documentdb-idle-instance': { label: 'DocumentDB Instances (idle)', category: 'waste', estimated: false },
+  'neptune-idle-instance': { label: 'Neptune Instances (idle)', category: 'waste', estimated: false },
+  'mq-idle-broker': { label: 'Amazon MQ Brokers (idle)', category: 'waste', estimated: false },
+  'workspaces-idle': { label: 'WorkSpaces (idle, AlwaysOn)', category: 'waste', estimated: false },
+  'vpn-connection-idle': { label: 'Site-to-Site VPN Connections (idle)', category: 'waste', estimated: false },
+  'transit-gateway-idle-attachment': {
+    label: 'Transit Gateway Attachments (idle)',
+    category: 'waste',
+    estimated: false,
+  },
+  'kinesis-provisioned-idle-stream': {
+    label: 'Kinesis Streams (idle, Provisioned mode)',
+    category: 'waste',
+    estimated: false,
+  },
 };
 
 /** Human-readable labels, derived from RESOURCE_KIND_META (single source). */

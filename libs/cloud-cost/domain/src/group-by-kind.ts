@@ -18,6 +18,17 @@ import type { UnderutilizedLambdaFunction } from './entities/underutilized-lambd
 import type { EfsFileSystem } from './entities/efs-file-system.entity';
 import type { OverprovisionedDynamoDbTable } from './entities/overprovisioned-dynamodb-table.entity';
 import type { IdleElastiCacheCluster } from './entities/idle-elasticache-cluster.entity';
+import type { RedshiftCluster } from './entities/redshift-cluster.entity';
+import type { OpenSearchDomain } from './entities/opensearch-domain.entity';
+import type { MskCluster } from './entities/msk-cluster.entity';
+import type { FsxFileSystem } from './entities/fsx-file-system.entity';
+import type { DocumentDbInstance } from './entities/documentdb-instance.entity';
+import type { NeptuneInstance } from './entities/neptune-instance.entity';
+import type { MqBroker } from './entities/mq-broker.entity';
+import type { Workspace } from './entities/workspace.entity';
+import type { VpnConnection } from './entities/vpn-connection.entity';
+import type { TransitGatewayAttachment } from './entities/transit-gateway-attachment.entity';
+import type { KinesisStream } from './entities/kinesis-stream.entity';
 
 /**
  * Map kind → concrete entity. Allows consumers (formatters, frontend)
@@ -42,6 +53,17 @@ export interface ResourceKindMap {
   'efs-unused': EfsFileSystem;
   'dynamodb-overprovisioned': OverprovisionedDynamoDbTable;
   'elasticache-idle': IdleElastiCacheCluster;
+  'redshift-idle-cluster': RedshiftCluster;
+  'opensearch-idle-domain': OpenSearchDomain;
+  'msk-idle-cluster': MskCluster;
+  'fsx-idle-filesystem': FsxFileSystem;
+  'documentdb-idle-instance': DocumentDbInstance;
+  'neptune-idle-instance': NeptuneInstance;
+  'mq-idle-broker': MqBroker;
+  'workspaces-idle': Workspace;
+  'vpn-connection-idle': VpnConnection;
+  'transit-gateway-idle-attachment': TransitGatewayAttachment;
+  'kinesis-provisioned-idle-stream': KinesisStream;
 }
 
 export type FindingsByKind = {
