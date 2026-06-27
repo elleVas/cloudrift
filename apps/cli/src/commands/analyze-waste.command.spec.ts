@@ -176,6 +176,38 @@ describe('analyzeWasteCommand (CLI end-to-end)', () => {
     }
   });
 
+  it('--silent suppresses all stdout while still writing the requested file artifact', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'cloudrift-cli-'));
+    const file = join(dir, 'out.pdf');
+    try {
+      await run({ format: 'table', pdf: file, silent: true }, makeDeps({
+        summary: summaryOf([wasteVolume('vol-1', 8)], 8),
+      }));
+      expect(stdout).toBe('');
+      expect(stderr).toBe('');
+      const written = await readFile(file);
+      expect(written.subarray(0, 5).toString('latin1')).toBe('%PDF-');
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('--silent still surfaces the cost-gate alert on stderr and the exit code', async () => {
+    await run({ format: 'table', silent: true }, makeDeps({
+      config: { costAlertThresholdUsd: 5 },
+      summary: summaryOf([wasteVolume('vol-1', 8)], 8),
+    }));
+    expect(process.exitCode).toBe(2);
+    expect(stdout).toBe('');
+    expect(stderr).toContain('Waste threshold exceeded');
+  });
+
+  it('--silent still surfaces failures (exit 1) on stderr', async () => {
+    await run({ format: 'xml', silent: true }, makeDeps());
+    expect(process.exitCode).toBe(1);
+    expect(stderr).toContain('--format must be one of');
+  });
+
   it('reports a partial scan without crashing, exit code dictated only by the cost threshold', async () => {
     const summary: WastedResourcesSummary = {
       ...summaryOf([], 0),

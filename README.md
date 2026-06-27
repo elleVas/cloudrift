@@ -163,9 +163,12 @@ node apps/cli/dist/main.js analyze [options]
 | `--ignore-tag <tag>`         | Resources carrying this tag are excluded from the report (overrides config)                                   | `cloudrift:ignore` |
 | `--pdf [filename]`           | Also write a PDF report to disk (defaults to `cloudrift-report-YYYY-MM-DD.pdf`)                                | —                  |
 | `--json [filename]`          | Also write a JSON report to disk (defaults to `cloudrift-report-YYYY-MM-DD.json`)                              | —                  |
+| `--silent`                   | Suppress all stdout output (banner, report, confirmations) — use with `--pdf`/`--json` for file-only output    | off                |
 | `-h, --help`                 | Show help                                                                                                      | —                  |
 
-> **stdout vs. file artifacts:** `--format` controls what goes to **stdout** (the report itself). `--json` / `--pdf` write **additional files** to disk and are independent of `--format`. In machine-readable formats (`json`, `markdown`) all human messages are routed to stderr, so stdout carries only the report — ideal for piping.
+> **stdout vs. file artifacts:** `--format` controls what goes to **stdout** (the report itself). `--json` / `--pdf` write **additional files** to disk and are independent of `--format` — by default the chosen `--format` still prints to stdout *in addition to* writing those files (so e.g. `--pdf` alone still shows the table by default). Add `--silent` for file-only output with nothing printed to the terminal. In machine-readable formats (`json`, `markdown`) all human messages are routed to stderr, so stdout carries only the report — ideal for piping. Errors and the cost-gate alert always surface on stderr, even with `--silent`.
+>
+> **Flag order with `--pdf`/`--json`:** their filename is an *optional* value (`--pdf [filename]`), so it's only picked up if it immediately follows the flag — `--pdf --silent ./report.pdf` fails ("too many arguments") because `--silent` blocks `--pdf` from seeing the filename, leaving `./report.pdf` with nothing to attach to. Either keep the filename right after the flag (`--pdf ./report.pdf --silent`), or use `=` to make order irrelevant: `--pdf=./report.pdf --silent --format json`.
 
 **Examples:**
 
@@ -182,6 +185,9 @@ node apps/cli/dist/main.js analyze --min-age-days 0
 # Export a PDF report with an auto-generated filename (reports/AWS_report_YYYY_MM_DD.pdf)
 node apps/cli/dist/main.js analyze --pdf
 
+# Same, but with nothing printed to the terminal — just the file
+node apps/cli/dist/main.js analyze --pdf ./report.pdf --silent
+
 # Machine-readable output (e.g. to feed a dashboard or CI check)
 node apps/cli/dist/main.js analyze --format json | jq '.totalWasteMonthlyUsd'
 
@@ -194,7 +200,7 @@ node apps/cli/dist/main.js analyze --format markdown >> "$GITHUB_STEP_SUMMARY"
 
 **PDF report:**
 
-The `--pdf` flag generates a PDF alongside the normal console output. The report contains:
+The `--pdf` flag generates a PDF alongside the normal console output (add `--silent` to suppress the console output and get only the file). The report contains:
 
 - **Executive summary** — monthly and annual waste totals, resource count, per-type breakdown
 - **Top recommendations** — up to 8 items sorted by monthly savings potential, with estimated annual saving
@@ -614,9 +620,12 @@ node apps/cli/dist/main.js analyze [opzioni]
 | `--ignore-tag <tag>`         | Le risorse con questo tag vengono escluse dal report (ha precedenza sul config)                                     | `cloudrift:ignore` |
 | `--pdf [filename]`           | Scrive anche un report PDF su disco (default `cloudrift-report-YYYY-MM-DD.pdf`)                                      | —                  |
 | `--json [filename]`          | Scrive anche un report JSON su disco (default `cloudrift-report-YYYY-MM-DD.json`)                                   | —                  |
+| `--silent`                   | Sopprime tutto l'output su stdout (banner, report, conferme) — usalo con `--pdf`/`--json` per ottenere solo il file | off                |
 | `-h, --help`                 | Mostra l'help                                                                                                        | —                  |
 
-> **stdout vs. file:** `--format` controlla cosa va su **stdout** (il report). `--json` / `--pdf` scrivono **file aggiuntivi** su disco, indipendenti da `--format`. Nei formati machine-readable (`json`, `markdown`) tutti i messaggi umani vanno su stderr, così su stdout resta solo il report — ideale per il piping.
+> **stdout vs. file:** `--format` controlla cosa va su **stdout** (il report). `--json` / `--pdf` scrivono **file aggiuntivi** su disco, indipendenti da `--format` — di default il `--format` scelto continua comunque a essere stampato su stdout *in aggiunta* alla scrittura di quei file (quindi es. `--pdf` da solo mostra comunque la tabella). Aggiungi `--silent` per ottenere solo il file, senza nulla stampato a terminale. Nei formati machine-readable (`json`, `markdown`) tutti i messaggi umani vanno su stderr, così su stdout resta solo il report — ideale per il piping. Errori e l'alert della soglia di costo vanno sempre su stderr, anche con `--silent`.
+>
+> **Ordine dei flag con `--pdf`/`--json`:** il filename è un valore *opzionale* (`--pdf [filename]`), quindi viene raccolto solo se segue immediatamente il flag — `--pdf --silent ./report.pdf` fallisce ("too many arguments") perché `--silent` impedisce a `--pdf` di vedere il filename, lasciando `./report.pdf` senza nulla a cui agganciarsi. Tieni il filename subito dopo il flag (`--pdf ./report.pdf --silent`), oppure usa `=` per rendere l'ordine irrilevante: `--pdf=./report.pdf --silent --format json`.
 
 **Esempi:**
 
@@ -633,6 +642,9 @@ node apps/cli/dist/main.js analyze --min-age-days 0
 # Esporta un report PDF con nome automatico (reports/AWS_report_YYYY_MM_DD.pdf)
 node apps/cli/dist/main.js analyze --pdf
 
+# Come sopra, ma senza nulla stampato a terminale — solo il file
+node apps/cli/dist/main.js analyze --pdf ./report.pdf --silent
+
 # Output machine-readable (es. per una dashboard o un check CI)
 node apps/cli/dist/main.js analyze --format json | jq '.totalWasteMonthlyUsd'
 
@@ -645,7 +657,7 @@ node apps/cli/dist/main.js analyze --format markdown >> "$GITHUB_STEP_SUMMARY"
 
 **Report PDF:**
 
-Il flag `--pdf` genera un PDF in aggiunta all'output console. Il report contiene:
+Il flag `--pdf` genera un PDF in aggiunta all'output console (aggiungi `--silent` per sopprimere l'output console e ottenere solo il file). Il report contiene:
 
 - **Executive summary** — totale spreco mensile e annuale, numero di risorse, breakdown per tipo
 - **Top raccomandazioni** — fino a 8 voci ordinate per impatto mensile, con risparmio annuale stimato

@@ -148,7 +148,7 @@ if (!parsed.ok) return fail(parsed.error.message); // messaggio pulito, exit 1, 
 
 **Scelta:** `chalk` per i colori e `cli-table3` per le tabelle.
 
-**Perché:** gestione automatica del supporto colori; tabelle allineate e leggibili. Con `--json` senza filename l'output tabellare viene soppresso per non sporcare lo stdout machine-readable.
+**Perché:** gestione automatica del supporto colori; tabelle allineate e leggibili. `--format json` (non `--json`, che è un file artifact indipendente da `--format`) sopprime la tabella per non sporcare lo stdout machine-readable; `--silent` la sopprime per le esecuzioni solo-file indipendentemente dal `--format`.
 
 ---
 

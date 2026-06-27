@@ -41,6 +41,10 @@ program
     'stdout output format: table (default), json, or markdown (for CI / PR comments)',
     'table',
   )
+  // [filename] is an optional value: commander only attaches it to --pdf/--json
+  // when it immediately follows the flag. `--pdf --silent ./report.pdf` fails
+  // ("too many arguments") because --silent gets in the way first, leaving
+  // the path orphaned. Use `--pdf=./report.pdf` to make flag order irrelevant.
   .option(
     '--pdf [filename]',
     'Also write a PDF report to disk (optional filename, defaults to reports/AWS_report_YYYY_MM_DD.pdf)',
@@ -48,6 +52,10 @@ program
   .option(
     '--json [filename]',
     'Also write a JSON report to disk (optional filename, defaults to reports/AWS_report_YYYY_MM_DD.json)',
+  )
+  .option(
+    '--silent',
+    'suppress all stdout output (banner, report, confirmations) — use with --pdf/--json for file-only output. Errors and the cost-gate alert still surface.',
   )
   .action((options) => analyzeWasteCommand(options));
 
