@@ -307,6 +307,10 @@ function buildScanners(
 async function defaultCreateAnalysis(ctx: AnalysisContext): Promise<Analysis> {
   const { pricing, livePricingAdapter } = await buildPricing(ctx);
   const scanners = buildScanners(ctx, pricing, livePricingAdapter);
+  // No re-validation here: ctx.scannerKinds is only ever set by
+  // analyze-waste.command.ts, which already validates it (--scanners against
+  // RESOURCE_KINDS, or the wizard/--all-services, which can't produce an
+  // unknown kind). This function has no other caller.
   const kindFilter = ctx.scannerKinds ? new Set(ctx.scannerKinds) : undefined;
   const selected = kindFilter ? scanners.filter((scanner) => kindFilter.has(scanner.kind)) : scanners;
   return { useCase: new AnalyzeCloudWasteUseCase(selected), pricesAsOf: pricing.getPricesAsOf() };
