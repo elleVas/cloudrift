@@ -1,0 +1,92 @@
+{
+  "meta": {
+    "accountId": "123456789012",
+    "regions": ["us-east-1"],
+    "generatedAt": "2026-07-08T09:00:00.000Z",
+    "pricesAsOf": "2026-07-08 (static table)"
+  },
+  "disclaimer": "cloudrift is a read-only analysis tool: it reports estimated waste and recommendations only — it never deletes, modifies, or stops any AWS resource. All findings should be validated by your infrastructure team before taking action. The maintainers assume no liability for actions taken based on this report.",
+  "contact": {
+    "email": "raffaelevasini@gmail.com",
+    "github": "https://github.com/elleVas",
+    "linkedin": "https://www.linkedin.com/in/raffaele-vasini-87937470/"
+  },
+  "totalWasteMonthlyUsd": 63.6,
+  "totalWasteAnnualUsd": 763.2,
+  "totalOptimizationMonthlyUsd": 0,
+  "wasteCount": 4,
+  "optimizationCount": 0,
+  "breakdown": [
+    {
+      "kind": "ebs-volume",
+      "label": "EBS Volumes",
+      "category": "waste",
+      "estimated": false,
+      "count": 3,
+      "monthlyCostUsd": 60
+    },
+    {
+      "kind": "elastic-ip",
+      "label": "Elastic IPs",
+      "category": "waste",
+      "estimated": false,
+      "count": 1,
+      "monthlyCostUsd": 3.6
+    }
+  ],
+  "findings": [
+    {
+      "id": "vol-0abc123def456",
+      "kind": "ebs-volume",
+      "category": "waste",
+      "estimated": false,
+      "region": "us-east-1",
+      "accountId": "123456789012",
+      "detectedAt": "2026-07-08T09:00:00.000Z",
+      "wasteReason": "unattached (state: available) for 19 days",
+      "description": "500 GB gp3 volume, unattached",
+      "monthlyCostUsd": 40,
+      "tags": { "Environment": "production", "Team": "platform" }
+    },
+    {
+      "id": "vol-0def456abc789",
+      "kind": "ebs-volume",
+      "category": "waste",
+      "estimated": false,
+      "region": "us-east-1",
+      "accountId": "123456789012",
+      "detectedAt": "2026-07-08T09:00:00.000Z",
+      "wasteReason": "unattached (state: available) for 11 days",
+      "description": "150 GB gp3 volume, unattached",
+      "monthlyCostUsd": 12,
+      "tags": { "Environment": "staging" }
+    },
+    {
+      "id": "vol-0aaa111bbb222",
+      "kind": "ebs-volume",
+      "category": "waste",
+      "estimated": false,
+      "region": "us-east-1",
+      "accountId": "123456789012",
+      "detectedAt": "2026-07-08T09:00:00.000Z",
+      "wasteReason": "unattached (state: available) for 8 days",
+      "description": "100 GB gp2 volume, unattached",
+      "monthlyCostUsd": 8,
+      "tags": {}
+    },
+    {
+      "id": "eipalloc-0123456789abcdef0",
+      "kind": "elastic-ip",
+      "category": "waste",
+      "estimated": false,
+      "region": "us-east-1",
+      "accountId": "123456789012",
+      "detectedAt": "2026-07-08T09:00:00.000Z",
+      "wasteReason": "unassociated (no EC2/NAT binding)",
+      "description": "Elastic IP not associated with any resource",
+      "monthlyCostUsd": 3.6,
+      "tags": { "Environment": "production" }
+    }
+  ],
+  "scanErrors": []
+}

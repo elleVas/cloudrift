@@ -43,6 +43,7 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 | [0019](0019-server-side-filter-optimization-only.md) | Server-side filtering is an optimization only, never the decision |
 | [0020](0020-multicloud-path-deferred.md) | Multi-cloud: path kept open, not built now |
 | [0021](0021-wastereportdto-frontend-contract.md) | `WasteReportDto` as the future frontend's API contract |
+| [0042](0042-policy-as-code-external-opa-layer.md) | Policy-as-Code via an external OPA layer, not an embedded Rego engine |
 
 ## Stack
 
