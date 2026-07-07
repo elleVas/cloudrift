@@ -25,6 +25,7 @@
 - [Configuration file](#configuration-file)
 - [Pricing sources](#pricing-sources)
 - [Use in CI/CD](#use-in-cicd)
+- [Policy as Code (OPA)](#policy-as-code-opa)
 - [Required IAM permissions](#required-iam-permissions)
 - [Development](#development)
 - [Releasing](#releasing)
@@ -382,6 +383,22 @@ With a `cloudrift.config.json` committed (`{"costAlertThresholdUsd": 500}`), the
 
 </details>
 
+<details>
+<summary><strong>Policy as Code (OPA)</strong> — richer rules than the budget gate, using Open Policy Agent</summary>
+
+### Policy as Code (OPA)
+
+The `costAlertThresholdUsd` gate above is a single total-vs-budget comparison. For anything more specific — per-tag, per-resource-kind, per-count rules — cloudrift ships example [Open Policy Agent](https://www.openpolicyagent.org/) policies you evaluate against its JSON output, in your own pipeline. cloudrift never runs OPA itself; it only ever produces JSON, exactly as it already does.
+
+```sh
+node apps/cli/dist/main.js analyze --format json > report.json
+conftest test --policy policy report.json
+```
+
+See [docs/en/policy-as-code.md](./docs/en/policy-as-code.md) for a from-zero walkthrough and [policy/README.md](./policy/README.md) for what each example policy checks. Rationale for keeping this external to the CLI: [ADR-0042](./docs/adr/0042-policy-as-code-external-opa-layer.md).
+
+</details>
+
 ### Required IAM permissions
 
 The AWS principal needs the following read-only permissions:
@@ -475,6 +492,7 @@ Full documentation is in the [`docs/`](./docs/) folder — English in [`docs/en/
 | [docs/en/how-it-works.md](./docs/en/how-it-works.md)            | End-to-end execution flow, code walkthrough            |
 | [docs/en/adding-a-resource.md](./docs/en/adding-a-resource.md)  | Step-by-step guide to adding a new resource type       |
 | [docs/en/testing.md](./docs/en/testing.md)                      | Test pyramid, where each level lives, manual AWS verification |
+| [docs/en/policy-as-code.md](./docs/en/policy-as-code.md)        | From-zero OPA walkthrough for the example policies in `policy/` |
 | [docs/en/releasing.md](./docs/en/releasing.md)                  | How `@cloudrift/cli` is built and published to npm     |
 
 ### Adding a new resource type
@@ -511,6 +529,7 @@ Apache License 2.0 — see [LICENSE.md](./LICENSE.md). Free to use, modify, and 
 - [File di configurazione](#file-di-configurazione)
 - [Fonti dei prezzi](#fonti-dei-prezzi)
 - [Uso in CI/CD](#uso-in-cicd)
+- [Policy as Code (OPA)](#policy-as-code-opa-1)
 - [Permessi IAM necessari](#permessi-iam-necessari)
 - [Sviluppo](#sviluppo)
 - [Rilascio](#rilascio)
@@ -882,6 +901,22 @@ Con un `cloudrift.config.json` committato (`{"costAlertThresholdUsd": 500}`), il
 
 </details>
 
+<details>
+<summary><strong>Policy as Code (OPA)</strong> — regole più espressive del gate di budget, con Open Policy Agent</summary>
+
+### Policy as Code (OPA)
+
+Il gate `costAlertThresholdUsd` qui sopra è un singolo confronto totale-vs-budget. Per qualcosa di più specifico — regole per tag, per tipo di risorsa, per conteggio — cloudrift include policy [Open Policy Agent](https://www.openpolicyagent.org/) di esempio che valuti tu contro il suo output JSON, nella tua pipeline. cloudrift non esegue mai OPA da sé; produce solo JSON, esattamente come già fa.
+
+```sh
+node apps/cli/dist/main.js analyze --format json > report.json
+conftest test --policy policy report.json
+```
+
+Vedi [docs/it/policy-as-code.md](./docs/it/policy-as-code.md) per una guida da zero e [policy/README.md](./policy/README.md) per cosa verifica ogni policy di esempio. Motivazione per tenere questo livello esterno alla CLI: [ADR-0042](./docs/adr/0042-policy-as-code-external-opa-layer.md).
+
+</details>
+
 ### Permessi IAM necessari
 
 Il principal AWS deve avere le seguenti permission in sola lettura:
@@ -975,6 +1010,7 @@ Tutta la documentazione è nella cartella [`docs/`](./docs/) — italiano in [`d
 | [docs/it/funzionamento.md](./docs/it/funzionamento.md)               | Flusso di esecuzione end-to-end, spiegazione del codice           |
 | [docs/it/aggiungere-risorsa.md](./docs/it/aggiungere-risorsa.md)     | Guida passo per passo per aggiungere un nuovo tipo di risorsa     |
 | [docs/it/test.md](./docs/it/test.md)                                 | Piramide dei test, dove vive ogni livello, verifica manuale AWS   |
+| [docs/it/policy-as-code.md](./docs/it/policy-as-code.md)             | Guida OPA da zero per le policy di esempio in `policy/`           |
 | [docs/it/rilascio.md](./docs/it/rilascio.md)                         | Come `@cloudrift/cli` viene buildato e pubblicato su npm           |
 
 ## Licenza
