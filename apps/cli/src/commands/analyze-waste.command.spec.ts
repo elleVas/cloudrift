@@ -40,14 +40,18 @@ function summaryOf(
 function makeDeps(opts: {
   config?: CloudriftConfig;
   summary?: WastedResourcesSummary;
+  onCreateAnalysis?: (ctx: Parameters<AnalyzeDeps['createAnalysis']>[0]) => void;
 } = {}): AnalyzeDeps {
   return {
     loadConfig: async () => Result.ok(opts.config ?? {}),
     resolveAccountId: async () => undefined,
-    createAnalysis: async () => ({
-      useCase: { execute: async () => Result.ok(opts.summary ?? summaryOf([], 0)) },
-      pricesAsOf: '2025-06',
-    }),
+    createAnalysis: async (ctx) => {
+      opts.onCreateAnalysis?.(ctx);
+      return {
+        useCase: { execute: async () => Result.ok(opts.summary ?? summaryOf([], 0)) },
+        pricesAsOf: '2025-06',
+      };
+    },
   };
 }
 
@@ -206,6 +210,39 @@ describe('analyzeWasteCommand (CLI end-to-end)', () => {
     await run({ format: 'xml', silent: true }, makeDeps());
     expect(process.exitCode).toBe(1);
     expect(stderr).toContain('--format must be one of');
+  });
+
+  it('runs every scanner by default (no TTY in the test environment, no wizard)', async () => {
+    let scannerKinds: unknown;
+    await run({}, makeDeps({ onCreateAnalysis: (ctx) => { scannerKinds = ctx.scannerKinds; } }));
+    expect(process.exitCode).toBeUndefined();
+    expect(scannerKinds).toBeUndefined();
+  });
+
+  it('--all-services runs every scanner explicitly (no filtering)', async () => {
+    let scannerKinds: unknown;
+    await run(
+      { allServices: true },
+      makeDeps({ onCreateAnalysis: (ctx) => { scannerKinds = ctx.scannerKinds; } }),
+    );
+    expect(process.exitCode).toBeUndefined();
+    expect(scannerKinds).toBeUndefined();
+  });
+
+  it('--scanners restricts the run to the given resource kinds', async () => {
+    let scannerKinds: unknown;
+    await run(
+      { scanners: ['ebs-volume', 'elastic-ip'] },
+      makeDeps({ onCreateAnalysis: (ctx) => { scannerKinds = ctx.scannerKinds; } }),
+    );
+    expect(process.exitCode).toBeUndefined();
+    expect(scannerKinds).toEqual(['ebs-volume', 'elastic-ip']);
+  });
+
+  it('rejects an unknown --scanners value (exit 1)', async () => {
+    await run({ scanners: ['ebs-volume', 'not-a-kind'] }, makeDeps());
+    expect(process.exitCode).toBe(1);
+    expect(stderr).toContain('unknown service(s) "not-a-kind"');
   });
 
   it('reports a partial scan without crashing, exit code dictated only by the cost threshold', async () => {

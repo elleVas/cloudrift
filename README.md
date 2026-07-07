@@ -177,6 +177,8 @@ node apps/cli/dist/main.js analyze [options]
 | `--format <format>`          | stdout output format: `table`, `json`, or `markdown` (for CI / PR comments)                                   | `table`            |
 | `--config <path>`            | Path to a config file (defaults to `cloudrift.config.json` / `.cloudriftrc` in the cwd)                       | auto-discovered    |
 | `--live-pricing`             | Fetch current list prices from the AWS Pricing API (falls back to the static table; config prices still win)  | off (static table) |
+| `--scanners <kinds...>`      | Only run these services (space-separated resource kinds, e.g. `ebs-volume elastic-ip`); skips the interactive picker | — |
+| `--all-services`             | Run every scanner without the interactive picker                                                               | on in CI / non-TTY |
 | `--account-id <id>`          | AWS account ID override (auto-detected via `sts:GetCallerIdentity` when omitted)                               | auto-detected      |
 | `--min-age-days <days>`      | Grace period: resources younger than this many days are not reported (overrides config)                       | `7`                |
 | `--ignore-tag <tag>`         | Resources carrying this tag are excluded from the report (overrides config)                                   | `cloudrift:ignore` |
@@ -188,6 +190,8 @@ node apps/cli/dist/main.js analyze [options]
 > **stdout vs. file artifacts:** `--format` controls what goes to **stdout** (the report itself). `--json` / `--pdf` write **additional files** to disk and are independent of `--format` — by default the chosen `--format` still prints to stdout *in addition to* writing those files (so e.g. `--pdf` alone still shows the table by default). Add `--silent` for file-only output with nothing printed to the terminal. In machine-readable formats (`json`, `markdown`) all human messages are routed to stderr, so stdout carries only the report — ideal for piping. Errors and the cost-gate alert always surface on stderr, even with `--silent`.
 >
 > **Flag order with `--pdf`/`--json`:** their filename is an *optional* value (`--pdf [filename]`), so it's only picked up if it immediately follows the flag — `--pdf --silent ./report.pdf` fails ("too many arguments") because `--silent` blocks `--pdf` from seeing the filename, leaving `./report.pdf` with nothing to attach to. Either keep the filename right after the flag (`--pdf ./report.pdf --silent`), or use `=` to make order irrelevant: `--pdf=./report.pdf --silent --format json`.
+>
+> **Choosing which services to scan:** running `analyze` in a real terminal (and outside CI) shows an interactive picker — a checkbox list of every scanner, all pre-selected, so pressing Enter immediately scans everything like before. Deselect what you don't need, or skip the picker entirely with `--scanners <kinds...>` (an explicit list) or `--all-services` (scan everything, no prompt). In CI or whenever stdout isn't a terminal, the picker never appears and every scanner runs by default — automation is never blocked waiting on input.
 
 **Examples:**
 
@@ -200,6 +204,12 @@ node apps/cli/dist/main.js analyze -r us-east-1 eu-west-1 ap-southeast-1
 
 # Disable the grace period (report resources of any age)
 node apps/cli/dist/main.js analyze --min-age-days 0
+
+# Only scan EBS volumes and Elastic IPs, skipping the interactive picker
+node apps/cli/dist/main.js analyze --scanners ebs-volume elastic-ip
+
+# Scan everything without the interactive picker (e.g. in a script run from a terminal)
+node apps/cli/dist/main.js analyze --all-services
 
 # Export a PDF report with an auto-generated filename (reports/AWS_report_YYYY_MM_DD.pdf)
 node apps/cli/dist/main.js analyze --pdf
@@ -652,6 +662,8 @@ node apps/cli/dist/main.js analyze [opzioni]
 | `--format <format>`          | Formato di stdout: `table`, `json` o `markdown` (per CI / commenti PR)                                              | `table`            |
 | `--config <path>`            | Percorso del file di config (default: `cloudrift.config.json` / `.cloudriftrc` nella cwd)                          | auto-rilevato      |
 | `--live-pricing`             | Recupera i prezzi di listino correnti dall'AWS Pricing API (fallback alla tabella statica; i prezzi del config vincono) | off (tabella statica) |
+| `--scanners <kinds...>`      | Esegue solo questi servizi (elenco di resource kind separati da spazio, es. `ebs-volume elastic-ip`); salta il picker interattivo | — |
+| `--all-services`             | Esegue tutti gli scanner senza il picker interattivo                                                                  | on in CI / non-TTY |
 | `--account-id <id>`          | Override dell'account ID (rilevato automaticamente via `sts:GetCallerIdentity` se omesso)                            | auto-rilevato      |
 | `--min-age-days <giorni>`    | Periodo di grazia: le risorse più giovani di N giorni non vengono segnalate (ha precedenza sul config)              | `7`                |
 | `--ignore-tag <tag>`         | Le risorse con questo tag vengono escluse dal report (ha precedenza sul config)                                     | `cloudrift:ignore` |
@@ -663,6 +675,8 @@ node apps/cli/dist/main.js analyze [opzioni]
 > **stdout vs. file:** `--format` controlla cosa va su **stdout** (il report). `--json` / `--pdf` scrivono **file aggiuntivi** su disco, indipendenti da `--format` — di default il `--format` scelto continua comunque a essere stampato su stdout *in aggiunta* alla scrittura di quei file (quindi es. `--pdf` da solo mostra comunque la tabella). Aggiungi `--silent` per ottenere solo il file, senza nulla stampato a terminale. Nei formati machine-readable (`json`, `markdown`) tutti i messaggi umani vanno su stderr, così su stdout resta solo il report — ideale per il piping. Errori e l'alert della soglia di costo vanno sempre su stderr, anche con `--silent`.
 >
 > **Ordine dei flag con `--pdf`/`--json`:** il filename è un valore *opzionale* (`--pdf [filename]`), quindi viene raccolto solo se segue immediatamente il flag — `--pdf --silent ./report.pdf` fallisce ("too many arguments") perché `--silent` impedisce a `--pdf` di vedere il filename, lasciando `./report.pdf` senza nulla a cui agganciarsi. Tieni il filename subito dopo il flag (`--pdf ./report.pdf --silent`), oppure usa `=` per rendere l'ordine irrilevante: `--pdf=./report.pdf --silent --format json`.
+>
+> **Scegliere quali servizi scansionare:** lanciando `analyze` in un vero terminale (e fuori da CI) appare un picker interattivo — una checklist di tutti gli scanner, tutti pre-selezionati, così premere Invio scansiona tutto come prima. Deseleziona quello che non ti serve, oppure salta del tutto il picker con `--scanners <kinds...>` (elenco esplicito) o `--all-services` (scansiona tutto, nessun prompt). In CI o ogni volta che stdout non è un terminale, il picker non appare mai e viene eseguito ogni scanner di default — l'automazione non resta mai bloccata in attesa di input.
 
 **Esempi:**
 
@@ -675,6 +689,12 @@ node apps/cli/dist/main.js analyze -r us-east-1 eu-west-1 ap-southeast-1
 
 # Disattiva il periodo di grazia (segnala risorse di qualsiasi età)
 node apps/cli/dist/main.js analyze --min-age-days 0
+
+# Scansiona solo EBS volumes ed Elastic IP, saltando il picker interattivo
+node apps/cli/dist/main.js analyze --scanners ebs-volume elastic-ip
+
+# Scansiona tutto senza il picker interattivo (es. in uno script lanciato da terminale)
+node apps/cli/dist/main.js analyze --all-services
 
 # Esporta un report PDF con nome automatico (reports/AWS_report_YYYY_MM_DD.pdf)
 node apps/cli/dist/main.js analyze --pdf

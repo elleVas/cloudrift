@@ -29,6 +29,14 @@ program
     'fetch current list prices from the AWS Pricing API (falls back to the static table; config prices still win)',
   )
   .option(
+    '--scanners <kinds...>',
+    'only run these services (space-separated resource kinds, e.g. ebs-volume elastic-ip); skips the interactive picker',
+  )
+  .option(
+    '--all-services',
+    'run every scanner without the interactive picker (default in CI / when stdout is not a terminal)',
+  )
+  .option(
     '--min-age-days <days>',
     'grace period: resources younger than this many days are not reported (default 7, overrides config)',
   )
