@@ -7,8 +7,10 @@ import {
   AwsRegion,
   DEFAULT_IGNORE_TAG,
   DEFAULT_MIN_AGE_DAYS,
+  RESOURCE_KINDS,
 } from 'cloud-cost-domain';
 import type {
+  ResourceKind,
   WastedResourcesSummary,
   WastePolicyOptions,
 } from 'cloud-cost-domain';
@@ -19,6 +21,10 @@ import { formatWasteReportAsJson } from '../formatters/waste-report.json-formatt
 import { formatWasteReportAsMarkdown } from '../formatters/waste-report.markdown-formatter';
 import { generateWasteReportPdf } from '../formatters/waste-report.pdf-formatter';
 import { renderBanner, delay } from '../ascii-banner';
+import {
+  promptScannerSelection,
+  shouldPromptScannerSelection,
+} from '../wizard/scanner-selection.wizard';
 import {
   defaultAnalyzeDeps,
   type AnalyzeDeps,
@@ -42,6 +48,8 @@ export interface AnalyzeWasteOptions {
   minAgeDays?: string;
   ignoreTag?: string;
   silent?: boolean;
+  scanners?: string[];
+  allServices?: boolean;
 }
 
 function fail(message: string): void {
@@ -66,6 +74,20 @@ function resolveMinAgeDays(
     );
   }
   return Result.ok(minAgeDays);
+}
+
+/** --scanners: Result-based validation against the known RESOURCE_KINDS (no throw on bad input). */
+function resolveExplicitScanners(scanners: string[]): Result<ResourceKind[], Error> {
+  const valid = new Set<string>(RESOURCE_KINDS);
+  const unknown = scanners.filter((kind) => !valid.has(kind));
+  if (unknown.length > 0) {
+    return Result.fail(
+      new Error(
+        `--scanners: unknown service(s) "${unknown.join(', ')}". Valid values: ${RESOURCE_KINDS.join(', ')}.`,
+      ),
+    );
+  }
+  return Result.ok(scanners as ResourceKind[]);
 }
 
 /** Requested regions: Result-based parse (no throw on input), then exclusion from config. */
@@ -172,6 +194,22 @@ export async function analyzeWasteCommand(
       `--format must be one of: ${OUTPUT_FORMATS.join(', ')}. Got "${options.format}".`,
     );
   }
+
+  // Which scanners to run: --all-services / --scanners are explicit and skip
+  // the wizard below entirely; otherwise the wizard decides interactively, or
+  // (CI / piped stdout) every scanner runs — the same default as before this
+  // option existed.
+  let scannerKinds: ResourceKind[] | undefined;
+  let explicitScannerSelection = false;
+  if (options.allServices) {
+    explicitScannerSelection = true;
+  } else if (options.scanners && options.scanners.length > 0) {
+    const scannersResult = resolveExplicitScanners(options.scanners);
+    if (!scannersResult.ok) return fail(scannersResult.error.message);
+    scannerKinds = scannersResult.value;
+    explicitScannerSelection = true;
+  }
+
   // In machine-readable mode stdout must contain ONLY the report:
   // human chrome (banner, confirmations) is routed to stderr. --silent goes
   // further: no chrome and no report at all, just the file artifacts (if any) —
@@ -187,6 +225,12 @@ export async function analyzeWasteCommand(
   if (!quietStdout) {
     console.log(`\n${renderBanner()}\n`);
     if (bannerDelayMs > 0) await delay(bannerDelayMs);
+  }
+
+  if (!explicitScannerSelection && !silent && shouldPromptScannerSelection()) {
+    const selected = await promptScannerSelection();
+    if (selected === undefined) return; // cancelled: exit cleanly, no scan run
+    scannerKinds = selected;
   }
 
   const configResult = await deps.loadConfig(process.cwd(), options.config);
@@ -238,6 +282,7 @@ export async function analyzeWasteCommand(
     cloudwatchWindowHours,
     utilizationWindowHours,
     info,
+    scannerKinds,
   });
 
   const result = await useCase.execute({ regions });

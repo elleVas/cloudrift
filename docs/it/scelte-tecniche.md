@@ -144,6 +144,16 @@ if (!parsed.ok) return fail(parsed.error.message); // messaggio pulito, exit 1, 
 
 ---
 
+## @clack/prompts per il picker interattivo degli scanner
+
+**Scelta:** `multiselect` di `@clack/prompts` per il wizard di selezione scanner di `analyze` (vedi [ADR-0041](../adr/0041-interactive-scanner-selection-wizard.md), [funzionamento.md](./funzionamento.md#selezione-degli-scanner-il-wizard-e-le-sue-vie-duscita)).
+
+**Perché:** più leggero di `inquirer` e ha un multiselect a checkbox nativo. È un pacchetto solo ESM, quindi viene caricato con un `import()` dinamico dentro `promptScannerSelection()` invece di un import statico — un import statico rompeva `cli:test` (Jest non fa il parse di un pacchetto ESM di default) e avrebbe anche trascinato il renderer del prompt in ogni processo che importa il modulo del comando, anche quelli non interattivi.
+
+**Trigger, non un flag:** il wizard compare di default in un vero terminale, non dietro un flag opt-in `--interactive` — la richiesta era che la selezione degli scanner fosse l'esperienza normale, con vie d'uscita esplicite (`--scanners <kinds...>`, `--all-services`) per l'uso da script, e un default silenzioso a "tutto" ogni volta che `stdout` non è un TTY, `CI=true`, o è impostato `--silent`, così l'automazione non resta mai bloccata in attesa di input.
+
+---
+
 ## chalk e cli-table3 per l'output console
 
 **Scelta:** `chalk` per i colori e `cli-table3` per le tabelle.

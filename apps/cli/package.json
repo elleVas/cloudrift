@@ -144,6 +144,7 @@
     }
   },
   "dependencies": {
+    "@clack/prompts": "^1.7.0",
     "cloud-cost-application": "workspace:*",
     "cloud-cost-domain": "workspace:*",
     "cloud-cost-infrastructure-aws-adapter": "workspace:*",

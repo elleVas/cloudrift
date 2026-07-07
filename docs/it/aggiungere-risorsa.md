@@ -249,7 +249,7 @@ export class AwsLogGroupScanner implements WasteScannerPort {
 },
 ```
 
-Tabella console, PDF e DTO JSON si aggiornano da soli: consumano il registry e `RESOURCE_KIND_LABELS`.
+Tabella console, PDF e DTO JSON si aggiornano da soli: consumano il registry e `RESOURCE_KIND_LABELS`. Anche il picker interattivo degli scanner (vedi [funzionamento.md](./funzionamento.md#selezione-degli-scanner-il-wizard-e-le-sue-vie-duscita)) si aggiorna da solo: elenca ogni voce di `RESOURCE_KINDS` con la sua label da `RESOURCE_KIND_META`, quindi un nuovo kind compare nella checklist senza alcun codice specifico per il wizard.
 
 **b)** Registrazione nel composition root (`analyze-waste.composition.ts`):
 

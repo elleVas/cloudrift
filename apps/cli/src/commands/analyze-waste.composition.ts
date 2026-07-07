@@ -36,6 +36,7 @@ import type {
   AwsRegion,
   FindWastedResourcesUseCasePort,
   PricingPort,
+  ResourceKind,
   WastePolicyOptions,
   WasteScannerPort,
 } from 'cloud-cost-domain';
@@ -91,6 +92,8 @@ export interface AnalysisContext {
   cloudwatchWindowHours: number;
   utilizationWindowHours: number;
   info: (msg: string) => void;
+  /** Restrict the scan to these kinds (from --scanners, --all-services, or the wizard). Undefined runs every scanner. */
+  scannerKinds?: ResourceKind[];
 }
 
 export interface Analysis {
@@ -304,7 +307,13 @@ function buildScanners(
 async function defaultCreateAnalysis(ctx: AnalysisContext): Promise<Analysis> {
   const { pricing, livePricingAdapter } = await buildPricing(ctx);
   const scanners = buildScanners(ctx, pricing, livePricingAdapter);
-  return { useCase: new AnalyzeCloudWasteUseCase(scanners), pricesAsOf: pricing.getPricesAsOf() };
+  // No re-validation here: ctx.scannerKinds is only ever set by
+  // analyze-waste.command.ts, which already validates it (--scanners against
+  // RESOURCE_KINDS, or the wizard/--all-services, which can't produce an
+  // unknown kind). This function has no other caller.
+  const kindFilter = ctx.scannerKinds ? new Set(ctx.scannerKinds) : undefined;
+  const selected = kindFilter ? scanners.filter((scanner) => kindFilter.has(scanner.kind)) : scanners;
+  return { useCase: new AnalyzeCloudWasteUseCase(selected), pricesAsOf: pricing.getPricesAsOf() };
 }
 
 export const defaultAnalyzeDeps: AnalyzeDeps = {

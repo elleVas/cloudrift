@@ -44,7 +44,7 @@ Uno spec per scanner in [`libs/cloud-cost/infrastructure/aws-adapter/src/scanner
 
 ## Harness e2e su LocalStack
 
-Gli spec sopra mockano l'SDK AWS, quindi verificano la *forma* di una query ma non lanciano mai davvero il binario CLI buildato contro qualcosa. [`scripts/e2e-localstack.mjs`](../../scripts/e2e-localstack.mjs) chiude questo gap senza costi né credenziali AWS reali: avvia un container [LocalStack](https://www.localstack.cloud/) (`docker-compose.localstack.yml`), semina una risorsa sprecata/ottimizzabile per ogni kind (`scripts/seed-localstack.mjs`), lancia `cloudrift analyze` buildato contro quel container, verifica che ogni kind atteso produca un finding, e smonta il container — anche in caso di fallimento.
+Gli spec sopra mockano l'SDK AWS, quindi verificano la *forma* di una query ma non lanciano mai davvero il binario CLI buildato contro qualcosa. [`scripts/e2e-localstack.mjs`](../../scripts/e2e-localstack.mjs) chiude questo gap senza costi né credenziali AWS reali: avvia un container [LocalStack](https://www.localstack.cloud/) (`docker-compose.localstack.yml`), semina una risorsa sprecata/ottimizzabile per ogni kind (`scripts/seed-localstack.mjs`), lancia `cloudrift analyze` buildato contro quel container, verifica che ogni kind atteso produca un finding, e smonta il container — anche in caso di fallimento. Passa `--all-services` esplicitamente così l'esecuzione copre sempre tutti gli scanner indipendentemente dalla logica di trigger del [picker interattivo](../adr/0041-interactive-scanner-selection-wizard.md) — cintura e bretelle, dato che lo stdout in pipe di `spawnSync` non è comunque mai un TTY.
 
 Lo scope è 16 dei 29 scanner (vedi [ADR-0002](../adr/0002-localstack-e2e-scope.md), [ADR-0036](../adr/0036-ec2-underutilized-excluded-from-localstack-e2e.md) e [ADR-0040](../adr/0040-localstack-bumped-4-14-0-cloudwatch-fixed.md)):
 
@@ -88,11 +88,13 @@ export AWS_REGION=us-east-1
 # 4. Semina le risorse sprecate (seed-localstack.mjs è eseguibile da solo)
 node scripts/seed-localstack.mjs
 
-# 5. Ispeziona come tabella a terminale...
-node apps/cli/dist/main.js analyze --regions us-east-1 --min-age-days 0 --format table
+# 5. Ispeziona come tabella a terminale (--all-services salta il picker
+#    interattivo di selezione scanner, che qui comparirebbe altrimenti
+#    dato che questo gira in un vero terminale)...
+node apps/cli/dist/main.js analyze --regions us-east-1 --min-age-days 0 --format table --all-services
 
 # 6. ...oppure come PDF
-node apps/cli/dist/main.js analyze --regions us-east-1 --min-age-days 0 --pdf ./report.pdf
+node apps/cli/dist/main.js analyze --regions us-east-1 --min-age-days 0 --pdf ./report.pdf --all-services
 
 # 7. Ripeti il passo 5/6 quante volte vuoi — container e dati seedati
 #    restano lì finché non li smonti

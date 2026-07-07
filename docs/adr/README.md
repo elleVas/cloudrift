@@ -60,6 +60,7 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 | [0031](0031-chalk-cli-table3-console-output.md) | chalk + cli-table3 for console output |
 | [0032](0032-pdfkit-for-pdf.md) | pdfkit for PDF report generation |
 | [0033](0033-no-di-framework.md) | No dependency injection framework |
+| [0041](0041-interactive-scanner-selection-wizard.md) | Interactive scanner-selection wizard (`@clack/prompts`), triggered by default |
 
 ## Reporting
 
