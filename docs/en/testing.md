@@ -44,7 +44,7 @@ One spec per scanner under [`libs/cloud-cost/infrastructure/aws-adapter/src/scan
 
 ## LocalStack e2e harness
 
-The specs above mock the AWS SDK, so they verify the *shape* of a query but never actually run the built CLI binary against anything. [`scripts/e2e-localstack.mjs`](../../scripts/e2e-localstack.mjs) closes that gap without real AWS cost or credentials: it starts a [LocalStack](https://www.localstack.cloud/) container (`docker-compose.localstack.yml`), seeds one wasted/optimizable resource per kind (`scripts/seed-localstack.mjs`), runs the built `cloudrift analyze` against it, asserts that every expected `kind` produced a finding, and tears the container down — even on failure.
+The specs above mock the AWS SDK, so they verify the *shape* of a query but never actually run the built CLI binary against anything. [`scripts/e2e-localstack.mjs`](../../scripts/e2e-localstack.mjs) closes that gap without real AWS cost or credentials: it starts a [LocalStack](https://www.localstack.cloud/) container (`docker-compose.localstack.yml`), seeds one wasted/optimizable resource per kind (`scripts/seed-localstack.mjs`), runs the built `cloudrift analyze` against it, asserts that every expected `kind` produced a finding, and tears the container down — even on failure. It passes `--all-services` explicitly so the run always covers every scanner regardless of the [interactive picker](../adr/0041-interactive-scanner-selection-wizard.md)'s trigger logic — belt and suspenders, since `spawnSync`'s piped stdout is never a TTY anyway.
 
 Scope is 16 of 29 scanners (see [ADR-0002](../adr/0002-localstack-e2e-scope.md), [ADR-0036](../adr/0036-ec2-underutilized-excluded-from-localstack-e2e.md), and [ADR-0040](../adr/0040-localstack-bumped-4-14-0-cloudwatch-fixed.md)):
 
@@ -88,13 +88,14 @@ export AWS_REGION=us-east-1
 # 4. Seed the wasted resources (seed-localstack.mjs is runnable standalone)
 node scripts/seed-localstack.mjs
 
-# 5. Inspect as a console table...
-node apps/cli/dist/main.js analyze --regions us-east-1 --min-age-days 0 --format table
+# 5. Inspect as a console table (--all-services skips the interactive scanner
+#    picker, which would otherwise appear here since this runs in a real terminal)...
+node apps/cli/dist/main.js analyze --regions us-east-1 --min-age-days 0 --format table --all-services
 
 # 6. ...or as a PDF — omit a path to get the default reports/AWS_report_<date>.pdf,
 #    or pass one explicitly to write it wherever you want instead:
-node apps/cli/dist/main.js analyze --regions us-east-1 --min-age-days 0 --pdf
-node apps/cli/dist/main.js analyze --regions us-east-1 --min-age-days 0 --pdf ./report.pdf
+node apps/cli/dist/main.js analyze --regions us-east-1 --min-age-days 0 --pdf --all-services
+node apps/cli/dist/main.js analyze --regions us-east-1 --min-age-days 0 --pdf ./report.pdf --all-services
 
 # 7. Repeat step 5/6 as many times as needed — the container and seeded
 #    data stay put until you tear it down

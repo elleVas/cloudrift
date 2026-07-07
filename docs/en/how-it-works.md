@@ -10,6 +10,7 @@ This document describes the full execution flow, from CLI invocation to the AWS 
 
 ```
 user: cloudrift analyze -r us-east-1 eu-west-1 [--format json|markdown] [--pdf] [--live-pricing]
+                         [--scanners <kinds...> | --all-services]
           │
           ▼
      apps/cli/src/main.ts
@@ -17,6 +18,8 @@ user: cloudrift analyze -r us-east-1 eu-west-1 [--format json|markdown] [--pdf] 
           │
           ▼
      analyze-waste.command.ts  (orchestrates options/config/output)
+     0. scannerKinds: --all-services | --scanners <kinds...> | interactive wizard
+        (TTY only, skipped in CI/non-TTY/--silent) | undefined (run every scanner)
      1. loadConfig() — cloudrift.config.json / .cloudriftrc / --config
      2. AwsRegion.parse() per region; config.excludeRegions filtered out
      3. accountId: --account-id or STS GetCallerIdentity
@@ -24,9 +27,11 @@ user: cloudrift analyze -r us-east-1 eu-west-1 [--format json|markdown] [--pdf] 
           ▼
      analyze-waste.composition.ts  (composition root: builds pricing + scanners)
      4. Pricing: static table ← live API (--live-pricing) ← config.prices (wins)
-     5. Instantiates policies (config + flags) and 15 of the 18 scanners
-        (the other three — EC2/RDS underutilized, ElastiCache idle —
-         only with --live-pricing: per-type price not in the static table)
+     5. Instantiates policies (config + flags) and 18 always-on scanners
+        (+ 10 more gated on --live-pricing: EC2/RDS/Redshift/OpenSearch/MSK/
+         DocumentDB/Neptune/MQ underutilized-or-idle + WorkSpaces — per-type
+         price not in the static table)
+     6. Filters the built list down to scannerKinds from step 0 (undefined = no filter)
           │
           ▼
      AnalyzeCloudWasteUseCase.execute({ regions })
@@ -75,6 +80,8 @@ program
   .command('analyze')
   .option('-r, --regions <regions...>', 'AWS regions to scan', ['us-east-1'])
   .option('--account-id <id>', 'AWS account ID override (auto-detected via STS when omitted)')
+  .option('--scanners <kinds...>', 'only run these services …')
+  .option('--all-services', 'run every scanner without the interactive picker …')
   .option('--min-age-days <days>', 'grace period …', '7')
   .option('--ignore-tag <tag>', 'resources carrying this tag are excluded …', 'cloudrift:ignore')
   .option('--pdf [filename]', 'Export a PDF report …')
@@ -90,6 +97,17 @@ program
 ### `analyze-waste.command.ts` — Orchestration
 
 Resolves CLI options into config + regions + account ID, delegates pricing/scanner construction to `analyze-waste.composition.ts` through the injectable `AnalyzeDeps.createAnalysis` seam (the fake used by `analyze-waste.command.spec.ts` to test without AWS), then renders the chosen format and writes the `--json`/`--pdf` artifacts.
+
+#### Scanner selection: the wizard and its escape hatches
+
+Before building the pricing/scanner set, the command resolves which `ResourceKind`s to run, in this order:
+
+1. `--all-services` → run everything, no prompt.
+2. `--scanners <kinds...>` → the given list, validated against `RESOURCE_KINDS` (an unknown kind fails fast with the full valid list).
+3. Otherwise, only when `process.stdout.isTTY` and not `CI=true` (and not `--silent`): `promptScannerSelection()` (`apps/cli/src/wizard/scanner-selection.wizard.ts`) shows a `@clack/prompts` multiselect — every kind pre-checked, so pressing Enter reproduces the old scan-everything default. Ctrl+C cancels cleanly with no scan run.
+4. Otherwise (CI, piped stdout, or `--silent`): every scanner runs, same as before this feature existed — the picker never blocks automation.
+
+The resolved list (or `undefined` for "all") flows into `AnalysisContext.scannerKinds`, which `analyze-waste.composition.ts` uses to filter the scanners it builds (see below). `@clack/prompts` is an ESM-only package and is loaded with a dynamic `import()` inside `promptScannerSelection()` rather than a static import, so Jest never has to parse it on the non-interactive test path.
 
 ### `analyze-waste.composition.ts` — Composition root
 
@@ -111,18 +129,26 @@ const policyOptions = { minAgeDays, ignoreTag: options.ignoreTag };
 const scanners: WasteScannerPort[] = [
   new AwsEbsVolumeScanner(pricing, accountId, new EbsVolumeWastePolicy(policyOptions)),
   new AwsElasticIpScanner(pricing, accountId, new ElasticIpWastePolicy(policyOptions)),
-  // … the other 13 always-registered scanners (rds, lb, ec2, snapshot, nat, gp2-upgrade,
+  // … the other 16 always-registered scanners (rds, lb, ec2, snapshot, nat, gp2-upgrade,
   // ebs-idle, log-group, eni-orphaned, s3-no-lifecycle, lambda-underutilized, efs-unused,
-  // dynamodb-overprovisioned)
+  // dynamodb-overprovisioned, fsx-idle, vpn-connection-idle, transit-gateway-idle,
+  // kinesis-idle)
 ];
 
-// EC2/RDS underutilized and ElastiCache idle need a per-type price (only available live):
-// registered conditionally, not part of the base 15.
+// EC2/RDS/ElastiCache/Redshift/OpenSearch/MSK/DocumentDB/Neptune/MQ underutilized-or-idle
+// and WorkSpaces need a per-type price (only available live): registered conditionally,
+// not part of the 18 always-on scanners above.
 if (livePricingAdapter) {
   scanners.push(new AwsEc2UnderutilizedScanner(livePricingAdapter, accountId, new Ec2UnderutilizedPolicy(policyOptions)));
 }
 
-const useCase = new AnalyzeCloudWasteUseCase(scanners);
+// scannerKinds comes from the wizard/--scanners/--all-services (see above);
+// undefined means "no filter", i.e. every built scanner runs.
+const selected = ctx.scannerKinds
+  ? scanners.filter((s) => new Set(ctx.scannerKinds).has(s.kind))
+  : scanners;
+
+const useCase = new AnalyzeCloudWasteUseCase(selected);
 const result = await useCase.execute({ regions });
 ```
 

@@ -80,6 +80,7 @@ function runCli() {
       MIN_AGE_DAYS,
       '--format',
       'json',
+      '--all-services',
     ],
     { encoding: 'utf8' },
   );
