@@ -4,7 +4,7 @@ import {
   DescribeAddressesCommand,
   type Address,
 } from '@aws-sdk/client-ec2';
-import { Result } from 'shared-kernel';
+import { Result, createLogger } from 'shared-kernel';
 import type {
   AwsRegion,
   PricingPort,
@@ -13,6 +13,11 @@ import type {
 } from 'cloud-cost-domain';
 import { ElasticIp, ElasticIpWastePolicy } from 'cloud-cost-domain';
 import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AWS_CLIENT_DEFAULTS } from '../utils/client-config';
+
+const logger = createLogger('cloudrift:scanner');
+
+type AddressWithIds = Address & { AllocationId: string; PublicIp: string };
 
 export class AwsElasticIpScanner implements WasteScannerPort {
   readonly kind = 'elastic-ip' as const;
@@ -24,7 +29,7 @@ export class AwsElasticIpScanner implements WasteScannerPort {
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
-    const client = new EC2Client({ region: region.code });
+    const client = new EC2Client({ ...AWS_CLIENT_DEFAULTS, region: region.code });
     try {
       const response = await client.send(
         new DescribeAddressesCommand({
@@ -33,12 +38,22 @@ export class AwsElasticIpScanner implements WasteScannerPort {
       );
 
       const now = new Date();
-      const unassociated = (response.Addresses ?? [])
+      const rawAddresses = response.Addresses ?? [];
+      const validAddresses = rawAddresses.filter(
+        (a): a is AddressWithIds => !!a.AllocationId && !!a.PublicIp,
+      );
+      if (validAddresses.length !== rawAddresses.length) {
+        logger.debug(
+          `${this.kind}: skipped ${rawAddresses.length - validAddresses.length} entries missing AllocationId/PublicIp`,
+        );
+      }
+
+      const unassociated = validAddresses
         .map(
-          (a: Address) =>
+          (a) =>
             new ElasticIp({
-              allocationId: a.AllocationId!,
-              publicIp: a.PublicIp!,
+              allocationId: a.AllocationId,
+              publicIp: a.PublicIp,
               region,
               accountId: this.accountId,
               detectedAt: now,
@@ -47,7 +62,7 @@ export class AwsElasticIpScanner implements WasteScannerPort {
               tags: Object.fromEntries(
                 (a.Tags ?? []).map((t) => [t.Key ?? '', t.Value ?? '']),
               ),
-              monthlyCostUsd: this.pricing.getElasticIpPricePerMonth(region),
+              monthlyCostUsd: this.pricing.getPrice(region, 'elastic-ip'),
             }),
         )
         .filter((ip) => this.policy.evaluate(ip, now).isWaste);

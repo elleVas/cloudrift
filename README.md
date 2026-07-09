@@ -468,18 +468,7 @@ Publishing `@cloudrift/cli` to npm is automated via a tag-triggered workflow. Se
 
 ### Architecture
 
-The project uses a DDD layered architecture (Ports & Adapters) with a plugin model: every resource type is a `WasteScannerPort` implementation, and the coordinator use case is generic over the registered scanners.
-
-```
-apps/cli/                          → CLI entry point (Commander.js), presenters
-libs/shared/kernel/                → Reusable base classes (Entity, ValueObject, Result)
-libs/cloud-cost/domain/            → Entities, value objects, waste policies, ports
-libs/cloud-cost/application/       → Generic use case + serializable report DTO
-libs/cloud-cost/infrastructure/
-  aws-adapter/                     → AWS SDK v3 scanners, pricing, STS account resolver
-```
-
-Dependencies always point inward: CLI → Application → Domain ← AWS Adapter.
+cloudrift uses a DDD layered architecture (Ports & Adapters) with a plugin model: every resource type is a `WasteScannerPort` implementation, and the coordinator use case is generic over the registered scanners — dependencies always point inward, from the CLI through the application layer to the domain. See [docs/en/architecture.md](./docs/en/architecture.md) for the layer breakdown, the design rationale, and the multi-cloud path.
 
 ### Technical documentation
 
@@ -502,9 +491,9 @@ See [docs/en/adding-a-resource.md](./docs/en/adding-a-resource.md) for a complet
 1. Add the new kind to the `ResourceKind` union (`wasted-resource.ts`) — the compiler then points to every spot that needs updating
 2. Add the entity to `libs/cloud-cost/domain/src/entities/` implementing `WastedResource`
 3. Add a waste policy in `libs/cloud-cost/domain/src/policies/` (grace period and ignore tag come for free from the base class)
-4. Add pricing to `PricingPort`, `StaticPriceTableAdapter` and `prices.json`
+4. Add a price key to `prices.json` — `PricingPort` is a single generic `getPrice(region, key)`, no interface to touch
 5. Implement the scanner in `libs/cloud-cost/infrastructure/aws-adapter/src/scanners/` (implements `WasteScannerPort`)
-6. Add the presenter entry in `apps/cli/src/formatters/resource-presenters.ts` and register the scanner in `analyze-waste.composition.ts`
+6. Add the presenter entry in `apps/cli/src/formatters/resource-presenters.ts` and register the scanner in `analyze-waste.composition.ts`'s scanner registry
 
 No changes to `AnalyzeCloudWasteUseCase`, the summary, or the report DTO are needed.
 
@@ -986,18 +975,7 @@ La pubblicazione di `@cloudrift/cli` su npm è automatica tramite un workflow at
 
 ### Architettura
 
-Il progetto usa un'architettura DDD a strati (Ports & Adapters) con un modello a plugin: ogni tipo di risorsa è un'implementazione di `WasteScannerPort` e il use case coordinatore è generico sugli scanner registrati.
-
-```
-apps/cli/                          → Entry point CLI (Commander.js), presenter
-libs/shared/kernel/                → Base classes riusabili (Entity, ValueObject, Result)
-libs/cloud-cost/domain/            → Entità, value objects, waste policies, port
-libs/cloud-cost/application/       → Use case generico + DTO serializzabile del report
-libs/cloud-cost/infrastructure/
-  aws-adapter/                     → Scanner AWS SDK v3, pricing, resolver account STS
-```
-
-Le dipendenze puntano sempre verso l'interno: CLI → Application → Domain ← AWS Adapter.
+cloudrift usa un'architettura DDD a strati (Ports & Adapters) con un modello a plugin: ogni tipo di risorsa è un'implementazione di `WasteScannerPort` e il use case coordinatore è generico sugli scanner registrati — le dipendenze puntano sempre verso l'interno, dalla CLI attraverso il layer applicativo fino al domain. Vedi [docs/it/architettura.md](./docs/it/architettura.md) per la scomposizione in layer, il razionale delle scelte e il percorso multi-cloud.
 
 ### Documentazione tecnica
 

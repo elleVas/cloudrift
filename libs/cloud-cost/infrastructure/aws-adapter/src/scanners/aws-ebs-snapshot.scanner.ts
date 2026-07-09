@@ -8,7 +8,7 @@ import {
   type Snapshot,
   type Volume,
 } from '@aws-sdk/client-ec2';
-import { Result } from 'shared-kernel';
+import { Result, createLogger } from 'shared-kernel';
 import type {
   AwsRegion,
   PricingPort,
@@ -18,6 +18,11 @@ import type {
 import { EbsSnapshot, EbsSnapshotWastePolicy } from 'cloud-cost-domain';
 import { AwsAdapterError } from '../errors/aws-adapter.error';
 import { paginate } from '../utils/paginate';
+import { AWS_CLIENT_DEFAULTS } from '../utils/client-config';
+
+const logger = createLogger('cloudrift:scanner');
+
+type SnapshotWithIds = Snapshot & { SnapshotId: string; VolumeId: string };
 
 export class AwsEbsSnapshotScanner implements WasteScannerPort {
   readonly kind = 'ebs-snapshot' as const;
@@ -29,7 +34,7 @@ export class AwsEbsSnapshotScanner implements WasteScannerPort {
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
-    const client = new EC2Client({ region: region.code });
+    const client = new EC2Client({ ...AWS_CLIENT_DEFAULTS, region: region.code });
     try {
       // Three sources in parallel: snapshots, existing volumes and registered
       // AMIs (snapshots referenced by an AMI cannot be deleted).
@@ -62,18 +67,26 @@ export class AwsEbsSnapshotScanner implements WasteScannerPort {
         }
       }
 
-      const pricePerGb = this.pricing.getEbsSnapshotPricePerGbMonth(region);
+      const pricePerGb = this.pricing.getPrice(region, 'ebs-snapshot');
       const now = new Date();
 
-      const orphans = snapshots
-        .filter((snap: Snapshot) => !!snap.VolumeId)
+      const validSnapshots = snapshots.filter(
+        (snap): snap is SnapshotWithIds => !!snap.SnapshotId && !!snap.VolumeId,
+      );
+      if (validSnapshots.length !== snapshots.length) {
+        logger.debug(
+          `${this.kind}: skipped ${snapshots.length - validSnapshots.length} entries missing SnapshotId/VolumeId`,
+        );
+      }
+
+      const orphans = validSnapshots
         .map(
-          (snap: Snapshot) =>
+          (snap) =>
             new EbsSnapshot({
-              snapshotId: snap.SnapshotId!,
+              snapshotId: snap.SnapshotId,
               region,
               accountId: this.accountId,
-              sourceVolumeId: snap.VolumeId!,
+              sourceVolumeId: snap.VolumeId,
               sourceVolumeExists: existingVolumeIds.has(snap.VolumeId),
               boundToAmiId: snapshotToAmi.get(snap.SnapshotId ?? ''),
               sizeGb: snap.VolumeSize ?? 0,

@@ -55,12 +55,13 @@ Questo documento spiega il perché di ogni scelta tecnologica nel progetto, con 
 
 **Perché:**
 - Modulare: si importa solo il client necessario
-- Client per-regione: ogni scanner crea un client con `{ region: region.code }` e lo distrugge nel `finally`
+- Client per-regione: ogni scanner crea un client con `{ ...AWS_CLIENT_DEFAULTS, region: region.code }` e lo distrugge nel `finally`
+- `AWS_CLIENT_DEFAULTS` (`utils/client-config.ts`) imposta `maxAttempts: 3`, attivando il retry/backoff nativo dell'SDK per throttling (429) ed errori 5xx transitori
 - Tipizzazione migliore e supporto nativo a ESM
 
 **Pattern usato negli scanner:**
 ```typescript
-const client = new EC2Client({ region: region.code });
+const client = new EC2Client({ ...AWS_CLIENT_DEFAULTS, region: region.code });
 try {
   const candidates = await paginate(/* DescribeVolumesCommand … */);
   const findings = candidates
@@ -78,6 +79,18 @@ try {
 - Scanner diversi (API diverse) → in parallelo
 - Stesso scanner su più regioni → in sequenza
 - Fan-out interno a uno scanner (es. una chiamata CloudWatch per NAT Gateway) → `mapWithConcurrency` con limite (5)
+
+**Validazione dei campi richiesti:** gli scanner non leggono mai un campo richiesto dalla risposta AWS con una non-null assertion nuda (`v.VolumeId!`). Invece, un tipo intersezione locale più un `.filter()` a restringimento di tipo subito dopo il fetch esclude le entry malformate e logga quante ne sono state scartate (`DEBUG=cloudrift:*`) — vedi [ADR-0051](../adr/0051-type-narrowing-guards-on-aws-responses.md).
+
+---
+
+## `CloudWatchIdleScanner` — template method condiviso per gli scanner CloudWatch
+
+**Scelta:** 18 dei 29 scanner estendono la classe astratta `CloudWatchIdleScanner<TPrimaryClient, TRaw, TMetric, TEntity>` (`scanners/cloudwatch-idle.scanner.ts`) invece di scrivere il proprio `scan()`.
+
+**Perché:** questi 18 scanner condividono la stessa forma — creano un client, elencano i candidati, recuperano una metrica CloudWatch per candidato (alcuni risolvono in più un prezzo live per-tipo), mappano a un'entità, applicano la policy, wrappano gli errori, distruggono il client. La base class possiede quel lifecycle; uno scanner concreto implementa solo `createPrimaryClient`/`destroyPrimaryClient`/`listResources`/`fetchMetric`/`toEntity`, più un `resolvePrices` opzionale per i 9 gated da `--live-pricing`. Vedi [ADR-0044](../adr/0044-cloudwatch-idle-scanner-template-method.md).
+
+**Non tutti gli scanner ci entrano:** `s3-no-lifecycle` resta standalone — la sua chiamata CloudWatch ha un periodo fisso di 1 giorno indipendente dalla finestra di lookback e una dimensione extra, il che avrebbe forzato il template a piegarsi per un solo outlier. Gli 11 scanner non-CloudWatch (`ebs-volume`, `ebs-snapshot`, `elastic-ip`, `eni-orphaned`, `gp2-upgrade`, `load-balancer`, `log-group`, `rds-instance`, `workspaces-idle`, `ec2-instance`, `s3-no-lifecycle`) mantengono il proprio `scan()`.
 
 ---
 
@@ -133,6 +146,26 @@ try {
 const parsed = AwsRegion.parse(code);
 if (!parsed.ok) return fail(parsed.error.message); // messaggio pulito, exit 1, nessuno stack trace
 ```
+
+**Due gerarchie di errore, non una.** `DomainError` (layer dominio) e `InfrastructureError` (layer infrastruttura, es. `AwsAdapterError`) sono gerarchie sorelle, non genitore/figlio: il domain non deve avere un tipo che implica una conoscenza di AWS che non ha. Vedi [ADR-0049](../adr/0049-infrastructureerror-not-domainerror.md).
+
+---
+
+## Zod per il parsing del config
+
+**Scelta:** `cloudrift.config.json` viene validato con un unico schema Zod (`CloudriftConfigSchema.safeParse(obj)`) invece di un parser scritto a mano con `if`/push-errore.
+
+**Perché:** il vecchio parser erano 308 righe di controlli ripetuti campo per campo, corretti ma senza nulla che legasse la loro forma all'interfaccia TypeScript `CloudriftConfig` — i due potevano divergere silenziosamente. Lo schema è dichiarato `satisfies z.ZodType<CloudriftConfig, unknown>`: se schema e interfaccia divergono, il progetto non compila. Vedi [ADR-0048](../adr/0048-zod-config-parsing.md).
+
+**Risultato:** `cloudrift.config.ts` è passato da 308 a 151 righe; tutti i 26 test di config preesistenti (inclusa l'aggregazione di più errori) passano invariati.
+
+---
+
+## Logger di debug minimale
+
+**Scelta:** `createLogger(namespace)` (`libs/shared/kernel/src/logging/logger.ts`) — zero dipendenze, un solo metodo `debug(message, meta?)`, attivato dalla variabile d'ambiente `DEBUG` (`DEBUG=cloudrift:*` wildcard, match esatto, o pattern multipli separati da virgola), scrive su **stderr** così non si mischia mai con il report su stdout.
+
+**Perché:** non Winston, non Pino — sono framework di structured logging per servizi long-running (transport, livelli multipli, pipeline JSON), niente di cui una CLI ha bisogno. Uno switch di debug per-namespace era l'intero requisito: quanto tempo impiega ogni scanner, e perché uno scanner non trova nulla. Vedi [ADR-0047](../adr/0047-minimal-namespaced-debug-logger.md).
 
 ---
 

@@ -149,6 +149,7 @@
     "cloud-cost-domain": "workspace:*",
     "cloud-cost-infrastructure-aws-adapter": "workspace:*",
     "pdfkit": "^0.15.1",
-    "shared-kernel": "workspace:*"
+    "shared-kernel": "workspace:*",
+    "zod": "^4.4.3"
   }
 }

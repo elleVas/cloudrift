@@ -7,7 +7,7 @@ import {
   type Reservation,
   type Volume,
 } from '@aws-sdk/client-ec2';
-import { Result } from 'shared-kernel';
+import { Result, createLogger } from 'shared-kernel';
 import type {
   AttachedVolume,
   AwsRegion,
@@ -19,6 +19,9 @@ import type {
 import { Ec2Instance, Ec2InstanceWastePolicy } from 'cloud-cost-domain';
 import { AwsAdapterError } from '../errors/aws-adapter.error';
 import { paginate } from '../utils/paginate';
+import { AWS_CLIENT_DEFAULTS } from '../utils/client-config';
+
+const logger = createLogger('cloudrift:scanner');
 
 // AWS only reports the stop time inside StateTransitionReason,
 // as a string like "User initiated (2026-06-01 12:34:56 GMT)".
@@ -28,6 +31,8 @@ function parseStoppedSince(stateTransitionReason: string | undefined): Date | un
   const parsed = new Date(`${match[1]} UTC`);
   return Number.isNaN(parsed.getTime()) ? undefined : parsed;
 }
+
+type InstanceWithId = Instance & { InstanceId: string };
 
 export class AwsEc2InstanceScanner implements WasteScannerPort {
   readonly kind = 'ec2-instance' as const;
@@ -39,7 +44,7 @@ export class AwsEc2InstanceScanner implements WasteScannerPort {
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
-    const client = new EC2Client({ region: region.code });
+    const client = new EC2Client({ ...AWS_CLIENT_DEFAULTS, region: region.code });
     try {
       const reservations = await paginate<Reservation>(async (cursor) => {
         const r = await client.send(
@@ -60,7 +65,12 @@ export class AwsEc2InstanceScanner implements WasteScannerPort {
       const volumeMap = await this.resolveVolumes(client, rawInstances);
 
       const now = new Date();
-      const instances = rawInstances
+      const validInstances = rawInstances.filter((inst): inst is InstanceWithId => !!inst.InstanceId);
+      if (validInstances.length !== rawInstances.length) {
+        logger.debug(`${this.kind}: skipped ${rawInstances.length - validInstances.length} entries missing InstanceId`);
+      }
+
+      const instances = validInstances
         .map((inst) => {
           const attachedVolumes: AttachedVolume[] = (inst.BlockDeviceMappings ?? [])
             .map((bdm) => bdm.Ebs?.VolumeId)
@@ -72,12 +82,13 @@ export class AwsEc2InstanceScanner implements WasteScannerPort {
             }));
 
           const monthlyCostUsd = +attachedVolumes.reduce((sum, vol) => {
-            const pricePerGb = this.pricing.getEbsVolumePricePerGbMonth(region, vol.volumeType);
+            const pricePerGb =
+              this.pricing.getPrice(region, `ebs-${vol.volumeType}`) || this.pricing.getPrice(region, 'ebs-gp3');
             return sum + pricePerGb * vol.sizeGb;
           }, 0).toFixed(4);
 
           return new Ec2Instance({
-            instanceId: inst.InstanceId!,
+            instanceId: inst.InstanceId,
             region,
             accountId: this.accountId,
             instanceType: inst.InstanceType ?? 'unknown',

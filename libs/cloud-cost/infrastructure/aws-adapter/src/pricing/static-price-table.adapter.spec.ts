@@ -9,83 +9,83 @@ const apSoutheast1 = AwsRegion.create('ap-southeast-1');
 const unknown = AwsRegion.create('ca-central-1'); // not in table → falls back to default
 
 describe('StaticPriceTableAdapter', () => {
-  describe('getEbsVolumePricePerGbMonth', () => {
+  describe('getPrice("ebs-*")', () => {
     it('returns us-east-1 gp3 price', () => {
-      expect(adapter.getEbsVolumePricePerGbMonth(usEast1, 'gp3')).toBe(0.08);
+      expect(adapter.getPrice(usEast1, 'ebs-gp3')).toBe(0.08);
     });
 
     it('returns eu-west-1 gp3 price (higher than us-east-1)', () => {
-      expect(adapter.getEbsVolumePricePerGbMonth(euWest1, 'gp3')).toBe(0.088);
+      expect(adapter.getPrice(euWest1, 'ebs-gp3')).toBe(0.088);
     });
 
     it('returns ap-southeast-1 gp2 price', () => {
-      expect(adapter.getEbsVolumePricePerGbMonth(apSoutheast1, 'gp2')).toBe(0.114);
+      expect(adapter.getPrice(apSoutheast1, 'ebs-gp2')).toBe(0.114);
     });
 
     it('falls back to default for unknown region', () => {
-      expect(adapter.getEbsVolumePricePerGbMonth(unknown, 'gp3')).toBe(0.08);
+      expect(adapter.getPrice(unknown, 'ebs-gp3')).toBe(0.08);
     });
 
-    it('falls back to gp3 default for unknown volume type', () => {
-      expect(adapter.getEbsVolumePricePerGbMonth(usEast1, 'unknown-type')).toBe(0.08);
+    it('returns 0 for an unpriced key (callers fall back to a generic key themselves)', () => {
+      expect(adapter.getPrice(usEast1, 'ebs-unknown-type')).toBe(0);
     });
   });
 
-  describe('getEbsSnapshotPricePerGbMonth', () => {
+  describe('getPrice("ebs-snapshot")', () => {
     it('returns us-east-1 snapshot price', () => {
-      expect(adapter.getEbsSnapshotPricePerGbMonth(usEast1)).toBe(0.05);
+      expect(adapter.getPrice(usEast1, 'ebs-snapshot')).toBe(0.05);
     });
 
     it('returns ap-southeast-1 snapshot price (higher)', () => {
-      expect(adapter.getEbsSnapshotPricePerGbMonth(apSoutheast1)).toBe(0.055);
+      expect(adapter.getPrice(apSoutheast1, 'ebs-snapshot')).toBe(0.055);
     });
   });
 
-  describe('getElasticIpPricePerMonth', () => {
+  describe('getPrice("elastic-ip")', () => {
     it('returns us-east-1 EIP price', () => {
-      expect(adapter.getElasticIpPricePerMonth(usEast1)).toBe(3.6);
+      expect(adapter.getPrice(usEast1, 'elastic-ip')).toBe(3.6);
     });
 
     it('returns eu-west-1 EIP price (higher)', () => {
-      expect(adapter.getElasticIpPricePerMonth(euWest1)).toBe(3.96);
+      expect(adapter.getPrice(euWest1, 'elastic-ip')).toBe(3.96);
     });
   });
 
-  describe('getRdsStoragePricePerGbMonth', () => {
+  describe('getPrice("rds-*")', () => {
     it('returns us-east-1 gp2 RDS price', () => {
-      expect(adapter.getRdsStoragePricePerGbMonth(usEast1, 'gp2')).toBe(0.115);
+      expect(adapter.getPrice(usEast1, 'rds-gp2')).toBe(0.115);
     });
 
     it('returns ap-southeast-1 gp2 RDS price (higher)', () => {
-      expect(adapter.getRdsStoragePricePerGbMonth(apSoutheast1, 'gp2')).toBe(0.131);
+      expect(adapter.getPrice(apSoutheast1, 'rds-gp2')).toBe(0.131);
     });
 
-    it('falls back to gp2 default for unknown storage type', () => {
-      expect(adapter.getRdsStoragePricePerGbMonth(usEast1, 'nvme')).toBe(0.115);
+    it('returns 0 for an unpriced storage type', () => {
+      expect(adapter.getPrice(usEast1, 'rds-nvme')).toBe(0);
     });
   });
 
-  describe('getLoadBalancerPricePerMonth', () => {
+  describe('getPrice("load-balancer")', () => {
     it('returns us-east-1 price', () => {
-      expect(adapter.getLoadBalancerPricePerMonth(usEast1)).toBe(16.2);
+      expect(adapter.getPrice(usEast1, 'load-balancer')).toBe(16.2);
     });
 
     it('returns eu-west-1 price (higher)', () => {
-      expect(adapter.getLoadBalancerPricePerMonth(euWest1)).toBe(18.4);
+      expect(adapter.getPrice(euWest1, 'load-balancer')).toBe(18.4);
     });
   });
 
-  describe('getNatGatewayPricePerMonth', () => {
+  describe('getPrice("nat-gateway")', () => {
     it('returns us-east-1 price', () => {
-      expect(adapter.getNatGatewayPricePerMonth(usEast1)).toBe(32.4);
+      expect(adapter.getPrice(usEast1, 'nat-gateway')).toBe(32.4);
     });
 
     it('returns ap-southeast-1 price (higher)', () => {
-      expect(adapter.getNatGatewayPricePerMonth(apSoutheast1)).toBeCloseTo(36.792, 3);
+      expect(adapter.getPrice(apSoutheast1, 'nat-gateway')).toBeCloseTo(36.792, 3);
     });
 
     it('falls back to default for unlisted region', () => {
-      expect(adapter.getNatGatewayPricePerMonth(unknown)).toBe(32.4);
+      expect(adapter.getPrice(unknown, 'nat-gateway')).toBe(32.4);
     });
   });
 });

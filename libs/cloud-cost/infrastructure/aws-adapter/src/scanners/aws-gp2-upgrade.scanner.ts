@@ -4,7 +4,7 @@ import {
   DescribeVolumesCommand,
   type Volume,
 } from '@aws-sdk/client-ec2';
-import { Result } from 'shared-kernel';
+import { Result, createLogger } from 'shared-kernel';
 import type {
   AwsRegion,
   PricingPort,
@@ -14,6 +14,11 @@ import type {
 import { Gp2Volume, Gp2UpgradePolicy } from 'cloud-cost-domain';
 import { AwsAdapterError } from '../errors/aws-adapter.error';
 import { paginate } from '../utils/paginate';
+import { AWS_CLIENT_DEFAULTS } from '../utils/client-config';
+
+const logger = createLogger('cloudrift:scanner');
+
+type VolumeWithId = Volume & { VolumeId: string };
 
 /**
  * Detects gp2 volumes that are *attached and in use* and upgradable to gp3:
@@ -34,7 +39,7 @@ export class AwsGp2UpgradeScanner implements WasteScannerPort {
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
-    const client = new EC2Client({ region: region.code });
+    const client = new EC2Client({ ...AWS_CLIENT_DEFAULTS, region: region.code });
     try {
       const rawVolumes = await paginate<Volume>(async (cursor) => {
         const r = await client.send(
@@ -49,16 +54,21 @@ export class AwsGp2UpgradeScanner implements WasteScannerPort {
         return { items: r.Volumes ?? [], cursor: r.NextToken };
       });
 
-      const gp2PricePerGb = this.pricing.getEbsVolumePricePerGbMonth(region, 'gp2');
-      const gp3PricePerGb = this.pricing.getEbsVolumePricePerGbMonth(region, 'gp3');
+      const gp2PricePerGb = this.pricing.getPrice(region, 'ebs-gp2');
+      const gp3PricePerGb = this.pricing.getPrice(region, 'ebs-gp3');
       const savingPerGb = Math.max(0, gp2PricePerGb - gp3PricePerGb);
       const now = new Date();
 
-      const volumes = rawVolumes
-        .map((v: Volume) => {
+      const validVolumes = rawVolumes.filter((v): v is VolumeWithId => !!v.VolumeId);
+      if (validVolumes.length !== rawVolumes.length) {
+        logger.debug(`${this.kind}: skipped ${rawVolumes.length - validVolumes.length} entries missing VolumeId`);
+      }
+
+      const volumes = validVolumes
+        .map((v) => {
           const sizeGb = v.Size ?? 0;
           return new Gp2Volume({
-            volumeId: v.VolumeId!,
+            volumeId: v.VolumeId,
             region,
             accountId: this.accountId,
             sizeGb,

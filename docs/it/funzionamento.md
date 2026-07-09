@@ -27,10 +27,14 @@ utente: cloudrift analyze -r us-east-1 eu-west-1 [--format json|markdown] [--pdf
           ▼
      analyze-waste.composition.ts  (composition root: costruisce pricing + scanner)
      4. Pricing: tabella statica ← live API (--live-pricing) ← config.prices (vincono)
-     5. Istanzia policy (config + flag) e 18 scanner sempre attivi
-        (+ altri 10 dietro --live-pricing: EC2/RDS/Redshift/OpenSearch/MSK/
-         DocumentDB/Neptune/MQ underutilized-o-idle + WorkSpaces — prezzo
-         per tipo non nel listino statico)
+     5. Istanzia policy (config + flag), poi costruisce gli scanner da due
+        registry dichiarativi (ADR-0043): ALWAYS_ON_SCANNERS, e
+        LIVE_PRICING_SCANNERS (EC2/RDS/Redshift/OpenSearch/MSK/DocumentDB/
+        Neptune/MQ underutilized-o-idle + WorkSpaces — solo se --live-pricing
+        è attivo, dato che il loro prezzo per-tipo non è nel listino
+        statico). assertRegistryMatchesResourceKinds() lancia un errore al
+        module load se un kind manca da entrambi i registry, o è duplicato
+        tra i due.
      6. Filtra la lista costruita secondo scannerKinds dallo step 0 (undefined = nessun filtro)
           │
           ▼
@@ -111,7 +115,7 @@ L'elenco risolto (o `undefined` per "tutti") arriva in `AnalysisContext.scannerK
 
 ### `analyze-waste.composition.ts` — Composition root
 
-L'unico punto dove le implementazioni concrete vengono istanziate e iniettate:
+L'unico punto dove le implementazioni concrete vengono istanziate e iniettate. Gli scanner arrivano da due registry dichiarativi invece di una lista scritta a mano ([ADR-0043](../adr/0043-declarative-scanner-registry.md)):
 
 ```typescript
 const regions: AwsRegion[] = [];
@@ -125,30 +129,33 @@ const accountId = options.accountId ?? (await resolveAwsAccountId()) ?? 'unknown
 
 const pricing = new StaticPriceTableAdapter();
 const policyOptions = { minAgeDays, ignoreTag: options.ignoreTag };
+const ctx: ScannerContext = { pricing, accountId, policyOptions, livePricingAdapter };
 
-const scanners: WasteScannerPort[] = [
-  new AwsEbsVolumeScanner(pricing, accountId, new EbsVolumeWastePolicy(policyOptions)),
-  new AwsElasticIpScanner(pricing, accountId, new ElasticIpWastePolicy(policyOptions)),
-  // … gli altri 16 scanner sempre registrati (rds, lb, ec2, snapshot, nat, gp2-upgrade,
+// Ogni entry: { kind, create(ctx) }. assertRegistryMatchesResourceKinds()
+// lancia un errore al module load se un ResourceKind manca da, o è
+// duplicato tra, i due registry sotto — vedi ADR-0043.
+const ALWAYS_ON_SCANNERS: ScannerRegistryEntry[] = [
+  { kind: 'ebs-volume', create: (ctx) => new AwsEbsVolumeScanner(ctx.pricing, ctx.accountId, new EbsVolumeWastePolicy(ctx.policyOptions)) },
+  { kind: 'elastic-ip', create: (ctx) => new AwsElasticIpScanner(ctx.pricing, ctx.accountId, new ElasticIpWastePolicy(ctx.policyOptions)) },
+  // … una entry per ogni kind sempre attivo (rds, lb, ec2, snapshot, nat, gp2-upgrade,
   // ebs-idle, log-group, eni-orphaned, s3-no-lifecycle, lambda-underutilized, efs-unused,
-  // dynamodb-overprovisioned, fsx-idle, vpn-connection-idle, transit-gateway-idle,
-  // kinesis-idle)
+  // dynamodb-overprovisioned, fsx-idle, vpn-connection-idle, transit-gateway-idle, kinesis-idle)
 ];
 
-// EC2/RDS/ElastiCache/Redshift/OpenSearch/MSK/DocumentDB/Neptune/MQ underutilized-o-idle
-// e WorkSpaces richiedono un prezzo per tipo (disponibile solo live): registrati
-// condizionalmente, non fanno parte dei 18 scanner sempre attivi sopra.
-if (livePricingAdapter) {
-  scanners.push(new AwsEc2UnderutilizedScanner(livePricingAdapter, accountId, new Ec2UnderutilizedPolicy(policyOptions)));
-}
+// Costruiti solo se ctx.livePricingAdapter è impostato (--live-pricing): richiedono
+// un prezzo per instance type/classe/node type che il listino statico non contiene.
+const LIVE_PRICING_SCANNERS: ScannerRegistryEntry[] = [
+  { kind: 'ec2-underutilized', create: (ctx) => new AwsEc2UnderutilizedScanner(ctx.livePricingAdapter, ctx.accountId, new Ec2UnderutilizedPolicy(ctx.policyOptions)) },
+  // … una entry per ogni kind dietro --live-pricing (rds/redshift/opensearch/msk/documentdb/
+  // neptune/mq underutilized-o-idle, elasticache-idle, workspaces-idle)
+];
 
-// scannerKinds viene dal wizard/--scanners/--all-services (vedi sopra);
-// undefined significa "nessun filtro", cioè vengono eseguiti tutti gli scanner costruiti.
-const selected = ctx.scannerKinds
-  ? scanners.filter((s) => new Set(ctx.scannerKinds).has(s.kind))
-  : scanners;
+const registry = livePricingAdapter ? [...ALWAYS_ON_SCANNERS, ...LIVE_PRICING_SCANNERS] : ALWAYS_ON_SCANNERS;
+const scanners = registry
+  .filter((entry) => !ctx.scannerKinds || ctx.scannerKinds.includes(entry.kind)) // wizard/--scanners/--all-services; undefined = nessun filtro
+  .map((entry) => entry.create(ctx));
 
-const useCase = new AnalyzeCloudWasteUseCase(selected);
+const useCase = new AnalyzeCloudWasteUseCase(scanners);
 const result = await useCase.execute({ regions });
 ```
 
@@ -182,7 +189,7 @@ Il costo totale è la somma dei `costEstimate` dei findings; i tipi falliti semp
 
 ### Gli scanner (es. `AwsEbsVolumeScanner`)
 
-Ogni scanner implementa `WasteScannerPort` e segue lo stesso schema:
+Ogni scanner implementa `WasteScannerPort`. 18 dei 29 recuperano in più una metrica CloudWatch per risorsa ed estendono il template method condiviso `CloudWatchIdleScanner` invece di implementare a mano i passi sotto — vedi [ADR-0044](../adr/0044-cloudwatch-idle-scanner-template-method.md) e [scelte-tecniche.md](./scelte-tecniche.md#cloudwatchidlescanner--template-method-condiviso-per-gli-scanner-cloudwatch). Gli altri 11 (incluso questo) seguono direttamente lo stesso schema:
 
 1. Crea il client AWS per la regione.
 2. Raccoglie i **candidati** con `paginate()` (le API AWS restituiscono max 1000 elementi per pagina), pre-filtrando lato server dove possibile (`status=available`, `state-name=stopped`, …). Il prefiltro è un'ottimizzazione: produce un sovrainsieme.
@@ -348,4 +355,4 @@ Le stesse credenziali servono per `sts:GetCallerIdentity` (account ID automatico
   Nessun framework di mock. I casi coprono aggregazione, errori per (kind, regione) e conservazione dei risultati parziali. `toWasteReportDto` ha un test di round-trip JSON.
 - **Scanner (infrastruttura)** — il modulo AWS SDK è mockato con `jest.mock(...)`; i test verificano mapping, filtri server-side, paginazione, gestione errori, `destroy()` dei client e l'applicazione delle policy (risorsa recente → esclusa, tag → esclusa). Per le chiamate multi-comando i mock instradano sul tipo di `Command` ricevuto.
 
-> Nota: questi test mockano l'SDK, quindi validano il *nostro* codice, non l'integrazione reale con AWS. Un'eventuale suite d'integrazione contro LocalStack sarebbe il prossimo investimento sensato sul fronte qualità.
+> Nota: questi test mockano l'SDK, quindi validano il *nostro* codice, non l'integrazione reale con AWS. [`scripts/e2e-localstack.mjs`](../../scripts/e2e-localstack.mjs) chiude parte di questo gap (16/29 scanner, vedi [test.md](./test.md#harness-e2e-localstack)); il resto è coperto da `scripts/verify-against-aws.mjs` contro un vero account sandbox. Una suite di contract test più completa (fixture di risposte AWS reali catturate, validate contro i mapper, indipendente da un run live LocalStack/AWS) resta il prossimo investimento sensato sul fronte qualità.
