@@ -4,11 +4,16 @@ import {
   DescribeLogGroupsCommand,
   type LogGroup as AwsLogGroup,
 } from '@aws-sdk/client-cloudwatch-logs';
-import { Result } from 'shared-kernel';
+import { Result, createLogger } from 'shared-kernel';
 import type { AwsRegion, PricingPort, WasteScannerPort, WastedResource } from 'cloud-cost-domain';
 import { LogGroup, LogGroupWastePolicy } from 'cloud-cost-domain';
 import { AwsAdapterError } from '../errors/aws-adapter.error';
 import { paginate } from '../utils/paginate';
+import { AWS_CLIENT_DEFAULTS } from '../utils/client-config';
+
+const logger = createLogger('cloudrift:scanner');
+
+type LogGroupWithName = AwsLogGroup & { logGroupName: string };
 
 export class AwsLogGroupScanner implements WasteScannerPort {
   readonly kind = 'log-group' as const;
@@ -20,21 +25,26 @@ export class AwsLogGroupScanner implements WasteScannerPort {
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
-    const client = new CloudWatchLogsClient({ region: region.code });
+    const client = new CloudWatchLogsClient({ ...AWS_CLIENT_DEFAULTS, region: region.code });
     try {
       const rawGroups = await paginate<AwsLogGroup>(async (cursor) => {
         const r = await client.send(new DescribeLogGroupsCommand({ nextToken: cursor }));
         return { items: r.logGroups ?? [], cursor: r.nextToken };
       });
 
-      const pricePerGb = this.pricing.getLogGroupPricePerGbMonth(region);
+      const pricePerGb = this.pricing.getPrice(region, 'cw-logs');
       const now = new Date();
 
-      const groups = rawGroups
+      const validGroups = rawGroups.filter((lg): lg is LogGroupWithName => !!lg.logGroupName);
+      if (validGroups.length !== rawGroups.length) {
+        logger.debug(`${this.kind}: skipped ${rawGroups.length - validGroups.length} entries missing logGroupName`);
+      }
+
+      const groups = validGroups
         .map((lg) => {
           const storedBytes = lg.storedBytes ?? 0;
           return new LogGroup({
-            logGroupName: lg.logGroupName!,
+            logGroupName: lg.logGroupName,
             region,
             accountId: this.accountId,
             storedBytes,

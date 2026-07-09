@@ -5,21 +5,23 @@ import {
   GetBucketLifecycleConfigurationCommand,
   type Bucket,
 } from '@aws-sdk/client-s3';
-import {
-  CloudWatchClient,
-  GetMetricStatisticsCommand,
-} from '@aws-sdk/client-cloudwatch';
-import { Result } from 'shared-kernel';
+import { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
+import { Result, createLogger } from 'shared-kernel';
 import type { AwsRegion, PricingPort, WasteScannerPort, WastedResource } from 'cloud-cost-domain';
 import { S3Bucket, S3NoLifecyclePolicy } from 'cloud-cost-domain';
 import { AwsAdapterError } from '../errors/aws-adapter.error';
 import { paginate } from '../utils/paginate';
 import { mapWithConcurrency } from '../utils/map-with-concurrency';
+import { AWS_CLIENT_DEFAULTS } from '../utils/client-config';
+import { avgMetric } from '../utils/cloudwatch-metrics';
 
+const logger = createLogger('cloudrift:scanner');
 const METRIC_CONCURRENCY = 5;
 const METRIC_LOOKBACK_DAYS = 2;
 /** Fraction of the Standard storage cost considered a potential saving by enabling a lifecycle policy (heuristic estimate). */
 const ESTIMATED_SAVING_FRACTION = 0.4;
+
+type BucketWithName = Bucket & { Name: string };
 
 /**
  * Detects S3 buckets with no lifecycle policy configured. Buckets are
@@ -37,25 +39,30 @@ export class AwsS3NoLifecycleScanner implements WasteScannerPort {
 
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
     const s3 = new S3Client({
+      ...AWS_CLIENT_DEFAULTS,
       region: region.code,
       forcePathStyle: !!process.env.AWS_ENDPOINT_URL,
     });
-    const cw = new CloudWatchClient({ region: region.code });
+    const cw = new CloudWatchClient({ ...AWS_CLIENT_DEFAULTS, region: region.code });
     try {
-      const rawBuckets = await paginate<Bucket>(async (cursor) => {
+      const allBuckets = await paginate<Bucket>(async (cursor) => {
         const r = await s3.send(
           new ListBucketsCommand({ BucketRegion: region.code, ContinuationToken: cursor }),
         );
         return { items: r.Buckets ?? [], cursor: r.ContinuationToken };
       });
+      const rawBuckets = allBuckets.filter((b): b is BucketWithName => !!b.Name);
+      if (rawBuckets.length !== allBuckets.length) {
+        logger.debug(`${this.kind}: skipped ${allBuckets.length - rawBuckets.length} entries missing Name`);
+      }
 
       if (rawBuckets.length === 0) return Result.ok([]);
 
-      const pricePerGb = this.pricing.getS3StandardPricePerGbMonth(region);
+      const pricePerGb = this.pricing.getPrice(region, 's3-standard');
       const now = new Date();
 
       const details = await mapWithConcurrency(rawBuckets, METRIC_CONCURRENCY, async (b) => {
-        const name = b.Name!;
+        const name = b.Name;
         const [hasLifecyclePolicy, sizeBytes] = await Promise.all([
           this.hasLifecycle(s3, name),
           this.sizeBytes(cw, name),
@@ -68,7 +75,7 @@ export class AwsS3NoLifecycleScanner implements WasteScannerPort {
           const { hasLifecyclePolicy, sizeBytes } = details[index];
           const sizeGb = sizeBytes / 1024 ** 3;
           return new S3Bucket({
-            bucketName: b.Name!,
+            bucketName: b.Name,
             region,
             accountId: this.accountId,
             sizeBytes,
@@ -103,20 +110,18 @@ export class AwsS3NoLifecycleScanner implements WasteScannerPort {
   private async sizeBytes(cw: CloudWatchClient, bucket: string): Promise<number> {
     const endTime = new Date();
     const startTime = new Date(endTime.getTime() - METRIC_LOOKBACK_DAYS * 24 * 60 * 60 * 1000);
-    const r = await cw.send(
-      new GetMetricStatisticsCommand({
-        Namespace: 'AWS/S3',
-        MetricName: 'BucketSizeBytes',
-        Dimensions: [
-          { Name: 'BucketName', Value: bucket },
-          { Name: 'StorageType', Value: 'StandardStorage' },
-        ],
-        StartTime: startTime,
-        EndTime: endTime,
-        Period: 86400,
-        Statistics: ['Average'],
-      }),
+    // Period is a fixed 1 day, not the whole lookback (unlike every other
+    // CloudWatch scanner): S3 only publishes BucketSizeBytes once/day, so a
+    // wider period would just return the same single datapoint.
+    return avgMetric(
+      cw,
+      'AWS/S3',
+      'BucketSizeBytes',
+      [
+        { Name: 'BucketName', Value: bucket },
+        { Name: 'StorageType', Value: 'StandardStorage' },
+      ],
+      { startTime, endTime, periodSeconds: 86400 },
     );
-    return r.Datapoints?.[0]?.Average ?? 0;
   }
 }

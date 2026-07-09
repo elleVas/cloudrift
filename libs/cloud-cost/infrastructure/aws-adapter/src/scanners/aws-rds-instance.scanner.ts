@@ -4,7 +4,7 @@ import {
   DescribeDBInstancesCommand,
   type DBInstance,
 } from '@aws-sdk/client-rds';
-import { Result } from 'shared-kernel';
+import { Result, createLogger } from 'shared-kernel';
 import type {
   AwsRegion,
   PricingPort,
@@ -15,6 +15,11 @@ import type {
 import { RdsInstance, RdsInstanceWastePolicy } from 'cloud-cost-domain';
 import { AwsAdapterError } from '../errors/aws-adapter.error';
 import { paginate } from '../utils/paginate';
+import { AWS_CLIENT_DEFAULTS } from '../utils/client-config';
+
+const logger = createLogger('cloudrift:scanner');
+
+type DbInstanceWithId = DBInstance & { DBInstanceIdentifier: string };
 
 export class AwsRdsInstanceScanner implements WasteScannerPort {
   readonly kind = 'rds-instance' as const;
@@ -26,7 +31,7 @@ export class AwsRdsInstanceScanner implements WasteScannerPort {
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
-    const client = new RDSClient({ region: region.code });
+    const client = new RDSClient({ ...AWS_CLIENT_DEFAULTS, region: region.code });
     try {
       const rawInstances = await paginate<DBInstance>(async (cursor) => {
         const r = await client.send(
@@ -39,13 +44,21 @@ export class AwsRdsInstanceScanner implements WasteScannerPort {
       });
 
       const now = new Date();
-      const instances = rawInstances
-        .map((db: DBInstance) => {
+      const validInstances = rawInstances.filter((db): db is DbInstanceWithId => !!db.DBInstanceIdentifier);
+      if (validInstances.length !== rawInstances.length) {
+        logger.debug(
+          `${this.kind}: skipped ${rawInstances.length - validInstances.length} entries missing DBInstanceIdentifier`,
+        );
+      }
+
+      const instances = validInstances
+        .map((db) => {
           const storageType = db.StorageType ?? 'gp2';
           const allocatedStorageGb = db.AllocatedStorage ?? 0;
-          const pricePerGb = this.pricing.getRdsStoragePricePerGbMonth(region, storageType);
+          const pricePerGb =
+            this.pricing.getPrice(region, `rds-${storageType}`) || this.pricing.getPrice(region, 'rds-gp2');
           return new RdsInstance({
-            dbInstanceIdentifier: db.DBInstanceIdentifier!,
+            dbInstanceIdentifier: db.DBInstanceIdentifier,
             region,
             accountId: this.accountId,
             dbInstanceClass: db.DBInstanceClass ?? 'unknown',

@@ -1,22 +1,18 @@
 // SPDX-License-Identifier: Apache-2.0
-import {
-  EFSClient,
-  DescribeFileSystemsCommand,
-  type FileSystemDescription,
-} from '@aws-sdk/client-efs';
-import {
-  CloudWatchClient,
-  GetMetricStatisticsCommand,
-} from '@aws-sdk/client-cloudwatch';
-import { Result } from 'shared-kernel';
-import type { AwsRegion, PricingPort, WasteScannerPort, WastedResource } from 'cloud-cost-domain';
-import { EfsFileSystem, EfsUnusedPolicy } from 'cloud-cost-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { EFSClient, DescribeFileSystemsCommand, type FileSystemDescription } from '@aws-sdk/client-efs';
+import type { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
+import { createLogger } from 'shared-kernel';
+import type { AwsRegion, PricingPort } from 'cloud-cost-domain';
+import { EfsFileSystem, EfsUnusedPolicy, type WastePolicy } from 'cloud-cost-domain';
 import { paginate } from '../utils/paginate';
-import { mapWithConcurrency } from '../utils/map-with-concurrency';
+import { AWS_CLIENT_DEFAULTS } from '../utils/client-config';
+import { sumMetrics, type MetricWindow } from '../utils/cloudwatch-metrics';
+import { CloudWatchIdleScanner } from './cloudwatch-idle.scanner';
 
 const DEFAULT_LOOKBACK_HOURS = 48;
-const CLOUDWATCH_CONCURRENCY = 5;
+const logger = createLogger('cloudrift:scanner');
+
+type FileSystemWithId = FileSystemDescription & { FileSystemId: string };
 
 /**
  * Detects EFS file systems with no mount targets (unusable) or with mount
@@ -24,102 +20,78 @@ const CLOUDWATCH_CONCURRENCY = 5;
  * `DescribeFileSystems` already exposes `NumberOfMountTargets` and
  * `SizeInBytes`: no need for `DescribeMountTargets`.
  */
-export class AwsEfsUnusedScanner implements WasteScannerPort {
+export class AwsEfsUnusedScanner extends CloudWatchIdleScanner<
+  EFSClient,
+  FileSystemWithId,
+  number,
+  EfsFileSystem
+> {
   readonly kind = 'efs-unused' as const;
+  protected readonly serviceLabel = 'EFS';
 
   constructor(
     private readonly pricing: PricingPort,
     private readonly accountId = 'unknown',
-    private readonly policy = new EfsUnusedPolicy(),
-    private readonly windowHours = DEFAULT_LOOKBACK_HOURS,
-  ) {}
+    policy: WastePolicy<EfsFileSystem> = new EfsUnusedPolicy(),
+    windowHours = DEFAULT_LOOKBACK_HOURS,
+  ) {
+    super(policy, windowHours);
+  }
 
-  async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
-    const efs = new EFSClient({ region: region.code });
-    const cw = new CloudWatchClient({ region: region.code });
-    try {
-      const rawFileSystems = await paginate<FileSystemDescription>(async (cursor) => {
-        const r = await efs.send(new DescribeFileSystemsCommand({ Marker: cursor }));
-        return { items: r.FileSystems ?? [], cursor: r.Marker };
-      });
+  protected createPrimaryClient(region: AwsRegion): EFSClient {
+    return new EFSClient({ ...AWS_CLIENT_DEFAULTS, region: region.code });
+  }
 
-      if (rawFileSystems.length === 0) return Result.ok([]);
+  protected destroyPrimaryClient(client: EFSClient): void {
+    client.destroy();
+  }
 
-      const endTime = new Date();
-      const startTime = new Date(endTime.getTime() - this.windowHours * 60 * 60 * 1000);
-      const periodSeconds = this.windowHours * 3600;
-
-      const ioBytes = await mapWithConcurrency(rawFileSystems, CLOUDWATCH_CONCURRENCY, (fs) =>
-        (fs.NumberOfMountTargets ?? 0) === 0
-          ? Promise.resolve(0)
-          : this.sumIoBytes(cw, fs.FileSystemId!, startTime, endTime, periodSeconds),
-      );
-
-      const pricePerGb = this.pricing.getEfsStandardPricePerGbMonth(region);
-      const now = new Date();
-
-      const fileSystems = rawFileSystems
-        .map((fs, index) => {
-          const sizeBytes = fs.SizeInBytes?.Value ?? 0;
-          const sizeGb = sizeBytes / 1024 ** 3;
-          return new EfsFileSystem({
-            fileSystemId: fs.FileSystemId!,
-            region,
-            accountId: this.accountId,
-            sizeBytes,
-            numberOfMountTargets: fs.NumberOfMountTargets ?? 0,
-            ioBytesLastWindow: ioBytes[index],
-            metricWindowHours: this.windowHours,
-            creationTime: fs.CreationTime ?? new Date(0),
-            detectedAt: now,
-            tags: Object.fromEntries((fs.Tags ?? []).map((t) => [t.Key ?? '', t.Value ?? ''])),
-            monthlyCostUsd: +(sizeGb * pricePerGb).toFixed(4),
-          });
-        })
-        .filter((fs) => this.policy.evaluate(fs, now).isWaste);
-
-      return Result.ok(fileSystems);
-    } catch (err) {
-      return Result.fail(new AwsAdapterError('EFS', err as Error));
-    } finally {
-      efs.destroy();
-      cw.destroy();
+  protected async listResources(client: EFSClient): Promise<FileSystemWithId[]> {
+    const fileSystems = await paginate<FileSystemDescription>(async (cursor) => {
+      const r = await client.send(new DescribeFileSystemsCommand({ Marker: cursor }));
+      return { items: r.FileSystems ?? [], cursor: r.Marker };
+    });
+    const valid = fileSystems.filter((fs): fs is FileSystemWithId => !!fs.FileSystemId);
+    if (valid.length !== fileSystems.length) {
+      logger.debug(`${this.kind}: skipped ${fileSystems.length - valid.length} entries missing FileSystemId`);
     }
+    return valid;
   }
 
-  private async sumIoBytes(
-    cw: CloudWatchClient,
-    fileSystemId: string,
-    startTime: Date,
-    endTime: Date,
-    periodSeconds: number,
-  ): Promise<number> {
-    const [read, write] = await Promise.all([
-      this.sumMetric(cw, fileSystemId, 'DataReadIOBytes', startTime, endTime, periodSeconds),
-      this.sumMetric(cw, fileSystemId, 'DataWriteIOBytes', startTime, endTime, periodSeconds),
-    ]);
-    return read + write;
+  protected fetchMetric(cw: CloudWatchClient, region: AwsRegion, fs: FileSystemWithId, window: MetricWindow) {
+    return (fs.NumberOfMountTargets ?? 0) === 0
+      ? Promise.resolve(0)
+      : sumMetrics(
+          cw,
+          'AWS/EFS',
+          ['DataReadIOBytes', 'DataWriteIOBytes'],
+          [{ Name: 'FileSystemId', Value: fs.FileSystemId }],
+          window,
+        );
   }
 
-  private async sumMetric(
-    cw: CloudWatchClient,
-    fileSystemId: string,
-    metricName: string,
-    startTime: Date,
-    endTime: Date,
-    periodSeconds: number,
-  ): Promise<number> {
-    const r = await cw.send(
-      new GetMetricStatisticsCommand({
-        Namespace: 'AWS/EFS',
-        MetricName: metricName,
-        Dimensions: [{ Name: 'FileSystemId', Value: fileSystemId }],
-        StartTime: startTime,
-        EndTime: endTime,
-        Period: periodSeconds,
-        Statistics: ['Sum'],
-      }),
-    );
-    return r.Datapoints?.[0]?.Sum ?? 0;
+  protected toEntity(
+    fs: FileSystemWithId,
+    ioBytesLastWindow: number,
+    _prices: Map<string, number>,
+    region: AwsRegion,
+    now: Date,
+  ): EfsFileSystem {
+    const sizeBytes = fs.SizeInBytes?.Value ?? 0;
+    const sizeGb = sizeBytes / 1024 ** 3;
+    const pricePerGb = this.pricing.getPrice(region, 'efs-standard');
+    return new EfsFileSystem({
+      fileSystemId: fs.FileSystemId,
+      region,
+      accountId: this.accountId,
+      sizeBytes,
+      numberOfMountTargets: fs.NumberOfMountTargets ?? 0,
+      ioBytesLastWindow,
+      metricWindowHours: this.windowHours,
+      creationTime: fs.CreationTime ?? new Date(0),
+      detectedAt: now,
+      tags: Object.fromEntries((fs.Tags ?? []).map((t) => [t.Key ?? '', t.Value ?? ''])),
+      monthlyCostUsd: +(sizeGb * pricePerGb).toFixed(4),
+    });
   }
 }

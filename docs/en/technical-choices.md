@@ -55,12 +55,13 @@ This document explains the reasoning behind every technology choice in the proje
 
 **Why:**
 - Modular: only the needed client is imported
-- Per-region clients: every scanner creates a client with `{ region: region.code }` and destroys it in the `finally`
+- Per-region clients: every scanner creates a client with `{ ...AWS_CLIENT_DEFAULTS, region: region.code }` and destroys it in the `finally`
+- `AWS_CLIENT_DEFAULTS` (`utils/client-config.ts`) sets `maxAttempts: 3`, turning on the SDK's built-in retry/backoff for throttling (429) and transient 5xx errors
 - Better typing and native ESM support
 
 **Pattern used in the scanners:**
 ```typescript
-const client = new EC2Client({ region: region.code });
+const client = new EC2Client({ ...AWS_CLIENT_DEFAULTS, region: region.code });
 try {
   const candidates = await paginate(/* DescribeVolumesCommand … */);
   const findings = candidates
@@ -78,6 +79,18 @@ try {
 - Different scanners (different APIs) → in parallel
 - Same scanner across regions → sequentially
 - Internal fan-out within a scanner (e.g. one CloudWatch call per NAT Gateway) → `mapWithConcurrency` with a cap (5)
+
+**Required-field validation:** scanners never read a required AWS response field with a bare non-null assertion (`v.VolumeId!`). Instead, a local intersection type plus a type-narrowing `.filter()` right after the fetch excludes malformed entries and logs how many were dropped (`DEBUG=cloudrift:*`) — see [ADR-0051](../adr/0051-type-narrowing-guards-on-aws-responses.md).
+
+---
+
+## `CloudWatchIdleScanner` — shared template method for CloudWatch-based scanners
+
+**Choice:** 18 of the 29 scanners extend the abstract `CloudWatchIdleScanner<TPrimaryClient, TRaw, TMetric, TEntity>` (`scanners/cloudwatch-idle.scanner.ts`) instead of writing their own `scan()`.
+
+**Why:** these 18 scanners share the same shape — create a client, list candidates, fetch one CloudWatch metric per candidate (some additionally resolve a live per-type price), map to an entity, apply the policy, wrap errors, destroy the client. The base class owns that lifecycle; a concrete scanner implements only `createPrimaryClient`/`destroyPrimaryClient`/`listResources`/`fetchMetric`/`toEntity`, plus an optional `resolvePrices` for the 9 `--live-pricing`-gated ones. See [ADR-0044](../adr/0044-cloudwatch-idle-scanner-template-method.md).
+
+**Not every scanner fits it:** `s3-no-lifecycle` stays standalone — its CloudWatch call has a fixed 1-day period regardless of the lookback window and an extra dimension, which would have bent the template to fit one outlier. The 11 non-CloudWatch scanners (`ebs-volume`, `ebs-snapshot`, `elastic-ip`, `eni-orphaned`, `gp2-upgrade`, `load-balancer`, `log-group`, `rds-instance`, `workspaces-idle`, `ec2-instance`, `s3-no-lifecycle`) keep their own `scan()`.
 
 ---
 
@@ -133,6 +146,26 @@ try {
 const parsed = AwsRegion.parse(code);
 if (!parsed.ok) return fail(parsed.error.message); // clean message, exit 1, no stack trace
 ```
+
+**Two error hierarchies, not one.** `DomainError` (domain layer) and `InfrastructureError` (infrastructure layer, e.g. `AwsAdapterError`) are siblings, not parent/child: the domain must not have a type that implies AWS knowledge it doesn't have. See [ADR-0049](../adr/0049-infrastructureerror-not-domainerror.md).
+
+---
+
+## Zod for config parsing
+
+**Choice:** `cloudrift.config.json` is validated with a single Zod schema (`CloudriftConfigSchema.safeParse(obj)`) instead of a hand-written `if`/push-error parser.
+
+**Why:** the old parser was 308 lines of repeated per-field checks, correct but with nothing tying its shape to the `CloudriftConfig` TypeScript interface — the two could drift silently. The schema is declared `satisfies z.ZodType<CloudriftConfig, unknown>`: if schema and interface ever diverge, the project fails to compile. See [ADR-0048](../adr/0048-zod-config-parsing.md).
+
+**Result:** `cloudrift.config.ts` went from 308 to 151 lines; all 26 pre-existing config tests (including multi-error aggregation) pass unchanged.
+
+---
+
+## Minimal debug logger
+
+**Choice:** `createLogger(namespace)` (`libs/shared/kernel/src/logging/logger.ts`) — zero dependencies, one `debug(message, meta?)` method, gated by the `DEBUG` env var (`DEBUG=cloudrift:*` wildcard, exact match, or comma-separated patterns), writing to **stderr** so it never mixes with the report on stdout.
+
+**Why:** not Winston, not Pino — those are structured-logging frameworks for long-running services (transports, multiple levels, JSON pipelines), none of which a CLI needs. A namespace-gated debug switch was the entire requirement: how long each scanner took, and why a scanner found nothing. See [ADR-0047](../adr/0047-minimal-namespaced-debug-logger.md).
 
 ---
 

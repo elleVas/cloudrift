@@ -19,21 +19,25 @@ describe('TablePricingAdapter', () => {
   const adapter = new TablePricingAdapter(table, '2025-06');
 
   it('returns the region-specific price when present', () => {
-    expect(adapter.getNatGatewayPricePerMonth(euWest1)).toBe(36.72);
-    expect(adapter.getEbsVolumePricePerGbMonth(euWest1, 'gp3')).toBe(0.088);
+    expect(adapter.getPrice(euWest1, 'nat-gateway')).toBe(36.72);
+    expect(adapter.getPrice(euWest1, 'ebs-gp3')).toBe(0.088);
   });
 
   it('falls back to default for an unlisted region', () => {
-    expect(adapter.getNatGatewayPricePerMonth(unlisted)).toBe(32.4);
-    expect(adapter.getEbsVolumePricePerGbMonth(usEast1, 'gp3')).toBe(0.08);
+    expect(adapter.getPrice(unlisted, 'nat-gateway')).toBe(32.4);
+    expect(adapter.getPrice(usEast1, 'ebs-gp3')).toBe(0.08);
   });
 
-  it('falls back to gp3 default for an unknown EBS volume type', () => {
-    expect(adapter.getEbsVolumePricePerGbMonth(usEast1, 'unknown')).toBe(0.08);
+  it('returns 0 for a key with no price anywhere in the table', () => {
+    expect(adapter.getPrice(usEast1, 'ebs-unknown')).toBe(0);
+    expect(adapter.getPrice(usEast1, 'rds-nvme')).toBe(0);
   });
 
-  it('falls back to rds-gp2 default for an unknown RDS storage type', () => {
-    expect(adapter.getRdsStoragePricePerGbMonth(usEast1, 'nvme')).toBe(0.115);
+  it('supports the specific-key-then-generic-key fallback scanners use for unknown volume/storage types', () => {
+    // Same pattern as AwsEbsVolumeScanner/AwsRdsInstanceScanner: try the
+    // specific key first, fall back to a known-good generic key.
+    expect(adapter.getPrice(usEast1, 'ebs-unknown') || adapter.getPrice(usEast1, 'ebs-gp3')).toBe(0.08);
+    expect(adapter.getPrice(usEast1, 'rds-nvme') || adapter.getPrice(usEast1, 'rds-gp2')).toBe(0.115);
   });
 
   it('exposes the pricesAsOf passed in', () => {
@@ -66,8 +70,8 @@ describe('mergePriceTables', () => {
   it('user overrides take effect through the adapter', () => {
     const merged = mergePriceTables(table, { 'eu-west-1': { 'nat-gateway': 20 } });
     const adapter = new TablePricingAdapter(merged, '2025-06 + custom overrides');
-    expect(adapter.getNatGatewayPricePerMonth(euWest1)).toBe(20);
+    expect(adapter.getPrice(euWest1, 'nat-gateway')).toBe(20);
     // unrelated region untouched
-    expect(adapter.getNatGatewayPricePerMonth(unlisted)).toBe(32.4);
+    expect(adapter.getPrice(unlisted, 'nat-gateway')).toBe(32.4);
   });
 });

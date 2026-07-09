@@ -5,22 +5,28 @@ import {
   DescribeTableCommand,
   type TableDescription,
 } from '@aws-sdk/client-dynamodb';
-import {
-  CloudWatchClient,
-  GetMetricStatisticsCommand,
-} from '@aws-sdk/client-cloudwatch';
-import { Result } from 'shared-kernel';
-import type { AwsRegion, PricingPort, WasteScannerPort, WastedResource } from 'cloud-cost-domain';
-import { OverprovisionedDynamoDbTable, DynamoDbOverprovisionedPolicy } from 'cloud-cost-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import type { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
+import { createLogger } from 'shared-kernel';
+import type { AwsRegion, PricingPort } from 'cloud-cost-domain';
+import { OverprovisionedDynamoDbTable, DynamoDbOverprovisionedPolicy, type WastePolicy } from 'cloud-cost-domain';
 import { paginate } from '../utils/paginate';
 import { mapWithConcurrency } from '../utils/map-with-concurrency';
+import { AWS_CLIENT_DEFAULTS } from '../utils/client-config';
+import { sumMetric, type MetricWindow } from '../utils/cloudwatch-metrics';
+import { CloudWatchIdleScanner } from './cloudwatch-idle.scanner';
 
 const DEFAULT_WINDOW_HOURS = 168;
+const logger = createLogger('cloudrift:scanner');
 const DESCRIBE_CONCURRENCY = 5;
-const CLOUDWATCH_CONCURRENCY = 5;
 /** Estimated saving from downsizing the provisioned capacity (advisory, to be verified). */
 const RIGHTSIZE_SAVING_FRACTION = 0.5;
+
+interface ConsumedCapacity {
+  read: number;
+  write: number;
+}
+
+type TableWithName = TableDescription & { TableName: string };
 
 function isProvisioned(table: TableDescription): boolean {
   if (table.BillingModeSummary?.BillingMode) {
@@ -35,105 +41,89 @@ function isProvisioned(table: TableDescription): boolean {
  * names: a `DescribeTable` per table (fan-out) is needed to read the
  * provisioned capacity, then CloudWatch for the consumed one.
  */
-export class AwsDynamoDbOverprovisionedScanner implements WasteScannerPort {
+export class AwsDynamoDbOverprovisionedScanner extends CloudWatchIdleScanner<
+  DynamoDBClient,
+  TableWithName,
+  ConsumedCapacity,
+  OverprovisionedDynamoDbTable
+> {
   readonly kind = 'dynamodb-overprovisioned' as const;
+  protected readonly serviceLabel = 'DynamoDB';
 
   constructor(
     private readonly pricing: PricingPort,
     private readonly accountId = 'unknown',
-    private readonly policy = new DynamoDbOverprovisionedPolicy(),
-    private readonly windowHours = DEFAULT_WINDOW_HOURS,
-  ) {}
-
-  async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
-    const dynamodb = new DynamoDBClient({ region: region.code });
-    const cw = new CloudWatchClient({ region: region.code });
-    try {
-      const tableNames = await paginate<string>(async (cursor) => {
-        const r = await dynamodb.send(new ListTablesCommand({ ExclusiveStartTableName: cursor }));
-        return { items: r.TableNames ?? [], cursor: r.LastEvaluatedTableName };
-      });
-
-      if (tableNames.length === 0) return Result.ok([]);
-
-      const descriptions = await mapWithConcurrency(tableNames, DESCRIBE_CONCURRENCY, async (name) => {
-        const r = await dynamodb.send(new DescribeTableCommand({ TableName: name }));
-        return r.Table!;
-      });
-
-      const provisionedTables = descriptions.filter(isProvisioned);
-      if (provisionedTables.length === 0) return Result.ok([]);
-
-      const endTime = new Date();
-      const startTime = new Date(endTime.getTime() - this.windowHours * 60 * 60 * 1000);
-      const periodSeconds = this.windowHours * 3600;
-
-      const consumed = await mapWithConcurrency(
-        provisionedTables,
-        CLOUDWATCH_CONCURRENCY,
-        async (table) => {
-          const [read, write] = await Promise.all([
-            this.sumMetric(cw, table.TableName!, 'ConsumedReadCapacityUnits', startTime, endTime, periodSeconds),
-            this.sumMetric(cw, table.TableName!, 'ConsumedWriteCapacityUnits', startTime, endTime, periodSeconds),
-          ]);
-          return { read, write };
-        },
-      );
-
-      const rcuPrice = this.pricing.getDynamoDbRcuPricePerHour(region);
-      const wcuPrice = this.pricing.getDynamoDbWcuPricePerHour(region);
-      const now = new Date();
-
-      const tables = provisionedTables
-        .map((table, index) => {
-          const rcu = table.ProvisionedThroughput?.ReadCapacityUnits ?? 0;
-          const wcu = table.ProvisionedThroughput?.WriteCapacityUnits ?? 0;
-          const monthlyProvisionedCost = (rcu * rcuPrice + wcu * wcuPrice) * 730;
-          return new OverprovisionedDynamoDbTable({
-            tableName: table.TableName!,
-            region,
-            accountId: this.accountId,
-            readCapacityUnits: rcu,
-            writeCapacityUnits: wcu,
-            consumedReadCapacityUnits: consumed[index].read,
-            consumedWriteCapacityUnits: consumed[index].write,
-            windowDays: +(this.windowHours / 24).toFixed(1),
-            creationDateTime: table.CreationDateTime ?? new Date(0),
-            detectedAt: now,
-            tags: {},
-            monthlyCostUsd: +(monthlyProvisionedCost * RIGHTSIZE_SAVING_FRACTION).toFixed(4),
-          });
-        })
-        .filter((table) => this.policy.evaluate(table, now).isWaste);
-
-      return Result.ok(tables);
-    } catch (err) {
-      return Result.fail(new AwsAdapterError('DynamoDB', err as Error));
-    } finally {
-      dynamodb.destroy();
-      cw.destroy();
-    }
+    policy: WastePolicy<OverprovisionedDynamoDbTable> = new DynamoDbOverprovisionedPolicy(),
+    windowHours = DEFAULT_WINDOW_HOURS,
+  ) {
+    super(policy, windowHours);
   }
 
-  private async sumMetric(
+  protected createPrimaryClient(region: AwsRegion): DynamoDBClient {
+    return new DynamoDBClient({ ...AWS_CLIENT_DEFAULTS, region: region.code });
+  }
+
+  protected destroyPrimaryClient(client: DynamoDBClient): void {
+    client.destroy();
+  }
+
+  protected async listResources(client: DynamoDBClient): Promise<TableWithName[]> {
+    const tableNames = await paginate<string>(async (cursor) => {
+      const r = await client.send(new ListTablesCommand({ ExclusiveStartTableName: cursor }));
+      return { items: r.TableNames ?? [], cursor: r.LastEvaluatedTableName };
+    });
+
+    const descriptions = await mapWithConcurrency(tableNames, DESCRIBE_CONCURRENCY, async (name) => {
+      const r = await client.send(new DescribeTableCommand({ TableName: name }));
+      return r.Table;
+    });
+
+    const named = descriptions.filter((t): t is TableWithName => !!t?.TableName);
+    if (named.length !== descriptions.length) {
+      logger.debug(`${this.kind}: skipped ${descriptions.length - named.length} entries missing Table/TableName`);
+    }
+    return named.filter(isProvisioned);
+  }
+
+  protected async fetchMetric(
     cw: CloudWatchClient,
-    tableName: string,
-    metricName: string,
-    startTime: Date,
-    endTime: Date,
-    periodSeconds: number,
-  ): Promise<number> {
-    const r = await cw.send(
-      new GetMetricStatisticsCommand({
-        Namespace: 'AWS/DynamoDB',
-        MetricName: metricName,
-        Dimensions: [{ Name: 'TableName', Value: tableName }],
-        StartTime: startTime,
-        EndTime: endTime,
-        Period: periodSeconds,
-        Statistics: ['Sum'],
-      }),
-    );
-    return r.Datapoints?.[0]?.Sum ?? 0;
+    region: AwsRegion,
+    table: TableWithName,
+    window: MetricWindow,
+  ): Promise<ConsumedCapacity> {
+    const dimensions = [{ Name: 'TableName', Value: table.TableName }];
+    const [read, write] = await Promise.all([
+      sumMetric(cw, 'AWS/DynamoDB', 'ConsumedReadCapacityUnits', dimensions, window),
+      sumMetric(cw, 'AWS/DynamoDB', 'ConsumedWriteCapacityUnits', dimensions, window),
+    ]);
+    return { read, write };
+  }
+
+  protected toEntity(
+    table: TableWithName,
+    consumed: ConsumedCapacity,
+    _prices: Map<string, number>,
+    region: AwsRegion,
+    now: Date,
+  ): OverprovisionedDynamoDbTable {
+    const rcu = table.ProvisionedThroughput?.ReadCapacityUnits ?? 0;
+    const wcu = table.ProvisionedThroughput?.WriteCapacityUnits ?? 0;
+    const rcuPrice = this.pricing.getPrice(region, 'dynamodb-rcu');
+    const wcuPrice = this.pricing.getPrice(region, 'dynamodb-wcu');
+    const monthlyProvisionedCost = (rcu * rcuPrice + wcu * wcuPrice) * 730;
+    return new OverprovisionedDynamoDbTable({
+      tableName: table.TableName,
+      region,
+      accountId: this.accountId,
+      readCapacityUnits: rcu,
+      writeCapacityUnits: wcu,
+      consumedReadCapacityUnits: consumed.read,
+      consumedWriteCapacityUnits: consumed.write,
+      windowDays: +(this.windowHours / 24).toFixed(1),
+      creationDateTime: table.CreationDateTime ?? new Date(0),
+      detectedAt: now,
+      tags: {},
+      monthlyCostUsd: +(monthlyProvisionedCost * RIGHTSIZE_SAVING_FRACTION).toFixed(4),
+    });
   }
 }

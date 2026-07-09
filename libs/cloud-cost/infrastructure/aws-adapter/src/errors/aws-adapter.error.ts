@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
-import { DomainError } from 'shared-kernel';
+import { InfrastructureError } from 'shared-kernel';
 
-export class AwsAdapterError extends DomainError {
+export class AwsAdapterError extends InfrastructureError {
   constructor(
     readonly service: string,
     override readonly cause: Error,

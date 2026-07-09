@@ -4,7 +4,7 @@ import {
   DescribeVolumesCommand,
   type Volume,
 } from '@aws-sdk/client-ec2';
-import { Result } from 'shared-kernel';
+import { Result, createLogger } from 'shared-kernel';
 import type {
   AwsRegion,
   EbsVolumeState,
@@ -15,6 +15,11 @@ import type {
 import { EbsVolume, EbsVolumeWastePolicy } from 'cloud-cost-domain';
 import { AwsAdapterError } from '../errors/aws-adapter.error';
 import { paginate } from '../utils/paginate';
+import { AWS_CLIENT_DEFAULTS } from '../utils/client-config';
+
+const logger = createLogger('cloudrift:scanner');
+
+type VolumeWithIdAndSize = Volume & { VolumeId: string; Size: number };
 
 export class AwsEbsVolumeScanner implements WasteScannerPort {
   readonly kind = 'ebs-volume' as const;
@@ -26,7 +31,7 @@ export class AwsEbsVolumeScanner implements WasteScannerPort {
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
-    const client = new EC2Client({ region: region.code });
+    const client = new EC2Client({ ...AWS_CLIENT_DEFAULTS, region: region.code });
     try {
       // Server-side prefilter: 'available' volumes are the superset of
       // candidates; the final decision (grace period, tag) is up to the policy.
@@ -41,15 +46,23 @@ export class AwsEbsVolumeScanner implements WasteScannerPort {
       });
 
       const now = new Date();
-      const volumes = rawVolumes
-        .map((v: Volume) => {
+      const validVolumes = rawVolumes.filter(
+        (v): v is VolumeWithIdAndSize => !!v.VolumeId && v.Size !== undefined,
+      );
+      if (validVolumes.length !== rawVolumes.length) {
+        logger.debug(`${this.kind}: skipped ${rawVolumes.length - validVolumes.length} entries missing VolumeId/Size`);
+      }
+
+      const volumes = validVolumes
+        .map((v) => {
           const volumeType = v.VolumeType ?? 'gp2';
-          const pricePerGb = this.pricing.getEbsVolumePricePerGbMonth(region, volumeType);
+          const pricePerGb =
+            this.pricing.getPrice(region, `ebs-${volumeType}`) || this.pricing.getPrice(region, 'ebs-gp3');
           return new EbsVolume({
-            volumeId: v.VolumeId!,
+            volumeId: v.VolumeId,
             region,
             accountId: this.accountId,
-            sizeGb: v.Size!,
+            sizeGb: v.Size,
             volumeType,
             state: v.State as EbsVolumeState,
             createTime: v.CreateTime ?? new Date(),
@@ -57,7 +70,7 @@ export class AwsEbsVolumeScanner implements WasteScannerPort {
             tags: Object.fromEntries(
               (v.Tags ?? []).map((t) => [t.Key ?? '', t.Value ?? '']),
             ),
-            monthlyCostUsd: +(pricePerGb * v.Size!).toFixed(4),
+            monthlyCostUsd: +(pricePerGb * v.Size).toFixed(4),
           });
         })
         .filter((volume) => this.policy.evaluate(volume, now).isWaste);

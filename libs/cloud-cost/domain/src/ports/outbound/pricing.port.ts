@@ -2,27 +2,15 @@
 import type { AwsRegion } from '../../value-objects/aws-region.value-object';
 
 export interface PricingPort {
-  getEbsVolumePricePerGbMonth(region: AwsRegion, volumeType: string): number;
-  getEbsSnapshotPricePerGbMonth(region: AwsRegion): number;
-  getElasticIpPricePerMonth(region: AwsRegion): number;
-  getRdsStoragePricePerGbMonth(region: AwsRegion, storageType: string): number;
-  getLoadBalancerPricePerMonth(region: AwsRegion): number;
-  getNatGatewayPricePerMonth(region: AwsRegion): number;
-  getLogGroupPricePerGbMonth(region: AwsRegion): number;
-  getS3StandardPricePerGbMonth(region: AwsRegion): number;
-  getEfsStandardPricePerGbMonth(region: AwsRegion): number;
-  getDynamoDbRcuPricePerHour(region: AwsRegion): number;
-  getDynamoDbWcuPricePerHour(region: AwsRegion): number;
   /**
-   * Fixed-SKU prices for the Phase 5.5 scanners (see ADR-0037/ADR-0038):
-   * low cardinality, so — unlike instance/node-type pricing — they fit the
-   * static price list and don't require `--live-pricing`.
+   * Price for a fixed-SKU key (e.g. `'ebs-gp3'`, `'nat-gateway'`) in `region`,
+   * or `0` if unpriced. The key is the same one used in `prices.json` and
+   * `cloudrift.config.json`'s `prices` overrides — callers that need a
+   * type-specific fallback (e.g. an unknown EBS volume type) build the
+   * specific key first and fall back to a second `getPrice` call with a
+   * generic key.
    */
-  getFsxStoragePricePerGbMonth(region: AwsRegion, fileSystemType: string): number;
-  getVpnConnectionPricePerMonth(region: AwsRegion): number;
-  getTransitGatewayAttachmentPricePerMonth(region: AwsRegion): number;
-  /** Per-shard monthly price; the scanner multiplies by the stream's open shard count. */
-  getKinesisShardPricePerMonth(region: AwsRegion): number;
+  getPrice(region: AwsRegion, key: string): number;
   /** Date (YYYY-MM) prices were last verified: must be shown in every report. */
   getPricesAsOf(): string;
 }

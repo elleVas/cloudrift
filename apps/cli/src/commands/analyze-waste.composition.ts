@@ -31,6 +31,7 @@ import {
   VpnConnectionIdlePolicy,
   TransitGatewayIdleAttachmentPolicy,
   KinesisProvisionedIdleStreamPolicy,
+  RESOURCE_KINDS,
 } from 'cloud-cost-domain';
 import type {
   AwsRegion,
@@ -160,153 +161,316 @@ async function buildPricing(ctx: AnalysisContext): Promise<BuiltPricing> {
   return { pricing, livePricingAdapter };
 }
 
-/** Always-on scanners + advisory scanners gated on --live-pricing. */
-function buildScanners(
-  ctx: AnalysisContext,
-  pricing: PricingPort,
-  livePricingAdapter: AwsPricingApiAdapter | undefined,
-): WasteScannerPort[] {
-  const { policyOptions, accountId, cloudwatchWindowHours, utilizationWindowHours } = ctx;
-  const scanners: WasteScannerPort[] = [
-    new AwsEbsVolumeScanner(pricing, accountId, new EbsVolumeWastePolicy(policyOptions)),
-    new AwsElasticIpScanner(pricing, accountId, new ElasticIpWastePolicy(policyOptions)),
-    new AwsRdsInstanceScanner(pricing, accountId, new RdsInstanceWastePolicy(policyOptions)),
-    new AwsLoadBalancerScanner(pricing, accountId, new LoadBalancerWastePolicy(policyOptions)),
-    new AwsEc2InstanceScanner(pricing, accountId, new Ec2InstanceWastePolicy(policyOptions)),
-    new AwsEbsSnapshotScanner(pricing, accountId, new EbsSnapshotWastePolicy(policyOptions)),
-    new AwsNatGatewayScanner(
-      pricing,
-      accountId,
-      new NatGatewayWastePolicy(policyOptions),
-      cloudwatchWindowHours,
-    ),
-    new AwsGp2UpgradeScanner(pricing, accountId, new Gp2UpgradePolicy(policyOptions)),
-    new AwsEbsIdleScanner(
-      pricing,
-      accountId,
-      new EbsIdlePolicy(policyOptions, ctx.config.thresholds?.ebsIdleMaxOps ?? 0),
-      cloudwatchWindowHours,
-    ),
-    new AwsLogGroupScanner(pricing, accountId, new LogGroupWastePolicy(policyOptions)),
-    new AwsEniOrphanedScanner(accountId, new OrphanedEniWastePolicy(policyOptions)),
-    new AwsS3NoLifecycleScanner(pricing, accountId, new S3NoLifecyclePolicy(policyOptions)),
-    new AwsLambdaUnderutilizedScanner(
-      accountId,
-      new LambdaUnderutilizedPolicy(policyOptions, ctx.config.thresholds?.lambdaInvocationsMin ?? 0),
-      utilizationWindowHours,
-    ),
-    new AwsEfsUnusedScanner(
-      pricing,
-      accountId,
-      new EfsUnusedPolicy(policyOptions, ctx.config.thresholds?.efsIoBytesMin ?? 0),
-      cloudwatchWindowHours,
-    ),
-    new AwsDynamoDbOverprovisionedScanner(
-      pricing,
-      accountId,
-      new DynamoDbOverprovisionedPolicy(
-        policyOptions,
-        ctx.config.thresholds?.dynamoCapacityUtilizationPercent ?? 10,
-      ),
-      utilizationWindowHours,
-    ),
-    // Phase 5.5 (ADR-0038): low-cardinality fixed-SKU prices, always-on like
-    // the scanners above (ADR-0037).
-    new AwsFsxIdleScanner(pricing, accountId, new FsxIdleFilesystemPolicy(policyOptions), cloudwatchWindowHours),
-    new AwsVpnConnectionIdleScanner(
-      pricing,
-      accountId,
-      new VpnConnectionIdlePolicy(policyOptions),
-      cloudwatchWindowHours,
-    ),
-    new AwsTransitGatewayIdleScanner(
-      pricing,
-      accountId,
-      new TransitGatewayIdleAttachmentPolicy(policyOptions),
-      cloudwatchWindowHours,
-    ),
-    new AwsKinesisIdleScanner(
-      pricing,
-      accountId,
-      new KinesisProvisionedIdleStreamPolicy(policyOptions),
-      cloudwatchWindowHours,
-    ),
-  ];
+/** Everything an always-on scanner factory may need to build its instance. */
+interface ScannerBuildContext {
+  pricing: PricingPort;
+  accountId: string;
+  policyOptions: WastePolicyOptions;
+  cloudwatchWindowHours: number;
+  utilizationWindowHours: number;
+  config: CloudriftConfig;
+}
 
-  // Gated on --live-pricing: the price per instance type/RDS class/ElastiCache
-  // node type isn't in the static price list (cardinality too high),
-  // so without live prices there's no estimable saving and the scanners
-  // remain disabled (EC2/RDS are advisory; ElastiCache is definite waste
-  // once the price is known, but it's still gated on the same resource).
-  if (livePricingAdapter) {
-    scanners.push(
+/** Same as above, plus the adapter only scanners gated on --live-pricing may use. */
+interface LivePricingScannerBuildContext extends ScannerBuildContext {
+  livePricingAdapter: AwsPricingApiAdapter;
+}
+
+interface ScannerRegistration<Ctx> {
+  kind: ResourceKind;
+  create: (ctx: Ctx) => WasteScannerPort;
+}
+
+/**
+ * One entry per always-on resource kind. Adding a scanner means adding one
+ * entry here — `buildScanners` below is a plain map over this array (plus
+ * {@link LIVE_PRICING_SCANNERS}), not a growing sequence of `push` calls.
+ */
+export const ALWAYS_ON_SCANNERS: ScannerRegistration<ScannerBuildContext>[] = [
+  {
+    kind: 'ebs-volume',
+    create: (ctx) => new AwsEbsVolumeScanner(ctx.pricing, ctx.accountId, new EbsVolumeWastePolicy(ctx.policyOptions)),
+  },
+  {
+    kind: 'elastic-ip',
+    create: (ctx) => new AwsElasticIpScanner(ctx.pricing, ctx.accountId, new ElasticIpWastePolicy(ctx.policyOptions)),
+  },
+  {
+    kind: 'rds-instance',
+    create: (ctx) =>
+      new AwsRdsInstanceScanner(ctx.pricing, ctx.accountId, new RdsInstanceWastePolicy(ctx.policyOptions)),
+  },
+  {
+    kind: 'load-balancer',
+    create: (ctx) =>
+      new AwsLoadBalancerScanner(ctx.pricing, ctx.accountId, new LoadBalancerWastePolicy(ctx.policyOptions)),
+  },
+  {
+    kind: 'ec2-instance',
+    create: (ctx) => new AwsEc2InstanceScanner(ctx.pricing, ctx.accountId, new Ec2InstanceWastePolicy(ctx.policyOptions)),
+  },
+  {
+    kind: 'ebs-snapshot',
+    create: (ctx) =>
+      new AwsEbsSnapshotScanner(ctx.pricing, ctx.accountId, new EbsSnapshotWastePolicy(ctx.policyOptions)),
+  },
+  {
+    kind: 'nat-gateway',
+    create: (ctx) =>
+      new AwsNatGatewayScanner(
+        ctx.pricing,
+        ctx.accountId,
+        new NatGatewayWastePolicy(ctx.policyOptions),
+        ctx.cloudwatchWindowHours,
+      ),
+  },
+  {
+    kind: 'ebs-gp2-upgrade',
+    create: (ctx) => new AwsGp2UpgradeScanner(ctx.pricing, ctx.accountId, new Gp2UpgradePolicy(ctx.policyOptions)),
+  },
+  {
+    kind: 'ebs-idle',
+    create: (ctx) =>
+      new AwsEbsIdleScanner(
+        ctx.pricing,
+        ctx.accountId,
+        new EbsIdlePolicy(ctx.policyOptions, ctx.config.thresholds?.ebsIdleMaxOps ?? 0),
+        ctx.cloudwatchWindowHours,
+      ),
+  },
+  {
+    kind: 'log-group',
+    create: (ctx) => new AwsLogGroupScanner(ctx.pricing, ctx.accountId, new LogGroupWastePolicy(ctx.policyOptions)),
+  },
+  {
+    kind: 'eni-orphaned',
+    create: (ctx) => new AwsEniOrphanedScanner(ctx.accountId, new OrphanedEniWastePolicy(ctx.policyOptions)),
+  },
+  {
+    kind: 's3-no-lifecycle',
+    create: (ctx) =>
+      new AwsS3NoLifecycleScanner(ctx.pricing, ctx.accountId, new S3NoLifecyclePolicy(ctx.policyOptions)),
+  },
+  {
+    kind: 'lambda-underutilized',
+    create: (ctx) =>
+      new AwsLambdaUnderutilizedScanner(
+        ctx.accountId,
+        new LambdaUnderutilizedPolicy(ctx.policyOptions, ctx.config.thresholds?.lambdaInvocationsMin ?? 0),
+        ctx.utilizationWindowHours,
+      ),
+  },
+  {
+    kind: 'efs-unused',
+    create: (ctx) =>
+      new AwsEfsUnusedScanner(
+        ctx.pricing,
+        ctx.accountId,
+        new EfsUnusedPolicy(ctx.policyOptions, ctx.config.thresholds?.efsIoBytesMin ?? 0),
+        ctx.cloudwatchWindowHours,
+      ),
+  },
+  {
+    kind: 'dynamodb-overprovisioned',
+    create: (ctx) =>
+      new AwsDynamoDbOverprovisionedScanner(
+        ctx.pricing,
+        ctx.accountId,
+        new DynamoDbOverprovisionedPolicy(
+          ctx.policyOptions,
+          ctx.config.thresholds?.dynamoCapacityUtilizationPercent ?? 10,
+        ),
+        ctx.utilizationWindowHours,
+      ),
+  },
+  // Phase 5.5 (ADR-0038): low-cardinality fixed-SKU prices, always-on like
+  // the scanners above (ADR-0037).
+  {
+    kind: 'fsx-idle-filesystem',
+    create: (ctx) =>
+      new AwsFsxIdleScanner(ctx.pricing, ctx.accountId, new FsxIdleFilesystemPolicy(ctx.policyOptions), ctx.cloudwatchWindowHours),
+  },
+  {
+    kind: 'vpn-connection-idle',
+    create: (ctx) =>
+      new AwsVpnConnectionIdleScanner(
+        ctx.pricing,
+        ctx.accountId,
+        new VpnConnectionIdlePolicy(ctx.policyOptions),
+        ctx.cloudwatchWindowHours,
+      ),
+  },
+  {
+    kind: 'transit-gateway-idle-attachment',
+    create: (ctx) =>
+      new AwsTransitGatewayIdleScanner(
+        ctx.pricing,
+        ctx.accountId,
+        new TransitGatewayIdleAttachmentPolicy(ctx.policyOptions),
+        ctx.cloudwatchWindowHours,
+      ),
+  },
+  {
+    kind: 'kinesis-provisioned-idle-stream',
+    create: (ctx) =>
+      new AwsKinesisIdleScanner(
+        ctx.pricing,
+        ctx.accountId,
+        new KinesisProvisionedIdleStreamPolicy(ctx.policyOptions),
+        ctx.cloudwatchWindowHours,
+      ),
+  },
+];
+
+// Gated on --live-pricing: the price per instance type/RDS class/ElastiCache
+// node type isn't in the static price list (cardinality too high), so without
+// live prices there's no estimable saving and the scanners remain disabled
+// (EC2/RDS are advisory; ElastiCache is definite waste once the price is
+// known, but it's still gated on the same resource).
+export const LIVE_PRICING_SCANNERS: ScannerRegistration<LivePricingScannerBuildContext>[] = [
+  {
+    kind: 'ec2-underutilized',
+    create: (ctx) =>
       new AwsEc2UnderutilizedScanner(
-        livePricingAdapter,
-        accountId,
-        new Ec2UnderutilizedPolicy(policyOptions, ctx.config.thresholds?.ec2CpuPercent ?? 5),
-        utilizationWindowHours,
+        ctx.livePricingAdapter,
+        ctx.accountId,
+        new Ec2UnderutilizedPolicy(ctx.policyOptions, ctx.config.thresholds?.ec2CpuPercent ?? 5),
+        ctx.utilizationWindowHours,
       ),
+  },
+  {
+    kind: 'rds-underutilized',
+    create: (ctx) =>
       new AwsRdsUnderutilizedScanner(
-        livePricingAdapter,
-        accountId,
-        new RdsUnderutilizedPolicy(policyOptions, ctx.config.thresholds?.rdsCpuPercent ?? 5),
-        utilizationWindowHours,
+        ctx.livePricingAdapter,
+        ctx.accountId,
+        new RdsUnderutilizedPolicy(ctx.policyOptions, ctx.config.thresholds?.rdsCpuPercent ?? 5),
+        ctx.utilizationWindowHours,
       ),
+  },
+  {
+    kind: 'elasticache-idle',
+    create: (ctx) =>
       new AwsElastiCacheIdleScanner(
-        livePricingAdapter,
-        accountId,
-        new ElastiCacheIdlePolicy(policyOptions),
-        cloudwatchWindowHours,
+        ctx.livePricingAdapter,
+        ctx.accountId,
+        new ElastiCacheIdlePolicy(ctx.policyOptions),
+        ctx.cloudwatchWindowHours,
       ),
-      // Phase 5.5 (ADR-0038): per-instance/node/broker-type pricing, same
-      // reasoning as EC2/RDS/ElastiCache above (ADR-0037).
+  },
+  // Phase 5.5 (ADR-0038): per-instance/node/broker-type pricing, same
+  // reasoning as EC2/RDS/ElastiCache above (ADR-0037).
+  {
+    kind: 'redshift-idle-cluster',
+    create: (ctx) =>
       new AwsRedshiftIdleScanner(
-        livePricingAdapter,
-        accountId,
-        new RedshiftIdleClusterPolicy(policyOptions),
-        cloudwatchWindowHours,
+        ctx.livePricingAdapter,
+        ctx.accountId,
+        new RedshiftIdleClusterPolicy(ctx.policyOptions),
+        ctx.cloudwatchWindowHours,
       ),
+  },
+  {
+    kind: 'opensearch-idle-domain',
+    create: (ctx) =>
       new AwsOpenSearchIdleScanner(
-        livePricingAdapter,
-        accountId,
-        new OpenSearchIdleDomainPolicy(policyOptions),
-        cloudwatchWindowHours,
+        ctx.livePricingAdapter,
+        ctx.accountId,
+        new OpenSearchIdleDomainPolicy(ctx.policyOptions),
+        ctx.cloudwatchWindowHours,
       ),
+  },
+  {
+    kind: 'msk-idle-cluster',
+    create: (ctx) =>
       new AwsMskIdleScanner(
-        livePricingAdapter,
-        accountId,
-        new MskIdleClusterPolicy(policyOptions),
-        cloudwatchWindowHours,
+        ctx.livePricingAdapter,
+        ctx.accountId,
+        new MskIdleClusterPolicy(ctx.policyOptions),
+        ctx.cloudwatchWindowHours,
       ),
+  },
+  {
+    kind: 'documentdb-idle-instance',
+    create: (ctx) =>
       new AwsDocumentDbIdleScanner(
-        livePricingAdapter,
-        accountId,
-        new DocumentDbIdleInstancePolicy(policyOptions),
-        cloudwatchWindowHours,
+        ctx.livePricingAdapter,
+        ctx.accountId,
+        new DocumentDbIdleInstancePolicy(ctx.policyOptions),
+        ctx.cloudwatchWindowHours,
       ),
+  },
+  {
+    kind: 'neptune-idle-instance',
+    create: (ctx) =>
       new AwsNeptuneIdleScanner(
-        livePricingAdapter,
-        accountId,
-        new NeptuneIdleInstancePolicy(policyOptions),
-        cloudwatchWindowHours,
+        ctx.livePricingAdapter,
+        ctx.accountId,
+        new NeptuneIdleInstancePolicy(ctx.policyOptions),
+        ctx.cloudwatchWindowHours,
       ),
+  },
+  {
+    kind: 'mq-idle-broker',
+    create: (ctx) =>
       new AwsMqIdleScanner(
-        livePricingAdapter,
-        accountId,
-        new MqIdleBrokerPolicy(policyOptions),
-        cloudwatchWindowHours,
+        ctx.livePricingAdapter,
+        ctx.accountId,
+        new MqIdleBrokerPolicy(ctx.policyOptions),
+        ctx.cloudwatchWindowHours,
       ),
-      new AwsWorkspacesIdleScanner(livePricingAdapter, accountId, new WorkspacesIdlePolicy(policyOptions)),
+  },
+  {
+    kind: 'workspaces-idle',
+    create: (ctx) =>
+      new AwsWorkspacesIdleScanner(ctx.livePricingAdapter, ctx.accountId, new WorkspacesIdlePolicy(ctx.policyOptions)),
+  },
+];
+
+/**
+ * Fails fast at module load if a resource kind is missing/duplicated across
+ * the two registries — the failure mode a hand-written composition root can't catch.
+ */
+function assertRegistryMatchesResourceKinds(): void {
+  const registered = [...ALWAYS_ON_SCANNERS, ...LIVE_PRICING_SCANNERS].map((r) => r.kind);
+  const missing = RESOURCE_KINDS.filter((k) => !registered.includes(k));
+  const duplicates = registered.filter((k, i) => registered.indexOf(k) !== i);
+  if (missing.length > 0 || duplicates.length > 0) {
+    throw new Error(
+      `Scanner registry is out of sync with RESOURCE_KINDS` +
+        (missing.length > 0 ? ` (missing: ${missing.join(', ')})` : '') +
+        (duplicates.length > 0 ? ` (duplicated: ${duplicates.join(', ')})` : ''),
     );
   }
+}
+assertRegistryMatchesResourceKinds();
 
+/** Always-on scanners + advisory scanners gated on --live-pricing. */
+export function buildScanners(
+  ctx: ScannerBuildContext,
+  livePricingAdapter: AwsPricingApiAdapter | undefined,
+): WasteScannerPort[] {
+  const scanners = ALWAYS_ON_SCANNERS.map((reg) => reg.create(ctx));
+  if (livePricingAdapter) {
+    scanners.push(...LIVE_PRICING_SCANNERS.map((reg) => reg.create({ ...ctx, livePricingAdapter })));
+  }
   return scanners;
 }
 
 /** Real composition: layered pricing + AWS scanners (one advisory, gated on --live-pricing) + generic use case. */
 async function defaultCreateAnalysis(ctx: AnalysisContext): Promise<Analysis> {
   const { pricing, livePricingAdapter } = await buildPricing(ctx);
-  const scanners = buildScanners(ctx, pricing, livePricingAdapter);
+  const scanners = buildScanners(
+    {
+      pricing,
+      accountId: ctx.accountId,
+      policyOptions: ctx.policyOptions,
+      cloudwatchWindowHours: ctx.cloudwatchWindowHours,
+      utilizationWindowHours: ctx.utilizationWindowHours,
+      config: ctx.config,
+    },
+    livePricingAdapter,
+  );
   // No re-validation here: ctx.scannerKinds is only ever set by
   // analyze-waste.command.ts, which already validates it (--scanners against
   // RESOURCE_KINDS, or the wizard/--all-services, which can't produce an

@@ -34,7 +34,7 @@ What it does **not** buy on its own is multi-cloud: see [Towards multi-cloud](#t
 │   entities, policies,   │   │   Result, DomainError)    │
 │   ports)                │   └───────────────────────────┘
 └──────▲──────────────────┘
-       │ implements WasteScannerPort (×18)
+       │ implements WasteScannerPort (×29)
 ┌──────┴──────────────────────────────────────────────────┐
 │        libs/cloud-cost/infrastructure/aws-adapter       │
 │   (AWS SDK v3 scanners, pricing, STS account resolver)  │
@@ -79,9 +79,11 @@ Ports make the **technology** replaceable, not the **domain**: you can swap the 
 ### 1. `shared/kernel` — Shared core
 
 - **`Entity<TId>`**: base class for objects with identity.
-- **`ValueObject<T>`**: immutable objects with structural equality (`AwsRegion`, `CostEstimate`).
+- **`ValueObject<T>`**: immutable objects with structural equality (`AwsRegion`, `CostEstimate`), compared via a recursive `deepEqual` — see [ADR-0046](../adr/0046-valueobject-deepequal.md).
 - **`Result<T, E>`**: success/failure as a value, no exceptions across layers.
-- **`DomainError`**: typed errors with an explicit `code`.
+- **`DomainError`**: typed errors with an explicit `code`, for the domain layer.
+- **`InfrastructureError`**: sibling hierarchy to `DomainError`, same shape, for infrastructure-layer failures (e.g. `AwsAdapterError`) — kept separate so the domain's error types never imply AWS knowledge it doesn't have ([ADR-0049](../adr/0049-infrastructureerror-not-domainerror.md)).
+- **`createLogger(namespace)`**: zero-dependency debug logger gated by the `DEBUG` env var, writing to stderr ([ADR-0047](../adr/0047-minimal-namespaced-debug-logger.md)).
 
 ### 2. `cloud-cost/domain` — The heart of the system
 
@@ -110,6 +112,8 @@ export const RESOURCE_KINDS = [
 ] as const;
 
 export type ResourceKind = (typeof RESOURCE_KINDS)[number];
+// Illustrative excerpt — 29 kinds exist today; the union and RESOURCE_KIND_META
+// in wasted-resource.ts are the source of truth, not this doc.
 
 export interface WastedResource {
   readonly id: string;
@@ -190,7 +194,7 @@ Each concrete policy adds the type-specific criterion:
   }
   ```
   The contract requires the scanner to return only resources **already confirmed** by the relevant policy.
-- **Outbound `PricingPort`** — per-region prices per resource type, plus `getPricesAsOf()` (the price-table verification date, shown in every report).
+- **Outbound `PricingPort`** — a single generic `getPrice(region: AwsRegion, key: string): number` (the same key used in `prices.json` and the config's `prices` overrides), plus `getPricesAsOf()` (the price-table verification date, shown in every report). Collapsed from 16 nominally-typed methods to this one: adding a fixed-cost resource type now only touches `prices.json`, never the port or its adapters ([ADR-0045](../adr/0045-pricingport-single-getprice-method.md)).
 - **Inbound `FindWastedResourcesUseCasePort`** — defines `WastedResourcesSummary { findings, totalWasteMonthlyUsd, totalOptimizationMonthlyUsd, scanErrors }` and `ResourceScanError { kind, region, error }`. The two totals are split by `FindingCategory` (see [above](#waste-vs-optimization--findingcategory)): only `totalWasteMonthlyUsd` feeds the CI gate.
 
 ### 3. `cloud-cost/application` — Generic use case and DTO
@@ -207,7 +211,11 @@ It runs the scanners **in parallel with each other** and **sequentially across r
 
 ### 4. `cloud-cost/infrastructure/aws-adapter` — Concrete scanners
 
-Every scanner implements `WasteScannerPort` with the **AWS SDK v3**: it creates the client for the region, uses `paginate()` to follow cursors, maps responses to entities (computing costs via `PricingPort`), applies the waste policy and destroys the client in the `finally`. SDK errors are wrapped in `AwsAdapterError`.
+Every scanner implements `WasteScannerPort` with the **AWS SDK v3**: it creates the client for the region (with `AWS_CLIENT_DEFAULTS`, `maxAttempts: 3` — the SDK's built-in retry/backoff for throttling and transient errors, [ADR-0050](../adr/0050-aws-client-retry-backoff.md)), uses `paginate()` to follow cursors, maps responses to entities (computing costs via `PricingPort`), applies the waste policy and destroys the client in the `finally`. SDK errors are wrapped in `AwsAdapterError`.
+
+18 of the 29 scanners additionally fetch a CloudWatch metric per resource (and, for 9 of them, resolve a live per-type price). These extend the abstract `CloudWatchIdleScanner<TPrimaryClient, TRaw, TMetric, TEntity>` template method (`scanners/cloudwatch-idle.scanner.ts`), which owns the client lifecycle, the concurrent metric fan-out and the `Result` wrapping — each concrete scanner implements only the resource-specific hooks (`listResources`, `fetchMetric`, `toEntity`, and optionally `resolvePrices`). See [ADR-0044](../adr/0044-cloudwatch-idle-scanner-template-method.md).
+
+Required fields read off an AWS response (the resource's own primary identifier — `VolumeId`, `InstanceId`, …) are validated with a type-narrowing `.filter()` immediately after the fetch, not a non-null assertion: a malformed entry is excluded and logged (`DEBUG=cloudrift:*`) rather than silently propagating an `undefined` field into a finding. See [ADR-0051](../adr/0051-type-narrowing-guards-on-aws-responses.md).
 
 Adapters pre-filter server-side where possible (e.g. `status=available` for EBS) as an **optimization**: the API filter yields a superset of the candidates; the final decision always belongs to the domain policy.
 
@@ -219,7 +227,11 @@ Specifics:
 
 ### 5. `apps/cli` — Entry point and composition root
 
-`analyze-waste.command.ts` loads the config file, resolves CLI options (regions, min-age, account ID) and orchestrates the run; it delegates the actual instantiation of concrete implementations to `analyze-waste.composition.ts` through the injectable `AnalyzeDeps.createAnalysis` seam (the same seam `analyze-waste.command.spec.ts` fakes to test without AWS). Before that, it also resolves **which scanners to run**: `--all-services` or `--scanners <kinds...>` skip straight to a resolved list; otherwise, in a real terminal outside CI (and without `--silent`), an interactive `@clack/prompts` wizard (`apps/cli/src/wizard/scanner-selection.wizard.ts`, see [ADR-0041](../adr/0041-interactive-scanner-selection-wizard.md)) lets the user pick — every kind pre-checked, so Enter alone still scans everything; non-TTY/CI/`--silent` skip the wizard and run every scanner, unchanged from before this feature. `analyze-waste.composition.ts` is the only place where concrete implementations are instantiated: it builds the price table, the policies (with config + CLI parameters) and 18 always-on scanners, injecting them into the use case, filtered down to the resolved scanner selection (`AnalysisContext.scannerKinds`, undefined = no filter). Ten more — `AwsEc2UnderutilizedScanner`, `AwsRdsUnderutilizedScanner`, `AwsElastiCacheIdleScanner` and the Redshift/OpenSearch/MSK/DocumentDB/Neptune/MQ/WorkSpaces equivalents — are registered only when `--live-pricing` is set: their cost estimate needs a per-instance-type/class/node-type price that the static table doesn't carry (too many distinct types to maintain), so without live pricing there is nothing reliable to report and the scanners are left out rather than registered with a zero estimate. Back in `analyze-waste.command.ts`, the result is handed to the formatters. The four formatters (console table, PDF, JSON, Markdown) share the `resource-presenters.ts` registry, typed `Record<ResourceKind, ResourcePresenter<…>>`: forgetting the presenter for a new kind is a compile error. The output format is selected by `--format` (`table` | `json` | `markdown`); `markdown` targets CI / PR comments.
+`analyze-waste.command.ts` loads the config file, resolves CLI options (regions, min-age, account ID) and orchestrates the run; it delegates the actual instantiation of concrete implementations to `analyze-waste.composition.ts` through the injectable `AnalyzeDeps.createAnalysis` seam (the same seam `analyze-waste.command.spec.ts` fakes to test without AWS). Before that, it also resolves **which scanners to run**: `--all-services` or `--scanners <kinds...>` skip straight to a resolved list; otherwise, in a real terminal outside CI (and without `--silent`), an interactive `@clack/prompts` wizard (`apps/cli/src/wizard/scanner-selection.wizard.ts`, see [ADR-0041](../adr/0041-interactive-scanner-selection-wizard.md)) lets the user pick — every kind pre-checked, so Enter alone still scans everything; non-TTY/CI/`--silent` skip the wizard and run every scanner, unchanged from before this feature.
+
+`analyze-waste.composition.ts` is the only place where concrete implementations are instantiated. It's a declarative registry, not a hand-written list: `ALWAYS_ON_SCANNERS` and `LIVE_PRICING_SCANNERS` are each an array of `{ kind, create(ctx) }` entries, and `buildScanners()` is a `map`/`filter` over both (the second only when a live-pricing adapter is available), then filtered again down to the resolved scanner selection (`AnalysisContext.scannerKinds`, undefined = no filter). `assertRegistryMatchesResourceKinds()` runs at module load and throws if any `ResourceKind` is missing from, or duplicated across, the two registries — a wiring mistake fails at startup, not silently at scan time. See [ADR-0043](../adr/0043-declarative-scanner-registry.md). The `LIVE_PRICING_SCANNERS` entries (`AwsEc2UnderutilizedScanner`, `AwsRdsUnderutilizedScanner`, `AwsElastiCacheIdleScanner` and the Redshift/OpenSearch/MSK/DocumentDB/Neptune/MQ/WorkSpaces equivalents) are only built when `--live-pricing` is set: their cost estimate needs a per-instance-type/class/node-type price that the static table doesn't carry (too many distinct types to maintain), so without live pricing there is nothing reliable to report and the scanners are left out rather than registered with a zero estimate.
+
+Back in `analyze-waste.command.ts`, the result is handed to the formatters. The four formatters (console table, PDF, JSON, Markdown) share the `resource-presenters.ts` registry, typed `Record<ResourceKind, ResourcePresenter<…>>`: forgetting the presenter for a new kind is a compile error. The output format is selected by `--format` (`table` | `json` | `markdown`); `markdown` targets CI / PR comments.
 
 ---
 

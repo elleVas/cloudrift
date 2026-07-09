@@ -19,9 +19,9 @@ As an example we will use the hypothetical case of **CloudWatch Log Groups witho
 1. Add the kind to the `ResourceKind` union
 2. Create the entity (implements `WastedResource`)
 3. Create the waste policy
-4. Add pricing (`PricingPort`, `prices.json`, `StaticPriceTableAdapter`)
+4. Add pricing (a new key in `prices.json`, no interface to touch)
 5. Implement the AWS scanner
-6. Add the CLI presenter and register the scanner in the composition root
+6. Add the CLI presenter and register the scanner in the scanner registry
 
 After step 1, `pnpm nx run-many -t typecheck` lists exactly the remaining spots: the union is the compiler-controlled extension point.
 
@@ -139,27 +139,21 @@ Exclusion tag and grace period come for free from the base class. Add the tests 
 
 ## Step 4 — Pricing
 
-**a)** Method on `PricingPort` (`domain/src/ports/outbound/pricing.port.ts`):
+`PricingPort` is a single generic lookup — `getPrice(region: AwsRegion, key: string): number` — so a new resource type needs **no interface or adapter change**. Just pick a price key (here `cw-logs`) and:
 
-```typescript
-getLogGroupPricePerGbMonth(region: AwsRegion): number;
-```
+**a)** Add it to `prices.json` (a `cw-logs` key in `default` and in regions with specific pricing). If the price table was re-verified, also update `pricesAsOf`.
 
-**b)** Prices in `prices.json` (a `cw-logs` key in `default` and in regions with specific pricing). If the price table was re-verified, also update `pricesAsOf`.
+**b)** Call it from the scanner: `this.pricing.getPrice(region, 'cw-logs')`.
 
-**c)** Implementation in `StaticPriceTableAdapter`:
+If the price key depends on a runtime value with unknown variants (e.g. an EBS volume type your policy hasn't seen before), chain a fallback to a known-good key: `pricing.getPrice(region, \`ebs-${volumeType}\`) || pricing.getPrice(region, 'ebs-gp3')` — see `AwsEbsVolumeScanner` for a real example. `getPrice` returns `0` for a totally unpriced key, never `undefined`.
 
-```typescript
-getLogGroupPricePerGbMonth(region: AwsRegion): number {
-  return lookup(region, 'cw-logs');
-}
-```
-
-> Also update the shared `mockPricing` in the scanner tests (`src/testing/mock-pricing.ts`): the typecheck will remind you.
+> Also update the shared `mockPricing` in the scanner tests (`src/testing/mock-pricing.ts`) with the new key: the typecheck won't catch a missing key the way it did for a missing method, so check it by hand.
 
 ---
 
 ## Step 5 — AWS scanner
+
+> **If your resource needs a CloudWatch metric** (most idle/underutilized checks do), extend `CloudWatchIdleScanner` (`scanners/cloudwatch-idle.scanner.ts`) instead of writing `scan()` from scratch — see [ADR-0044](../adr/0044-cloudwatch-idle-scanner-template-method.md) and any of the 18 scanners that already extend it (e.g. `aws-nat-gateway.scanner.ts` for the simplest case, `aws-ec2-underutilized.scanner.ts` for one with a `resolvePrices` override). Log Groups don't need a metric (`storedBytes` comes straight from `DescribeLogGroups`), so this example stays standalone — the shape below is what every non-CloudWatch scanner (11 of them) looks like.
 
 `libs/cloud-cost/infrastructure/aws-adapter/src/scanners/aws-log-group.scanner.ts`:
 
@@ -169,11 +163,19 @@ import {
   DescribeLogGroupsCommand,
   type LogGroup as AwsLogGroup,
 } from '@aws-sdk/client-cloudwatch-logs';
-import { Result } from 'shared-kernel';
+import { Result, createLogger } from 'shared-kernel';
 import type { AwsRegion, PricingPort, WasteScannerPort, WastedResource } from 'cloud-cost-domain';
 import { LogGroup, LogGroupWastePolicy } from 'cloud-cost-domain';
 import { AwsAdapterError } from '../errors/aws-adapter.error';
 import { paginate } from '../utils/paginate';
+import { AWS_CLIENT_DEFAULTS } from '../utils/client-config';
+
+const logger = createLogger('cloudrift:scanner');
+
+// The AWS SDK types mark almost every response field optional. Read the
+// resource's own primary identifier through a type-narrowing filter, not a
+// bare `!` — see ADR-0051.
+type LogGroupWithName = AwsLogGroup & { logGroupName: string };
 
 export class AwsLogGroupScanner implements WasteScannerPort {
   readonly kind = 'log-group' as const;
@@ -185,21 +187,26 @@ export class AwsLogGroupScanner implements WasteScannerPort {
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
-    const client = new CloudWatchLogsClient({ region: region.code });
+    const client = new CloudWatchLogsClient({ ...AWS_CLIENT_DEFAULTS, region: region.code });
     try {
       const rawGroups = await paginate<AwsLogGroup>(async (cursor) => {
         const r = await client.send(new DescribeLogGroupsCommand({ nextToken: cursor }));
         return { items: r.logGroups ?? [], cursor: r.nextToken };
       });
 
-      const pricePerGb = this.pricing.getLogGroupPricePerGbMonth(region);
+      const validGroups = rawGroups.filter((lg): lg is LogGroupWithName => !!lg.logGroupName);
+      if (validGroups.length !== rawGroups.length) {
+        logger.debug(`${this.kind}: skipped ${rawGroups.length - validGroups.length} entries missing logGroupName`);
+      }
+
+      const pricePerGb = this.pricing.getPrice(region, 'cw-logs');
       const now = new Date();
 
-      const groups = rawGroups
+      const groups = validGroups
         .map((lg) => {
           const storedBytes = lg.storedBytes ?? 0;
           return new LogGroup({
-            logGroupName: lg.logGroupName!,
+            logGroupName: lg.logGroupName,
             region,
             accountId: this.accountId,
             storedBytes,
@@ -223,8 +230,10 @@ export class AwsLogGroupScanner implements WasteScannerPort {
 ```
 
 **Rules:**
+- `{ ...AWS_CLIENT_DEFAULTS, region: region.code }` on every SDK client (enables retry/backoff on throttling — see `utils/client-config.ts`)
 - `paginate()` for every list call
 - Any internal fan-out (one call per item) → `mapWithConcurrency` with a cap
+- Every required field read off an AWS response goes through a type-narrowing `.filter()`, never a bare `!` — see [ADR-0051](../adr/0051-type-narrowing-guards-on-aws-responses.md)
 - The policy is **always** applied before returning
 - Export the scanner from `aws-adapter/src/index.ts` and add `@aws-sdk/client-cloudwatch-logs` to the root `package.json`
 
@@ -251,14 +260,16 @@ export class AwsLogGroupScanner implements WasteScannerPort {
 
 Console table, PDF and JSON DTO update themselves: they consume the registry and `RESOURCE_KIND_LABELS`. The interactive scanner picker (see [how-it-works.md](./how-it-works.md#scanner-selection-the-wizard-and-its-escape-hatches)) also updates itself: it lists every `RESOURCE_KINDS` entry with its `RESOURCE_KIND_META` label, so a new kind appears in the checkbox list with no wizard-specific code to touch.
 
-**b)** Registration in the composition root (`analyze-waste.composition.ts`):
+**b)** Registration in `analyze-waste.composition.ts`: one entry in `ALWAYS_ON_SCANNERS` (or `LIVE_PRICING_SCANNERS` if the resource type needs `--live-pricing`) — not a loose `new Scanner(...)` call:
 
 ```typescript
-const scanners: WasteScannerPort[] = [
-  // … existing …
-  new AwsLogGroupScanner(pricing, accountId, new LogGroupWastePolicy(policyOptions)),
-];
+{
+  kind: 'log-group',
+  create: (ctx) => new AwsLogGroupScanner(ctx.pricing, ctx.accountId, new LogGroupWastePolicy(ctx.policyOptions)),
+},
 ```
+
+`assertRegistryMatchesResourceKinds()` throws at module load if you add a kind to `ResourceKind` and forget to register it here (or the reverse) — a missing/duplicated entry fails immediately, not silently at scan time.
 
 ---
 
@@ -290,11 +301,11 @@ Add the permission the new scanner requires to the README. For log groups:
 - [ ] Entity in `domain/src/entities/` implementing `WastedResource` (facts, not decisions)
 - [ ] Waste policy in `domain/src/policies/` + tests
 - [ ] `domain/src/index.ts` updated (entity + policy)
-- [ ] `PricingPort` + `prices.json` (+ `pricesAsOf` if re-verified) + `StaticPriceTableAdapter` + `mockPricing`
-- [ ] Scanner in `aws-adapter/src/scanners/` with the policy applied + tests
+- [ ] New price key in `prices.json` (+ `pricesAsOf` if re-verified) + `mockPricing`
+- [ ] Scanner in `aws-adapter/src/scanners/` (extends `CloudWatchIdleScanner` if it needs a metric) with required fields filtered via type-narrowing (not `!`), the policy applied, + tests
 - [ ] `aws-adapter/src/index.ts` updated; SDK dependency in the root `package.json`
 - [ ] Presenter in `resource-presenters.ts`
-- [ ] Scanner registered in `analyze-waste.composition.ts`
+- [ ] Scanner registered in `analyze-waste.composition.ts` (`ALWAYS_ON_SCANNERS` or `LIVE_PRICING_SCANNERS`)
 - [ ] README updated (resource table + IAM permissions)
 
 **What must NOT be touched** (if you find yourself modifying these, something went wrong): `AnalyzeCloudWasteUseCase`, `WastedResourcesSummary`, `WasteReportDto`, the three formatters.

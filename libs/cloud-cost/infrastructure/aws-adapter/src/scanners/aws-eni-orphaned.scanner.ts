@@ -4,11 +4,16 @@ import {
   DescribeNetworkInterfacesCommand,
   type NetworkInterface,
 } from '@aws-sdk/client-ec2';
-import { Result } from 'shared-kernel';
+import { Result, createLogger } from 'shared-kernel';
 import type { AwsRegion, WasteScannerPort, WastedResource } from 'cloud-cost-domain';
 import { OrphanedEni, OrphanedEniWastePolicy } from 'cloud-cost-domain';
 import { AwsAdapterError } from '../errors/aws-adapter.error';
 import { paginate } from '../utils/paginate';
+import { AWS_CLIENT_DEFAULTS } from '../utils/client-config';
+
+const logger = createLogger('cloudrift:scanner');
+
+type NetworkInterfaceWithId = NetworkInterface & { NetworkInterfaceId: string };
 
 /**
  * Rileva le ENI con Status=available (non attaccate). Nessun costo diretto
@@ -23,7 +28,7 @@ export class AwsEniOrphanedScanner implements WasteScannerPort {
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
-    const client = new EC2Client({ region: region.code });
+    const client = new EC2Client({ ...AWS_CLIENT_DEFAULTS, region: region.code });
     try {
       const rawEnis = await paginate<NetworkInterface>(async (cursor) => {
         const r = await client.send(
@@ -36,10 +41,15 @@ export class AwsEniOrphanedScanner implements WasteScannerPort {
       });
 
       const now = new Date();
-      const enis = rawEnis
+      const validEnis = rawEnis.filter((eni): eni is NetworkInterfaceWithId => !!eni.NetworkInterfaceId);
+      if (validEnis.length !== rawEnis.length) {
+        logger.debug(`${this.kind}: skipped ${rawEnis.length - validEnis.length} entries missing NetworkInterfaceId`);
+      }
+
+      const enis = validEnis
         .map((eni) =>
           new OrphanedEni({
-            networkInterfaceId: eni.NetworkInterfaceId!,
+            networkInterfaceId: eni.NetworkInterfaceId,
             region,
             accountId: this.accountId,
             vpcId: eni.VpcId ?? 'unknown',

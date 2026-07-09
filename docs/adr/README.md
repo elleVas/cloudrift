@@ -29,6 +29,7 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 | [0011](0011-live-pricing-gated-scanners.md) | EC2/RDS/ElastiCache underutilized scanners gated behind `--live-pricing` |
 | [0012](0012-ec2-price-on-demand.md) | EC2 per-instance-type price fetched on demand |
 | [0037](0037-pricing-extension-query-api-not-bulk.md) | New scanners' pricing extends the Query API, not the Bulk API |
+| [0045](0045-pricingport-single-getprice-method.md) | `PricingPort` collapsed to a single generic `getPrice(region, key)` |
 
 ## Architecture
 
@@ -44,6 +45,9 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 | [0020](0020-multicloud-path-deferred.md) | Multi-cloud: path kept open, not built now |
 | [0021](0021-wastereportdto-frontend-contract.md) | `WasteReportDto` as the future frontend's API contract |
 | [0042](0042-policy-as-code-external-opa-layer.md) | Policy-as-Code via an external OPA layer, not an embedded Rego engine |
+| [0046](0046-valueobject-deepequal.md) | `ValueObject.equals()` uses a recursive `deepEqual`, not `JSON.stringify` comparison |
+| [0049](0049-infrastructureerror-not-domainerror.md) | `AwsAdapterError` extends `InfrastructureError`, not `DomainError` |
+| [0051](0051-type-narrowing-guards-on-aws-responses.md) | Type-narrowing filters replace non-null assertions on AWS SDK responses |
 
 ## Stack
 
@@ -62,6 +66,11 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 | [0032](0032-pdfkit-for-pdf.md) | pdfkit for PDF report generation |
 | [0033](0033-no-di-framework.md) | No dependency injection framework |
 | [0041](0041-interactive-scanner-selection-wizard.md) | Interactive scanner-selection wizard (`@clack/prompts`), triggered by default |
+| [0043](0043-declarative-scanner-registry.md) | Declarative scanner registry replaces the composition-root wall of `new Scanner(...)` |
+| [0044](0044-cloudwatch-idle-scanner-template-method.md) | `CloudWatchIdleScanner` template method for the CloudWatch-based scanners |
+| [0047](0047-minimal-namespaced-debug-logger.md) | Minimal namespaced debug logger, gated by `DEBUG`, no dependency |
+| [0048](0048-zod-config-parsing.md) | Zod replaces the hand-written config parser |
+| [0050](0050-aws-client-retry-backoff.md) | AWS SDK clients get `maxAttempts: 3` by default, everywhere |
 
 ## Reporting
 

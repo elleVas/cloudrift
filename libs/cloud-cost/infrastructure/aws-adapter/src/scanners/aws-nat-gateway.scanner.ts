@@ -4,103 +4,81 @@ import {
   DescribeNatGatewaysCommand,
   type NatGateway as AwsNatGateway,
 } from '@aws-sdk/client-ec2';
-import {
-  CloudWatchClient,
-  GetMetricStatisticsCommand,
-} from '@aws-sdk/client-cloudwatch';
-import { Result } from 'shared-kernel';
-import type {
-  AwsRegion,
-  PricingPort,
-  WasteScannerPort,
-  WastedResource,
-} from 'cloud-cost-domain';
-import { NatGateway, NatGatewayWastePolicy } from 'cloud-cost-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import type { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
+import { createLogger } from 'shared-kernel';
+import type { AwsRegion, PricingPort } from 'cloud-cost-domain';
+import { NatGateway, NatGatewayWastePolicy, type WastePolicy } from 'cloud-cost-domain';
 import { paginate } from '../utils/paginate';
-import { mapWithConcurrency } from '../utils/map-with-concurrency';
+import { AWS_CLIENT_DEFAULTS } from '../utils/client-config';
+import { sumMetric, type MetricWindow } from '../utils/cloudwatch-metrics';
+import { CloudWatchIdleScanner } from './cloudwatch-idle.scanner';
 
 const DEFAULT_LOOKBACK_HOURS = 48;
-// Limits concurrent CloudWatch calls to avoid throttling on accounts
-// with many NAT Gateways.
-const CLOUDWATCH_CONCURRENCY = 5;
+const logger = createLogger('cloudrift:scanner');
 
-export class AwsNatGatewayScanner implements WasteScannerPort {
+/** A gateway with the ID guaranteed present: AWS always returns it, but the SDK type marks it optional. */
+type NatGatewayWithId = AwsNatGateway & { NatGatewayId: string };
+
+export class AwsNatGatewayScanner extends CloudWatchIdleScanner<EC2Client, NatGatewayWithId, number, NatGateway> {
   readonly kind = 'nat-gateway' as const;
+  protected readonly serviceLabel = 'NAT';
 
   constructor(
     private readonly pricing: PricingPort,
     private readonly accountId = 'unknown',
-    private readonly policy = new NatGatewayWastePolicy(),
-    private readonly windowHours = DEFAULT_LOOKBACK_HOURS,
-  ) {}
+    policy: WastePolicy<NatGateway> = new NatGatewayWastePolicy(),
+    windowHours = DEFAULT_LOOKBACK_HOURS,
+  ) {
+    super(policy, windowHours);
+  }
 
-  async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
-    const ec2 = new EC2Client({ region: region.code });
-    const cw = new CloudWatchClient({ region: region.code });
-    try {
-      const gateways = await paginate<AwsNatGateway>(async (cursor) => {
-        const r = await ec2.send(
-          new DescribeNatGatewaysCommand({
-            Filter: [{ Name: 'state', Values: ['available'] }],
-            NextToken: cursor,
-          }),
-        );
-        return { items: r.NatGateways ?? [], cursor: r.NextToken };
-      });
+  protected createPrimaryClient(region: AwsRegion): EC2Client {
+    return new EC2Client({ ...AWS_CLIENT_DEFAULTS, region: region.code });
+  }
 
-      if (gateways.length === 0) return Result.ok([]);
+  protected destroyPrimaryClient(client: EC2Client): void {
+    client.destroy();
+  }
 
-      const endTime = new Date();
-      const startTime = new Date(endTime.getTime() - this.windowHours * 60 * 60 * 1000);
-      const monthlyCostUsd = this.pricing.getNatGatewayPricePerMonth(region);
-
-      const bytesPerGateway = await mapWithConcurrency(
-        gateways,
-        CLOUDWATCH_CONCURRENCY,
-        async (gw) => {
-          const metrics = await cw.send(
-            new GetMetricStatisticsCommand({
-              Namespace: 'AWS/NATGateway',
-              MetricName: 'BytesOutToDestination',
-              Dimensions: [{ Name: 'NatGatewayId', Value: gw.NatGatewayId! }],
-              StartTime: startTime,
-              EndTime: endTime,
-              Period: this.windowHours * 3600,
-              Statistics: ['Sum'],
-            }),
-          );
-          return metrics.Datapoints?.[0]?.Sum ?? 0;
-        },
+  protected async listResources(client: EC2Client): Promise<NatGatewayWithId[]> {
+    const gateways = await paginate<AwsNatGateway>(async (cursor) => {
+      const r = await client.send(
+        new DescribeNatGatewaysCommand({
+          Filter: [{ Name: 'state', Values: ['available'] }],
+          NextToken: cursor,
+        }),
       );
-
-      const now = new Date();
-      const idle = gateways
-        .map(
-          (gw, index) =>
-            new NatGateway({
-              natGatewayId: gw.NatGatewayId!,
-              region,
-              accountId: this.accountId,
-              vpcId: gw.VpcId ?? 'unknown',
-              createTime: gw.CreateTime ?? new Date(0),
-              detectedAt: now,
-              bytesOutLastWindow: bytesPerGateway[index],
-              metricWindowHours: this.windowHours,
-              tags: Object.fromEntries(
-                (gw.Tags ?? []).map((t) => [t.Key ?? '', t.Value ?? '']),
-              ),
-              monthlyCostUsd,
-            }),
-        )
-        .filter((gateway) => this.policy.evaluate(gateway, now).isWaste);
-
-      return Result.ok(idle);
-    } catch (err) {
-      return Result.fail(new AwsAdapterError('NAT', err as Error));
-    } finally {
-      ec2.destroy();
-      cw.destroy();
+      return { items: r.NatGateways ?? [], cursor: r.NextToken };
+    });
+    const valid = gateways.filter((gw): gw is NatGatewayWithId => !!gw.NatGatewayId);
+    if (valid.length !== gateways.length) {
+      logger.debug(`${this.kind}: skipped ${gateways.length - valid.length} entries missing NatGatewayId`);
     }
+    return valid;
+  }
+
+  protected fetchMetric(cw: CloudWatchClient, region: AwsRegion, gw: NatGatewayWithId, window: MetricWindow) {
+    return sumMetric(
+      cw,
+      'AWS/NATGateway',
+      'BytesOutToDestination',
+      [{ Name: 'NatGatewayId', Value: gw.NatGatewayId }],
+      window,
+    );
+  }
+
+  protected toEntity(gw: NatGatewayWithId, bytesOutLastWindow: number, _prices: Map<string, number>, region: AwsRegion, now: Date): NatGateway {
+    return new NatGateway({
+      natGatewayId: gw.NatGatewayId,
+      region,
+      accountId: this.accountId,
+      vpcId: gw.VpcId ?? 'unknown',
+      createTime: gw.CreateTime ?? new Date(0),
+      detectedAt: now,
+      bytesOutLastWindow,
+      metricWindowHours: this.windowHours,
+      tags: Object.fromEntries((gw.Tags ?? []).map((t) => [t.Key ?? '', t.Value ?? ''])),
+      monthlyCostUsd: this.pricing.getPrice(region, 'nat-gateway'),
+    });
   }
 }

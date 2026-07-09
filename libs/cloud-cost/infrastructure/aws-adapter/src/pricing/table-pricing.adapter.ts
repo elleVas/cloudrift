@@ -36,68 +36,8 @@ export class TablePricingAdapter implements PricingPort {
     private readonly pricesAsOf: string,
   ) {}
 
-  private lookup(region: AwsRegion, key: string): number | undefined {
-    return this.table[region.code]?.[key] ?? this.table.default?.[key];
-  }
-
-  getEbsVolumePricePerGbMonth(region: AwsRegion, volumeType: string): number {
-    return this.lookup(region, `ebs-${volumeType}`) ?? this.table.default?.['ebs-gp3'] ?? 0;
-  }
-
-  getEbsSnapshotPricePerGbMonth(region: AwsRegion): number {
-    return this.lookup(region, 'ebs-snapshot') ?? 0;
-  }
-
-  getElasticIpPricePerMonth(region: AwsRegion): number {
-    return this.lookup(region, 'elastic-ip') ?? 0;
-  }
-
-  getRdsStoragePricePerGbMonth(region: AwsRegion, storageType: string): number {
-    return this.lookup(region, `rds-${storageType}`) ?? this.table.default?.['rds-gp2'] ?? 0;
-  }
-
-  getLoadBalancerPricePerMonth(region: AwsRegion): number {
-    return this.lookup(region, 'load-balancer') ?? 0;
-  }
-
-  getNatGatewayPricePerMonth(region: AwsRegion): number {
-    return this.lookup(region, 'nat-gateway') ?? 0;
-  }
-
-  getLogGroupPricePerGbMonth(region: AwsRegion): number {
-    return this.lookup(region, 'cw-logs') ?? 0;
-  }
-
-  getS3StandardPricePerGbMonth(region: AwsRegion): number {
-    return this.lookup(region, 's3-standard') ?? 0;
-  }
-
-  getEfsStandardPricePerGbMonth(region: AwsRegion): number {
-    return this.lookup(region, 'efs-standard') ?? 0;
-  }
-
-  getDynamoDbRcuPricePerHour(region: AwsRegion): number {
-    return this.lookup(region, 'dynamodb-rcu') ?? 0;
-  }
-
-  getDynamoDbWcuPricePerHour(region: AwsRegion): number {
-    return this.lookup(region, 'dynamodb-wcu') ?? 0;
-  }
-
-  getFsxStoragePricePerGbMonth(region: AwsRegion, fileSystemType: string): number {
-    return this.lookup(region, `fsx-${fileSystemType.toLowerCase()}`) ?? this.table.default?.['fsx-windows'] ?? 0;
-  }
-
-  getVpnConnectionPricePerMonth(region: AwsRegion): number {
-    return this.lookup(region, 'vpn-connection') ?? 0;
-  }
-
-  getTransitGatewayAttachmentPricePerMonth(region: AwsRegion): number {
-    return this.lookup(region, 'transit-gateway-attachment') ?? 0;
-  }
-
-  getKinesisShardPricePerMonth(region: AwsRegion): number {
-    return this.lookup(region, 'kinesis-shard') ?? 0;
+  getPrice(region: AwsRegion, key: string): number {
+    return this.table[region.code]?.[key] ?? this.table.default?.[key] ?? 0;
   }
 
   getPricesAsOf(): string {
