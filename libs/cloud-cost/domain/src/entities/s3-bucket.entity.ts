@@ -28,7 +28,7 @@ export class S3Bucket extends Entity<string> implements WastedResource {
 
   constructor(props: S3BucketProps) {
     super(props.bucketName);
-    this.props = Object.freeze({ ...props });
+    this.props = this.deepFreeze({ ...props });
   }
 
   get region(): AwsRegion { return this.props.region; }

@@ -24,7 +24,7 @@ export class FsxFileSystem extends Entity<string> implements WastedResource {
 
   constructor(props: FsxFileSystemProps) {
     super(props.fileSystemId);
-    this.props = Object.freeze({ ...props });
+    this.props = this.deepFreeze({ ...props });
   }
 
   get region(): AwsRegion { return this.props.region; }

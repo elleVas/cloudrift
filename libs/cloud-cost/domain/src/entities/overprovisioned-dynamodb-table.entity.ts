@@ -33,7 +33,7 @@ export class OverprovisionedDynamoDbTable extends Entity<string> implements Wast
 
   constructor(props: OverprovisionedDynamoDbTableProps) {
     super(props.tableName);
-    this.props = Object.freeze({ ...props });
+    this.props = this.deepFreeze({ ...props });
   }
 
   get region(): AwsRegion { return this.props.region; }

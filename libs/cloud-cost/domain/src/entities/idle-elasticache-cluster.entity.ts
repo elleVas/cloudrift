@@ -24,7 +24,7 @@ export class IdleElastiCacheCluster extends Entity<string> implements WastedReso
 
   constructor(props: IdleElastiCacheClusterProps) {
     super(props.cacheClusterId);
-    this.props = Object.freeze({ ...props });
+    this.props = this.deepFreeze({ ...props });
   }
 
   get region(): AwsRegion { return this.props.region; }

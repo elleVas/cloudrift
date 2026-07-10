@@ -21,7 +21,7 @@ export class ElasticIp extends Entity<string> implements WastedResource {
 
   constructor(props: ElasticIpProps) {
     super(props.allocationId);
-    this.props = Object.freeze({ ...props });
+    this.props = this.deepFreeze({ ...props });
   }
 
   get publicIp(): string { return this.props.publicIp; }
