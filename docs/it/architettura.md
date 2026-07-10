@@ -203,10 +203,13 @@ Le policy sono pura logica di dominio: si testano senza AWS, e i loro parametri 
 `AnalyzeCloudWasteUseCase` riceve un **array di `WasteScannerPort`** e non sa quanti o quali siano:
 
 ```typescript
-constructor(private readonly scanners: readonly WasteScannerPort[]) {}
+constructor(
+  private readonly scanners: readonly WasteScannerPort[],
+  private readonly scanConcurrency = 12,
+) {}
 ```
 
-Esegue gli scanner **in parallelo tra loro** e **in sequenza sulle regioni** (per non concentrare chiamate sulle stesse API regionali). Gli errori sono raccolti per coppia _(scanner, regione)_: il fallimento di una regione non scarta i risultati delle altre regioni né degli altri scanner. Il summary viene sempre restituito con i dati parziali e gli errori in `scanErrors`.
+Appiattisce ogni coppia _(scanner, regione)_ in una coda FIFO consumata da un **worker pool con un unico limite globale** (12 scan in-flight di default, qualsiasi mix scanner/regione — [ADR-0052](../adr/0052-global-scan-worker-pool.md)); i job sono accodati scanner-major, così il primo batch si spalma sulle regioni invece di concentrarsi sulla prima. Gli errori sono raccolti per coppia _(scanner, regione)_: il fallimento di una regione non scarta i risultati delle altre regioni né degli altri scanner. Il summary viene sempre restituito con i dati parziali e gli errori in `scanErrors`.
 
 `toWasteReportDto()` proietta il summary in **`WasteReportDto`**, una struttura JSON-safe (solo primitivi e stringhe ISO): è il contratto dati per qualunque presentazione, presente e futura (vedi [Frontend-readiness](#frontend-readiness)).
 

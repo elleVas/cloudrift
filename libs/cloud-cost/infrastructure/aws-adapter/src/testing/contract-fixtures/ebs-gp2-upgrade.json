@@ -1,0 +1,96 @@
+{
+  "kind": "ebs-gp2-upgrade",
+  "source": "localstack capture, 2026-07-10, scripts/capture-contract-fixtures.mjs",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "DescribeVolumesCommand": [
+      {
+        "Volumes": [
+          {
+            "VolumeType": "gp2",
+            "VolumeId": "vol-4f506c2fa11311198",
+            "Size": 8,
+            "SnapshotId": "",
+            "AvailabilityZone": "us-east-1a",
+            "State": "in-use",
+            "CreateTime": "2026-07-10T05:03:30.000Z",
+            "Attachments": [
+              {
+                "DeleteOnTermination": false,
+                "VolumeId": "vol-4f506c2fa11311198",
+                "InstanceId": "i-0a3030061541ff91b",
+                "Device": "/dev/sda1",
+                "State": "attached",
+                "AttachTime": "2026-07-10T05:03:30.000Z"
+              }
+            ],
+            "Encrypted": false
+          },
+          {
+            "VolumeType": "gp2",
+            "VolumeId": "vol-f5f072827273faa1f",
+            "Size": 8,
+            "SnapshotId": "",
+            "AvailabilityZone": "us-east-1a",
+            "State": "in-use",
+            "CreateTime": "2026-07-10T05:03:30.000Z",
+            "Attachments": [
+              {
+                "DeleteOnTermination": false,
+                "VolumeId": "vol-f5f072827273faa1f",
+                "InstanceId": "i-0a3030061541ff91b",
+                "Device": "/dev/sdf",
+                "State": "attached",
+                "AttachTime": "2026-07-10T05:03:30.000Z"
+              }
+            ],
+            "Encrypted": false
+          },
+          {
+            "VolumeType": "gp2",
+            "VolumeId": "vol-36e69696e43ec727f",
+            "Size": 8,
+            "SnapshotId": "",
+            "AvailabilityZone": "us-east-1a",
+            "State": "in-use",
+            "CreateTime": "2026-07-10T05:03:30.000Z",
+            "Attachments": [
+              {
+                "DeleteOnTermination": false,
+                "VolumeId": "vol-36e69696e43ec727f",
+                "InstanceId": "i-6769359938d0a4e10",
+                "Device": "/dev/sda1",
+                "State": "attached",
+                "AttachTime": "2026-07-10T05:03:30.000Z"
+              }
+            ],
+            "Encrypted": false
+          }
+        ],
+        "$metadata": {
+          "httpStatusCode": 200,
+          "requestId": "f0c6fbf5-b747-4c51-8241-37956ffcc666",
+          "attempts": 1,
+          "totalRetryDelay": 0
+        }
+      }
+    ]
+  },
+  "expected": {
+    "findings": [
+      {
+        "id": "vol-4f506c2fa11311198",
+        "monthlyCostUsd": 0.16
+      },
+      {
+        "id": "vol-f5f072827273faa1f",
+        "monthlyCostUsd": 0.16
+      },
+      {
+        "id": "vol-36e69696e43ec727f",
+        "monthlyCostUsd": 0.16
+      }
+    ]
+  }
+}

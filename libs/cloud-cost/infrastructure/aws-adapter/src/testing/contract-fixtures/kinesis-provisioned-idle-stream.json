@@ -1,0 +1,80 @@
+{
+  "kind": "kinesis-provisioned-idle-stream",
+  "source": "localstack capture, 2026-07-10, scripts/capture-contract-fixtures.mjs",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "ListStreamsCommand": [
+      {
+        "StreamNames": [
+          "cloudrift-e2e-1783659813220"
+        ],
+        "HasMoreStreams": false,
+        "$metadata": {
+          "httpStatusCode": 200,
+          "requestId": "292bd487-7d3b-488c-a8b5-6b6f5065c5d2",
+          "attempts": 1,
+          "totalRetryDelay": 0
+        }
+      }
+    ],
+    "DescribeStreamSummaryCommand": [
+      {
+        "StreamDescriptionSummary": {
+          "StreamName": "cloudrift-e2e-1783659813220",
+          "StreamARN": "arn:aws:kinesis:us-east-1:000000000000:stream/cloudrift-e2e-1783659813220",
+          "StreamStatus": "CREATING",
+          "RetentionPeriodHours": 24,
+          "StreamCreationTimestamp": "2026-07-10T05:03:35.120Z",
+          "EnhancedMonitoring": [
+            {
+              "ShardLevelMetrics": []
+            }
+          ],
+          "OpenShardCount": 1,
+          "StreamModeDetails": {
+            "StreamMode": "PROVISIONED"
+          },
+          "EncryptionType": "NONE",
+          "ConsumerCount": 0
+        },
+        "$metadata": {
+          "httpStatusCode": 200,
+          "requestId": "c012cd7a-dbac-4369-a5c5-ec59be4459d3",
+          "attempts": 1,
+          "totalRetryDelay": 0
+        }
+      }
+    ],
+    "GetMetricStatisticsCommand": [
+      {
+        "Label": "IncomingBytes",
+        "Datapoints": [],
+        "$metadata": {
+          "httpStatusCode": 200,
+          "requestId": "a4db1c4c-231d-4484-998f-8aeb006612e8",
+          "attempts": 1,
+          "totalRetryDelay": 0
+        }
+      },
+      {
+        "Label": "IncomingRecords",
+        "Datapoints": [],
+        "$metadata": {
+          "httpStatusCode": 200,
+          "requestId": "c77f9040-01f4-4b90-93ed-8fd28793023e",
+          "attempts": 1,
+          "totalRetryDelay": 0
+        }
+      }
+    ]
+  },
+  "expected": {
+    "findings": [
+      {
+        "id": "cloudrift-e2e-1783659813220",
+        "monthlyCostUsd": 10.95
+      }
+    ]
+  }
+}

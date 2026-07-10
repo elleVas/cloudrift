@@ -39,8 +39,8 @@ user: cloudrift analyze -r us-east-1 eu-west-1 [--format json|markdown] [--pdf] 
           │
           ▼
      AnalyzeCloudWasteUseCase.execute({ regions })
-     Runs the registered scanners in parallel (Promise.all, one per ResourceKind),
-     each scanner iterates the regions sequentially
+     Flattens (scanner × region) into a FIFO job queue consumed by a worker
+     pool (12 in-flight scans max, any scanner/region mix)
           │
      ┌─────────────┬─────────────┬─────────────┬─────────────┬─────────────┐
      ▼             ▼             ▼             ▼             ▼             ▼
@@ -166,22 +166,27 @@ The account ID is resolved via `sts:GetCallerIdentity` with the same credentials
 ### `AnalyzeCloudWasteUseCase` — Generic coordinator
 
 ```typescript
-await Promise.all(
-  this.scanners.map(async (scanner) => {
-    for (const region of request.regions) {        // sequential per region
-      const result = await scanner.scan(region);
-      if (result.ok) findings.push(...result.value);
-      else scanErrors.push({ kind: scanner.kind, region: region.code, error: result.error });
-    }
-  }),
+const jobs = this.scanners.flatMap((scanner) =>
+  request.regions.map((region) => ({ scanner, region })),
 );
+
+let nextJob = 0;
+const worker = async () => {
+  while (nextJob < jobs.length) {
+    const { scanner, region } = jobs[nextJob++];
+    const result = await scanner.scan(region);
+    if (result.ok) findings.push(...result.value);
+    else scanErrors.push({ kind: scanner.kind, region: region.code, error: result.error });
+  }
+};
+await Promise.all(Array.from({ length: workerCount }, () => worker())); // default 12
 ```
 
 Three properties worth noting:
 
 1. **Generic**: the coordinator does not know the resource types; adding a scanner does not modify it.
 2. **Error granularity per (scanner, region)**: if `eu-west-1` is not enabled, the `us-east-1` results for the same resource type survive, and the error reports both the kind and the region.
-3. **Concurrency profile**: parallel across resource types (different APIs), sequential across regions of the same type (same API in different regions) — to respect AWS rate limits.
+3. **Concurrency profile**: one global bound (12 in-flight scans by default, configurable via the use-case constructor) over every (scanner, region) pair — see [ADR-0052](../adr/0052-global-scan-worker-pool.md). Jobs are queued scanner-major, so the first batch the workers pull spreads across regions instead of concentrating on the first one; total scan time approaches `total work / 12` instead of `regions × slowest scanner`.
 
 The total cost is the sum of the findings' `costEstimate`s; failed types simply do not contribute (and the report flags the incompleteness).
 

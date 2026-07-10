@@ -1,0 +1,52 @@
+{
+  "kind": "documentdb-idle-instance",
+  "source": "transcribed from the AWS API reference (--live-pricing scanner, see ec2-underutilized.json), 2026-07-10 — expected cost = stub price 150",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "DescribeDBInstancesCommand": [
+      {
+        "DBInstances": [
+          {
+            "DBInstanceIdentifier": "docdb-analytics-1",
+            "DBInstanceClass": "db.r5.large",
+            "Engine": "docdb",
+            "DBInstanceStatus": "available",
+            "Endpoint": {
+              "Address": "docdb-analytics-1.c9akciq32.us-east-1.docdb.amazonaws.com",
+              "Port": 27017,
+              "HostedZoneId": "ZNKXH85TT8WVW"
+            },
+            "InstanceCreateTime": "2023-07-19T08:10:00.000Z",
+            "PreferredBackupWindow": "02:00-03:00",
+            "BackupRetentionPeriod": 1,
+            "AvailabilityZone": "us-east-1a",
+            "EngineVersion": "5.0.0",
+            "AutoMinorVersionUpgrade": true,
+            "PubliclyAccessible": false,
+            "DBClusterIdentifier": "docdb-analytics",
+            "StorageEncrypted": true,
+            "DbiResourceId": "db-DOCDBAAAABBBBCCCCDDDD",
+            "CACertificateIdentifier": "rds-ca-rsa2048-g1"
+          }
+        ],
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ],
+    "GetMetricStatisticsCommand": [
+      {
+        "Label": "DatabaseConnections",
+        "Datapoints": [],
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ]
+  },
+  "expected": {
+    "findings": [
+      {
+        "id": "docdb-analytics-1",
+        "monthlyCostUsd": 150
+      }
+    ]
+  }
+}

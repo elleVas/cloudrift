@@ -1,0 +1,50 @@
+{
+  "kind": "elasticache-idle",
+  "source": "transcribed from the AWS API reference (--live-pricing scanner, see ec2-underutilized.json), 2026-07-10 — expected cost = stub price 50 × 2 nodes",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "DescribeCacheClustersCommand": [
+      {
+        "CacheClusters": [
+          {
+            "CacheClusterId": "sessions-cache",
+            "ClientDownloadLandingPage": "https://console.aws.amazon.com/elasticache/home#client-download:",
+            "CacheNodeType": "cache.r6g.large",
+            "Engine": "redis",
+            "EngineVersion": "7.0.7",
+            "CacheClusterStatus": "available",
+            "NumCacheNodes": 2,
+            "PreferredAvailabilityZone": "us-east-1a",
+            "CacheClusterCreateTime": "2023-03-08T16:40:00.000Z",
+            "PreferredMaintenanceWindow": "sun:05:00-sun:06:00",
+            "CacheSubnetGroupName": "default",
+            "AutoMinorVersionUpgrade": true,
+            "SnapshotRetentionLimit": 0,
+            "SnapshotWindow": "04:30-05:30",
+            "AuthTokenEnabled": false,
+            "TransitEncryptionEnabled": false,
+            "AtRestEncryptionEnabled": false,
+            "ARN": "arn:aws:elasticache:us-east-1:000000000000:cluster:sessions-cache"
+          }
+        ],
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ],
+    "GetMetricStatisticsCommand": [
+      {
+        "Label": "CurrConnections",
+        "Datapoints": [],
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ]
+  },
+  "expected": {
+    "findings": [
+      {
+        "id": "sessions-cache",
+        "monthlyCostUsd": 100
+      }
+    ]
+  }
+}

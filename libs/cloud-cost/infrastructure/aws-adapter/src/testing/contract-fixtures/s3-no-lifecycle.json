@@ -1,0 +1,58 @@
+{
+  "kind": "s3-no-lifecycle",
+  "source": "localstack capture, 2026-07-10, scripts/capture-contract-fixtures.mjs",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "ListBucketsCommand": [
+      {
+        "Buckets": [
+          {
+            "Name": "cloudrift-e2e-1783659811310",
+            "CreationDate": "2026-07-10T05:03:31.000Z",
+            "BucketRegion": "us-east-1",
+            "BucketArn": "arn:aws:s3:::cloudrift-e2e-1783659811310"
+          }
+        ],
+        "Owner": {
+          "ID": "75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a"
+        },
+        "$metadata": {
+          "httpStatusCode": 200,
+          "requestId": "cfecc98f-628c-4664-a8c9-9f591f239c2e",
+          "extendedRequestId": "s9lzHYrFp76ZVxRcpX9+5cjAnEH2ROuNkd2BHfIa6UkFVdtjf5mKR3/eTPFvsiP/XV/VLi31234=",
+          "attempts": 1,
+          "totalRetryDelay": 0
+        }
+      }
+    ],
+    "GetBucketLifecycleConfigurationCommand": [
+      {
+        "$error": {
+          "name": "NoSuchLifecycleConfiguration",
+          "message": "The lifecycle configuration does not exist"
+        }
+      }
+    ],
+    "GetMetricStatisticsCommand": [
+      {
+        "Label": "BucketSizeBytes",
+        "Datapoints": [],
+        "$metadata": {
+          "httpStatusCode": 200,
+          "requestId": "9a16d09e-48fa-4d5a-8086-8264147e460b",
+          "attempts": 1,
+          "totalRetryDelay": 0
+        }
+      }
+    ]
+  },
+  "expected": {
+    "findings": [
+      {
+        "id": "cloudrift-e2e-1783659811310",
+        "monthlyCostUsd": 0
+      }
+    ]
+  }
+}

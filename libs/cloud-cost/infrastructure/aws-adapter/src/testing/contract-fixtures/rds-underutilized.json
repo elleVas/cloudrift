@@ -1,0 +1,52 @@
+{
+  "kind": "rds-underutilized",
+  "source": "transcribed from the AWS API reference (--live-pricing scanner, see ec2-underutilized.json), 2026-07-10 — expected cost = stub price 100 × RIGHTSIZE_SAVING_FRACTION 0.5",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "DescribeDBInstancesCommand": [
+      {
+        "DBInstances": [
+          {
+            "DBInstanceIdentifier": "analytics-db",
+            "DBInstanceClass": "db.r5.large",
+            "Engine": "postgres",
+            "DBInstanceStatus": "available",
+            "MasterUsername": "analytics",
+            "Endpoint": {
+              "Address": "analytics-db.c9akciq32.us-east-1.rds.amazonaws.com",
+              "Port": 5432,
+              "HostedZoneId": "Z2R2ITUGPM61AM"
+            },
+            "AllocatedStorage": 200,
+            "InstanceCreateTime": "2023-06-15T13:00:00.000Z",
+            "AvailabilityZone": "us-east-1b",
+            "MultiAZ": false,
+            "EngineVersion": "15.4",
+            "PubliclyAccessible": false,
+            "StorageType": "gp3",
+            "StorageEncrypted": true,
+            "DbiResourceId": "db-MNOPQRSTUVWX0987654321",
+            "TagList": [{ "Key": "team", "Value": "data" }]
+          }
+        ],
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ],
+    "GetMetricStatisticsCommand": [
+      {
+        "Label": "CPUUtilization",
+        "Datapoints": [],
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ]
+  },
+  "expected": {
+    "findings": [
+      {
+        "id": "analytics-db",
+        "monthlyCostUsd": 50
+      }
+    ]
+  }
+}

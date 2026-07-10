@@ -1,0 +1,61 @@
+{
+  "kind": "opensearch-idle-domain",
+  "source": "transcribed from the AWS API reference (--live-pricing scanner, see ec2-underutilized.json), 2026-07-10 — expected cost = stub price 120 × 3 instances",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "ListDomainNamesCommand": [
+      {
+        "DomainNames": [{ "DomainName": "search-logs", "EngineType": "OpenSearch" }],
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ],
+    "DescribeDomainsCommand": [
+      {
+        "DomainStatusList": [
+          {
+            "DomainId": "000000000000/search-logs",
+            "DomainName": "search-logs",
+            "ARN": "arn:aws:es:us-east-1:000000000000:domain/search-logs",
+            "Created": true,
+            "Deleted": false,
+            "Endpoint": "search-search-logs-abc123def456.us-east-1.es.amazonaws.com",
+            "Processing": false,
+            "UpgradeProcessing": false,
+            "EngineVersion": "OpenSearch_2.11",
+            "ClusterConfig": {
+              "InstanceType": "r6g.large.search",
+              "InstanceCount": 3,
+              "DedicatedMasterEnabled": false,
+              "ZoneAwarenessEnabled": true,
+              "ZoneAwarenessConfig": { "AvailabilityZoneCount": 3 },
+              "WarmEnabled": false,
+              "ColdStorageOptions": { "Enabled": false }
+            },
+            "EBSOptions": { "EBSEnabled": true, "VolumeType": "gp3", "VolumeSize": 100 },
+            "AccessPolicies": "{}",
+            "SnapshotOptions": { "AutomatedSnapshotStartHour": 0 },
+            "NodeToNodeEncryptionOptions": { "Enabled": true },
+            "EncryptionAtRestOptions": { "Enabled": true }
+          }
+        ],
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ],
+    "GetMetricStatisticsCommand": [
+      {
+        "Label": "SearchRate",
+        "Datapoints": [],
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ]
+  },
+  "expected": {
+    "findings": [
+      {
+        "id": "search-logs",
+        "monthlyCostUsd": 360
+      }
+    ]
+  }
+}

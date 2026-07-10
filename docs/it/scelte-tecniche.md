@@ -76,8 +76,7 @@ try {
 ```
 
 **Rate limiting — regole di concorrenza coerenti:**
-- Scanner diversi (API diverse) → in parallelo
-- Stesso scanner su più regioni → in sequenza
+- Coppie (scanner, regione) → worker pool con un unico limite globale (12 scan in-flight di default, qualsiasi mix), accodate scanner-major così il primo batch si spalma sulle regioni — vedi [ADR-0052](../adr/0052-global-scan-worker-pool.md)
 - Fan-out interno a uno scanner (es. una chiamata CloudWatch per NAT Gateway) → `mapWithConcurrency` con limite (5)
 
 **Validazione dei campi richiesti:** gli scanner non leggono mai un campo richiesto dalla risposta AWS con una non-null assertion nuda (`v.VolumeId!`). Invece, un tipo intersezione locale più un `.filter()` a restringimento di tipo subito dopo il fetch esclude le entry malformate e logga quante ne sono state scartate (`DEBUG=cloudrift:*`) — vedi [ADR-0051](../adr/0051-type-narrowing-guards-on-aws-responses.md).

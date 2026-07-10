@@ -1,0 +1,78 @@
+{
+  "kind": "load-balancer",
+  "source": "transcribed from the AWS API reference (elbv2 is not in the LocalStack Community license), 2026-07-10",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "DescribeLoadBalancersCommand": [
+      {
+        "LoadBalancers": [
+          {
+            "LoadBalancerArn": "arn:aws:elasticloadbalancing:us-east-1:000000000000:loadbalancer/app/legacy-web/50dc6c495c0c9188",
+            "DNSName": "legacy-web-1234567890.us-east-1.elb.amazonaws.com",
+            "CanonicalHostedZoneId": "Z35SXDOTRQ7X7K",
+            "CreatedTime": "2024-03-05T10:00:00.000Z",
+            "LoadBalancerName": "legacy-web",
+            "Scheme": "internet-facing",
+            "VpcId": "vpc-0a1b2c3d4e5f67890",
+            "State": { "Code": "active" },
+            "Type": "application",
+            "AvailabilityZones": [
+              { "ZoneName": "us-east-1a", "SubnetId": "subnet-0aa11bb22cc33dd44" },
+              { "ZoneName": "us-east-1b", "SubnetId": "subnet-0ee55ff66aa77bb88" }
+            ],
+            "SecurityGroups": ["sg-0123456789abcdef0"],
+            "IpAddressType": "ipv4"
+          },
+          {
+            "LoadBalancerArn": "arn:aws:elasticloadbalancing:us-east-1:000000000000:loadbalancer/gwy/appliances/1234567890abcdef",
+            "CreatedTime": "2024-03-05T10:00:00.000Z",
+            "LoadBalancerName": "appliances",
+            "VpcId": "vpc-0a1b2c3d4e5f67890",
+            "State": { "Code": "active" },
+            "Type": "gateway",
+            "AvailabilityZones": [{ "ZoneName": "us-east-1a", "SubnetId": "subnet-0aa11bb22cc33dd44" }],
+            "IpAddressType": "ipv4"
+          }
+        ],
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ],
+    "DescribeTargetGroupsCommand": [
+      {
+        "TargetGroups": [
+          {
+            "TargetGroupArn": "arn:aws:elasticloadbalancing:us-east-1:000000000000:targetgroup/legacy-web-tg/73e2d6bc24d8a067",
+            "TargetGroupName": "legacy-web-tg",
+            "Protocol": "HTTP",
+            "Port": 80,
+            "VpcId": "vpc-0a1b2c3d4e5f67890",
+            "HealthCheckProtocol": "HTTP",
+            "HealthCheckPort": "traffic-port",
+            "HealthCheckEnabled": true,
+            "HealthCheckPath": "/",
+            "TargetType": "instance",
+            "LoadBalancerArns": [
+              "arn:aws:elasticloadbalancing:us-east-1:000000000000:loadbalancer/app/legacy-web/50dc6c495c0c9188"
+            ]
+          }
+        ],
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ],
+    "DescribeTargetHealthCommand": [
+      {
+        "TargetHealthDescriptions": [],
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ]
+  },
+  "expected": {
+    "findings": [
+      {
+        "id": "arn:aws:elasticloadbalancing:us-east-1:000000000000:loadbalancer/app/legacy-web/50dc6c495c0c9188",
+        "monthlyCostUsd": 16.2
+      }
+    ]
+  }
+}

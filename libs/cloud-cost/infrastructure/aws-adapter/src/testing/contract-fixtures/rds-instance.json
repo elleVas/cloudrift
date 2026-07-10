@@ -1,0 +1,50 @@
+{
+  "kind": "rds-instance",
+  "source": "transcribed from the AWS API reference (LocalStack Community rejects RDS), 2026-07-10",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "DescribeDBInstancesCommand": [
+      {
+        "DBInstances": [
+          {
+            "DBInstanceIdentifier": "legacy-reports-db",
+            "DBInstanceClass": "db.t3.medium",
+            "Engine": "postgres",
+            "DBInstanceStatus": "stopped",
+            "MasterUsername": "reports",
+            "DBName": "reports",
+            "Endpoint": {
+              "Address": "legacy-reports-db.c9akciq32.us-east-1.rds.amazonaws.com",
+              "Port": 5432,
+              "HostedZoneId": "Z2R2ITUGPM61AM"
+            },
+            "AllocatedStorage": 100,
+            "InstanceCreateTime": "2023-02-01T09:30:00.000Z",
+            "PreferredBackupWindow": "03:00-04:00",
+            "BackupRetentionPeriod": 7,
+            "AvailabilityZone": "us-east-1a",
+            "MultiAZ": false,
+            "EngineVersion": "15.4",
+            "AutoMinorVersionUpgrade": true,
+            "PubliclyAccessible": false,
+            "StorageType": "gp2",
+            "StorageEncrypted": true,
+            "DbiResourceId": "db-ABCDEFGHIJKL1234567890",
+            "DeletionProtection": false,
+            "TagList": [{ "Key": "team", "Value": "analytics" }]
+          }
+        ],
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ]
+  },
+  "expected": {
+    "findings": [
+      {
+        "id": "legacy-reports-db",
+        "monthlyCostUsd": 11.5
+      }
+    ]
+  }
+}

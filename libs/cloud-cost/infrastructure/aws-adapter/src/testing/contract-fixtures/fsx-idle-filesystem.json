@@ -1,0 +1,53 @@
+{
+  "kind": "fsx-idle-filesystem",
+  "source": "transcribed from the AWS API reference (LocalStack rejects every FSx call outright), 2026-07-10",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "DescribeFileSystemsCommand": [
+      {
+        "FileSystems": [
+          {
+            "OwnerId": "000000000000",
+            "CreationTime": "2023-09-12T11:20:00.000Z",
+            "FileSystemId": "fs-0abcdef1234567890",
+            "FileSystemType": "WINDOWS",
+            "Lifecycle": "AVAILABLE",
+            "StorageCapacity": 300,
+            "StorageType": "SSD",
+            "VpcId": "vpc-0a1b2c3d4e5f67890",
+            "SubnetIds": ["subnet-0aa11bb22cc33dd44"],
+            "NetworkInterfaceIds": ["eni-0aa11bb22cc33dd44"],
+            "DNSName": "fs-0abcdef1234567890.corp.example.com",
+            "ResourceARN": "arn:aws:fsx:us-east-1:000000000000:file-system/fs-0abcdef1234567890",
+            "WindowsConfiguration": {
+              "ActiveDirectoryId": "d-1234567890",
+              "DeploymentType": "SINGLE_AZ_2",
+              "ThroughputCapacity": 32,
+              "PreferredSubnetId": "subnet-0aa11bb22cc33dd44",
+              "AutomaticBackupRetentionDays": 7,
+              "CopyTagsToBackups": false
+            },
+            "Tags": [{ "Key": "Name", "Value": "file-share-windows" }]
+          }
+        ],
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ],
+    "GetMetricStatisticsCommand": [
+      {
+        "Label": "DataReadBytes",
+        "Datapoints": [],
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ]
+  },
+  "expected": {
+    "findings": [
+      {
+        "id": "fs-0abcdef1234567890",
+        "monthlyCostUsd": 39
+      }
+    ]
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "kind": "redshift-idle-cluster",
+  "source": "transcribed from the AWS API reference (--live-pricing scanner, see ec2-underutilized.json), 2026-07-10 — expected cost = stub price 180 × 2 nodes",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "DescribeClustersCommand": [
+      {
+        "Clusters": [
+          {
+            "ClusterIdentifier": "legacy-dwh",
+            "NodeType": "dc2.large",
+            "ClusterStatus": "available",
+            "ClusterAvailabilityStatus": "Available",
+            "MasterUsername": "awsuser",
+            "DBName": "dev",
+            "Endpoint": { "Address": "legacy-dwh.cabc123def456.us-east-1.redshift.amazonaws.com", "Port": 5439 },
+            "ClusterCreateTime": "2022-12-01T10:00:00.000Z",
+            "AutomatedSnapshotRetentionPeriod": 1,
+            "ManualSnapshotRetentionPeriod": -1,
+            "VpcId": "vpc-0a1b2c3d4e5f67890",
+            "AvailabilityZone": "us-east-1c",
+            "PreferredMaintenanceWindow": "sat:03:30-sat:04:00",
+            "ClusterVersion": "1.0",
+            "AllowVersionUpgrade": true,
+            "NumberOfNodes": 2,
+            "PubliclyAccessible": false,
+            "Encrypted": true,
+            "EnhancedVpcRouting": false,
+            "Tags": [{ "Key": "env", "Value": "legacy" }]
+          }
+        ],
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ],
+    "GetMetricStatisticsCommand": [
+      {
+        "Label": "DatabaseConnections",
+        "Datapoints": [],
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ]
+  },
+  "expected": {
+    "findings": [
+      {
+        "id": "legacy-dwh",
+        "monthlyCostUsd": 360
+      }
+    ]
+  }
+}

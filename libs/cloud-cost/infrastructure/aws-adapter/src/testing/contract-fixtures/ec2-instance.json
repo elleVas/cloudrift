@@ -1,0 +1,164 @@
+{
+  "kind": "ec2-instance",
+  "source": "localstack capture, 2026-07-10, scripts/capture-contract-fixtures.mjs",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "DescribeInstancesCommand": [
+      {
+        "Reservations": [
+          {
+            "ReservationId": "r-a3f93ef1d346f07c0",
+            "OwnerId": "000000000000",
+            "Groups": [],
+            "Instances": [
+              {
+                "Architecture": "x86_64",
+                "BlockDeviceMappings": [
+                  {
+                    "DeviceName": "/dev/sda1",
+                    "Ebs": {
+                      "AttachTime": "2026-07-10T05:03:30.000Z",
+                      "DeleteOnTermination": true,
+                      "Status": "attached",
+                      "VolumeId": "vol-36e69696e43ec727f"
+                    }
+                  }
+                ],
+                "ClientToken": "c8db302b-926d-47b6-b83e-4da7def5ae3c",
+                "EbsOptimized": false,
+                "Hypervisor": "xen",
+                "NetworkInterfaces": [
+                  {
+                    "Association": {},
+                    "Attachment": {
+                      "AttachTime": "2026-07-10T05:03:30.000Z",
+                      "AttachmentId": "eni-attach-9049f6356103af1b5",
+                      "DeleteOnTermination": false,
+                      "DeviceIndex": 0,
+                      "Status": "attached",
+                      "NetworkCardIndex": 0
+                    },
+                    "Description": "Primary network interface",
+                    "Groups": [
+                      {
+                        "GroupId": "sg-c7b6006a10da58314",
+                        "GroupName": "default"
+                      }
+                    ],
+                    "Ipv6Addresses": [],
+                    "MacAddress": "02:00:00:15102x:4102x:11302x",
+                    "NetworkInterfaceId": "eni-62e8b57d4abe2ed59",
+                    "OwnerId": "000000000000",
+                    "PrivateDnsName": "ip-10-208-219-72.ec2.internal",
+                    "PrivateIpAddress": "10.208.219.72",
+                    "PrivateIpAddresses": [
+                      {
+                        "Primary": true,
+                        "PrivateIpAddress": "10.208.219.72"
+                      }
+                    ],
+                    "SourceDestCheck": true,
+                    "Status": "in-use",
+                    "SubnetId": "subnet-6522ad18cb448c00d",
+                    "VpcId": "vpc-e4c5a8da93374a4e5",
+                    "InterfaceType": "interface"
+                  }
+                ],
+                "RootDeviceName": "/dev/sda1",
+                "RootDeviceType": "ebs",
+                "SecurityGroups": [],
+                "SourceDestCheck": true,
+                "SriovNetSupport": "simple",
+                "StateReason": {
+                  "Code": "Client.UserInitiatedShutdown",
+                  "Message": "Client.UserInitiatedShutdown: User initiated shutdown"
+                },
+                "VirtualizationType": "paravirtual",
+                "HibernationOptions": {},
+                "MetadataOptions": {
+                  "State": "applied",
+                  "HttpTokens": "optional",
+                  "HttpPutResponseHopLimit": 1,
+                  "HttpEndpoint": "enabled",
+                  "HttpProtocolIpv6": "disabled",
+                  "InstanceMetadataTags": "disabled"
+                },
+                "InstanceId": "i-6769359938d0a4e10",
+                "ImageId": "ami-0123456789abcdef0",
+                "State": {
+                  "Code": 80,
+                  "Name": "stopped"
+                },
+                "PrivateDnsName": "ip-10-208-219-72.ec2.internal",
+                "StateTransitionReason": "User initiated (2026-07-10 05:03:30 UTC)",
+                "AmiLaunchIndex": 0,
+                "ProductCodes": [],
+                "InstanceType": "t3.micro",
+                "LaunchTime": "2026-07-10T05:03:30.000Z",
+                "Placement": {
+                  "GroupName": "",
+                  "Tenancy": "default",
+                  "AvailabilityZone": "us-east-1a"
+                },
+                "KernelId": "None",
+                "Monitoring": {
+                  "State": "disabled"
+                },
+                "SubnetId": "subnet-6522ad18cb448c00d",
+                "VpcId": "vpc-e4c5a8da93374a4e5",
+                "PrivateIpAddress": "10.208.219.72"
+              }
+            ]
+          }
+        ],
+        "$metadata": {
+          "httpStatusCode": 200,
+          "requestId": "2c880520-f01b-4e47-9d67-d1a14ab5c061",
+          "attempts": 1,
+          "totalRetryDelay": 0
+        }
+      }
+    ],
+    "DescribeVolumesCommand": [
+      {
+        "Volumes": [
+          {
+            "VolumeType": "gp2",
+            "VolumeId": "vol-36e69696e43ec727f",
+            "Size": 8,
+            "SnapshotId": "",
+            "AvailabilityZone": "us-east-1a",
+            "State": "in-use",
+            "CreateTime": "2026-07-10T05:03:30.000Z",
+            "Attachments": [
+              {
+                "DeleteOnTermination": false,
+                "VolumeId": "vol-36e69696e43ec727f",
+                "InstanceId": "i-6769359938d0a4e10",
+                "Device": "/dev/sda1",
+                "State": "attached",
+                "AttachTime": "2026-07-10T05:03:30.000Z"
+              }
+            ],
+            "Encrypted": false
+          }
+        ],
+        "$metadata": {
+          "httpStatusCode": 200,
+          "requestId": "a780e72d-391e-48ce-9e87-64130f45ed5f",
+          "attempts": 1,
+          "totalRetryDelay": 0
+        }
+      }
+    ]
+  },
+  "expected": {
+    "findings": [
+      {
+        "id": "i-6769359938d0a4e10",
+        "monthlyCostUsd": 0.8
+      }
+    ]
+  }
+}

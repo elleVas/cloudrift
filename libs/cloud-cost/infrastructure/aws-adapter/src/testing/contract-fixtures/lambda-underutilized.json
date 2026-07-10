@@ -1,0 +1,73 @@
+{
+  "kind": "lambda-underutilized",
+  "source": "localstack capture, 2026-07-10, scripts/capture-contract-fixtures.mjs",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "ListFunctionsCommand": [
+      {
+        "Functions": [
+          {
+            "FunctionName": "cloudrift-e2e-1783659811447",
+            "FunctionArn": "arn:aws:lambda:us-east-1:000000000000:function:cloudrift-e2e-1783659811447",
+            "Runtime": "nodejs18.x",
+            "Role": "arn:aws:iam::000000000000:role/cloudrift-e2e-lambda-role",
+            "Handler": "index.handler",
+            "CodeSize": 219,
+            "Description": "",
+            "Timeout": 3,
+            "MemorySize": 128,
+            "LastModified": "2026-07-10T05:03:31.812836+0000",
+            "CodeSha256": "CNSYE1wd9AoerdzxZAZeTI5VJ3It2n+qKtDvLGqnc0s=",
+            "Version": "$LATEST",
+            "TracingConfig": {
+              "Mode": "PassThrough"
+            },
+            "RevisionId": "1e384212-ae7e-451b-80b6-56337a813989",
+            "PackageType": "Zip",
+            "Architectures": [
+              "x86_64"
+            ],
+            "EphemeralStorage": {
+              "Size": 512
+            },
+            "SnapStart": {
+              "ApplyOn": "None",
+              "OptimizationStatus": "Off"
+            },
+            "LoggingConfig": {
+              "LogFormat": "Text",
+              "LogGroup": "/aws/lambda/cloudrift-e2e-1783659811447"
+            }
+          }
+        ],
+        "$metadata": {
+          "httpStatusCode": 200,
+          "requestId": "fa85f965-8492-4375-ad17-c91536fd50f6",
+          "attempts": 1,
+          "totalRetryDelay": 0
+        }
+      }
+    ],
+    "GetMetricStatisticsCommand": [
+      {
+        "Label": "Invocations",
+        "Datapoints": [],
+        "$metadata": {
+          "httpStatusCode": 200,
+          "requestId": "30cea5eb-27a7-45b9-86ca-3006f24024f7",
+          "attempts": 1,
+          "totalRetryDelay": 0
+        }
+      }
+    ]
+  },
+  "expected": {
+    "findings": [
+      {
+        "id": "cloudrift-e2e-1783659811447",
+        "monthlyCostUsd": 0
+      }
+    ]
+  }
+}

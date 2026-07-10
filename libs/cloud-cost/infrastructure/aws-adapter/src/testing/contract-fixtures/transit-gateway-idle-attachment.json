@@ -1,0 +1,64 @@
+{
+  "kind": "transit-gateway-idle-attachment",
+  "source": "localstack capture, 2026-07-10, scripts/capture-contract-fixtures.mjs",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "DescribeTransitGatewayAttachmentsCommand": [
+      {
+        "TransitGatewayAttachments": [
+          {
+            "TransitGatewayAttachmentId": "tgw-attach-0df63717b833dd319",
+            "TransitGatewayId": "tgw-4397287b556280237",
+            "TransitGatewayOwnerId": "000000000000",
+            "ResourceOwnerId": "000000000000",
+            "ResourceType": "vpc",
+            "ResourceId": "vpc-8a1c8161fe3e32f8c",
+            "State": "available",
+            "Association": {
+              "TransitGatewayRouteTableId": "tgw-rtb-b0f19f663d90156cf",
+              "State": "associated"
+            },
+            "CreationTime": "2021-07-18T08:57:21.000Z"
+          }
+        ],
+        "$metadata": {
+          "httpStatusCode": 200,
+          "requestId": "8d127d04-e0ee-48dd-a152-dde9fcfffb69",
+          "attempts": 1,
+          "totalRetryDelay": 0
+        }
+      }
+    ],
+    "GetMetricStatisticsCommand": [
+      {
+        "Label": "BytesIn",
+        "Datapoints": [],
+        "$metadata": {
+          "httpStatusCode": 200,
+          "requestId": "431a5783-d5d2-47f6-b639-2b576dcae5b9",
+          "attempts": 1,
+          "totalRetryDelay": 0
+        }
+      },
+      {
+        "Label": "BytesOut",
+        "Datapoints": [],
+        "$metadata": {
+          "httpStatusCode": 200,
+          "requestId": "fdc0d942-5973-4f31-ac0f-381adfd04dff",
+          "attempts": 1,
+          "totalRetryDelay": 0
+        }
+      }
+    ]
+  },
+  "expected": {
+    "findings": [
+      {
+        "id": "tgw-attach-0df63717b833dd319",
+        "monthlyCostUsd": 36.5
+      }
+    ]
+  }
+}

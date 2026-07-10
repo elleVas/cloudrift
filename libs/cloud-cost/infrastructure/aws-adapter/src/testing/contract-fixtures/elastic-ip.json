@@ -1,0 +1,47 @@
+{
+  "kind": "elastic-ip",
+  "source": "localstack capture, 2026-07-10, scripts/capture-contract-fixtures.mjs",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "DescribeAddressesCommand": [
+      {
+        "Addresses": [
+          {
+            "AllocationId": "eipalloc-6cac4874ce21868e3",
+            "Domain": "vpc",
+            "NetworkInterfaceId": "",
+            "Tags": [],
+            "InstanceId": "",
+            "PublicIp": "127.85.88.249"
+          },
+          {
+            "AllocationId": "eipalloc-1133db1ef6fcdd65a",
+            "AssociationId": "eipassoc-4a55dac41b5710c6a",
+            "Domain": "vpc",
+            "NetworkInterfaceId": "eni-3edc8d042ea63eb74",
+            "NetworkInterfaceOwnerId": "000000000000",
+            "PrivateIpAddress": "10.193.67.75",
+            "Tags": [],
+            "InstanceId": "",
+            "PublicIp": "127.45.77.197"
+          }
+        ],
+        "$metadata": {
+          "httpStatusCode": 200,
+          "requestId": "ebf39a2b-03da-4877-a23b-271202c25be7",
+          "attempts": 1,
+          "totalRetryDelay": 0
+        }
+      }
+    ]
+  },
+  "expected": {
+    "findings": [
+      {
+        "id": "eipalloc-6cac4874ce21868e3",
+        "monthlyCostUsd": 3.6
+      }
+    ]
+  }
+}

@@ -48,6 +48,8 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 | [0046](0046-valueobject-deepequal.md) | `ValueObject.equals()` uses a recursive `deepEqual`, not `JSON.stringify` comparison |
 | [0049](0049-infrastructureerror-not-domainerror.md) | `AwsAdapterError` extends `InfrastructureError`, not `DomainError` |
 | [0051](0051-type-narrowing-guards-on-aws-responses.md) | Type-narrowing filters replace non-null assertions on AWS SDK responses |
+| [0052](0052-global-scan-worker-pool.md) | Global worker pool over (scanner, region) pairs in the use case |
+| [0053](0053-contract-tests-fixture-replay.md) | Contract tests replay real response fixtures through every scanner |
 
 ## Stack
 

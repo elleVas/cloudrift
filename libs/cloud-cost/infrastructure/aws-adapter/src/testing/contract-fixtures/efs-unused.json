@@ -1,0 +1,44 @@
+{
+  "kind": "efs-unused",
+  "source": "transcribed from the AWS API reference (LocalStack Community rejects EFS), 2026-07-10 — zero mount targets, so the scanner must not call CloudWatch at all (no GetMetricStatisticsCommand pages here)",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "DescribeFileSystemsCommand": [
+      {
+        "FileSystems": [
+          {
+            "OwnerId": "000000000000",
+            "CreationToken": "console-9c1782d5-6a72-4b0e-9c9f-0e5f2a1b3c4d",
+            "FileSystemId": "fs-0123456789abcdef0",
+            "FileSystemArn": "arn:aws:elasticfilesystem:us-east-1:000000000000:file-system/fs-0123456789abcdef0",
+            "CreationTime": "2023-05-20T14:45:00.000Z",
+            "LifeCycleState": "available",
+            "Name": "forgotten-share",
+            "NumberOfMountTargets": 0,
+            "SizeInBytes": {
+              "Value": 5368709120,
+              "Timestamp": "2026-07-09T00:00:00.000Z",
+              "ValueInIA": 0,
+              "ValueInStandard": 5368709120
+            },
+            "PerformanceMode": "generalPurpose",
+            "Encrypted": true,
+            "KmsKeyId": "arn:aws:kms:us-east-1:000000000000:key/1234abcd-12ab-34cd-56ef-1234567890ab",
+            "ThroughputMode": "bursting",
+            "Tags": [{ "Key": "Name", "Value": "forgotten-share" }]
+          }
+        ],
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ]
+  },
+  "expected": {
+    "findings": [
+      {
+        "id": "fs-0123456789abcdef0",
+        "monthlyCostUsd": 1.5
+      }
+    ]
+  }
+}
