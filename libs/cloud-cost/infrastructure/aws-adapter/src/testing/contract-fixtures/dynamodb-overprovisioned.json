@@ -1,0 +1,95 @@
+{
+  "kind": "dynamodb-overprovisioned",
+  "source": "localstack capture, 2026-07-10, scripts/capture-contract-fixtures.mjs",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "ListTablesCommand": [
+      {
+        "TableNames": [
+          "cloudrift-e2e-1783659811817"
+        ],
+        "$metadata": {
+          "httpStatusCode": 200,
+          "requestId": "3e06da26-65cd-47c5-b289-16f6af1bf7af",
+          "attempts": 1,
+          "totalRetryDelay": 0
+        }
+      }
+    ],
+    "DescribeTableCommand": [
+      {
+        "Table": {
+          "AttributeDefinitions": [
+            {
+              "AttributeName": "id",
+              "AttributeType": "S"
+            }
+          ],
+          "TableName": "cloudrift-e2e-1783659811817",
+          "KeySchema": [
+            {
+              "AttributeName": "id",
+              "KeyType": "HASH"
+            }
+          ],
+          "TableStatus": "ACTIVE",
+          "CreationDateTime": "2026-07-10T05:03:33.170Z",
+          "ProvisionedThroughput": {
+            "LastIncreaseDateTime": "1970-01-01T00:00:00.000Z",
+            "LastDecreaseDateTime": "1970-01-01T00:00:00.000Z",
+            "NumberOfDecreasesToday": 0,
+            "ReadCapacityUnits": 10,
+            "WriteCapacityUnits": 10
+          },
+          "TableSizeBytes": 0,
+          "ItemCount": 0,
+          "TableArn": "arn:aws:dynamodb:us-east-1:000000000000:table/cloudrift-e2e-1783659811817",
+          "TableId": "06df9e1c-5324-495c-8728-97563d678b9a",
+          "DeletionProtectionEnabled": false,
+          "WarmThroughput": {
+            "ReadUnitsPerSecond": 5,
+            "WriteUnitsPerSecond": 5,
+            "Status": "ACTIVE"
+          }
+        },
+        "$metadata": {
+          "httpStatusCode": 200,
+          "requestId": "8c65587d-8642-4c0d-974f-8fe4b3593428",
+          "attempts": 1,
+          "totalRetryDelay": 0
+        }
+      }
+    ],
+    "GetMetricStatisticsCommand": [
+      {
+        "Label": "ConsumedReadCapacityUnits",
+        "Datapoints": [],
+        "$metadata": {
+          "httpStatusCode": 200,
+          "requestId": "b99d27b3-e86e-47b7-9c58-dfe15fe134d9",
+          "attempts": 1,
+          "totalRetryDelay": 0
+        }
+      },
+      {
+        "Label": "ConsumedWriteCapacityUnits",
+        "Datapoints": [],
+        "$metadata": {
+          "httpStatusCode": 200,
+          "requestId": "c99f734f-6977-4201-b30b-275b8a33d6ce",
+          "attempts": 1,
+          "totalRetryDelay": 0
+        }
+      }
+    ]
+  },
+  "expected": {
+    "findings": [
+      {
+        "id": "cloudrift-e2e-1783659811817",
+        "monthlyCostUsd": 2.847
+      }
+    ]
+  }
+}

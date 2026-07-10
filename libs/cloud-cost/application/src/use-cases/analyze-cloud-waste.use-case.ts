@@ -12,16 +12,27 @@ import type {
 
 const logger = createLogger('cloudrift:scanner');
 
+/** Global bound on in-flight (scanner, region) scans, any mix. */
+const DEFAULT_SCAN_CONCURRENCY = 12;
+
 /**
- * Generic coordinator: runs the registered scanners (one per resource
- * type) in parallel with each other and in sequence over the regions, so as not
- * to concentrate simultaneous calls on the same regional APIs.
+ * Generic coordinator: every (scanner, region) pair becomes one job in a
+ * FIFO queue consumed by a small worker pool with a single global bound —
+ * instead of one unbounded Promise.all across scanners with regions in
+ * series, where the total in-flight load was `scanners × internal fan-out`
+ * on the first region and a multi-region scan took `regions × slowest
+ * scanner`. Jobs are queued scanner-major (s1×r1, s1×r2, ..., s2×r1), so
+ * the first batch the workers pull spreads across regions instead of
+ * concentrating on the first one.
  *
  * Errors are collected per (scanner, region): the failure of one
  * region does not discard the results of the others, nor those of the other scanners.
  */
 export class AnalyzeCloudWasteUseCase implements FindWastedResourcesUseCasePort {
-  constructor(private readonly scanners: readonly WasteScannerPort[]) {}
+  constructor(
+    private readonly scanners: readonly WasteScannerPort[],
+    private readonly scanConcurrency = DEFAULT_SCAN_CONCURRENCY,
+  ) {}
 
   async execute(
     request: FindWastedResourcesRequest,
@@ -29,34 +40,41 @@ export class AnalyzeCloudWasteUseCase implements FindWastedResourcesUseCasePort 
     const findings: WastedResource[] = [];
     const scanErrors: ResourceScanError[] = [];
 
-    await Promise.all(
-      this.scanners.map(async (scanner) => {
-        for (const region of request.regions) {
-          const startedAt = Date.now();
-          const result = await scanner.scan(region);
-          const durationMs = Date.now() - startedAt;
-          if (result.ok) {
-            logger.debug(`${scanner.kind} scan ok`, {
-              region: region.code,
-              durationMs,
-              findings: result.value.length,
-            });
-            findings.push(...result.value);
-          } else {
-            logger.debug(`${scanner.kind} scan failed`, {
-              region: region.code,
-              durationMs,
-              error: result.error.message,
-            });
-            scanErrors.push({
-              kind: scanner.kind,
-              region: region.code,
-              error: result.error,
-            });
-          }
-        }
-      }),
+    const jobs = this.scanners.flatMap((scanner) =>
+      request.regions.map((region) => ({ scanner, region })),
     );
+
+    let nextJob = 0;
+    const worker = async (): Promise<void> => {
+      while (nextJob < jobs.length) {
+        const { scanner, region } = jobs[nextJob++];
+        const startedAt = Date.now();
+        const result = await scanner.scan(region);
+        const durationMs = Date.now() - startedAt;
+        if (result.ok) {
+          logger.debug(`${scanner.kind} scan ok`, {
+            region: region.code,
+            durationMs,
+            findings: result.value.length,
+          });
+          findings.push(...result.value);
+        } else {
+          logger.debug(`${scanner.kind} scan failed`, {
+            region: region.code,
+            durationMs,
+            error: result.error.message,
+          });
+          scanErrors.push({
+            kind: scanner.kind,
+            region: region.code,
+            error: result.error,
+          });
+        }
+      }
+    };
+
+    const workerCount = Math.max(1, Math.min(this.scanConcurrency, jobs.length));
+    await Promise.all(Array.from({ length: workerCount }, () => worker()));
 
     let totalWasteMonthlyUsd = 0;
     let totalOptimizationMonthlyUsd = 0;

@@ -1,0 +1,58 @@
+{
+  "kind": "nat-gateway",
+  "source": "localstack capture, 2026-07-10, scripts/capture-contract-fixtures.mjs",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "DescribeNatGatewaysCommand": [
+      {
+        "NatGateways": [
+          {
+            "CreateTime": "2026-07-10T05:03:30.790Z",
+            "NatGatewayAddresses": [
+              {
+                "AllocationId": "eipalloc-1133db1ef6fcdd65a",
+                "NetworkInterfaceId": "eni-3edc8d042ea63eb74",
+                "PrivateIp": "10.193.67.75",
+                "PublicIp": "127.45.77.197",
+                "AssociationId": "eipassoc-4a55dac41b5710c6a"
+              }
+            ],
+            "NatGatewayId": "nat-4aaeb648ee0ab7620",
+            "State": "available",
+            "SubnetId": "subnet-f3053c5daab689490",
+            "VpcId": "vpc-4e3e65011a33e418b",
+            "Tags": [],
+            "ConnectivityType": "None"
+          }
+        ],
+        "$metadata": {
+          "httpStatusCode": 200,
+          "requestId": "1d3e601d-6bd8-4aef-a7bf-b77c822f70f7",
+          "attempts": 1,
+          "totalRetryDelay": 0
+        }
+      }
+    ],
+    "GetMetricStatisticsCommand": [
+      {
+        "Label": "BytesOutToDestination",
+        "Datapoints": [],
+        "$metadata": {
+          "httpStatusCode": 200,
+          "requestId": "43d5034c-e612-4512-9731-eef83f394725",
+          "attempts": 1,
+          "totalRetryDelay": 0
+        }
+      }
+    ]
+  },
+  "expected": {
+    "findings": [
+      {
+        "id": "nat-4aaeb648ee0ab7620",
+        "monthlyCostUsd": 32.4
+      }
+    ]
+  }
+}

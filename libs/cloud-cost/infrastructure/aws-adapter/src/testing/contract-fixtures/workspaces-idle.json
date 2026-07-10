@@ -1,0 +1,73 @@
+{
+  "kind": "workspaces-idle",
+  "source": "transcribed from the AWS API reference (--live-pricing scanner, see ec2-underutilized.json), 2026-07-10 — expected cost = stub price 35; the AUTO_STOP workspace must be filtered out before the connection-status batch",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "DescribeWorkspacesCommand": [
+      {
+        "Workspaces": [
+          {
+            "WorkspaceId": "ws-9x8y7z6w5",
+            "DirectoryId": "d-9067f6c44b",
+            "UserName": "mrossi",
+            "IpAddress": "10.0.3.15",
+            "State": "AVAILABLE",
+            "BundleId": "wsb-bh8rsxt14",
+            "SubnetId": "subnet-0aa11bb22cc33dd44",
+            "ComputerName": "WSAMZN-9X8Y7Z6W",
+            "WorkspaceProperties": {
+              "RunningMode": "ALWAYS_ON",
+              "RootVolumeSizeGib": 80,
+              "UserVolumeSizeGib": 50,
+              "ComputeTypeName": "STANDARD",
+              "OperatingSystemName": "WINDOWS_11"
+            },
+            "ModificationStates": []
+          },
+          {
+            "WorkspaceId": "ws-1a2b3c4d5",
+            "DirectoryId": "d-9067f6c44b",
+            "UserName": "gbianchi",
+            "IpAddress": "10.0.3.16",
+            "State": "AVAILABLE",
+            "BundleId": "wsb-bh8rsxt14",
+            "SubnetId": "subnet-0aa11bb22cc33dd44",
+            "ComputerName": "WSAMZN-1A2B3C4D",
+            "WorkspaceProperties": {
+              "RunningMode": "AUTO_STOP",
+              "RunningModeAutoStopTimeoutInMinutes": 60,
+              "RootVolumeSizeGib": 80,
+              "UserVolumeSizeGib": 50,
+              "ComputeTypeName": "STANDARD",
+              "OperatingSystemName": "WINDOWS_11"
+            },
+            "ModificationStates": []
+          }
+        ],
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ],
+    "DescribeWorkspacesConnectionStatusCommand": [
+      {
+        "WorkspacesConnectionStatus": [
+          {
+            "WorkspaceId": "ws-9x8y7z6w5",
+            "ConnectionState": "DISCONNECTED",
+            "ConnectionStateCheckTimestamp": "2026-07-09T23:00:00.000Z",
+            "LastKnownUserConnectionTimestamp": "2024-11-02T09:00:00.000Z"
+          }
+        ],
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ]
+  },
+  "expected": {
+    "findings": [
+      {
+        "id": "ws-9x8y7z6w5",
+        "monthlyCostUsd": 35
+      }
+    ]
+  }
+}

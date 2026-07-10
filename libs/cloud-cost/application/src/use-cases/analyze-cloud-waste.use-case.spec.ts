@@ -175,4 +175,51 @@ describe('AnalyzeCloudWasteUseCase', () => {
 
     expect(calls).toEqual(['us-east-1', 'eu-west-1']);
   });
+
+  it('bounds in-flight scans to the configured concurrency, across any scanner×region mix', async () => {
+    let inFlight = 0;
+    let peak = 0;
+    const slowScanner = (kind: ResourceKind): WasteScannerPort => ({
+      kind,
+      scan: async () => {
+        inFlight++;
+        peak = Math.max(peak, inFlight);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        inFlight--;
+        return Result.ok([]);
+      },
+    });
+
+    // 3 scanner × 2 regioni = 6 job, pool da 2 worker
+    const useCase = new AnalyzeCloudWasteUseCase(
+      [slowScanner('ebs-volume'), slowScanner('elastic-ip'), slowScanner('log-group')],
+      2,
+    );
+    await useCase.execute({ regions: [usEast, euWest] });
+
+    expect(peak).toBe(2);
+  });
+
+  it('scans regions of the same scanner concurrently when a worker is free', async () => {
+    // us-east-1 si sblocca solo quando parte eu-west-1: con il vecchio
+    // loop sequenziale per regione questo test andrebbe in timeout.
+    let releaseFirst!: () => void;
+    const firstBlocked = new Promise<void>((resolve) => (releaseFirst = resolve));
+    const scanner: WasteScannerPort = {
+      kind: 'ebs-volume',
+      scan: async (region) => {
+        if (region.code === 'us-east-1') {
+          await firstBlocked;
+        } else {
+          releaseFirst();
+        }
+        return Result.ok([]);
+      },
+    };
+
+    const useCase = new AnalyzeCloudWasteUseCase([scanner], 2);
+    const result = await useCase.execute({ regions: [usEast, euWest] });
+
+    expect(result.ok).toBe(true);
+  });
 });

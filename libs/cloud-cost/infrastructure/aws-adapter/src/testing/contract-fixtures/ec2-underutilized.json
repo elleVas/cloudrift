@@ -1,0 +1,56 @@
+{
+  "kind": "ec2-underutilized",
+  "source": "transcribed from the AWS API reference (--live-pricing scanners can't run against LocalStack: the Pricing API is a real signed endpoint), 2026-07-10 — expected cost = stub price 70 × RIGHTSIZE_SAVING_FRACTION 0.5",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "DescribeInstancesCommand": [
+      {
+        "Reservations": [
+          {
+            "ReservationId": "r-0aa11bb22cc33dd44",
+            "OwnerId": "000000000000",
+            "Groups": [],
+            "Instances": [
+              {
+                "InstanceId": "i-0b22cc33dd44ee55f",
+                "ImageId": "ami-0aabbccddeeff0011",
+                "State": { "Code": 16, "Name": "running" },
+                "PrivateDnsName": "ip-10-0-1-23.ec2.internal",
+                "InstanceType": "m5.large",
+                "LaunchTime": "2023-04-03T07:15:00.000Z",
+                "Placement": { "AvailabilityZone": "us-east-1a", "GroupName": "", "Tenancy": "default" },
+                "Monitoring": { "State": "disabled" },
+                "SubnetId": "subnet-0aa11bb22cc33dd44",
+                "VpcId": "vpc-0a1b2c3d4e5f67890",
+                "PrivateIpAddress": "10.0.1.23",
+                "Architecture": "x86_64",
+                "RootDeviceType": "ebs",
+                "RootDeviceName": "/dev/xvda",
+                "VirtualizationType": "hvm",
+                "EbsOptimized": true,
+                "Tags": [{ "Key": "Name", "Value": "batch-worker" }]
+              }
+            ]
+          }
+        ],
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ],
+    "GetMetricStatisticsCommand": [
+      {
+        "Label": "CPUUtilization",
+        "Datapoints": [],
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ]
+  },
+  "expected": {
+    "findings": [
+      {
+        "id": "i-0b22cc33dd44ee55f",
+        "monthlyCostUsd": 35
+      }
+    ]
+  }
+}

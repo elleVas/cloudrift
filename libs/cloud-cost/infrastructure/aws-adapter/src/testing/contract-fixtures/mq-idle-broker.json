@@ -1,0 +1,50 @@
+{
+  "kind": "mq-idle-broker",
+  "source": "transcribed from the AWS API reference (--live-pricing scanner, see ec2-underutilized.json), 2026-07-10 — expected cost = stub price 80 × 1 (SINGLE_INSTANCE)",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "ListBrokersCommand": [
+      {
+        "BrokerSummaries": [
+          {
+            "BrokerArn": "arn:aws:mq:us-east-1:000000000000:broker:legacy-broker:b-1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+            "BrokerId": "b-1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+            "BrokerName": "legacy-broker",
+            "BrokerState": "RUNNING",
+            "Created": "2023-02-14T09:45:00.000Z",
+            "DeploymentMode": "SINGLE_INSTANCE",
+            "EngineType": "ActiveMQ",
+            "HostInstanceType": "mq.m5.large"
+          },
+          {
+            "BrokerArn": "arn:aws:mq:us-east-1:000000000000:broker:rebooting-broker:b-9z8y7x6w-5v4u-3t2s-1r0q-9p8o7n6m5l4k",
+            "BrokerId": "b-9z8y7x6w-5v4u-3t2s-1r0q-9p8o7n6m5l4k",
+            "BrokerName": "rebooting-broker",
+            "BrokerState": "REBOOT_IN_PROGRESS",
+            "Created": "2023-02-14T09:45:00.000Z",
+            "DeploymentMode": "SINGLE_INSTANCE",
+            "EngineType": "ActiveMQ",
+            "HostInstanceType": "mq.m5.large"
+          }
+        ],
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ],
+    "GetMetricStatisticsCommand": [
+      {
+        "Label": "NetworkIn",
+        "Datapoints": [],
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ]
+  },
+  "expected": {
+    "findings": [
+      {
+        "id": "b-1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+        "monthlyCostUsd": 80
+      }
+    ]
+  }
+}

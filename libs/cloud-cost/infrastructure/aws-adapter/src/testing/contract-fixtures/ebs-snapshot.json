@@ -1,0 +1,128 @@
+{
+  "kind": "ebs-snapshot",
+  "source": "transcribed from the AWS API reference (a LocalStack capture would drag in moto's >1000 canned public snapshots), 2026-07-10 — also the pagination contract: the orphan snapshot lives on page 2, reachable only by following NextToken",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "DescribeSnapshotsCommand": [
+      {
+        "Snapshots": [
+          {
+            "SnapshotId": "snap-0aa11bb22cc33dd44",
+            "VolumeId": "vol-0f1e2d3c4b5a69788",
+            "State": "completed",
+            "StartTime": "2023-08-14T02:10:00.000Z",
+            "Progress": "100%",
+            "OwnerId": "000000000000",
+            "Description": "Created by CreateImage for ami-0aabbccddeeff0011",
+            "VolumeSize": 30,
+            "Encrypted": false,
+            "StorageTier": "standard",
+            "Tags": []
+          },
+          {
+            "SnapshotId": "snap-0bb22cc33dd44ee55",
+            "VolumeId": "vol-0123456789abcdef0",
+            "State": "completed",
+            "StartTime": "2023-08-14T02:15:00.000Z",
+            "Progress": "100%",
+            "OwnerId": "000000000000",
+            "Description": "nightly backup",
+            "VolumeSize": 50,
+            "Encrypted": true,
+            "StorageTier": "standard",
+            "Tags": [{ "Key": "backup", "Value": "nightly" }]
+          }
+        ],
+        "NextToken": "eyJ2IjoiMiIsInMiOiJzbmFwLTBiYjIyIn0=",
+        "$metadata": { "httpStatusCode": 200 }
+      },
+      {
+        "Snapshots": [
+          {
+            "SnapshotId": "snap-0f1e2d3c4b5a69788",
+            "VolumeId": "vol-0deadbeefdeadbee0",
+            "State": "completed",
+            "StartTime": "2022-11-30T04:00:00.000Z",
+            "Progress": "100%",
+            "OwnerId": "000000000000",
+            "Description": "pre-migration copy of decommissioned volume",
+            "VolumeSize": 20,
+            "Encrypted": false,
+            "StorageTier": "standard",
+            "Tags": []
+          }
+        ],
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ],
+    "DescribeVolumesCommand": [
+      {
+        "Volumes": [
+          {
+            "VolumeId": "vol-0123456789abcdef0",
+            "Size": 50,
+            "SnapshotId": "",
+            "AvailabilityZone": "us-east-1a",
+            "State": "in-use",
+            "CreateTime": "2023-01-10T08:00:00.000Z",
+            "Attachments": [
+              {
+                "VolumeId": "vol-0123456789abcdef0",
+                "InstanceId": "i-0aa11bb22cc33dd44",
+                "Device": "/dev/xvda",
+                "State": "attached",
+                "AttachTime": "2023-01-10T08:00:05.000Z",
+                "DeleteOnTermination": true
+              }
+            ],
+            "VolumeType": "gp3",
+            "Encrypted": true,
+            "MultiAttachEnabled": false
+          }
+        ],
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ],
+    "DescribeImagesCommand": [
+      {
+        "Images": [
+          {
+            "ImageId": "ami-0aabbccddeeff0011",
+            "ImageLocation": "000000000000/golden-web-2023-08",
+            "State": "available",
+            "OwnerId": "000000000000",
+            "Public": false,
+            "Architecture": "x86_64",
+            "CreationDate": "2023-08-14T02:20:00.000Z",
+            "Name": "golden-web-2023-08",
+            "RootDeviceType": "ebs",
+            "RootDeviceName": "/dev/xvda",
+            "VirtualizationType": "hvm",
+            "BlockDeviceMappings": [
+              {
+                "DeviceName": "/dev/xvda",
+                "Ebs": {
+                  "SnapshotId": "snap-0aa11bb22cc33dd44",
+                  "VolumeSize": 30,
+                  "DeleteOnTermination": true,
+                  "VolumeType": "gp2",
+                  "Encrypted": false
+                }
+              }
+            ]
+          }
+        ],
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ]
+  },
+  "expected": {
+    "findings": [
+      {
+        "id": "snap-0f1e2d3c4b5a69788",
+        "monthlyCostUsd": 1
+      }
+    ]
+  }
+}

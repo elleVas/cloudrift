@@ -1,0 +1,63 @@
+{
+  "kind": "msk-idle-cluster",
+  "source": "transcribed from the AWS API reference (--live-pricing scanner, see ec2-underutilized.json), 2026-07-10 — expected cost = stub price 60 × 3 broker nodes",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "ListClustersV2Command": [
+      {
+        "ClusterInfoList": [
+          {
+            "ActiveOperationArn": null,
+            "ClusterType": "PROVISIONED",
+            "ClusterArn": "arn:aws:kafka:us-east-1:000000000000:cluster/events-stream/11111111-2222-3333-4444-555555555555-1",
+            "ClusterName": "events-stream",
+            "CreationTime": "2023-01-25T12:00:00.000Z",
+            "CurrentVersion": "K3AEGXETSR30VB",
+            "State": "ACTIVE",
+            "Tags": {},
+            "Provisioned": {
+              "BrokerNodeGroupInfo": {
+                "BrokerAZDistribution": "DEFAULT",
+                "ClientSubnets": [
+                  "subnet-0aa11bb22cc33dd44",
+                  "subnet-0ee55ff66aa77bb88",
+                  "subnet-0cc99dd00ee11ff22"
+                ],
+                "InstanceType": "kafka.m5.large",
+                "SecurityGroups": ["sg-0123456789abcdef0"],
+                "StorageInfo": { "EbsStorageInfo": { "VolumeSize": 1000 } }
+              },
+              "CurrentBrokerSoftwareInfo": { "KafkaVersion": "3.5.1" },
+              "NumberOfBrokerNodes": 3,
+              "EnhancedMonitoring": "DEFAULT",
+              "OpenMonitoring": {
+                "Prometheus": {
+                  "JmxExporter": { "EnabledInBroker": false },
+                  "NodeExporter": { "EnabledInBroker": false }
+                }
+              },
+              "StorageMode": "LOCAL"
+            }
+          }
+        ],
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ],
+    "GetMetricStatisticsCommand": [
+      {
+        "Label": "BytesInPerSec",
+        "Datapoints": [],
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ]
+  },
+  "expected": {
+    "findings": [
+      {
+        "id": "events-stream",
+        "monthlyCostUsd": 180
+      }
+    ]
+  }
+}

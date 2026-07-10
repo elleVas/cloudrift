@@ -1,0 +1,37 @@
+{
+  "kind": "log-group",
+  "source": "localstack capture, 2026-07-10, scripts/capture-contract-fixtures.mjs",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "DescribeLogGroupsCommand": [
+      {
+        "logGroups": [
+          {
+            "logGroupName": "/cloudrift-e2e/1783659811243",
+            "creationTime": 1783659811306,
+            "metricFilterCount": 0,
+            "arn": "arn:aws:logs:us-east-1:000000000000:log-group:/cloudrift-e2e/1783659811243:*",
+            "storedBytes": 0,
+            "logGroupClass": "STANDARD",
+            "logGroupArn": "arn:aws:logs:us-east-1:000000000000:log-group:/cloudrift-e2e/1783659811243"
+          }
+        ],
+        "$metadata": {
+          "httpStatusCode": 200,
+          "requestId": "ef22a675-24b1-446d-9d7d-0d0595c48ced",
+          "attempts": 1,
+          "totalRetryDelay": 0
+        }
+      }
+    ]
+  },
+  "expected": {
+    "findings": [
+      {
+        "id": "/cloudrift-e2e/1783659811243",
+        "monthlyCostUsd": 0
+      }
+    ]
+  }
+}

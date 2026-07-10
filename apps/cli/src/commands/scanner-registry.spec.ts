@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { RESOURCE_KINDS } from 'cloud-cost-domain';
 import { AwsPricingApiAdapter, StaticPriceTableAdapter } from 'cloud-cost-infrastructure-aws-adapter';
-import { ALWAYS_ON_SCANNERS, LIVE_PRICING_SCANNERS, buildScanners } from './analyze-waste.composition';
+import { ALWAYS_ON_SCANNERS, LIVE_PRICING_SCANNERS, buildScanners } from './scanner-registry';
 
 const ctx = {
   pricing: new StaticPriceTableAdapter(),

@@ -1,0 +1,97 @@
+{
+  "kind": "eni-orphaned",
+  "source": "localstack capture, 2026-07-10, scripts/capture-contract-fixtures.mjs",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "DescribeNetworkInterfacesCommand": [
+      {
+        "NetworkInterfaces": [
+          {
+            "AvailabilityZone": "us-east-1a",
+            "Description": "",
+            "Groups": [
+              {
+                "GroupId": "sg-ba2bffcff9cd9a4b0",
+                "GroupName": "default"
+              }
+            ],
+            "InterfaceType": "interface",
+            "Ipv6Addresses": [],
+            "MacAddress": "02:00:00:18402x:15302x:17902x",
+            "NetworkInterfaceId": "eni-c6eb03805293022c9",
+            "OwnerId": "000000000000",
+            "PrivateIpAddress": "10.0.1.171",
+            "PrivateIpAddresses": [
+              {
+                "Primary": true,
+                "PrivateIpAddress": "10.0.1.171"
+              }
+            ],
+            "RequesterId": "AIDAIT2UOQQY3AUEMOTO",
+            "RequesterManaged": false,
+            "SourceDestCheck": true,
+            "Status": "available",
+            "SubnetId": "subnet-f3053c5daab689490",
+            "TagSet": [],
+            "VpcId": "vpc-4e3e65011a33e418b"
+          },
+          {
+            "Association": {
+              "AllocationId": "eipalloc-1133db1ef6fcdd65a",
+              "AssociationId": "eipassoc-4a55dac41b5710c6a",
+              "IpOwnerId": "000000000000",
+              "PublicDnsName": "ip-127-45-77-197.ec2.internal",
+              "PublicIp": "127.45.77.197"
+            },
+            "AvailabilityZone": "us-east-1a",
+            "Description": "",
+            "Groups": [
+              {
+                "GroupId": "sg-ba2bffcff9cd9a4b0",
+                "GroupName": "default"
+              }
+            ],
+            "InterfaceType": "interface",
+            "Ipv6Addresses": [],
+            "MacAddress": "02:00:00:13102x:8302x:18702x",
+            "NetworkInterfaceId": "eni-3edc8d042ea63eb74",
+            "OwnerId": "000000000000",
+            "PrivateIpAddress": "10.193.67.75",
+            "PrivateIpAddresses": [
+              {
+                "Primary": true,
+                "PrivateIpAddress": "10.193.67.75"
+              }
+            ],
+            "RequesterId": "AIDAIT2UOQQY3AUEMOTO",
+            "RequesterManaged": false,
+            "SourceDestCheck": true,
+            "Status": "available",
+            "SubnetId": "subnet-f3053c5daab689490",
+            "TagSet": [],
+            "VpcId": "vpc-4e3e65011a33e418b"
+          }
+        ],
+        "$metadata": {
+          "httpStatusCode": 200,
+          "requestId": "0437f0e2-7823-46da-b6ed-4f2966a7e578",
+          "attempts": 1,
+          "totalRetryDelay": 0
+        }
+      }
+    ]
+  },
+  "expected": {
+    "findings": [
+      {
+        "id": "eni-c6eb03805293022c9",
+        "monthlyCostUsd": 0
+      },
+      {
+        "id": "eni-3edc8d042ea63eb74",
+        "monthlyCostUsd": 0
+      }
+    ]
+  }
+}

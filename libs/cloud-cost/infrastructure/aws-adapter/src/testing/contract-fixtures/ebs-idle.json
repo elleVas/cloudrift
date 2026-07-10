@@ -1,0 +1,203 @@
+{
+  "kind": "ebs-idle",
+  "source": "localstack capture, 2026-07-10, scripts/capture-contract-fixtures.mjs",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "DescribeVolumesCommand": [
+      {
+        "Volumes": [
+          {
+            "VolumeType": "gp2",
+            "VolumeId": "vol-4f506c2fa11311198",
+            "Size": 8,
+            "SnapshotId": "",
+            "AvailabilityZone": "us-east-1a",
+            "State": "in-use",
+            "CreateTime": "2026-07-10T05:03:30.000Z",
+            "Attachments": [
+              {
+                "DeleteOnTermination": false,
+                "VolumeId": "vol-4f506c2fa11311198",
+                "InstanceId": "i-0a3030061541ff91b",
+                "Device": "/dev/sda1",
+                "State": "attached",
+                "AttachTime": "2026-07-10T05:03:30.000Z"
+              }
+            ],
+            "Encrypted": false
+          },
+          {
+            "VolumeType": "gp2",
+            "VolumeId": "vol-f5f072827273faa1f",
+            "Size": 8,
+            "SnapshotId": "",
+            "AvailabilityZone": "us-east-1a",
+            "State": "in-use",
+            "CreateTime": "2026-07-10T05:03:30.000Z",
+            "Attachments": [
+              {
+                "DeleteOnTermination": false,
+                "VolumeId": "vol-f5f072827273faa1f",
+                "InstanceId": "i-0a3030061541ff91b",
+                "Device": "/dev/sdf",
+                "State": "attached",
+                "AttachTime": "2026-07-10T05:03:30.000Z"
+              }
+            ],
+            "Encrypted": false
+          },
+          {
+            "Iops": 3000,
+            "VolumeType": "gp3",
+            "VolumeId": "vol-3b93d463099db024c",
+            "Size": 8,
+            "SnapshotId": "",
+            "AvailabilityZone": "us-east-1a",
+            "State": "in-use",
+            "CreateTime": "2026-07-10T05:03:30.000Z",
+            "Attachments": [
+              {
+                "DeleteOnTermination": false,
+                "VolumeId": "vol-3b93d463099db024c",
+                "InstanceId": "i-0a3030061541ff91b",
+                "Device": "/dev/sdg",
+                "State": "attached",
+                "AttachTime": "2026-07-10T05:03:30.000Z"
+              }
+            ],
+            "Encrypted": false
+          },
+          {
+            "VolumeType": "gp2",
+            "VolumeId": "vol-36e69696e43ec727f",
+            "Size": 8,
+            "SnapshotId": "",
+            "AvailabilityZone": "us-east-1a",
+            "State": "in-use",
+            "CreateTime": "2026-07-10T05:03:30.000Z",
+            "Attachments": [
+              {
+                "DeleteOnTermination": false,
+                "VolumeId": "vol-36e69696e43ec727f",
+                "InstanceId": "i-6769359938d0a4e10",
+                "Device": "/dev/sda1",
+                "State": "attached",
+                "AttachTime": "2026-07-10T05:03:30.000Z"
+              }
+            ],
+            "Encrypted": false
+          }
+        ],
+        "$metadata": {
+          "httpStatusCode": 200,
+          "requestId": "7302de8f-94d9-41b9-b932-42897b2f9931",
+          "attempts": 1,
+          "totalRetryDelay": 0
+        }
+      }
+    ],
+    "GetMetricStatisticsCommand": [
+      {
+        "Label": "VolumeWriteOps",
+        "Datapoints": [],
+        "$metadata": {
+          "httpStatusCode": 200,
+          "requestId": "60c80713-fdcf-427d-9326-54b39e1b3c80",
+          "attempts": 1,
+          "totalRetryDelay": 0
+        }
+      },
+      {
+        "Label": "VolumeWriteOps",
+        "Datapoints": [],
+        "$metadata": {
+          "httpStatusCode": 200,
+          "requestId": "75d959e4-7eb7-44be-bd7a-4f0bcd311706",
+          "attempts": 1,
+          "totalRetryDelay": 0
+        }
+      },
+      {
+        "Label": "VolumeReadOps",
+        "Datapoints": [],
+        "$metadata": {
+          "httpStatusCode": 200,
+          "requestId": "2ffa7810-012c-41ed-9b8a-f9b404dfc667",
+          "attempts": 1,
+          "totalRetryDelay": 0
+        }
+      },
+      {
+        "Label": "VolumeWriteOps",
+        "Datapoints": [],
+        "$metadata": {
+          "httpStatusCode": 200,
+          "requestId": "c3059861-7960-4fac-a4cb-b7ebb02192b4",
+          "attempts": 1,
+          "totalRetryDelay": 0
+        }
+      },
+      {
+        "Label": "VolumeReadOps",
+        "Datapoints": [],
+        "$metadata": {
+          "httpStatusCode": 200,
+          "requestId": "d7d8f9fc-2291-44e5-9917-ffd0ed252272",
+          "attempts": 1,
+          "totalRetryDelay": 0
+        }
+      },
+      {
+        "Label": "VolumeReadOps",
+        "Datapoints": [],
+        "$metadata": {
+          "httpStatusCode": 200,
+          "requestId": "87bc0f77-c477-4a53-9bde-70d5275ec728",
+          "attempts": 1,
+          "totalRetryDelay": 0
+        }
+      },
+      {
+        "Label": "VolumeWriteOps",
+        "Datapoints": [],
+        "$metadata": {
+          "httpStatusCode": 200,
+          "requestId": "108adff1-8b44-49d9-8e66-6c333c3fe8f0",
+          "attempts": 1,
+          "totalRetryDelay": 0
+        }
+      },
+      {
+        "Label": "VolumeReadOps",
+        "Datapoints": [],
+        "$metadata": {
+          "httpStatusCode": 200,
+          "requestId": "a6dfee87-6e7a-43a1-bcd6-c05be2998e77",
+          "attempts": 1,
+          "totalRetryDelay": 0
+        }
+      }
+    ]
+  },
+  "expected": {
+    "findings": [
+      {
+        "id": "vol-4f506c2fa11311198",
+        "monthlyCostUsd": 0.8
+      },
+      {
+        "id": "vol-f5f072827273faa1f",
+        "monthlyCostUsd": 0.8
+      },
+      {
+        "id": "vol-3b93d463099db024c",
+        "monthlyCostUsd": 0.64
+      },
+      {
+        "id": "vol-36e69696e43ec727f",
+        "monthlyCostUsd": 0.8
+      }
+    ]
+  }
+}

@@ -1,6 +1,6 @@
 # ADR-0025: AWS SDK v3 modular clients with explicit concurrency rules
 
-- **Status:** Accepted
+- **Status:** Accepted; the scheduling rule (parallel across scanners, sequential across regions) is superseded by [ADR-0052](0052-global-scan-worker-pool.md) — the modular-clients choice and the capped internal fan-out still stand
 
 ## Context
 

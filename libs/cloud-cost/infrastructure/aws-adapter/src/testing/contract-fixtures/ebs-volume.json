@@ -1,0 +1,39 @@
+{
+  "kind": "ebs-volume",
+  "source": "localstack capture, 2026-07-10, scripts/capture-contract-fixtures.mjs",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "DescribeVolumesCommand": [
+      {
+        "Volumes": [
+          {
+            "VolumeType": "gp2",
+            "VolumeId": "vol-24d0746583bb86cb0",
+            "Size": 4,
+            "SnapshotId": "",
+            "AvailabilityZone": "us-east-1a",
+            "State": "available",
+            "CreateTime": "2026-07-10T05:03:30.000Z",
+            "Attachments": [],
+            "Encrypted": false
+          }
+        ],
+        "$metadata": {
+          "httpStatusCode": 200,
+          "requestId": "969e5683-8b3e-4e6c-9a6b-7363b01e6f80",
+          "attempts": 1,
+          "totalRetryDelay": 0
+        }
+      }
+    ]
+  },
+  "expected": {
+    "findings": [
+      {
+        "id": "vol-24d0746583bb86cb0",
+        "monthlyCostUsd": 0.4
+      }
+    ]
+  }
+}
