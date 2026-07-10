@@ -103,6 +103,12 @@ async function main() {
     AWS_SECRET_ACCESS_KEY: 'test',
     AWS_DEFAULT_REGION: REGION,
     AWS_REGION: REGION,
+    // LocalStack Community's single-process gateway can't reliably absorb
+    // the production default (12, see ADR-0063) — forced down to 1 here,
+    // but still overridable (e.g. `CLOUDRIFT_SCAN_CONCURRENCY=3 pnpm nx run
+    // cli:e2e-localstack`, or via the CLOUDRIFT_SCAN_CONCURRENCY GitHub
+    // Actions variable in CI) for anyone tuning/investigating flakiness.
+    CLOUDRIFT_SCAN_CONCURRENCY: process.env.CLOUDRIFT_SCAN_CONCURRENCY || '1',
   };
   Object.assign(process.env, env);
 

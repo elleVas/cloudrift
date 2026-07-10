@@ -17,3 +17,5 @@ Terminal output needs colors and aligned tables, plus a clean machine-readable m
 ## Consequences
 
 `--format json` to stdout is safely pipeable into other tools. The file-output flags (`--json`/`--pdf`) are independent of `--format` and by default coexist with a printed table view; `--silent` (added later) suppresses that printed view for file-only runs.
+
+`chalk` is pinned to `^4.1.2`, not the latest major: chalk 5 is ESM-only, but `apps/cli`'s esbuild build keeps npm packages external `require()`s ([ADR-0024](0024-esnext-bundler-resolution.md)) — an ESM-only v5 package can't be `require()`d. v4 is the last CJS-compatible major and has no functional gap for this project's usage (color detection, `.bold`/`.red`/`.hex`, etc.).

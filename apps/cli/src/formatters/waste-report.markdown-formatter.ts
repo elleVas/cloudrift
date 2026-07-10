@@ -10,7 +10,7 @@ import type {
   WastedResourcesSummary,
 } from 'cloud-cost-domain';
 import { REPORT_CONTACT, REPORT_DISCLAIMER } from 'cloud-cost-application';
-import { presenterFor } from './resource-presenters';
+import { presenterFor, rowFor, recommendFor } from './resource-presenters';
 
 export interface MarkdownReportOptions {
   /** If set, the report shows whether the TOTAL WASTE exceeds the threshold (CI). */
@@ -152,7 +152,7 @@ export function formatWasteReportAsMarkdown(
   // Top recommendations (sorted by descending cost, all categories).
   const recommendations = RESOURCE_KINDS.flatMap((kind) =>
     grouped[kind].map((finding) => ({
-      text: presenterFor(kind).recommend(finding),
+      text: recommendFor(finding),
       cost: finding.costEstimate.monthlyCostUsd,
     })),
   ).sort((a, b) => b.cost - a.cost);
@@ -199,7 +199,7 @@ export function formatWasteReportAsMarkdown(
       lines.push(`|${header.map(() => '---').join('|')}|`);
       for (const finding of grouped[kind]) {
         const cells = [
-          ...presenter.row(finding).map(esc),
+          ...rowFor(finding).map(esc),
           money(finding.costEstimate.monthlyCostUsd),
         ];
         lines.push(`| ${cells.join(' | ')} |`);

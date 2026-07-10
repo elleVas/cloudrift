@@ -24,7 +24,7 @@ export class VpnConnection extends Entity<string> implements WastedResource {
 
   constructor(props: VpnConnectionProps) {
     super(props.vpnConnectionId);
-    this.props = Object.freeze({ ...props });
+    this.props = this.deepFreeze({ ...props });
   }
 
   get region(): AwsRegion { return this.props.region; }

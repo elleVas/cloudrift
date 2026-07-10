@@ -56,7 +56,7 @@ Questo documento spiega il perché di ogni scelta tecnologica nel progetto, con 
 **Perché:**
 - Modulare: si importa solo il client necessario
 - Client per-regione: ogni scanner crea un client con `{ ...AWS_CLIENT_DEFAULTS, region: region.code }` e lo distrugge nel `finally`
-- `AWS_CLIENT_DEFAULTS` (`utils/client-config.ts`) imposta `maxAttempts: 3`, attivando il retry/backoff nativo dell'SDK per throttling (429) ed errori 5xx transitori
+- `AWS_CLIENT_DEFAULTS` (`utils/client-config.ts`) imposta `maxAttempts: 3`, attivando il retry/backoff nativo dell'SDK per throttling (429) ed errori 5xx transitori, più un `NodeHttpHandler` con timeout di 5s per la connessione / 30s per la richiesta così un socket bloccato non può far restare uno scan appeso indefinitamente ([ADR-0058](../adr/0058-aws-client-request-timeout.md))
 - Tipizzazione migliore e supporto nativo a ESM
 
 **Pattern usato negli scanner:**
@@ -76,7 +76,7 @@ try {
 ```
 
 **Rate limiting — regole di concorrenza coerenti:**
-- Coppie (scanner, regione) → worker pool con un unico limite globale (12 scan in-flight di default, qualsiasi mix), accodate scanner-major così il primo batch si spalma sulle regioni — vedi [ADR-0052](../adr/0052-global-scan-worker-pool.md)
+- Coppie (scanner, regione) → worker pool con un unico limite globale (12 scan in-flight di default, qualsiasi mix, sovrascrivibile via `CLOUDRIFT_SCAN_CONCURRENCY` — l'harness e2e su LocalStack lo forza a 1, vedi [ADR-0063](../adr/0063-scan-concurrency-env-configurable-default-restored-to-12.md)), accodate scanner-major così il primo batch si spalma sulle regioni — vedi [ADR-0052](../adr/0052-global-scan-worker-pool.md)
 - Fan-out interno a uno scanner (es. una chiamata CloudWatch per NAT Gateway) → `mapWithConcurrency` con limite (5)
 
 **Validazione dei campi richiesti:** gli scanner non leggono mai un campo richiesto dalla risposta AWS con una non-null assertion nuda (`v.VolumeId!`). Invece, un tipo intersezione locale più un `.filter()` a restringimento di tipo subito dopo il fetch esclude le entry malformate e logga quante ne sono state scartate (`DEBUG=cloudrift:*`) — vedi [ADR-0051](../adr/0051-type-narrowing-guards-on-aws-responses.md).

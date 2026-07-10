@@ -42,6 +42,19 @@ export interface AnalyzeDeps {
   createAnalysis(ctx: AnalysisContext): Promise<Analysis>;
 }
 
+/**
+ * `CLOUDRIFT_SCAN_CONCURRENCY` override for `AnalyzeCloudWasteUseCase`'s
+ * worker pool (see ADR-0063). Empty/unset/non-positive falls back to the
+ * use case's own default (12, real-AWS-oriented) — the LocalStack e2e
+ * harness (`scripts/e2e-localstack.mjs`) is the one caller that sets this.
+ */
+function resolveScanConcurrencyOverride(): number | undefined {
+  const raw = process.env.CLOUDRIFT_SCAN_CONCURRENCY;
+  if (!raw) return undefined;
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+}
+
 /** Real composition: layered pricing + AWS scanners (one advisory, gated on --live-pricing) + generic use case. */
 async function defaultCreateAnalysis(ctx: AnalysisContext): Promise<Analysis> {
   const { pricing, livePricingAdapter } = await buildPricing(ctx);
@@ -62,7 +75,12 @@ async function defaultCreateAnalysis(ctx: AnalysisContext): Promise<Analysis> {
   // unknown kind). This function has no other caller.
   const kindFilter = ctx.scannerKinds ? new Set(ctx.scannerKinds) : undefined;
   const selected = kindFilter ? scanners.filter((scanner) => kindFilter.has(scanner.kind)) : scanners;
-  return { useCase: new AnalyzeCloudWasteUseCase(selected), pricesAsOf: pricing.getPricesAsOf() };
+  const concurrencyOverride = resolveScanConcurrencyOverride();
+  const useCase =
+    concurrencyOverride === undefined
+      ? new AnalyzeCloudWasteUseCase(selected)
+      : new AnalyzeCloudWasteUseCase(selected, concurrencyOverride);
+  return { useCase, pricesAsOf: pricing.getPricesAsOf() };
 }
 
 export const defaultAnalyzeDeps: AnalyzeDeps = {

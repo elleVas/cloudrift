@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: Apache-2.0
-import PDFDocument from 'pdfkit';
 import { createWriteStream } from 'fs';
 import {
   RESOURCE_KINDS,
@@ -14,7 +13,7 @@ import type {
 } from 'cloud-cost-domain';
 import type { WasteReportMeta } from 'cloud-cost-application';
 import { REPORT_CONTACT, REPORT_DISCLAIMER } from 'cloud-cost-application';
-import { presenterFor } from './resource-presenters';
+import { presenterFor, rowFor, recommendFor } from './resource-presenters';
 
 const C = {
   primary: '#1d4ed8',
@@ -102,11 +101,15 @@ function drawFooter(doc: PDFKit.PDFDocument, disclaimerH: number): void {
     .text('LinkedIn', { link: REPORT_CONTACT.linkedin, underline: true });
 }
 
-export function generateWasteReportPdf(
+export async function generateWasteReportPdf(
   summary: WastedResourcesSummary,
   meta: WasteReportMeta,
   outputPath: string,
 ): Promise<void> {
+  // Lazy-loaded (same pattern as @clack/prompts in the wizard): pdfkit's own
+  // font loading/registration only pays off for the ~1% of runs that pass
+  // --pdf, not every invocation.
+  const { default: PDFDocument } = await import('pdfkit');
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: 'A4', margin: 0, autoFirstPage: false });
     const stream = createWriteStream(outputPath);
@@ -268,8 +271,8 @@ function drawDetailPages(
     const presenter = presenterFor(kind);
     doc.addPage();
     const y = sectionHeader(doc, presenter.title);
-    const rows = findings.map((finding: WastedResource) => [
-      ...presenter.row(finding),
+    const rows = findings.map((finding) => [
+      ...rowFor(finding),
       `$${finding.costEstimate.monthlyCostUsd.toFixed(2)}/mo`,
     ]);
     const scale = CONTENT_W / presenter.colWidths.reduce((a, b) => a + b, 0);
@@ -418,13 +421,16 @@ interface QuickWin {
 }
 
 function buildQuickWins(summary: WastedResourcesSummary): QuickWin[] {
-  return summary.findings
-    .map((finding) => ({
-      label: presenterFor(finding.kind).recommend(finding),
-      monthlyCostUsd: finding.costEstimate.monthlyCostUsd,
-    }))
-    .sort((a, b) => b.monthlyCostUsd - a.monthlyCostUsd)
-    .slice(0, 8);
+  // Routed through groupByKind (not summary.findings directly) so `finding`
+  // keeps the kind↔entity correlation recommendFor's switch relies on.
+  const grouped = groupByKind(summary.findings);
+  const wins: QuickWin[] = [];
+  for (const kind of RESOURCE_KINDS) {
+    for (const finding of grouped[kind]) {
+      wins.push({ label: recommendFor(finding), monthlyCostUsd: finding.costEstimate.monthlyCostUsd });
+    }
+  }
+  return wins.sort((a, b) => b.monthlyCostUsd - a.monthlyCostUsd).slice(0, 8);
 }
 
 // Fixed overhead around the label column: 22 (index area) + 74 (gap, monthly

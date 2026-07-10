@@ -38,7 +38,7 @@ export class Ec2Instance extends Entity<string> implements WastedResource {
 
   constructor(props: Ec2InstanceProps) {
     super(props.instanceId);
-    this.props = Object.freeze({ ...props });
+    this.props = this.deepFreeze({ ...props });
   }
 
   get region(): AwsRegion { return this.props.region; }

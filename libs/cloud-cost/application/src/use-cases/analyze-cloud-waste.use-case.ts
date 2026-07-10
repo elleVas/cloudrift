@@ -12,7 +12,14 @@ import type {
 
 const logger = createLogger('cloudrift:scanner');
 
-/** Global bound on in-flight (scanner, region) scans, any mix. */
+/**
+ * Global bound on in-flight (scanner, region) scans, any mix, for real AWS
+ * usage. Overridable via `CLOUDRIFT_SCAN_CONCURRENCY` (see
+ * `analyze-waste.composition.ts`) — the LocalStack e2e harness sets it much
+ * lower, since LocalStack Community's single-process gateway can't reliably
+ * absorb this many concurrent connections the way real AWS can. See
+ * ADR-0063 (supersedes ADR-0062).
+ */
 const DEFAULT_SCAN_CONCURRENCY = 12;
 
 /**

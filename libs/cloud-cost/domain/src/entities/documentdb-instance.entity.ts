@@ -23,7 +23,7 @@ export class DocumentDbInstance extends Entity<string> implements WastedResource
 
   constructor(props: DocumentDbInstanceProps) {
     super(props.dbInstanceIdentifier);
-    this.props = Object.freeze({ ...props });
+    this.props = this.deepFreeze({ ...props });
   }
 
   get region(): AwsRegion { return this.props.region; }

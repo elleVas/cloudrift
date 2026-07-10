@@ -30,7 +30,7 @@ export class Gp2Volume extends Entity<string> implements WastedResource {
 
   constructor(props: Gp2VolumeProps) {
     super(props.volumeId);
-    this.props = Object.freeze({ ...props });
+    this.props = this.deepFreeze({ ...props });
   }
 
   get region(): AwsRegion { return this.props.region; }

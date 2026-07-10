@@ -24,7 +24,7 @@ export class LoadBalancer extends Entity<string> implements WastedResource {
 
   constructor(props: LoadBalancerProps) {
     super(props.arn);
-    this.props = Object.freeze({ ...props });
+    this.props = this.deepFreeze({ ...props });
   }
 
   get name(): string { return this.props.name; }

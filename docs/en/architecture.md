@@ -78,7 +78,7 @@ Ports make the **technology** replaceable, not the **domain**: you can swap the 
 
 ### 1. `shared/kernel` — Shared core
 
-- **`Entity<TId>`**: base class for objects with identity.
+- **`Entity<TId>`**: base class for objects with identity. Its protected `deepFreeze()` recursively freezes a subclass's props (nested objects and arrays, not just the top level), used by every concrete entity so `entity.tags['x'] = 'y'` throws instead of silently mutating — see [ADR-0060](../adr/0060-entity-deep-freeze.md).
 - **`ValueObject<T>`**: immutable objects with structural equality (`AwsRegion`, `CostEstimate`), compared via a recursive `deepEqual` — see [ADR-0046](../adr/0046-valueobject-deepequal.md).
 - **`Result<T, E>`**: success/failure as a value, no exceptions across layers.
 - **`DomainError`**: typed errors with an explicit `code`, for the domain layer.
@@ -109,11 +109,22 @@ export const RESOURCE_KINDS = [
   'efs-unused',
   'dynamodb-overprovisioned',
   'elasticache-idle',
+  'redshift-idle-cluster',
+  'opensearch-idle-domain',
+  'msk-idle-cluster',
+  'fsx-idle-filesystem',
+  'documentdb-idle-instance',
+  'neptune-idle-instance',
+  'mq-idle-broker',
+  'workspaces-idle',
+  'vpn-connection-idle',
+  'transit-gateway-idle-attachment',
+  'kinesis-provisioned-idle-stream',
 ] as const;
 
 export type ResourceKind = (typeof RESOURCE_KINDS)[number];
-// Illustrative excerpt — 29 kinds exist today; the union and RESOURCE_KIND_META
-// in wasted-resource.ts are the source of truth, not this doc.
+// The union and RESOURCE_KIND_META in wasted-resource.ts are the source of
+// truth — copy this block from there if it drifts.
 
 export interface WastedResource {
   readonly id: string;
@@ -194,7 +205,7 @@ Each concrete policy adds the type-specific criterion:
   }
   ```
   The contract requires the scanner to return only resources **already confirmed** by the relevant policy.
-- **Outbound `PricingPort`** — a single generic `getPrice(region: AwsRegion, key: string): number` (the same key used in `prices.json` and the config's `prices` overrides), plus `getPricesAsOf()` (the price-table verification date, shown in every report). Collapsed from 16 nominally-typed methods to this one: adding a fixed-cost resource type now only touches `prices.json`, never the port or its adapters ([ADR-0045](../adr/0045-pricingport-single-getprice-method.md)).
+- **Outbound `PricingPort`** — a single generic `getPrice(region: AwsRegion, key: string): number` (the same key used in `prices.json` and the config's `prices` overrides), plus `getPricesAsOf()` (the price-table verification date, shown in every report). Collapsed from 16 nominally-typed methods to this one: adding a fixed-cost resource type now only touches `prices.json`, never the port or its adapters ([ADR-0045](../adr/0045-pricingport-single-getprice-method.md)). A `prices` key in the config that doesn't match any known price-table key (typo, wrong region) produces a non-blocking warning instead of being silently ignored (`apps/cli/src/commands/pricing.factory.ts`, [ADR-0057](../adr/0057-unknown-config-price-keys-warning.md)).
 - **Inbound `FindWastedResourcesUseCasePort`** — defines `WastedResourcesSummary { findings, totalWasteMonthlyUsd, totalOptimizationMonthlyUsd, scanErrors }` and `ResourceScanError { kind, region, error }`. The two totals are split by `FindingCategory` (see [above](#waste-vs-optimization--findingcategory)): only `totalWasteMonthlyUsd` feeds the CI gate.
 
 ### 3. `cloud-cost/application` — Generic use case and DTO
@@ -204,17 +215,17 @@ Each concrete policy adds the type-specific criterion:
 ```typescript
 constructor(
   private readonly scanners: readonly WasteScannerPort[],
-  private readonly scanConcurrency = 12,
+  private readonly scanConcurrency = 3,
 ) {}
 ```
 
-It flattens every _(scanner, region)_ pair into a FIFO job queue consumed by a **worker pool with one global bound** (12 in-flight scans by default, any scanner/region mix — [ADR-0052](../adr/0052-global-scan-worker-pool.md)); jobs are queued scanner-major so the first batch spreads across regions instead of concentrating on the first one. Errors are collected per _(scanner, region)_ pair: one region failing discards neither the results of the other regions nor those of the other scanners. The summary is always returned with partial data and the errors in `scanErrors`.
+It flattens every _(scanner, region)_ pair into a FIFO job queue consumed by a **worker pool with one global bound** (12 in-flight scans by default, any scanner/region mix — [ADR-0052](../adr/0052-global-scan-worker-pool.md), overridable via the `CLOUDRIFT_SCAN_CONCURRENCY` env var; the LocalStack e2e harness forces it down to 1, since LocalStack Community's single-process gateway can't reliably absorb that many concurrent connections — see [ADR-0063](../adr/0063-scan-concurrency-env-configurable-default-restored-to-12.md)); jobs are queued scanner-major so the first batch spreads across regions instead of concentrating on the first one. Errors are collected per _(scanner, region)_ pair: one region failing discards neither the results of the other regions nor those of the other scanners. The summary is always returned with partial data and the errors in `scanErrors`.
 
 `toWasteReportDto()` projects the summary into **`WasteReportDto`**, a JSON-safe structure (primitives and ISO strings only): it is the data contract for any presentation, present and future (see [Frontend-readiness](#frontend-readiness)).
 
 ### 4. `cloud-cost/infrastructure/aws-adapter` — Concrete scanners
 
-Every scanner implements `WasteScannerPort` with the **AWS SDK v3**: it creates the client for the region (with `AWS_CLIENT_DEFAULTS`, `maxAttempts: 3` — the SDK's built-in retry/backoff for throttling and transient errors, [ADR-0050](../adr/0050-aws-client-retry-backoff.md)), uses `paginate()` to follow cursors, maps responses to entities (computing costs via `PricingPort`), applies the waste policy and destroys the client in the `finally`. SDK errors are wrapped in `AwsAdapterError`.
+Every scanner implements `WasteScannerPort` with the **AWS SDK v3**: it creates the client for the region (with `AWS_CLIENT_DEFAULTS` — `maxAttempts: 3` for the SDK's built-in retry/backoff on throttling and transient errors, [ADR-0050](../adr/0050-aws-client-retry-backoff.md); a `NodeHttpHandler` with a 5s connection / 30s request timeout, so a single hung socket can't stall a scan indefinitely, [ADR-0058](../adr/0058-aws-client-request-timeout.md)), uses `paginate()` to follow cursors (with an optional per-page `select` for the two scanners — snapshots, log groups — whose resource count is genuinely unbounded over time, filtering before accumulating instead of after, [ADR-0054](../adr/0054-paginate-select-per-page-streaming.md)), maps responses to entities (computing costs via `PricingPort`), applies the waste policy and destroys the client in the `finally`. SDK errors are wrapped in `AwsAdapterError`.
 
 18 of the 29 scanners additionally fetch a CloudWatch metric per resource (and, for 9 of them, resolve a live per-type price). These extend the abstract `CloudWatchIdleScanner<TPrimaryClient, TRaw, TMetric, TEntity>` template method (`scanners/cloudwatch-idle.scanner.ts`), which owns the client lifecycle, the concurrent metric fan-out and the `Result` wrapping — each concrete scanner implements only the resource-specific hooks (`listResources`, `fetchMetric`, `toEntity`, and optionally `resolvePrices`). See [ADR-0044](../adr/0044-cloudwatch-idle-scanner-template-method.md).
 
@@ -230,11 +241,11 @@ Specifics:
 
 ### 5. `apps/cli` — Entry point and composition root
 
-`analyze-waste.command.ts` loads the config file, resolves CLI options (regions, min-age, account ID) and orchestrates the run; it delegates the actual instantiation of concrete implementations to `analyze-waste.composition.ts` through the injectable `AnalyzeDeps.createAnalysis` seam (the same seam `analyze-waste.command.spec.ts` fakes to test without AWS). Before that, it also resolves **which scanners to run**: `--all-services` or `--scanners <kinds...>` skip straight to a resolved list; otherwise, in a real terminal outside CI (and without `--silent`), an interactive `@clack/prompts` wizard (`apps/cli/src/wizard/scanner-selection.wizard.ts`, see [ADR-0041](../adr/0041-interactive-scanner-selection-wizard.md)) lets the user pick — every kind pre-checked, so Enter alone still scans everything; non-TTY/CI/`--silent` skip the wizard and run every scanner, unchanged from before this feature.
+`analyze-waste.command.ts` orchestrates the run as a sequence of calls into two sibling modules ([ADR-0056](../adr/0056-analyze-waste-command-split.md)): `resolve-options.ts` (`resolveMinAgeDays`, `resolveExplicitScanners`, `resolveRegions`) resolves CLI options (regions, min-age, account ID) and loads the config file, and `post-analysis.ts` (`writeArtifacts`, `applyCostGate`) writes the file artifacts and applies the cost-gate threshold after the scan. The command itself delegates the actual instantiation of concrete implementations to `analyze-waste.composition.ts` through the injectable `AnalyzeDeps.createAnalysis` seam (the same seam `analyze-waste.command.spec.ts` fakes to test without AWS). Before that, it also resolves **which scanners to run**: `--all-services` or `--scanners <kinds...>` skip straight to a resolved list; otherwise, in a real terminal outside CI (and without `--silent`), an interactive `@clack/prompts` wizard (`apps/cli/src/wizard/scanner-selection.wizard.ts`, see [ADR-0041](../adr/0041-interactive-scanner-selection-wizard.md)) lets the user pick — every kind pre-checked, so Enter alone still scans everything; non-TTY/CI/`--silent` skip the wizard and run every scanner, unchanged from before this feature.
 
 `analyze-waste.composition.ts` is the only place where concrete implementations are instantiated. It's a declarative registry, not a hand-written list: `ALWAYS_ON_SCANNERS` and `LIVE_PRICING_SCANNERS` are each an array of `{ kind, create(ctx) }` entries, and `buildScanners()` is a `map`/`filter` over both (the second only when a live-pricing adapter is available), then filtered again down to the resolved scanner selection (`AnalysisContext.scannerKinds`, undefined = no filter). `assertRegistryMatchesResourceKinds()` runs at module load and throws if any `ResourceKind` is missing from, or duplicated across, the two registries — a wiring mistake fails at startup, not silently at scan time. See [ADR-0043](../adr/0043-declarative-scanner-registry.md). The `LIVE_PRICING_SCANNERS` entries (`AwsEc2UnderutilizedScanner`, `AwsRdsUnderutilizedScanner`, `AwsElastiCacheIdleScanner` and the Redshift/OpenSearch/MSK/DocumentDB/Neptune/MQ/WorkSpaces equivalents) are only built when `--live-pricing` is set: their cost estimate needs a per-instance-type/class/node-type price that the static table doesn't carry (too many distinct types to maintain), so without live pricing there is nothing reliable to report and the scanners are left out rather than registered with a zero estimate.
 
-Back in `analyze-waste.command.ts`, the result is handed to the formatters. The four formatters (console table, PDF, JSON, Markdown) share the `resource-presenters.ts` registry, typed `Record<ResourceKind, ResourcePresenter<…>>`: forgetting the presenter for a new kind is a compile error. The output format is selected by `--format` (`table` | `json` | `markdown`); `markdown` targets CI / PR comments.
+Back in `analyze-waste.command.ts`, the result is handed to the formatters. The four formatters (console table, PDF, JSON, Markdown) share the `resource-presenters.ts` registry, typed `Record<ResourceKind, ResourcePresenter<…>>`: forgetting the presenter for a new kind is a compile error. Table, PDF and Markdown all dispatch per finding through `rowFor`/`recommendFor` — an exhaustive `switch` on the finding's own `kind`, not a `presenterFor(kind)` call paired with a separately-obtained finding — so there is no (kind, finding) pair a future edit could decouple; a missing case fails the build ([ADR-0059](../adr/0059-presenter-dispatch-exhaustive-switch.md)). The output format is selected by `--format` (`table` | `json` | `markdown`); `markdown` targets CI / PR comments.
 
 ---
 

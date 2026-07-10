@@ -56,7 +56,7 @@ This document explains the reasoning behind every technology choice in the proje
 **Why:**
 - Modular: only the needed client is imported
 - Per-region clients: every scanner creates a client with `{ ...AWS_CLIENT_DEFAULTS, region: region.code }` and destroys it in the `finally`
-- `AWS_CLIENT_DEFAULTS` (`utils/client-config.ts`) sets `maxAttempts: 3`, turning on the SDK's built-in retry/backoff for throttling (429) and transient 5xx errors
+- `AWS_CLIENT_DEFAULTS` (`utils/client-config.ts`) sets `maxAttempts: 3`, turning on the SDK's built-in retry/backoff for throttling (429) and transient 5xx errors, plus a `NodeHttpHandler` with a 5s connection / 30s request timeout so a single hung connection can't stall a scan indefinitely ([ADR-0058](../adr/0058-aws-client-request-timeout.md))
 - Better typing and native ESM support
 
 **Pattern used in the scanners:**
@@ -76,7 +76,7 @@ try {
 ```
 
 **Rate limiting — consistent concurrency rules:**
-- (scanner, region) pairs → worker pool with one global bound (12 in-flight scans by default, any mix), queued scanner-major so the first batch spreads across regions — see [ADR-0052](../adr/0052-global-scan-worker-pool.md)
+- (scanner, region) pairs → worker pool with one global bound (12 in-flight scans by default, any mix, overridable via `CLOUDRIFT_SCAN_CONCURRENCY` — LocalStack e2e forces 1, see [ADR-0063](../adr/0063-scan-concurrency-env-configurable-default-restored-to-12.md)), queued scanner-major so the first batch spreads across regions — see [ADR-0052](../adr/0052-global-scan-worker-pool.md)
 - Internal fan-out within a scanner (e.g. one CloudWatch call per NAT Gateway) → `mapWithConcurrency` with a cap (5)
 
 **Required-field validation:** scanners never read a required AWS response field with a bare non-null assertion (`v.VolumeId!`). Instead, a local intersection type plus a type-narrowing `.filter()` right after the fetch excludes malformed entries and logs how many were dropped (`DEBUG=cloudrift:*`) — see [ADR-0051](../adr/0051-type-narrowing-guards-on-aws-responses.md).

@@ -36,15 +36,12 @@ export class AwsEbsSnapshotScanner implements WasteScannerPort {
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
     const client = new EC2Client({ ...AWS_CLIENT_DEFAULTS, region: region.code });
     try {
-      // Three sources in parallel: snapshots, existing volumes and registered
-      // AMIs (snapshots referenced by an AMI cannot be deleted).
-      const [snapshots, volumes, images] = await Promise.all([
-        paginate<Snapshot>(async (cursor) => {
-          const r = await client.send(
-            new DescribeSnapshotsCommand({ OwnerIds: ['self'], NextToken: cursor }),
-          );
-          return { items: r.Snapshots ?? [], cursor: r.NextToken };
-        }),
+      // Volumes and images are correlation sets: a snapshot can only be judged
+      // "orphaned" once we know for certain no volume/AMI references it anywhere
+      // — a false "orphan" would slip through if we judged against a partial set
+      // while later pages are still in flight. Both are fetched in full (in
+      // parallel with each other) before snapshots are touched.
+      const [volumes, images] = await Promise.all([
         paginate<Volume>(async (cursor) => {
           const r = await client.send(new DescribeVolumesCommand({ NextToken: cursor }));
           return { items: r.Volumes ?? [], cursor: r.NextToken };
@@ -69,37 +66,53 @@ export class AwsEbsSnapshotScanner implements WasteScannerPort {
 
       const pricePerGb = this.pricing.getPrice(region, 'ebs-snapshot');
       const now = new Date();
+      let skipped = 0;
 
-      const validSnapshots = snapshots.filter(
-        (snap): snap is SnapshotWithIds => !!snap.SnapshotId && !!snap.VolumeId,
+      // Snapshots are the unbounded side (can reach tens of thousands on
+      // long-lived accounts), so they're judged and filtered per page instead
+      // of accumulated whole — memory stays bounded by the orphan count, not
+      // by the total snapshot count.
+      const orphans = await paginate<Snapshot, EbsSnapshot>(
+        async (cursor) => {
+          const r = await client.send(
+            new DescribeSnapshotsCommand({ OwnerIds: ['self'], NextToken: cursor }),
+          );
+          return { items: r.Snapshots ?? [], cursor: r.NextToken };
+        },
+        (page) => {
+          const validSnapshots = page.filter(
+            (snap): snap is SnapshotWithIds => !!snap.SnapshotId && !!snap.VolumeId,
+          );
+          skipped += page.length - validSnapshots.length;
+          return validSnapshots
+            .map(
+              (snap) =>
+                new EbsSnapshot({
+                  snapshotId: snap.SnapshotId,
+                  region,
+                  accountId: this.accountId,
+                  sourceVolumeId: snap.VolumeId,
+                  sourceVolumeExists: existingVolumeIds.has(snap.VolumeId),
+                  boundToAmiId: snapshotToAmi.get(snap.SnapshotId ?? ''),
+                  sizeGb: snap.VolumeSize ?? 0,
+                  startTime: snap.StartTime ?? new Date(0),
+                  detectedAt: now,
+                  description: snap.Description ?? '',
+                  tags: Object.fromEntries(
+                    (snap.Tags ?? []).map((t) => [t.Key ?? '', t.Value ?? '']),
+                  ),
+                  monthlyCostUsd: +(pricePerGb * (snap.VolumeSize ?? 0)).toFixed(4),
+                }),
+            )
+            .filter((snapshot) => this.policy.evaluate(snapshot, now).isWaste);
+        },
       );
-      if (validSnapshots.length !== snapshots.length) {
+
+      if (skipped > 0) {
         logger.debug(
-          `${this.kind}: skipped ${snapshots.length - validSnapshots.length} entries missing SnapshotId/VolumeId`,
+          `${this.kind}: skipped ${skipped} entries missing SnapshotId/VolumeId`,
         );
       }
-
-      const orphans = validSnapshots
-        .map(
-          (snap) =>
-            new EbsSnapshot({
-              snapshotId: snap.SnapshotId,
-              region,
-              accountId: this.accountId,
-              sourceVolumeId: snap.VolumeId,
-              sourceVolumeExists: existingVolumeIds.has(snap.VolumeId),
-              boundToAmiId: snapshotToAmi.get(snap.SnapshotId ?? ''),
-              sizeGb: snap.VolumeSize ?? 0,
-              startTime: snap.StartTime ?? new Date(0),
-              detectedAt: now,
-              description: snap.Description ?? '',
-              tags: Object.fromEntries(
-                (snap.Tags ?? []).map((t) => [t.Key ?? '', t.Value ?? '']),
-              ),
-              monthlyCostUsd: +(pricePerGb * (snap.VolumeSize ?? 0)).toFixed(4),
-            }),
-        )
-        .filter((snapshot) => this.policy.evaluate(snapshot, now).isWaste);
 
       return Result.ok(orphans);
     } catch (err) {

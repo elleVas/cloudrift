@@ -23,7 +23,7 @@ export class Workspace extends Entity<string> implements WastedResource {
 
   constructor(props: WorkspaceProps) {
     super(props.workspaceId);
-    this.props = Object.freeze({ ...props });
+    this.props = this.deepFreeze({ ...props });
   }
 
   get region(): AwsRegion { return this.props.region; }

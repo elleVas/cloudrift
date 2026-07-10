@@ -77,7 +77,7 @@ Le porte rendono sostituibile la **tecnologia**, non il **dominio**: si può cam
 
 ### 1. `shared/kernel` — Nucleo condiviso
 
-- **`Entity<TId>`**: classe base per oggetti con identità.
+- **`Entity<TId>`**: classe base per oggetti con identità. Il suo `deepFreeze()` protetto congela ricorsivamente le props di una sottoclasse (oggetti e array annidati, non solo il livello superiore), usato da ogni entity concreta così che `entity.tags['x'] = 'y'` lanci un errore invece di mutare silenziosamente — vedi [ADR-0060](../adr/0060-entity-deep-freeze.md).
 - **`ValueObject<T>`**: oggetti immutabili con uguaglianza strutturale (`AwsRegion`, `CostEstimate`), confrontati con un `deepEqual` ricorsivo — vedi [ADR-0046](../adr/0046-valueobject-deepequal.md).
 - **`Result<T, E>`**: successo/fallimento come valore, senza eccezioni attraverso i layer.
 - **`DomainError`**: errori tipizzati con `code` esplicito, per il layer di dominio.
@@ -108,11 +108,22 @@ export const RESOURCE_KINDS = [
   'efs-unused',
   'dynamodb-overprovisioned',
   'elasticache-idle',
+  'redshift-idle-cluster',
+  'opensearch-idle-domain',
+  'msk-idle-cluster',
+  'fsx-idle-filesystem',
+  'documentdb-idle-instance',
+  'neptune-idle-instance',
+  'mq-idle-broker',
+  'workspaces-idle',
+  'vpn-connection-idle',
+  'transit-gateway-idle-attachment',
+  'kinesis-provisioned-idle-stream',
 ] as const;
 
 export type ResourceKind = (typeof RESOURCE_KINDS)[number];
-// Estratto illustrativo — oggi esistono 29 kind; la union e RESOURCE_KIND_META
-// in wasted-resource.ts sono la fonte di verità, non questo documento.
+// La union e RESOURCE_KIND_META in wasted-resource.ts sono la fonte di
+// verità — copia questo blocco da lì se va fuori sincrono.
 
 export interface WastedResource {
   readonly id: string;
@@ -195,7 +206,7 @@ Le policy sono pura logica di dominio: si testano senza AWS, e i loro parametri 
   }
   ```
   Il contratto richiede che lo scanner restituisca solo risorse **già confermate** dalla relativa policy.
-- **Outbound `PricingPort`** — un unico `getPrice(region: AwsRegion, key: string): number` generico (la stessa chiave usata in `prices.json` e negli override `prices` del config), più `getPricesAsOf()` (la data di verifica del listino, mostrata in ogni report). Ridotto da 16 metodi tipizzati nominalmente a questo unico metodo: aggiungere un tipo di risorsa a costo fisso ora tocca solo `prices.json`, mai la porta o i suoi adapter ([ADR-0045](../adr/0045-pricingport-single-getprice-method.md)).
+- **Outbound `PricingPort`** — un unico `getPrice(region: AwsRegion, key: string): number` generico (la stessa chiave usata in `prices.json` e negli override `prices` del config), più `getPricesAsOf()` (la data di verifica del listino, mostrata in ogni report). Ridotto da 16 metodi tipizzati nominalmente a questo unico metodo: aggiungere un tipo di risorsa a costo fisso ora tocca solo `prices.json`, mai la porta o i suoi adapter ([ADR-0045](../adr/0045-pricingport-single-getprice-method.md)). Una chiave `prices` nel config che non corrisponde a nessuna chiave nota del price table produce un warning non bloccante invece di essere ignorata silenziosamente (`apps/cli/src/commands/pricing.factory.ts`, [ADR-0057](../adr/0057-unknown-config-price-keys-warning.md)).
 - **Inbound `FindWastedResourcesUseCasePort`** — definisce `WastedResourcesSummary { findings, totalWasteMonthlyUsd, totalOptimizationMonthlyUsd, scanErrors }` e `ResourceScanError { kind, region, error }`. I due totali sono divisi per `FindingCategory` (vedi [sopra](#spreco-vs-ottimizzazione--findingcategory)): solo `totalWasteMonthlyUsd` alimenta il gate CI.
 
 ### 3. `cloud-cost/application` — Use case generico e DTO
@@ -205,17 +216,17 @@ Le policy sono pura logica di dominio: si testano senza AWS, e i loro parametri 
 ```typescript
 constructor(
   private readonly scanners: readonly WasteScannerPort[],
-  private readonly scanConcurrency = 12,
+  private readonly scanConcurrency = 3,
 ) {}
 ```
 
-Appiattisce ogni coppia _(scanner, regione)_ in una coda FIFO consumata da un **worker pool con un unico limite globale** (12 scan in-flight di default, qualsiasi mix scanner/regione — [ADR-0052](../adr/0052-global-scan-worker-pool.md)); i job sono accodati scanner-major, così il primo batch si spalma sulle regioni invece di concentrarsi sulla prima. Gli errori sono raccolti per coppia _(scanner, regione)_: il fallimento di una regione non scarta i risultati delle altre regioni né degli altri scanner. Il summary viene sempre restituito con i dati parziali e gli errori in `scanErrors`.
+Appiattisce ogni coppia _(scanner, regione)_ in una coda FIFO consumata da un **worker pool con un unico limite globale** (12 scan in-flight di default, qualsiasi mix scanner/regione — [ADR-0052](../adr/0052-global-scan-worker-pool.md), sovrascrivibile tramite la env var `CLOUDRIFT_SCAN_CONCURRENCY`; l'harness e2e su LocalStack lo forza a 1, perché LocalStack Community non riesce ad assorbire in modo affidabile così tante connessioni concorrenti — vedi [ADR-0063](../adr/0063-scan-concurrency-env-configurable-default-restored-to-12.md)); i job sono accodati scanner-major, così il primo batch si spalma sulle regioni invece di concentrarsi sulla prima. Gli errori sono raccolti per coppia _(scanner, regione)_: il fallimento di una regione non scarta i risultati delle altre regioni né degli altri scanner. Il summary viene sempre restituito con i dati parziali e gli errori in `scanErrors`.
 
 `toWasteReportDto()` proietta il summary in **`WasteReportDto`**, una struttura JSON-safe (solo primitivi e stringhe ISO): è il contratto dati per qualunque presentazione, presente e futura (vedi [Frontend-readiness](#frontend-readiness)).
 
 ### 4. `cloud-cost/infrastructure/aws-adapter` — Scanner concreti
 
-Ogni scanner implementa `WasteScannerPort` con **AWS SDK v3**: crea il client per la regione (con `AWS_CLIENT_DEFAULTS`, `maxAttempts: 3` — il retry/backoff nativo dell'SDK per throttling ed errori transitori, [ADR-0050](../adr/0050-aws-client-retry-backoff.md)), usa `paginate()` per seguire i cursori, mappa le risposte alle entità (calcolando i costi via `PricingPort`), applica la waste policy e distrugge il client nel `finally`. Gli errori SDK sono wrappati in `AwsAdapterError`.
+Ogni scanner implementa `WasteScannerPort` con **AWS SDK v3**: crea il client per la regione (con `AWS_CLIENT_DEFAULTS` — `maxAttempts: 3` per il retry/backoff nativo dell'SDK su throttling ed errori transitori, [ADR-0050](../adr/0050-aws-client-retry-backoff.md); un `NodeHttpHandler` con timeout di 5s per la connessione / 30s per la richiesta, così un socket bloccato non può far restare uno scan appeso indefinitamente, [ADR-0058](../adr/0058-aws-client-request-timeout.md)), usa `paginate()` per seguire i cursori (con un `select` per-pagina opzionale per i due scanner — snapshot, log group — il cui numero di risorse cresce davvero senza limite nel tempo, filtrando prima di accumulare invece che dopo, [ADR-0054](../adr/0054-paginate-select-per-page-streaming.md)), mappa le risposte alle entità (calcolando i costi via `PricingPort`), applica la waste policy e distrugge il client nel `finally`. Gli errori SDK sono wrappati in `AwsAdapterError`.
 
 18 dei 29 scanner recuperano in più una metrica CloudWatch per risorsa (e, per 9 di essi, risolvono un prezzo live per-tipo). Questi estendono il template method astratto `CloudWatchIdleScanner<TPrimaryClient, TRaw, TMetric, TEntity>` (`scanners/cloudwatch-idle.scanner.ts`), che possiede il lifecycle del client, il fan-out concorrente delle metriche e il wrapping in `Result` — ogni scanner concreto implementa solo gli hook specifici della risorsa (`listResources`, `fetchMetric`, `toEntity`, e opzionalmente `resolvePrices`). Vedi [ADR-0044](../adr/0044-cloudwatch-idle-scanner-template-method.md).
 
@@ -231,11 +242,11 @@ Particolarità:
 
 ### 5. `apps/cli` — Entry point e composition root
 
-`analyze-waste.command.ts` carica il file di config, risolve le opzioni CLI (regioni, min-age, account ID) e orchestra l'esecuzione; delega l'istanziazione effettiva delle implementazioni concrete a `analyze-waste.composition.ts` tramite il seam iniettabile `AnalyzeDeps.createAnalysis` (lo stesso seam che `analyze-waste.command.spec.ts` finge per testare senza AWS). Prima di questo, risolve anche **quali scanner eseguire**: `--all-services` o `--scanners <kinds...>` saltano direttamente a un elenco risolto; altrimenti, in un vero terminale fuori da CI (e senza `--silent`), un wizard interattivo `@clack/prompts` (`apps/cli/src/wizard/scanner-selection.wizard.ts`, vedi [ADR-0041](../adr/0041-interactive-scanner-selection-wizard.md)) lascia scegliere all'utente — ogni kind pre-selezionato, così anche solo Invio scansiona comunque tutto; non-TTY/CI/`--silent` saltano il wizard ed eseguono ogni scanner, invariato rispetto a prima di questa funzionalità.
+`analyze-waste.command.ts` orchestra l'esecuzione come una sequenza di chiamate a due moduli sorella ([ADR-0056](../adr/0056-analyze-waste-command-split.md)): `resolve-options.ts` (`resolveMinAgeDays`, `resolveExplicitScanners`, `resolveRegions`) risolve le opzioni CLI (regioni, min-age, account ID) e carica il file di config, e `post-analysis.ts` (`writeArtifacts`, `applyCostGate`) scrive gli artefatti file e applica la soglia del cost gate dopo lo scan. Il comando stesso delega l'istanziazione effettiva delle implementazioni concrete a `analyze-waste.composition.ts` tramite il seam iniettabile `AnalyzeDeps.createAnalysis` (lo stesso seam che `analyze-waste.command.spec.ts` finge per testare senza AWS). Prima di questo, risolve anche **quali scanner eseguire**: `--all-services` o `--scanners <kinds...>` saltano direttamente a un elenco risolto; altrimenti, in un vero terminale fuori da CI (e senza `--silent`), un wizard interattivo `@clack/prompts` (`apps/cli/src/wizard/scanner-selection.wizard.ts`, vedi [ADR-0041](../adr/0041-interactive-scanner-selection-wizard.md)) lascia scegliere all'utente — ogni kind pre-selezionato, così anche solo Invio scansiona comunque tutto; non-TTY/CI/`--silent` saltano il wizard ed eseguono ogni scanner, invariato rispetto a prima di questa funzionalità.
 
 `analyze-waste.composition.ts` è l'unico punto in cui le implementazioni concrete vengono istanziate. È un registry dichiarativo, non una lista scritta a mano: `ALWAYS_ON_SCANNERS` e `LIVE_PRICING_SCANNERS` sono ciascuno un array di entry `{ kind, create(ctx) }`, e `buildScanners()` è un `map`/`filter` su entrambi (il secondo solo se è disponibile un adapter di live pricing), filtrato poi ancora secondo la selezione scanner risolta (`AnalysisContext.scannerKinds`, undefined = nessun filtro). `assertRegistryMatchesResourceKinds()` gira al module load e lancia un errore se un `ResourceKind` manca da entrambi i registry, o è duplicato tra i due — un errore di wiring fallisce all'avvio, non silenziosamente durante la scansione. Vedi [ADR-0043](../adr/0043-declarative-scanner-registry.md). Le entry di `LIVE_PRICING_SCANNERS` (`AwsEc2UnderutilizedScanner`, `AwsRdsUnderutilizedScanner`, `AwsElastiCacheIdleScanner` e gli equivalenti Redshift/OpenSearch/MSK/DocumentDB/Neptune/MQ/WorkSpaces) vengono costruite solo se `--live-pricing` è attivo: la loro stima di costo richiede un prezzo per instance type/classe/node type che il listino statico non contiene (troppi tipi distinti da mantenere), quindi senza prezzi live non c'è nulla di affidabile da riportare e gli scanner vengono esclusi piuttosto che registrati con una stima a zero.
 
-Tornati in `analyze-waste.command.ts`, il risultato passa ai formatter. I quattro formatter (tabella console, PDF, JSON, Markdown) condividono il registry `resource-presenters.ts`, tipizzato `Record<ResourceKind, ResourcePresenter<…>>`: dimenticare il presenter di un nuovo kind è un errore di compilazione. Il formato di output si sceglie con `--format` (`table` | `json` | `markdown`); `markdown` è pensato per CI / commenti PR.
+Tornati in `analyze-waste.command.ts`, il risultato passa ai formatter. I quattro formatter (tabella console, PDF, JSON, Markdown) condividono il registry `resource-presenters.ts`, tipizzato `Record<ResourceKind, ResourcePresenter<…>>`: dimenticare il presenter di un nuovo kind è un errore di compilazione. Tabella, PDF e Markdown fanno tutti dispatch per ogni finding tramite `rowFor`/`recommendFor` — uno `switch` esaustivo sul `kind` del finding stesso, non una chiamata `presenterFor(kind)` abbinata a un finding ottenuto separatamente — quindi non esiste una coppia (kind, finding) che una modifica futura potrebbe disaccoppiare; un case mancante fa fallire la build ([ADR-0059](../adr/0059-presenter-dispatch-exhaustive-switch.md)). Il formato di output si sceglie con `--format` (`table` | `json` | `markdown`); `markdown` è pensato per CI / commenti PR.
 
 ---
 
