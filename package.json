@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "license": "Apache-2.0",
   "private": true,
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "build": "nx run-many -t build",
     "test": "nx run-many -t test",
@@ -59,6 +62,7 @@
     "@aws-sdk/client-s3": "^3.1073.0",
     "@aws-sdk/client-sts": "^3.1068.0",
     "@aws-sdk/client-workspaces": "^3.1075.0",
+    "@smithy/node-http-handler": "^4.7.7",
     "chalk": "^4.1.2",
     "cli-table3": "^0.6.5",
     "cloud-cost-domain": "workspace:*",

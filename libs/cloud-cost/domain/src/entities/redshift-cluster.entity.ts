@@ -24,7 +24,7 @@ export class RedshiftCluster extends Entity<string> implements WastedResource {
 
   constructor(props: RedshiftClusterProps) {
     super(props.clusterIdentifier);
-    this.props = Object.freeze({ ...props });
+    this.props = this.deepFreeze({ ...props });
   }
 
   get region(): AwsRegion { return this.props.region; }

@@ -30,7 +30,7 @@ export class EbsVolume extends Entity<string> implements WastedResource {
 
   constructor(props: EbsVolumeProps) {
     super(props.volumeId);
-    this.props = Object.freeze({ ...props });
+    this.props = this.deepFreeze({ ...props });
   }
 
   get region(): AwsRegion { return this.props.region; }

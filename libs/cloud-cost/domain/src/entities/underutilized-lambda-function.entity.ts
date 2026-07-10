@@ -29,7 +29,7 @@ export class UnderutilizedLambdaFunction extends Entity<string> implements Waste
 
   constructor(props: UnderutilizedLambdaFunctionProps) {
     super(props.functionName);
-    this.props = Object.freeze({ ...props });
+    this.props = this.deepFreeze({ ...props });
   }
 
   get region(): AwsRegion { return this.props.region; }

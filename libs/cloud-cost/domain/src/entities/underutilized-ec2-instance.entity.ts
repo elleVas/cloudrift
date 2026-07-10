@@ -31,7 +31,7 @@ export class UnderutilizedEc2Instance extends Entity<string> implements WastedRe
 
   constructor(props: UnderutilizedEc2InstanceProps) {
     super(props.instanceId);
-    this.props = Object.freeze({ ...props });
+    this.props = this.deepFreeze({ ...props });
   }
 
   get region(): AwsRegion { return this.props.region; }

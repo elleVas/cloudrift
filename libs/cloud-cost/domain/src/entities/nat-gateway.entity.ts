@@ -24,7 +24,7 @@ export class NatGateway extends Entity<string> implements WastedResource {
 
   constructor(props: NatGatewayProps) {
     super(props.natGatewayId);
-    this.props = Object.freeze({ ...props });
+    this.props = this.deepFreeze({ ...props });
   }
 
   get region(): AwsRegion { return this.props.region; }

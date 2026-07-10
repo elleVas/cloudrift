@@ -25,7 +25,7 @@ export class MqBroker extends Entity<string> implements WastedResource {
 
   constructor(props: MqBrokerProps) {
     super(props.brokerId);
-    this.props = Object.freeze({ ...props });
+    this.props = this.deepFreeze({ ...props });
   }
 
   get region(): AwsRegion { return this.props.region; }
