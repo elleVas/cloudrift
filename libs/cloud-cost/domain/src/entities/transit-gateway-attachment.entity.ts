@@ -24,7 +24,7 @@ export class TransitGatewayAttachment extends Entity<string> implements WastedRe
 
   constructor(props: TransitGatewayAttachmentProps) {
     super(props.transitGatewayAttachmentId);
-    this.props = this.deepFreeze({ ...props });
+    this.props = Object.freeze({ ...props });
   }
 
   get region(): AwsRegion { return this.props.region; }

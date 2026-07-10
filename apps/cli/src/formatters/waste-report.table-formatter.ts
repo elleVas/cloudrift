@@ -9,7 +9,7 @@ import {
 } from 'cloud-cost-domain';
 import type { FindingCategory, WastedResourcesSummary } from 'cloud-cost-domain';
 import { REPORT_CONTACT } from 'cloud-cost-application';
-import { presenterFor, rowFor } from './resource-presenters';
+import { presenterFor } from './resource-presenters';
 
 export interface TableReportMeta {
   pricesAsOf: string;
@@ -37,7 +37,7 @@ export function formatWasteReportAsTable(
         style: { head: ['cyan'] },
       });
       for (const finding of findings) {
-        table.push([...rowFor(finding), chalk.red(finding.costEstimate.format())]);
+        table.push([...presenter.row(finding), chalk.red(finding.costEstimate.format())]);
       }
       lines.push(table.toString());
     }

@@ -56,7 +56,7 @@ This document explains the reasoning behind every technology choice in the proje
 **Why:**
 - Modular: only the needed client is imported
 - Per-region clients: every scanner creates a client with `{ ...AWS_CLIENT_DEFAULTS, region: region.code }` and destroys it in the `finally`
-- `AWS_CLIENT_DEFAULTS` (`utils/client-config.ts`) sets `maxAttempts: 3`, turning on the SDK's built-in retry/backoff for throttling (429) and transient 5xx errors, plus a `NodeHttpHandler` with a 5s connection / 30s request timeout so a single hung connection can't stall a scan indefinitely ([ADR-0058](../adr/0058-aws-client-request-timeout.md))
+- `AWS_CLIENT_DEFAULTS` (`utils/client-config.ts`) sets `maxAttempts: 3`, turning on the SDK's built-in retry/backoff for throttling (429) and transient 5xx errors
 - Better typing and native ESM support
 
 **Pattern used in the scanners:**

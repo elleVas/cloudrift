@@ -24,7 +24,7 @@ export class KinesisStream extends Entity<string> implements WastedResource {
 
   constructor(props: KinesisStreamProps) {
     super(props.streamName);
-    this.props = this.deepFreeze({ ...props });
+    this.props = Object.freeze({ ...props });
   }
 
   get region(): AwsRegion { return this.props.region; }

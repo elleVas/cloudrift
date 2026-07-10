@@ -27,7 +27,7 @@ export class OpenSearchDomain extends Entity<string> implements WastedResource {
 
   constructor(props: OpenSearchDomainProps) {
     super(props.domainName);
-    this.props = this.deepFreeze({ ...props });
+    this.props = Object.freeze({ ...props });
   }
 
   get region(): AwsRegion { return this.props.region; }

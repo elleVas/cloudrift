@@ -48,7 +48,6 @@ export async function buildPricing(ctx: AnalysisContext): Promise<BuiltPricing> 
   }
 
   if (ctx.config.prices) {
-    warnOnUnknownPriceKeys(ctx.config.prices, priceTable, ctx.info);
     priceTable = mergePriceTables(priceTable, ctx.config.prices);
     pricesAsOf = `${pricesAsOf} + custom overrides`;
     layered = true;
@@ -59,33 +58,4 @@ export async function buildPricing(ctx: AnalysisContext): Promise<BuiltPricing> 
     : new StaticPriceTableAdapter();
 
   return { pricing, livePricingAdapter };
-}
-
-/**
- * A typo in `config.prices` (e.g. `ebs-gp2` written as `ebs_gp2`) is otherwise
- * silent: the key just sits unused in the table since no scanner ever looks it
- * up, and the real price used is whatever the base/live table already had.
- * Checked against the table as built so far (static + live, before the
- * override is merged in) so a key introduced by --live-pricing isn't
- * flagged as unknown.
- */
-function warnOnUnknownPriceKeys(
-  overrides: PriceTable,
-  knownTable: PriceTable,
-  info: (msg: string) => void,
-): void {
-  const knownKeys = new Set(
-    Object.values(knownTable).flatMap((regionPrices) => Object.keys(regionPrices)),
-  );
-  for (const [region, prices] of Object.entries(overrides)) {
-    for (const key of Object.keys(prices)) {
-      if (!knownKeys.has(key)) {
-        info(
-          chalk.yellow(
-            `  Unknown price key "${key}" in region "${region}" (config.prices) — no scanner requests this key, it will have no effect.`,
-          ),
-        );
-      }
-    }
-  }
 }

@@ -56,7 +56,7 @@ Questo documento spiega il perché di ogni scelta tecnologica nel progetto, con 
 **Perché:**
 - Modulare: si importa solo il client necessario
 - Client per-regione: ogni scanner crea un client con `{ ...AWS_CLIENT_DEFAULTS, region: region.code }` e lo distrugge nel `finally`
-- `AWS_CLIENT_DEFAULTS` (`utils/client-config.ts`) imposta `maxAttempts: 3`, attivando il retry/backoff nativo dell'SDK per throttling (429) ed errori 5xx transitori, più un `NodeHttpHandler` con timeout di 5s per la connessione / 30s per la richiesta così un socket bloccato non può far restare uno scan appeso indefinitamente ([ADR-0058](../adr/0058-aws-client-request-timeout.md))
+- `AWS_CLIENT_DEFAULTS` (`utils/client-config.ts`) imposta `maxAttempts: 3`, attivando il retry/backoff nativo dell'SDK per throttling (429) ed errori 5xx transitori
 - Tipizzazione migliore e supporto nativo a ESM
 
 **Pattern usato negli scanner:**

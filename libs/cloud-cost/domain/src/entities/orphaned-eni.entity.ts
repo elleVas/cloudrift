@@ -26,7 +26,7 @@ export class OrphanedEni extends Entity<string> implements WastedResource {
 
   constructor(props: OrphanedEniProps) {
     super(props.networkInterfaceId);
-    this.props = this.deepFreeze({ ...props });
+    this.props = Object.freeze({ ...props });
   }
 
   get region(): AwsRegion { return this.props.region; }

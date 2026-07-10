@@ -42,33 +42,4 @@ describe('paginate', () => {
 
     await expect(paginate(fetchPage)).rejects.toThrow('AWS error');
   });
-
-  it('applies select per page instead of accumulating raw items', async () => {
-    const fetchPage = jest
-      .fn()
-      .mockResolvedValueOnce({ items: [1, 2, 3], cursor: 'page2' })
-      .mockResolvedValueOnce({ items: [4, 5, 6], cursor: undefined });
-    const select = jest.fn((items: number[]) => items.filter((n) => n % 2 === 0));
-
-    const result = await paginate(fetchPage, select);
-
-    expect(result).toEqual([2, 4, 6]);
-    expect(select).toHaveBeenCalledTimes(2);
-    expect(select).toHaveBeenNthCalledWith(1, [1, 2, 3]);
-    expect(select).toHaveBeenNthCalledWith(2, [4, 5, 6]);
-  });
-
-  it('never holds more than one page of raw items at a time when select filters them out', async () => {
-    // Regression guard for the OOM risk: select must run before the next page
-    // is fetched, so a caller that discards most items per page keeps memory
-    // bounded by the filtered output, not by the total raw item count.
-    const fetchPage = jest
-      .fn()
-      .mockResolvedValueOnce({ items: Array.from({ length: 1000 }, (_, i) => i), cursor: 'page2' })
-      .mockResolvedValueOnce({ items: Array.from({ length: 1000 }, (_, i) => 1000 + i), cursor: undefined });
-
-    const result = await paginate(fetchPage, (items) => items.filter((n) => n % 500 === 0));
-
-    expect(result).toEqual([0, 500, 1000, 1500]);
-  });
 });

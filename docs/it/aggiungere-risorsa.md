@@ -85,7 +85,7 @@ export class LogGroup extends Entity<string> implements WastedResource {
 
   constructor(props: LogGroupProps) {
     super(props.logGroupName);
-    this.props = this.deepFreeze({ ...props });
+    this.props = Object.freeze({ ...props });
   }
 
   get region(): AwsRegion { return this.props.region; }
@@ -111,7 +111,7 @@ export class LogGroup extends Entity<string> implements WastedResource {
 
 **Regole:**
 - L'ID dell'entità è l'identificativo univoco AWS
-- Le props sono congelate ricorsivamente (`this.deepFreeze()`, ereditato da `Entity` — vedi [ADR-0060](../adr/0060-entity-deep-freeze.md)), non solo al primo livello
+- Le props sono congelate (`Object.freeze`)
 - L'entità porta i **fatti** (qui `retentionInDays`); la **decisione** sta nella policy
 - Esporta entità e props da `domain/src/index.ts`
 
@@ -230,8 +230,8 @@ export class AwsLogGroupScanner implements WasteScannerPort {
 ```
 
 **Regole:**
-- `{ ...AWS_CLIENT_DEFAULTS, region: region.code }` su ogni client SDK (retry/backoff sul throttling, più un timeout HTTP per-richiesta così una connessione bloccata non può far restare lo scan appeso — vedi `utils/client-config.ts`, [ADR-0058](../adr/0058-aws-client-request-timeout.md))
-- `paginate()` per tutte le chiamate list — passa un `select` per-pagina solo se il numero di risorse di questo tipo può davvero crescere senza limite nel tempo (vedi [ADR-0054](../adr/0054-paginate-select-per-page-streaming.md)); la maggior parte degli scanner non ne ha bisogno
+- `{ ...AWS_CLIENT_DEFAULTS, region: region.code }` su ogni client SDK (abilita retry/backoff sul throttling — vedi `utils/client-config.ts`)
+- `paginate()` per tutte le chiamate list
 - Eventuale fan-out interno (una chiamata per elemento) → `mapWithConcurrency` con limite
 - Ogni campo richiesto letto da una risposta AWS passa da un `.filter()` a restringimento di tipo, mai un `!` nudo — vedi [ADR-0051](../adr/0051-type-narrowing-guards-on-aws-responses.md)
 - La policy si applica **sempre** prima del return

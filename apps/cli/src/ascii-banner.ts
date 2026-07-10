@@ -27,3 +27,7 @@ const AYU_RAINBOW = [
 export function renderBanner(): string {
   return BANNER_LINES.map((line, i) => chalk.hex(AYU_RAINBOW[i % AYU_RAINBOW.length])(line)).join('\n');
 }
+
+export function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}

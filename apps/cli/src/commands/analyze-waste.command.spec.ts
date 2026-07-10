@@ -76,7 +76,7 @@ afterEach(() => {
 });
 
 function run(options: Partial<AnalyzeWasteOptions>, deps: AnalyzeDeps): Promise<void> {
-  return analyzeWasteCommand({ regions: ['us-east-1'], ...options }, deps);
+  return analyzeWasteCommand({ regions: ['us-east-1'], ...options }, deps, 0);
 }
 
 describe('analyzeWasteCommand (CLI end-to-end)', () => {

@@ -32,7 +32,7 @@ export class RdsUnderutilizedInstance extends Entity<string> implements WastedRe
 
   constructor(props: RdsUnderutilizedInstanceProps) {
     super(props.dbInstanceIdentifier);
-    this.props = this.deepFreeze({ ...props });
+    this.props = Object.freeze({ ...props });
   }
 
   get region(): AwsRegion { return this.props.region; }

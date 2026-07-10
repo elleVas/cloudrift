@@ -1,15 +1,12 @@
 // Genera apps/cli/dist/package.json per la pubblicazione npm.
 //
 // La CLI è bundlata (esbuild bundle:true): le lib del workspace sono già
-// inlinate in main.js, mentre i pacchetti di terze parti restano esterni —
-// sia `require("...")` (import statici) sia `import("...")` (dynamic import,
-// usato per @clack/prompts e pdfkit per differirne il costo di init). Il
-// manifest di pubblicazione deve quindi dichiarare SOLO quei pacchetti
-// esterni — non le dipendenze workspace:* del manifest di sviluppo.
+// inlinate in main.js, mentre i pacchetti di terze parti restano `require()`
+// esterni. Il manifest di pubblicazione deve quindi dichiarare SOLO quei
+// pacchetti esterni — non le dipendenze workspace:* del manifest di sviluppo.
 //
-// Gli esterni vengono ricavati dal bundle reale (require/import letterali),
-// così lo script si auto-mantiene se in futuro si aggiungono nuovi SDK o
-// nuovi dynamic import.
+// Gli esterni vengono ricavati dal bundle reale (i `require("...")`), così lo
+// script si auto-mantiene se in futuro si aggiungono nuovi SDK.
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -25,12 +22,9 @@ const appPkg = readJson(resolve(appDir, 'package.json'));
 const rootPkg = readJson(resolve(workspaceRoot, 'package.json'));
 const bundle = readFileSync(resolve(distDir, 'main.js'), 'utf8');
 
-// 1. Estrai i nomi dei pacchetti esterni dai require()/import() letterali del
-// bundle — entrambe le forme restano esterne (thirdParty: false), e serve
-// prenderle entrambe: un pacchetto caricato solo via dynamic import()
-// (@clack/prompts, pdfkit) non produce mai un require(...) nel bundle.
+// 1. Estrai i nomi dei pacchetti esterni dai require() del bundle.
 const externals = new Set();
-for (const match of bundle.matchAll(/\b(?:require|import)\(["']([^"']+)["']\)/g)) {
+for (const match of bundle.matchAll(/require\(["']([^"']+)["']\)/g)) {
   const spec = match[1];
   if (spec.startsWith('.') || spec.startsWith('/') || isBuiltin(spec)) continue;
   externals.add(packageNameOf(spec));
