@@ -49,11 +49,12 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 | [0046](0046-valueobject-deepequal.md) | `ValueObject.equals()` uses a recursive `deepEqual`, not `JSON.stringify` comparison | Accepted |
 | [0049](0049-infrastructureerror-not-domainerror.md) | `AwsAdapterError` extends `InfrastructureError`, not `DomainError` | Accepted |
 | [0051](0051-type-narrowing-guards-on-aws-responses.md) | Type-narrowing filters replace non-null assertions on AWS SDK responses | Accepted |
-| [0052](0052-global-scan-worker-pool.md) | Global worker pool over (scanner, region) pairs in the use case | Accepted |
+| [0052](0052-global-scan-worker-pool.md) | Global worker pool over (scanner, region) pairs in the use case | Accepted, default concurrency superseded by [ADR-0062](0062-scan-concurrency-lowered-for-localstack-reliability.md) |
 | [0053](0053-contract-tests-fixture-replay.md) | Contract tests replay real response fixtures through every scanner | Accepted |
 | [0054](0054-paginate-select-per-page-streaming.md) | `paginate()` filters per page instead of materializing every raw item | Accepted |
 | [0056](0056-analyze-waste-command-split.md) | `analyze-waste.command.ts` split into option-resolution and post-analysis modules | Accepted |
 | [0060](0060-entity-deep-freeze.md) | `Entity` deep-freezes props recursively | Accepted |
+| [0062](0062-scan-concurrency-lowered-for-localstack-reliability.md) | Scan concurrency lowered from 12 to 3; CI e2e job retries | Accepted |
 
 ## Stack
 

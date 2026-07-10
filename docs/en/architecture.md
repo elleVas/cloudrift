@@ -215,11 +215,11 @@ Each concrete policy adds the type-specific criterion:
 ```typescript
 constructor(
   private readonly scanners: readonly WasteScannerPort[],
-  private readonly scanConcurrency = 12,
+  private readonly scanConcurrency = 3,
 ) {}
 ```
 
-It flattens every _(scanner, region)_ pair into a FIFO job queue consumed by a **worker pool with one global bound** (12 in-flight scans by default, any scanner/region mix — [ADR-0052](../adr/0052-global-scan-worker-pool.md)); jobs are queued scanner-major so the first batch spreads across regions instead of concentrating on the first one. Errors are collected per _(scanner, region)_ pair: one region failing discards neither the results of the other regions nor those of the other scanners. The summary is always returned with partial data and the errors in `scanErrors`.
+It flattens every _(scanner, region)_ pair into a FIFO job queue consumed by a **worker pool with one global bound** (3 in-flight scans by default, any scanner/region mix — [ADR-0052](../adr/0052-global-scan-worker-pool.md); lowered from an original 12, see [ADR-0062](../adr/0062-scan-concurrency-lowered-for-localstack-reliability.md), after LocalStack Community proved unable to reliably absorb that many concurrent connections); jobs are queued scanner-major so the first batch spreads across regions instead of concentrating on the first one. Errors are collected per _(scanner, region)_ pair: one region failing discards neither the results of the other regions nor those of the other scanners. The summary is always returned with partial data and the errors in `scanErrors`.
 
 `toWasteReportDto()` projects the summary into **`WasteReportDto`**, a JSON-safe structure (primitives and ISO strings only): it is the data contract for any presentation, present and future (see [Frontend-readiness](#frontend-readiness)).
 

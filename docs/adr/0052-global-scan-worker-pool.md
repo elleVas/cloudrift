@@ -1,6 +1,6 @@
 # ADR-0052: Global worker pool over (scanner, region) pairs in the use case
 
-- **Status:** Accepted (2026-07-10)
+- **Status:** Accepted; the default `scanConcurrency` value (12) is superseded by [ADR-0062](0062-scan-concurrency-lowered-for-localstack-reliability.md) (now 3) — the worker pool design itself still stands.
 
 ## Context
 

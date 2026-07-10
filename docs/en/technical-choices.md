@@ -76,7 +76,7 @@ try {
 ```
 
 **Rate limiting — consistent concurrency rules:**
-- (scanner, region) pairs → worker pool with one global bound (12 in-flight scans by default, any mix), queued scanner-major so the first batch spreads across regions — see [ADR-0052](../adr/0052-global-scan-worker-pool.md)
+- (scanner, region) pairs → worker pool with one global bound (3 in-flight scans by default, any mix — lowered from 12, see [ADR-0062](../adr/0062-scan-concurrency-lowered-for-localstack-reliability.md)), queued scanner-major so the first batch spreads across regions — see [ADR-0052](../adr/0052-global-scan-worker-pool.md)
 - Internal fan-out within a scanner (e.g. one CloudWatch call per NAT Gateway) → `mapWithConcurrency` with a cap (5)
 
 **Required-field validation:** scanners never read a required AWS response field with a bare non-null assertion (`v.VolumeId!`). Instead, a local intersection type plus a type-narrowing `.filter()` right after the fetch excludes malformed entries and logs how many were dropped (`DEBUG=cloudrift:*`) — see [ADR-0051](../adr/0051-type-narrowing-guards-on-aws-responses.md).

@@ -122,7 +122,22 @@ jobs:
       - name: Build
         run: pnpm nx run cli:build
 
+      # Retries up to 3 times: LocalStack Community's single-process gateway
+      # occasionally resets a connection under concurrent load ("socket hang
+      # up" on a random resource kind, not the same one each time) — an
+      # environmental flakiness, not a code defect. See ADR-0062.
       - name: Run LocalStack e2e harness
-        run: pnpm nx run cli:e2e-localstack
+        run: |
+          for attempt in 1 2 3; do
+            echo "::group::Attempt $attempt/3"
+            pnpm nx run cli:e2e-localstack
+            status=$?
+            echo "::endgroup::"
+            if [ $status -eq 0 ]; then
+              exit 0
+            fi
+            echo "Attempt $attempt failed (exit $status)."
+          done
+          exit $status
         env:
           LOCALSTACK_AUTH_TOKEN: ${{ secrets.LOCALSTACK_AUTH_TOKEN }}
