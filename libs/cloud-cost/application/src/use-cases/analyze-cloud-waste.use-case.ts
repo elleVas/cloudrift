@@ -13,14 +13,15 @@ import type {
 const logger = createLogger('cloudrift:scanner');
 
 /**
- * Global bound on in-flight (scanner, region) scans, any mix, for real AWS
- * usage. Overridable via `CLOUDRIFT_SCAN_CONCURRENCY` (see
- * `analyze-waste.composition.ts`) — the LocalStack e2e harness sets it much
- * lower, since LocalStack Community's single-process gateway can't reliably
- * absorb this many concurrent connections the way real AWS can. See
- * ADR-0063 (supersedes ADR-0062).
+ * Global bound on in-flight (scanner, region) scans, any mix. Overridable
+ * via `CLOUDRIFT_SCAN_CONCURRENCY` (see `analyze-waste.composition.ts`).
+ * Temporarily dropped to 1 (2026-07-11): a real-AWS run at 12 hit socket
+ * hang up on most scanners, contradicting ADR-0063's assumption that real
+ * AWS has no reliability issue at that concurrency. Needs proper
+ * investigation (retry/backoff, timeouts, or a lower steady-state value) —
+ * see ADR-0063, revisit before restoring a higher default.
  */
-const DEFAULT_SCAN_CONCURRENCY = 12;
+const DEFAULT_SCAN_CONCURRENCY = 1;
 
 /**
  * Generic coordinator: every (scanner, region) pair becomes one job in a
