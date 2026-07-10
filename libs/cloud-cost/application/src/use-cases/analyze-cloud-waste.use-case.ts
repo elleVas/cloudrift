@@ -13,15 +13,14 @@ import type {
 const logger = createLogger('cloudrift:scanner');
 
 /**
- * Global bound on in-flight (scanner, region) scans, any mix. Lowered from
- * 12 to 3 (2026-07-10): the LocalStack e2e harness failed unpredictably at
- * 12 — a burst of that many concurrent connections resets randomly on
- * LocalStack Community's single-process gateway (verified: reducing to 3
- * cut failures from 6-11 kinds/run down to ~1; real AWS has no such issue,
- * `maxAttempts: 3` in `AWS_CLIENT_DEFAULTS` already absorbs real throttling).
- * See ADR-0062.
+ * Global bound on in-flight (scanner, region) scans, any mix, for real AWS
+ * usage. Overridable via `CLOUDRIFT_SCAN_CONCURRENCY` (see
+ * `analyze-waste.composition.ts`) — the LocalStack e2e harness sets it much
+ * lower, since LocalStack Community's single-process gateway can't reliably
+ * absorb this many concurrent connections the way real AWS can. See
+ * ADR-0063 (supersedes ADR-0062).
  */
-const DEFAULT_SCAN_CONCURRENCY = 3;
+const DEFAULT_SCAN_CONCURRENCY = 12;
 
 /**
  * Generic coordinator: every (scanner, region) pair becomes one job in a

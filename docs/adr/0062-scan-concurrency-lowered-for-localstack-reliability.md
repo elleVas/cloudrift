@@ -1,6 +1,6 @@
 # ADR-0062: Scan concurrency lowered from 12 to 3; CI e2e job retries
 
-- **Status:** Accepted (2026-07-10)
+- **Status:** Superseded by [ADR-0063](0063-scan-concurrency-env-configurable-default-restored-to-12.md) (2026-07-10)
 
 ## Context
 
