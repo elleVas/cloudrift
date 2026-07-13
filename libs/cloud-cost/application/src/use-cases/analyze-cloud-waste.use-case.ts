@@ -15,13 +15,15 @@ const logger = createLogger('cloudrift:scanner');
 /**
  * Global bound on in-flight (scanner, region) scans, any mix. Overridable
  * via `CLOUDRIFT_SCAN_CONCURRENCY` (see `analyze-waste.composition.ts`).
- * Temporarily dropped to 1 (2026-07-11): a real-AWS run at 12 hit socket
- * hang up on most scanners, contradicting ADR-0063's assumption that real
- * AWS has no reliability issue at that concurrency. Needs proper
- * investigation (retry/backoff, timeouts, or a lower steady-state value) —
- * see ADR-0063, revisit before restoring a higher default.
+ * Restored to 12 (2026-07-13, ADR-0064) after root-causing the socket
+ * hang up that briefly dropped this to 1: it was a client-side bug (every
+ * scanner shared one `NodeHttpHandler`, so one finishing destroyed another's
+ * in-flight connections), not a real AWS reliability limit — ADR-0063's
+ * original assumption was right, the earlier fix just targeted the wrong
+ * layer. Re-verified against real AWS post-fix: 0 errors, identical findings,
+ * at 1/3/5/10/20 in-flight scans alike.
  */
-const DEFAULT_SCAN_CONCURRENCY = 1;
+const DEFAULT_SCAN_CONCURRENCY = 12;
 
 /**
  * Generic coordinator: every (scanner, region) pair becomes one job in a

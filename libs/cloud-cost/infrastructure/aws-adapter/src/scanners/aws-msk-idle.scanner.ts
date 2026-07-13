@@ -4,7 +4,7 @@ import type { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
 import { createLogger } from 'shared-kernel';
 import type { AwsRegion } from 'cloud-cost-domain';
 import { MskCluster, MskIdleClusterPolicy, type WastePolicy } from 'cloud-cost-domain';
-import { AWS_CLIENT_DEFAULTS } from '../utils/client-config';
+import { createAwsClientConfig } from '../utils/client-config';
 import { paginate } from '../utils/paginate';
 import { mapWithConcurrency } from '../utils/map-with-concurrency';
 import { sumMetrics, type MetricWindow } from '../utils/cloudwatch-metrics';
@@ -40,7 +40,7 @@ export class AwsMskIdleScanner extends CloudWatchIdleScanner<KafkaClient, Cluste
   }
 
   protected createPrimaryClient(region: AwsRegion): KafkaClient {
-    return new KafkaClient({ ...AWS_CLIENT_DEFAULTS, region: region.code });
+    return new KafkaClient({ ...createAwsClientConfig(), region: region.code });
   }
 
   protected destroyPrimaryClient(client: KafkaClient): void {

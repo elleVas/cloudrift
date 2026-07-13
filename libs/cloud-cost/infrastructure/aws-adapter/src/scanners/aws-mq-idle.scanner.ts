@@ -6,7 +6,7 @@ import type { AwsRegion } from 'cloud-cost-domain';
 import { MqBroker, MqIdleBrokerPolicy, type WastePolicy } from 'cloud-cost-domain';
 import { paginate } from '../utils/paginate';
 import { mapWithConcurrency } from '../utils/map-with-concurrency';
-import { AWS_CLIENT_DEFAULTS } from '../utils/client-config';
+import { createAwsClientConfig } from '../utils/client-config';
 import { sumMetric, type MetricWindow } from '../utils/cloudwatch-metrics';
 import { CloudWatchIdleScanner } from './cloudwatch-idle.scanner';
 
@@ -34,7 +34,7 @@ export class AwsMqIdleScanner extends CloudWatchIdleScanner<MqClient, BrokerWith
   }
 
   protected createPrimaryClient(region: AwsRegion): MqClient {
-    return new MqClient({ ...AWS_CLIENT_DEFAULTS, region: region.code });
+    return new MqClient({ ...createAwsClientConfig(), region: region.code });
   }
 
   protected destroyPrimaryClient(client: MqClient): void {

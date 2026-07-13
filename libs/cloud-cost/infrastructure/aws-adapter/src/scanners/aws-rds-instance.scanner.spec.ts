@@ -69,15 +69,27 @@ describe('AwsRdsInstanceScanner', () => {
     if (result.ok) expect(result.value).toHaveLength(0);
   });
 
-  it('sends DescribeDBInstancesCommand with the stopped status filter', async () => {
+  it('sends DescribeDBInstancesCommand with no status filter (db-instance-status is not a valid RDS filter name)', async () => {
     mockSend.mockResolvedValueOnce({ DBInstances: [] });
 
     await scanner.scan(region);
 
     const constructorArgs = (DescribeDBInstancesCommand as unknown as jest.Mock).mock.calls[0][0];
-    expect(constructorArgs.Filters).toEqual([
-      { Name: 'db-instance-status', Values: ['stopped'] },
-    ]);
+    expect(constructorArgs.Filters).toBeUndefined();
+  });
+
+  it('excludes non-stopped instances via the policy, since AWS returns every status unfiltered', async () => {
+    mockSend.mockResolvedValueOnce({
+      DBInstances: [
+        { DBInstanceIdentifier: 'db-available', DBInstanceStatus: 'available', AllocatedStorage: 10 },
+        { DBInstanceIdentifier: 'db-stopped', DBInstanceStatus: 'stopped', AllocatedStorage: 10 },
+      ],
+    });
+
+    const result = await scanner.scan(region);
+
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.map((db) => db.id)).toEqual(['db-stopped']);
   });
 
   it('follows the Marker cursor across pages', async () => {

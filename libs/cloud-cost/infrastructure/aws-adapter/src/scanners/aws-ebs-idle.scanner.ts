@@ -5,7 +5,7 @@ import { createLogger } from 'shared-kernel';
 import type { AwsRegion, PricingPort } from 'cloud-cost-domain';
 import { IdleEbsVolume, EbsIdlePolicy, type WastePolicy } from 'cloud-cost-domain';
 import { paginate } from '../utils/paginate';
-import { AWS_CLIENT_DEFAULTS } from '../utils/client-config';
+import { createAwsClientConfig } from '../utils/client-config';
 import { sumMetric, type MetricWindow } from '../utils/cloudwatch-metrics';
 import { CloudWatchIdleScanner } from './cloudwatch-idle.scanner';
 
@@ -40,7 +40,7 @@ export class AwsEbsIdleScanner extends CloudWatchIdleScanner<EC2Client, VolumeWi
   }
 
   protected createPrimaryClient(region: AwsRegion): EC2Client {
-    return new EC2Client({ ...AWS_CLIENT_DEFAULTS, region: region.code });
+    return new EC2Client({ ...createAwsClientConfig(), region: region.code });
   }
 
   protected destroyPrimaryClient(client: EC2Client): void {

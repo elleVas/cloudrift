@@ -9,7 +9,7 @@ import type { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
 import { createLogger } from 'shared-kernel';
 import type { AwsRegion } from 'cloud-cost-domain';
 import { OpenSearchDomain, OpenSearchIdleDomainPolicy, type WastePolicy } from 'cloud-cost-domain';
-import { AWS_CLIENT_DEFAULTS } from '../utils/client-config';
+import { createAwsClientConfig } from '../utils/client-config';
 import { mapWithConcurrency } from '../utils/map-with-concurrency';
 import { sumMetrics, type MetricWindow } from '../utils/cloudwatch-metrics';
 import { CloudWatchIdleScanner } from './cloudwatch-idle.scanner';
@@ -50,7 +50,7 @@ export class AwsOpenSearchIdleScanner extends CloudWatchIdleScanner<
   }
 
   protected createPrimaryClient(region: AwsRegion): OpenSearchClient {
-    return new OpenSearchClient({ ...AWS_CLIENT_DEFAULTS, region: region.code });
+    return new OpenSearchClient({ ...createAwsClientConfig(), region: region.code });
   }
 
   protected destroyPrimaryClient(client: OpenSearchClient): void {

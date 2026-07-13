@@ -6,7 +6,7 @@ import type { AwsRegion } from 'cloud-cost-domain';
 import { IdleElastiCacheCluster, ElastiCacheIdlePolicy, type WastePolicy } from 'cloud-cost-domain';
 import { paginate } from '../utils/paginate';
 import { mapWithConcurrency } from '../utils/map-with-concurrency';
-import { AWS_CLIENT_DEFAULTS } from '../utils/client-config';
+import { createAwsClientConfig } from '../utils/client-config';
 import { sumMetric, type MetricWindow } from '../utils/cloudwatch-metrics';
 import { CloudWatchIdleScanner } from './cloudwatch-idle.scanner';
 
@@ -39,7 +39,7 @@ export class AwsElastiCacheIdleScanner extends CloudWatchIdleScanner<
   }
 
   protected createPrimaryClient(region: AwsRegion): ElastiCacheClient {
-    return new ElastiCacheClient({ ...AWS_CLIENT_DEFAULTS, region: region.code });
+    return new ElastiCacheClient({ ...createAwsClientConfig(), region: region.code });
   }
 
   protected destroyPrimaryClient(client: ElastiCacheClient): void {

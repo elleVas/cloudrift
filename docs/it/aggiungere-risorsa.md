@@ -168,7 +168,7 @@ import type { AwsRegion, PricingPort, WasteScannerPort, WastedResource } from 'c
 import { LogGroup, LogGroupWastePolicy } from 'cloud-cost-domain';
 import { AwsAdapterError } from '../errors/aws-adapter.error';
 import { paginate } from '../utils/paginate';
-import { AWS_CLIENT_DEFAULTS } from '../utils/client-config';
+import { createAwsClientConfig } from '../utils/client-config';
 
 const logger = createLogger('cloudrift:scanner');
 
@@ -187,7 +187,7 @@ export class AwsLogGroupScanner implements WasteScannerPort {
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
-    const client = new CloudWatchLogsClient({ ...AWS_CLIENT_DEFAULTS, region: region.code });
+    const client = new CloudWatchLogsClient({ ...createAwsClientConfig(), region: region.code });
     try {
       const rawGroups = await paginate<AwsLogGroup>(async (cursor) => {
         const r = await client.send(new DescribeLogGroupsCommand({ nextToken: cursor }));
@@ -230,7 +230,7 @@ export class AwsLogGroupScanner implements WasteScannerPort {
 ```
 
 **Regole:**
-- `{ ...AWS_CLIENT_DEFAULTS, region: region.code }` su ogni client SDK (retry/backoff sul throttling, più un timeout HTTP per-richiesta così una connessione bloccata non può far restare lo scan appeso — vedi `utils/client-config.ts`, [ADR-0058](../adr/0058-aws-client-request-timeout.md))
+- `{ ...createAwsClientConfig(), region: region.code }` su ogni client SDK (retry/backoff sul throttling, più un timeout HTTP per-richiesta così una connessione bloccata non può far restare lo scan appeso — vedi `utils/client-config.ts`, [ADR-0058](../adr/0058-aws-client-request-timeout.md))
 - `paginate()` per tutte le chiamate list — passa un `select` per-pagina solo se il numero di risorse di questo tipo può davvero crescere senza limite nel tempo (vedi [ADR-0054](../adr/0054-paginate-select-per-page-streaming.md)); la maggior parte degli scanner non ne ha bisogno
 - Eventuale fan-out interno (una chiamata per elemento) → `mapWithConcurrency` con limite
 - Ogni campo richiesto letto da una risposta AWS passa da un `.filter()` a restringimento di tipo, mai un `!` nudo — vedi [ADR-0051](../adr/0051-type-narrowing-guards-on-aws-responses.md)

@@ -5,7 +5,7 @@ import { createLogger } from 'shared-kernel';
 import type { AwsRegion, PricingPort } from 'cloud-cost-domain';
 import { EfsFileSystem, EfsUnusedPolicy, type WastePolicy } from 'cloud-cost-domain';
 import { paginate } from '../utils/paginate';
-import { AWS_CLIENT_DEFAULTS } from '../utils/client-config';
+import { createAwsClientConfig } from '../utils/client-config';
 import { sumMetrics, type MetricWindow } from '../utils/cloudwatch-metrics';
 import { CloudWatchIdleScanner } from './cloudwatch-idle.scanner';
 
@@ -39,7 +39,7 @@ export class AwsEfsUnusedScanner extends CloudWatchIdleScanner<
   }
 
   protected createPrimaryClient(region: AwsRegion): EFSClient {
-    return new EFSClient({ ...AWS_CLIENT_DEFAULTS, region: region.code });
+    return new EFSClient({ ...createAwsClientConfig(), region: region.code });
   }
 
   protected destroyPrimaryClient(client: EFSClient): void {

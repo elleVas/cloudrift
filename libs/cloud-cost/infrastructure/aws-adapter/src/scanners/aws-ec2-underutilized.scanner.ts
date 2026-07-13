@@ -11,7 +11,7 @@ import type { AwsRegion } from 'cloud-cost-domain';
 import { UnderutilizedEc2Instance, Ec2UnderutilizedPolicy, type WastePolicy } from 'cloud-cost-domain';
 import { paginate } from '../utils/paginate';
 import { mapWithConcurrency } from '../utils/map-with-concurrency';
-import { AWS_CLIENT_DEFAULTS } from '../utils/client-config';
+import { createAwsClientConfig } from '../utils/client-config';
 import { avgMaxMetric, type MetricWindow } from '../utils/cloudwatch-metrics';
 import { CloudWatchIdleScanner } from './cloudwatch-idle.scanner';
 
@@ -60,7 +60,7 @@ export class AwsEc2UnderutilizedScanner extends CloudWatchIdleScanner<
   }
 
   protected createPrimaryClient(region: AwsRegion): EC2Client {
-    return new EC2Client({ ...AWS_CLIENT_DEFAULTS, region: region.code });
+    return new EC2Client({ ...createAwsClientConfig(), region: region.code });
   }
 
   protected destroyPrimaryClient(client: EC2Client): void {

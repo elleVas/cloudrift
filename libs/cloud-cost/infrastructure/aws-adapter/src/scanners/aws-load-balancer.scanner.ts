@@ -18,7 +18,7 @@ import type {
 import { LoadBalancer, LoadBalancerWastePolicy } from 'cloud-cost-domain';
 import { AwsAdapterError } from '../errors/aws-adapter.error';
 import { paginate } from '../utils/paginate';
-import { AWS_CLIENT_DEFAULTS } from '../utils/client-config';
+import { createAwsClientConfig } from '../utils/client-config';
 
 const logger = createLogger('cloudrift:scanner');
 
@@ -34,7 +34,7 @@ export class AwsLoadBalancerScanner implements WasteScannerPort {
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
-    const client = new ElasticLoadBalancingV2Client({ ...AWS_CLIENT_DEFAULTS, region: region.code });
+    const client = new ElasticLoadBalancingV2Client({ ...createAwsClientConfig(), region: region.code });
     try {
       const allLbs = await paginate<AwsLoadBalancer>(async (cursor) => {
         const r = await client.send(new DescribeLoadBalancersCommand({ Marker: cursor }));

@@ -4,7 +4,7 @@ import type { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
 import { createLogger } from 'shared-kernel';
 import type { AwsRegion, PricingPort } from 'cloud-cost-domain';
 import { FsxFileSystem, FsxIdleFilesystemPolicy, type WastePolicy } from 'cloud-cost-domain';
-import { AWS_CLIENT_DEFAULTS } from '../utils/client-config';
+import { createAwsClientConfig } from '../utils/client-config';
 import { paginate } from '../utils/paginate';
 import { sumMetrics, type MetricWindow } from '../utils/cloudwatch-metrics';
 import { CloudWatchIdleScanner } from './cloudwatch-idle.scanner';
@@ -34,7 +34,7 @@ export class AwsFsxIdleScanner extends CloudWatchIdleScanner<FSxClient, FileSyst
   }
 
   protected createPrimaryClient(region: AwsRegion): FSxClient {
-    return new FSxClient({ ...AWS_CLIENT_DEFAULTS, region: region.code });
+    return new FSxClient({ ...createAwsClientConfig(), region: region.code });
   }
 
   protected destroyPrimaryClient(client: FSxClient): void {

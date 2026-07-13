@@ -1,6 +1,6 @@
 # ADR-0052: Global worker pool over (scanner, region) pairs in the use case
 
-- **Status:** Accepted; the default `scanConcurrency` value (12) is superseded by [ADR-0062](0062-scan-concurrency-lowered-for-localstack-reliability.md) (now 3) — the worker pool design itself still stands.
+- **Status:** Accepted; the worker pool design itself still stands. The default `scanConcurrency` value went 12 → 3 ([ADR-0062](0062-scan-concurrency-lowered-for-localstack-reliability.md)) → 12, env-overridable ([ADR-0063](0063-scan-concurrency-env-configurable-default-restored-to-12.md)) → briefly 1 while root-causing an unrelated client-side bug → back to 12 ([ADR-0064](0064-per-client-requesthandler-not-shared.md), verified against real AWS up to 20 with 0 errors).
 
 ## Context
 

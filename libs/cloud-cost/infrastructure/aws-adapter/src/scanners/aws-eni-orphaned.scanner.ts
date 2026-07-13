@@ -9,7 +9,7 @@ import type { AwsRegion, WasteScannerPort, WastedResource } from 'cloud-cost-dom
 import { OrphanedEni, OrphanedEniWastePolicy } from 'cloud-cost-domain';
 import { AwsAdapterError } from '../errors/aws-adapter.error';
 import { paginate } from '../utils/paginate';
-import { AWS_CLIENT_DEFAULTS } from '../utils/client-config';
+import { createAwsClientConfig } from '../utils/client-config';
 
 const logger = createLogger('cloudrift:scanner');
 
@@ -28,7 +28,7 @@ export class AwsEniOrphanedScanner implements WasteScannerPort {
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
-    const client = new EC2Client({ ...AWS_CLIENT_DEFAULTS, region: region.code });
+    const client = new EC2Client({ ...createAwsClientConfig(), region: region.code });
     try {
       const rawEnis = await paginate<NetworkInterface>(async (cursor) => {
         const r = await client.send(

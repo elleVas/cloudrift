@@ -18,7 +18,7 @@ import type {
 import { EbsSnapshot, EbsSnapshotWastePolicy } from 'cloud-cost-domain';
 import { AwsAdapterError } from '../errors/aws-adapter.error';
 import { paginate } from '../utils/paginate';
-import { AWS_CLIENT_DEFAULTS } from '../utils/client-config';
+import { createAwsClientConfig } from '../utils/client-config';
 
 const logger = createLogger('cloudrift:scanner');
 
@@ -34,7 +34,7 @@ export class AwsEbsSnapshotScanner implements WasteScannerPort {
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
-    const client = new EC2Client({ ...AWS_CLIENT_DEFAULTS, region: region.code });
+    const client = new EC2Client({ ...createAwsClientConfig(), region: region.code });
     try {
       // Volumes and images are correlation sets: a snapshot can only be judged
       // "orphaned" once we know for certain no volume/AMI references it anywhere
