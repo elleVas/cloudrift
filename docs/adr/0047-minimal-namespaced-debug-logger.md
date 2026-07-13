@@ -23,3 +23,5 @@ Two call sites at the time of this decision:
 ## Consequences
 
 New `libs/shared/kernel/src/logging/logger.ts` + 7 tests (namespace matching, wildcard, multiple patterns, stderr routing, no-op when disabled). No behavior change when `DEBUG` is unset (the default): `enabled` is computed once at `createLogger()` call time and every `debug()` call short-circuits before formatting or writing anything. The existing user-facing "info" flow (`AnalysisContext.info`, chalk output) is untouched — this is a separate, opt-in diagnostic channel, not a replacement for it.
+
+**Security note (added 2026-07-13, internal security review):** since scanner debug output includes AWS resource IDs (see the `cloudrift:scanner` call site above, and per-scanner malformed-response logs), `DEBUG=cloudrift:*` output shouldn't be pasted into a public GitHub issue or shared outside the user's organization without review — documented in the README's Development section. Not a code change: opt-in, off by default, stderr-only as designed; this is a usage caveat, not a defect.

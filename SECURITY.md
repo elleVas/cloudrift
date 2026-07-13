@@ -37,3 +37,9 @@ Out of scope:
 - vulnerabilities in AWS services themselves (report those to AWS Security)
 - issues that require an attacker to already have write access to your AWS credentials or local filesystem
 - the IAM permissions you grant to the credentials you run cloudrift with — that's on the user to scope to read-only, as documented in the [README](./README.md#required-iam-permissions)
+
+### If you're wrapping cloudrift in another service
+
+`--json`, `--pdf`, and `--config` accept any filesystem path, resolved with the same privileges as the process running the CLI — by design, so you can write reports and load config wherever you choose, the same trust level as any other CLI flag. Reviewed internally 2026-07-13: this isn't a vulnerability for direct, interactive use (whoever can pass CLI flags already has that filesystem access), so cloudrift does not restrict these paths to the working directory.
+
+If you're building a service that invokes cloudrift on behalf of untrusted callers and forwards user-supplied values into `--json`/`--pdf`/`--config`, validate or sandbox those values yourself before invoking the CLI — cloudrift will not do it for you.

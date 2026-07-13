@@ -460,6 +460,8 @@ pnpm nx run-many -t lint
 pnpm nx run-many -t typecheck
 ```
 
+Diagnostic logging is opt-in via `DEBUG=cloudrift:*` (e.g. `DEBUG=cloudrift:* cloudrift analyze ...`), off by default. It writes to stderr, separate from the report itself — but its output includes AWS resource IDs (volume IDs, instance IDs, etc.) from your account. Don't paste `DEBUG` output into a public GitHub issue or share it outside your organization without checking it first.
+
 </details>
 
 ### Releasing
@@ -966,6 +968,8 @@ pnpm nx run-many -t lint
 # Type check
 pnpm nx run-many -t typecheck
 ```
+
+Il logging diagnostico è opt-in tramite `DEBUG=cloudrift:*` (es. `DEBUG=cloudrift:* cloudrift analyze ...`), disattivato di default. Scrive su stderr, separato dal report — ma il suo output include ID di risorse AWS (volume ID, instance ID, ecc.) del tuo account. Non incollare l'output di `DEBUG` in una issue GitHub pubblica né condividerlo fuori dalla tua organizzazione senza prima controllarlo.
 
 </details>
 

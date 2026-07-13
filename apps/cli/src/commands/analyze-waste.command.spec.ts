@@ -105,6 +105,23 @@ describe('analyzeWasteCommand (CLI end-to-end)', () => {
     expect(parsed.findings).toHaveLength(1);
   });
 
+  it('warns (with the --account-id fix) when STS account resolution fails and no override was given', async () => {
+    await run({ format: 'table' }, makeDeps());
+    expect(stdout).toContain('Could not resolve the AWS account ID via STS');
+    expect(stdout).toContain('--account-id');
+  });
+
+  it('does not warn about account resolution when --account-id is passed explicitly', async () => {
+    await run({ format: 'table', accountId: '123456789012' }, makeDeps());
+    expect(stdout).not.toContain('Could not resolve the AWS account ID');
+  });
+
+  it('routes the account-resolution warning to stderr in json format, keeping stdout pure JSON', async () => {
+    await run({ format: 'json' }, makeDeps());
+    expect(stderr).toContain('Could not resolve the AWS account ID via STS');
+    expect(() => JSON.parse(stdout.trim())).not.toThrow();
+  });
+
   it('markdown format: stdout is the markdown report', async () => {
     await run({ format: 'markdown' }, makeDeps({
       summary: summaryOf([wasteVolume('vol-1', 8)], 8),
