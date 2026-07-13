@@ -68,6 +68,38 @@ jobs:
       - name: Run tests
         run: pnpm nx run-many --target=test --all --parallel
 
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: '10.33.0'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24.x'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Non-blocking for now (continue-on-error): the repo currently has a
+      # handful of moderate/high advisories in nx/@nx/jest's own transitive
+      # deps (not in the shipped @cloudrift/cli package). Surfacing them
+      # without failing the build until they're cleaned up; flip to blocking
+      # once `pnpm audit --audit-level moderate` is clean.
+      - name: Run pnpm audit
+        run: pnpm audit --audit-level moderate
+        continue-on-error: true
+
   build:
     name: Build
     runs-on: ubuntu-latest

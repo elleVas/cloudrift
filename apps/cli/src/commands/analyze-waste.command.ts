@@ -121,6 +121,13 @@ export async function analyzeWasteCommand(
 
   const accountId =
     options.accountId ?? (await deps.resolveAccountId()) ?? 'unknown';
+  // accountId is only ever 'unknown' when both --account-id was omitted and
+  // STS GetCallerIdentity failed (e.g. credentials lack that permission) —
+  // surfaced here so the omission in the report isn't silent, with the
+  // override the user needs right in the message.
+  if (accountId === 'unknown') {
+    info(chalk.dim('  Could not resolve the AWS account ID via STS — pass --account-id to set it explicitly.'));
+  }
 
   if (!quietStdout) {
     const accountLabel =
