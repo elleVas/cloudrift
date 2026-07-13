@@ -5,7 +5,7 @@ import type { AwsRegion, ResourceKind, WasteScannerPort, WastedResource, WastePo
 import { AwsAdapterError } from '../errors/aws-adapter.error';
 import { mapWithConcurrency } from '../utils/map-with-concurrency';
 import { metricWindow, type MetricWindow } from '../utils/cloudwatch-metrics';
-import { AWS_CLIENT_DEFAULTS } from '../utils/client-config';
+import { createAwsClientConfig } from '../utils/client-config';
 
 /**
  * Template method for the CloudWatch-based scanners (REVIEW.md #2): list
@@ -35,7 +35,7 @@ export abstract class CloudWatchIdleScanner<TPrimaryClient, TRaw, TMetric, TEnti
 
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
     const primary = this.createPrimaryClient(region);
-    const cw = new CloudWatchClient({ ...AWS_CLIENT_DEFAULTS, region: region.code });
+    const cw = new CloudWatchClient({ ...createAwsClientConfig(), region: region.code });
     try {
       const raw = await this.listResources(primary, region);
       if (raw.length === 0) return Result.ok([]);

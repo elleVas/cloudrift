@@ -9,7 +9,7 @@ import { Result, createLogger } from 'shared-kernel';
 import type { AwsRegion, WasteScannerPort, WastedResource } from 'cloud-cost-domain';
 import { Workspace, WorkspacesIdlePolicy } from 'cloud-cost-domain';
 import { AwsAdapterError } from '../errors/aws-adapter.error';
-import { AWS_CLIENT_DEFAULTS } from '../utils/client-config';
+import { createAwsClientConfig } from '../utils/client-config';
 import { paginate } from '../utils/paginate';
 import { mapWithConcurrency } from '../utils/map-with-concurrency';
 
@@ -43,7 +43,7 @@ export class AwsWorkspacesIdleScanner implements WasteScannerPort {
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
-    const workspaces = new WorkSpacesClient({ ...AWS_CLIENT_DEFAULTS, region: region.code });
+    const workspaces = new WorkSpacesClient({ ...createAwsClientConfig(), region: region.code });
     try {
       const rawWorkspaces = await paginate<SdkWorkspace>(async (cursor) => {
         const r = await workspaces.send(new DescribeWorkspacesCommand({ NextToken: cursor }));

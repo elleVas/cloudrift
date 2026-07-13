@@ -15,7 +15,7 @@ import type {
 import { RdsInstance, RdsInstanceWastePolicy } from 'cloud-cost-domain';
 import { AwsAdapterError } from '../errors/aws-adapter.error';
 import { paginate } from '../utils/paginate';
-import { AWS_CLIENT_DEFAULTS } from '../utils/client-config';
+import { createAwsClientConfig } from '../utils/client-config';
 
 const logger = createLogger('cloudrift:scanner');
 
@@ -31,14 +31,13 @@ export class AwsRdsInstanceScanner implements WasteScannerPort {
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
-    const client = new RDSClient({ ...AWS_CLIENT_DEFAULTS, region: region.code });
+    const client = new RDSClient({ ...createAwsClientConfig(), region: region.code });
     try {
+      // `db-instance-status` is not a recognized DescribeDBInstances filter
+      // name; RdsInstanceWastePolicy.judge() re-checks db.isStopped() below.
       const rawInstances = await paginate<DBInstance>(async (cursor) => {
         const r = await client.send(
-          new DescribeDBInstancesCommand({
-            Filters: [{ Name: 'db-instance-status', Values: ['stopped'] }],
-            Marker: cursor,
-          }),
+          new DescribeDBInstancesCommand({ Marker: cursor }),
         );
         return { items: r.DBInstances ?? [], cursor: r.Marker };
       });

@@ -12,7 +12,7 @@ import { S3Bucket, S3NoLifecyclePolicy } from 'cloud-cost-domain';
 import { AwsAdapterError } from '../errors/aws-adapter.error';
 import { paginate } from '../utils/paginate';
 import { mapWithConcurrency } from '../utils/map-with-concurrency';
-import { AWS_CLIENT_DEFAULTS } from '../utils/client-config';
+import { createAwsClientConfig } from '../utils/client-config';
 import { avgMetric } from '../utils/cloudwatch-metrics';
 
 const logger = createLogger('cloudrift:scanner');
@@ -39,11 +39,11 @@ export class AwsS3NoLifecycleScanner implements WasteScannerPort {
 
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
     const s3 = new S3Client({
-      ...AWS_CLIENT_DEFAULTS,
+      ...createAwsClientConfig(),
       region: region.code,
       forcePathStyle: !!process.env.AWS_ENDPOINT_URL,
     });
-    const cw = new CloudWatchClient({ ...AWS_CLIENT_DEFAULTS, region: region.code });
+    const cw = new CloudWatchClient({ ...createAwsClientConfig(), region: region.code });
     try {
       const allBuckets = await paginate<Bucket>(async (cursor) => {
         const r = await s3.send(

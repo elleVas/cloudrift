@@ -55,13 +55,13 @@ This document explains the reasoning behind every technology choice in the proje
 
 **Why:**
 - Modular: only the needed client is imported
-- Per-region clients: every scanner creates a client with `{ ...AWS_CLIENT_DEFAULTS, region: region.code }` and destroys it in the `finally`
-- `AWS_CLIENT_DEFAULTS` (`utils/client-config.ts`) sets `maxAttempts: 3`, turning on the SDK's built-in retry/backoff for throttling (429) and transient 5xx errors, plus a `NodeHttpHandler` with a 5s connection / 30s request timeout so a single hung connection can't stall a scan indefinitely ([ADR-0058](../adr/0058-aws-client-request-timeout.md))
+- Per-region clients: every scanner creates a client with `{ ...createAwsClientConfig(), region: region.code }` and destroys it in the `finally`
+- `createAwsClientConfig()` (`utils/client-config.ts`) sets `maxAttempts: 3`, turning on the SDK's built-in retry/backoff for throttling (429) and transient 5xx errors, plus a `NodeHttpHandler` with a 5s connection / 30s request timeout so a single hung connection can't stall a scan indefinitely ([ADR-0058](../adr/0058-aws-client-request-timeout.md)). It's a factory, not a shared constant: every call builds its own `NodeHttpHandler`/connection pool, so one scanner's `client.destroy()` can never tear down another's in-flight connections ([ADR-0064](../adr/0064-per-client-requesthandler-not-shared.md))
 - Better typing and native ESM support
 
 **Pattern used in the scanners:**
 ```typescript
-const client = new EC2Client({ ...AWS_CLIENT_DEFAULTS, region: region.code });
+const client = new EC2Client({ ...createAwsClientConfig(), region: region.code });
 try {
   const candidates = await paginate(/* DescribeVolumesCommand … */);
   const findings = candidates

@@ -19,7 +19,7 @@ import type {
 import { Ec2Instance, Ec2InstanceWastePolicy } from 'cloud-cost-domain';
 import { AwsAdapterError } from '../errors/aws-adapter.error';
 import { paginate } from '../utils/paginate';
-import { AWS_CLIENT_DEFAULTS } from '../utils/client-config';
+import { createAwsClientConfig } from '../utils/client-config';
 
 const logger = createLogger('cloudrift:scanner');
 
@@ -44,7 +44,7 @@ export class AwsEc2InstanceScanner implements WasteScannerPort {
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
-    const client = new EC2Client({ ...AWS_CLIENT_DEFAULTS, region: region.code });
+    const client = new EC2Client({ ...createAwsClientConfig(), region: region.code });
     try {
       const reservations = await paginate<Reservation>(async (cursor) => {
         const r = await client.send(

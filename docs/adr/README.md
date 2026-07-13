@@ -78,9 +78,10 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 | [0044](0044-cloudwatch-idle-scanner-template-method.md) | `CloudWatchIdleScanner` template method for the CloudWatch-based scanners | Accepted |
 | [0047](0047-minimal-namespaced-debug-logger.md) | Minimal namespaced debug logger, gated by `DEBUG`, no dependency | Accepted |
 | [0048](0048-zod-config-parsing.md) | Zod replaces the hand-written config parser | Accepted |
-| [0050](0050-aws-client-retry-backoff.md) | AWS SDK clients get `maxAttempts: 3` by default, everywhere | Accepted |
-| [0058](0058-aws-client-request-timeout.md) | AWS SDK clients get a per-request HTTP timeout, not a global scan timeout | Accepted |
+| [0050](0050-aws-client-retry-backoff.md) | AWS SDK clients get `maxAttempts: 3` by default, everywhere | Accepted, `requestHandler` sharing refined by [ADR-0064](0064-per-client-requesthandler-not-shared.md) |
+| [0058](0058-aws-client-request-timeout.md) | AWS SDK clients get a per-request HTTP timeout, not a global scan timeout | Accepted, `requestHandler` sharing refined by [ADR-0064](0064-per-client-requesthandler-not-shared.md) |
 | [0061](0061-pdfkit-lazy-import-and-dynamic-external-detection.md) | `pdfkit` loaded via lazy dynamic import; publish-manifest generator scans for dynamic imports too | Accepted |
+| [0064](0064-per-client-requesthandler-not-shared.md) | Every AWS SDK client gets its own `NodeHttpHandler`, not a shared singleton | Accepted |
 
 ## Reporting
 

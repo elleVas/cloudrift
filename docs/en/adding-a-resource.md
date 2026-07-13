@@ -168,7 +168,7 @@ import type { AwsRegion, PricingPort, WasteScannerPort, WastedResource } from 'c
 import { LogGroup, LogGroupWastePolicy } from 'cloud-cost-domain';
 import { AwsAdapterError } from '../errors/aws-adapter.error';
 import { paginate } from '../utils/paginate';
-import { AWS_CLIENT_DEFAULTS } from '../utils/client-config';
+import { createAwsClientConfig } from '../utils/client-config';
 
 const logger = createLogger('cloudrift:scanner');
 
@@ -187,7 +187,7 @@ export class AwsLogGroupScanner implements WasteScannerPort {
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
-    const client = new CloudWatchLogsClient({ ...AWS_CLIENT_DEFAULTS, region: region.code });
+    const client = new CloudWatchLogsClient({ ...createAwsClientConfig(), region: region.code });
     try {
       const rawGroups = await paginate<AwsLogGroup>(async (cursor) => {
         const r = await client.send(new DescribeLogGroupsCommand({ nextToken: cursor }));
@@ -230,7 +230,7 @@ export class AwsLogGroupScanner implements WasteScannerPort {
 ```
 
 **Rules:**
-- `{ ...AWS_CLIENT_DEFAULTS, region: region.code }` on every SDK client (retry/backoff on throttling, plus a per-request HTTP timeout so a hung connection can't stall the scan — see `utils/client-config.ts`, [ADR-0058](../adr/0058-aws-client-request-timeout.md))
+- `{ ...createAwsClientConfig(), region: region.code }` on every SDK client (retry/backoff on throttling, plus a per-request HTTP timeout so a hung connection can't stall the scan — see `utils/client-config.ts`, [ADR-0058](../adr/0058-aws-client-request-timeout.md))
 - `paginate()` for every list call — pass a per-page `select` only if this resource's count can genuinely grow unbounded over time (see [ADR-0054](../adr/0054-paginate-select-per-page-streaming.md)); most scanners don't need it
 - Any internal fan-out (one call per item) → `mapWithConcurrency` with a cap
 - Every required field read off an AWS response goes through a type-narrowing `.filter()`, never a bare `!` — see [ADR-0051](../adr/0051-type-narrowing-guards-on-aws-responses.md)

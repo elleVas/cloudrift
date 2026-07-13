@@ -112,13 +112,29 @@ describe('AwsRdsUnderutilizedScanner', () => {
     expect(mockGetRdsInstancePrice).not.toHaveBeenCalled();
   });
 
-  it('filters DescribeDBInstances on db-instance-status=available', async () => {
+  it('sends DescribeDBInstancesCommand with no status filter (db-instance-status is not a valid RDS filter name)', async () => {
     mockRdsSend.mockResolvedValueOnce({ DBInstances: [] });
 
     await scanner.scan(region);
 
     const args = (DescribeDBInstancesCommand as unknown as jest.Mock).mock.calls[0][0];
-    expect(args.Filters).toEqual([{ Name: 'db-instance-status', Values: ['available'] }]);
+    expect(args.Filters).toBeUndefined();
+  });
+
+  it('excludes non-available instances in-memory, since AWS returns every status unfiltered', async () => {
+    mockRdsSend.mockResolvedValueOnce({
+      DBInstances: [
+        availableInstance({ DBInstanceIdentifier: 'db-available' }),
+        { ...availableInstance({ DBInstanceIdentifier: 'db-stopped' }), DBInstanceStatus: 'stopped' },
+      ],
+    });
+    mockCwSend.mockResolvedValue({ Datapoints: [{ Average: 1, Maximum: 2 }] });
+
+    const result = await scanner.scan(region);
+
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.map((i) => i.id)).toEqual(['db-available']);
+    expect(mockCwSend).toHaveBeenCalledTimes(1);
   });
 
   it('queries AWS/RDS CPUUtilization with Average and Maximum statistics', async () => {

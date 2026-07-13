@@ -10,7 +10,7 @@ import type { AwsRegion } from 'cloud-cost-domain';
 import { RdsUnderutilizedInstance, RdsUnderutilizedPolicy, type WastePolicy } from 'cloud-cost-domain';
 import { paginate } from '../utils/paginate';
 import { mapWithConcurrency } from '../utils/map-with-concurrency';
-import { AWS_CLIENT_DEFAULTS } from '../utils/client-config';
+import { createAwsClientConfig } from '../utils/client-config';
 import { avgMaxMetric, type MetricWindow } from '../utils/cloudwatch-metrics';
 import { CloudWatchIdleScanner } from './cloudwatch-idle.scanner';
 
@@ -83,7 +83,7 @@ export class AwsRdsUnderutilizedScanner extends CloudWatchIdleScanner<
   }
 
   protected createPrimaryClient(region: AwsRegion): RDSClient {
-    return new RDSClient({ ...AWS_CLIENT_DEFAULTS, region: region.code });
+    return new RDSClient({ ...createAwsClientConfig(), region: region.code });
   }
 
   protected destroyPrimaryClient(client: RDSClient): void {
@@ -91,18 +91,18 @@ export class AwsRdsUnderutilizedScanner extends CloudWatchIdleScanner<
   }
 
   protected async listResources(client: RDSClient): Promise<DbInstanceWithId[]> {
+    // `db-instance-status` is not a recognized DescribeDBInstances filter
+    // name; status is checked in-memory below instead (no downstream policy
+    // check re-derives it, unlike AwsRdsInstanceScanner).
     const instances = await paginate<DBInstance>(async (cursor) => {
-      const r = await client.send(
-        new DescribeDBInstancesCommand({
-          Filters: [{ Name: 'db-instance-status', Values: ['available'] }],
-          Marker: cursor,
-        }),
-      );
+      const r = await client.send(new DescribeDBInstancesCommand({ Marker: cursor }));
       return { items: r.DBInstances ?? [], cursor: r.Marker };
     });
-    const valid = instances.filter((db): db is DbInstanceWithId => !!db.DBInstanceIdentifier);
+    const valid = instances.filter(
+      (db): db is DbInstanceWithId => !!db.DBInstanceIdentifier && db.DBInstanceStatus === 'available',
+    );
     if (valid.length !== instances.length) {
-      logger.debug(`${this.kind}: skipped ${instances.length - valid.length} entries missing DBInstanceIdentifier`);
+      logger.debug(`${this.kind}: skipped ${instances.length - valid.length} entries not available or missing DBInstanceIdentifier`);
     }
     return valid;
   }

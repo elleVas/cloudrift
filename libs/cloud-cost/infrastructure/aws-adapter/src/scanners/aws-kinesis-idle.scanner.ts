@@ -9,7 +9,7 @@ import type { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
 import { createLogger } from 'shared-kernel';
 import type { AwsRegion, PricingPort } from 'cloud-cost-domain';
 import { KinesisStream, KinesisProvisionedIdleStreamPolicy, type WastePolicy } from 'cloud-cost-domain';
-import { AWS_CLIENT_DEFAULTS } from '../utils/client-config';
+import { createAwsClientConfig } from '../utils/client-config';
 import { paginate } from '../utils/paginate';
 import { mapWithConcurrency } from '../utils/map-with-concurrency';
 import { sumMetrics, type MetricWindow } from '../utils/cloudwatch-metrics';
@@ -46,7 +46,7 @@ export class AwsKinesisIdleScanner extends CloudWatchIdleScanner<
   }
 
   protected createPrimaryClient(region: AwsRegion): KinesisClient {
-    return new KinesisClient({ ...AWS_CLIENT_DEFAULTS, region: region.code });
+    return new KinesisClient({ ...createAwsClientConfig(), region: region.code });
   }
 
   protected destroyPrimaryClient(client: KinesisClient): void {
