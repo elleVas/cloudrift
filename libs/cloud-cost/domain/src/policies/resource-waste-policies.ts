@@ -29,6 +29,9 @@ import type { Workspace } from '../entities/workspace.entity';
 import type { VpnConnection } from '../entities/vpn-connection.entity';
 import type { TransitGatewayAttachment } from '../entities/transit-gateway-attachment.entity';
 import type { KinesisStream } from '../entities/kinesis-stream.entity';
+import type { SqsDlqAbandoned } from '../entities/sqs-dlq-abandoned.entity';
+import type { LambdaLogGroupOrphaned } from '../entities/lambda-loggroup-orphaned.entity';
+import type { AuroraServerlessOverprovisioned } from '../entities/aurora-serverless-overprovisioned.entity';
 
 export class EbsVolumeWastePolicy extends WastePolicy<EbsVolume> {
   protected judge(volume: EbsVolume, now: Date): WasteVerdict {
@@ -352,6 +355,60 @@ export class KinesisProvisionedIdleStreamPolicy extends WastePolicy<KinesisStrea
       return notWaste(`created less than ${this.minAgeDays}d ago`);
     }
     return waste(`zero incoming records in last ${stream.metricWindowHours}h`);
+  }
+}
+
+export class SqsDlqAbandonedWastePolicy extends WastePolicy<SqsDlqAbandoned> {
+  /** minMessageAgeDays: age of the oldest unconsumed message, not resource age — `minAgeDays`'s grace period does not apply here. */
+  constructor(options: WastePolicyOptions = {}, private readonly minMessageAgeDays = 14) {
+    super(options);
+  }
+
+  protected judge(queue: SqsDlqAbandoned): WasteVerdict {
+    if (!queue.identifiedAsDlq) return notWaste('not identified as a DLQ');
+    if (queue.approximateNumberOfMessages === 0) return notWaste('no messages');
+    const ageDays = queue.oldestMessageAgeSeconds / 86400;
+    if (ageDays < this.minMessageAgeDays) {
+      return notWaste(`oldest message ${ageDays.toFixed(1)}d old, within ${this.minMessageAgeDays}d grace period`);
+    }
+    return waste(`oldest message ${ageDays.toFixed(1)}d old, ${queue.approximateNumberOfMessages} unconsumed`);
+  }
+}
+
+export class LambdaLogGroupOrphanedPolicy extends WastePolicy<LambdaLogGroupOrphaned> {
+  protected judge(group: LambdaLogGroupOrphaned, now: Date): WasteVerdict {
+    if (group.functionExists) return notWaste('function still exists');
+    if (this.isWithinGracePeriod(group.lastEventTimestamp, now)) {
+      return notWaste(`last log event less than ${this.minAgeDays}d ago`);
+    }
+    return waste(`function ${group.functionName} no longer exists`);
+  }
+}
+
+export class AuroraServerlessOverprovisionedPolicy extends WastePolicy<AuroraServerlessOverprovisioned> {
+  /** minAcuUtilizationPercent: peak-to-Min-ACU ratio (%) below which the floor is "overprovisioned". Default 50. */
+  constructor(options: WastePolicyOptions = {}, private readonly minAcuUtilizationPercent = 50) {
+    super(options);
+  }
+
+  protected judge(cluster: AuroraServerlessOverprovisioned, now: Date): WasteVerdict {
+    // A missing datapoint is "no evidence", not "confirmed zero load" — unlike
+    // the zero-activity scanners, flagging on it would recommend slashing
+    // Min ACU off a metric CloudWatch never actually reported.
+    if (!cluster.hasDatapoint) return notWaste('no ServerlessDatabaseCapacity datapoint in window');
+    if (cluster.peakAcu >= cluster.minAcu * (this.minAcuUtilizationPercent / 100)) {
+      return notWaste('peak ACU above threshold');
+    }
+    // After rounding the suggestion up to AWS's 0.5 ACU granularity there may
+    // be nothing left to lower (e.g. Min ACU already at the 0.5 floor).
+    if (cluster.suggestedMinAcu >= cluster.minAcu) {
+      return notWaste('no Min ACU reduction available');
+    }
+    // A just-created cluster might not have reached its real peak load yet.
+    if (this.isWithinGracePeriod(cluster.clusterCreateTime, now)) {
+      return notWaste(`created less than ${this.minAgeDays}d ago`);
+    }
+    return waste(`peak ${cluster.peakAcu.toFixed(2)} ACU / Min ACU ${cluster.minAcu} over ${cluster.windowHours}h`);
   }
 }
 

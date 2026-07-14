@@ -38,6 +38,9 @@ export type { WorkSpacesBundlePricingSource } from './scanners/aws-workspaces-id
 export { AwsVpnConnectionIdleScanner } from './scanners/aws-vpn-connection-idle.scanner';
 export { AwsTransitGatewayIdleScanner } from './scanners/aws-transit-gateway-idle.scanner';
 export { AwsKinesisIdleScanner } from './scanners/aws-kinesis-idle.scanner';
+export { AwsSqsDlqAbandonedScanner } from './scanners/aws-sqs-dlq-abandoned.scanner';
+export { AwsLambdaLogGroupOrphanedScanner } from './scanners/aws-lambda-loggroup-orphaned.scanner';
+export { AwsAuroraServerlessIdleScanner, suggestMinAcu } from './scanners/aws-aurora-serverless-idle.scanner';
 export { AwsAdapterError } from './errors/aws-adapter.error';
 export {
   StaticPriceTableAdapter,

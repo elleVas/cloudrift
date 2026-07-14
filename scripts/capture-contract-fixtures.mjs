@@ -101,6 +101,7 @@ const captures = [
   { kind: 'kinesis-provisioned-idle-stream', scanner: new adapter.AwsKinesisIdleScanner(pricing, ACCOUNT_ID, new domain.KinesisProvisionedIdleStreamPolicy(po)) },
   { kind: 'vpn-connection-idle', scanner: new adapter.AwsVpnConnectionIdleScanner(pricing, ACCOUNT_ID, new domain.VpnConnectionIdlePolicy(po)) },
   { kind: 'transit-gateway-idle-attachment', scanner: new adapter.AwsTransitGatewayIdleScanner(pricing, ACCOUNT_ID, new domain.TransitGatewayIdleAttachmentPolicy(po)) },
+  { kind: 'lambda-loggroup-orphaned', scanner: new adapter.AwsLambdaLogGroupOrphanedScanner(pricing, ACCOUNT_ID, new domain.LambdaLogGroupOrphanedPolicy(po)) },
 ];
 
 // Recorder on the shared SDK Client base class (every @aws-sdk/client-*

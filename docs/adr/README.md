@@ -19,6 +19,7 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 | [0007](0007-no-release-until-requested.md) | No version bump/tag/publish until explicitly requested | Accepted |
 | [0008](0008-commit-and-pr-owned-by-user.md) | Commit and PR always owned by the user | Accepted |
 | [0038](0038-eleven-fixed-cost-scanners-phase-5-5.md) | 11 new fixed-cost scanners in v0.5.0 Phase 5.5 | Accepted |
+| [0065](0065-vertical-premium-scanners-phase-6-strategy.md) | Vertical premium scanners — Phase 6 strategy | Accepted |
 
 ## Pricing
 
@@ -82,6 +83,7 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 | [0058](0058-aws-client-request-timeout.md) | AWS SDK clients get a per-request HTTP timeout, not a global scan timeout | Accepted, `requestHandler` sharing refined by [ADR-0064](0064-per-client-requesthandler-not-shared.md) |
 | [0061](0061-pdfkit-lazy-import-and-dynamic-external-detection.md) | `pdfkit` loaded via lazy dynamic import; publish-manifest generator scans for dynamic imports too | Accepted |
 | [0064](0064-per-client-requesthandler-not-shared.md) | Every AWS SDK client gets its own `NodeHttpHandler`, not a shared singleton | Accepted |
+| [0066](0066-eks-scanners-aws-api-only-kubeconfig-deferred.md) | EKS scanners — AWS API only, kubeconfig deferred | Accepted |
 
 ## Reporting
 
@@ -99,3 +101,9 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 | [0039](0039-cloudwatch-localstack-incompatibility.md) | `GetMetricStatistics` fails on LocalStack 4.0 — CloudWatch scanners marked soft | Superseded by [ADR-0040](0040-localstack-bumped-4-14-0-cloudwatch-fixed.md) |
 | [0040](0040-localstack-bumped-4-14-0-cloudwatch-fixed.md) | LocalStack bumped to 4.14.0 — CloudWatch incompatibility resolved | Accepted |
 | [0055](0055-pdf-formatter-smoke-test.md) | PDF formatter gets a full-coverage smoke test, not a layout snapshot | Accepted |
+
+## Future / non-implemented
+
+| ADR | Title | Status |
+|---|---|---|
+| [0067](0067-saas-readiness-architectural-hints.md) | SaaS readiness — architectural hints for recurring scans (no implementation) | Accepted |

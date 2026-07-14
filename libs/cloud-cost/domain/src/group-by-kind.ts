@@ -29,6 +29,9 @@ import type { Workspace } from './entities/workspace.entity';
 import type { VpnConnection } from './entities/vpn-connection.entity';
 import type { TransitGatewayAttachment } from './entities/transit-gateway-attachment.entity';
 import type { KinesisStream } from './entities/kinesis-stream.entity';
+import type { SqsDlqAbandoned } from './entities/sqs-dlq-abandoned.entity';
+import type { LambdaLogGroupOrphaned } from './entities/lambda-loggroup-orphaned.entity';
+import type { AuroraServerlessOverprovisioned } from './entities/aurora-serverless-overprovisioned.entity';
 
 /**
  * Map kind → concrete entity. Allows consumers (formatters, frontend)
@@ -64,6 +67,9 @@ export interface ResourceKindMap {
   'vpn-connection-idle': VpnConnection;
   'transit-gateway-idle-attachment': TransitGatewayAttachment;
   'kinesis-provisioned-idle-stream': KinesisStream;
+  'sqs-dlq-abandoned': SqsDlqAbandoned;
+  'lambda-loggroup-orphaned': LambdaLogGroupOrphaned;
+  'aurora-serverless-overprovisioned': AuroraServerlessOverprovisioned;
 }
 
 export type FindingsByKind = {

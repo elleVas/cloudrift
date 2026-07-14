@@ -1,0 +1,57 @@
+{
+  "kind": "sqs-dlq-abandoned",
+  "source": "hand-transcribed from the SQS/CloudWatch API reference, 2026-07-14 (LocalStack Community does not publish SQS metrics to CloudWatch)",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "ListQueuesCommand": [
+      {
+        "QueueUrls": [
+          "https://sqs.us-east-1.amazonaws.com/000000000000/orders-processing-dlq"
+        ],
+        "$metadata": { "httpStatusCode": 200, "requestId": "8f2a1c3d-1111-4a2b-9c3d-000000000001", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ],
+    "GetQueueAttributesCommand": [
+      {
+        "Attributes": {
+          "QueueArn": "arn:aws:sqs:us-east-1:000000000000:orders-processing-dlq",
+          "ApproximateNumberOfMessages": "7",
+          "RedriveAllowPolicy": "{\"redrivePermission\":\"allowAll\"}",
+          "CreatedTimestamp": "1751328000",
+          "LastModifiedTimestamp": "1751328000"
+        },
+        "$metadata": { "httpStatusCode": 200, "requestId": "8f2a1c3d-1111-4a2b-9c3d-000000000002", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ],
+    "ListDeadLetterSourceQueuesCommand": [
+      {
+        "queueUrls": [],
+        "$metadata": { "httpStatusCode": 200, "requestId": "8f2a1c3d-1111-4a2b-9c3d-000000000003", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ],
+    "ListQueueTagsCommand": [
+      {
+        "Tags": {},
+        "$metadata": { "httpStatusCode": 200, "requestId": "8f2a1c3d-1111-4a2b-9c3d-000000000004", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ],
+    "GetMetricStatisticsCommand": [
+      {
+        "Datapoints": [
+          { "Maximum": 1814400, "Unit": "Seconds", "Timestamp": "2026-07-14T00:00:00Z" }
+        ],
+        "Label": "ApproximateAgeOfOldestMessage",
+        "$metadata": { "httpStatusCode": 200, "requestId": "8f2a1c3d-1111-4a2b-9c3d-000000000005", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ]
+  },
+  "expected": {
+    "findings": [
+      {
+        "id": "https://sqs.us-east-1.amazonaws.com/000000000000/orders-processing-dlq",
+        "monthlyCostUsd": 0
+      }
+    ]
+  }
+}

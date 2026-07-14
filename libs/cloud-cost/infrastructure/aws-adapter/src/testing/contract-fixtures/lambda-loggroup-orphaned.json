@@ -1,0 +1,59 @@
+{
+  "kind": "lambda-loggroup-orphaned",
+  "source": "hand-transcribed from the CloudWatch Logs/Lambda API reference, 2026-07-14",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "DescribeLogGroupsCommand": [
+      {
+        "logGroups": [
+          {
+            "logGroupName": "/aws/lambda/checkout-worker-v1",
+            "creationTime": 1735689600000,
+            "storedBytes": 52428800,
+            "arn": "arn:aws:logs:us-east-1:000000000000:log-group:/aws/lambda/checkout-worker-v1:*",
+            "logGroupClass": "STANDARD"
+          }
+        ],
+        "$metadata": { "httpStatusCode": 200, "requestId": "3a2b1c0d-2222-4a2b-9c3d-000000000001", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ],
+    "ListFunctionsCommand": [
+      {
+        "Functions": [
+          {
+            "FunctionName": "orders-api",
+            "FunctionArn": "arn:aws:lambda:us-east-1:000000000000:function:orders-api",
+            "Runtime": "nodejs20.x",
+            "MemorySize": 256,
+            "LastModified": "2026-06-01T00:00:00.000+0000"
+          }
+        ],
+        "$metadata": { "httpStatusCode": 200, "requestId": "3a2b1c0d-2222-4a2b-9c3d-000000000002", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ],
+    "DescribeLogStreamsCommand": [
+      {
+        "logStreams": [
+          {
+            "logStreamName": "2026/06/15/[$LATEST]abcdef0123456789",
+            "creationTime": 1749945600000,
+            "firstEventTimestamp": 1749945600000,
+            "lastEventTimestamp": 1749945600000,
+            "lastIngestionTime": 1749945660000,
+            "storedBytes": 52428800
+          }
+        ],
+        "$metadata": { "httpStatusCode": 200, "requestId": "3a2b1c0d-2222-4a2b-9c3d-000000000003", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ]
+  },
+  "expected": {
+    "findings": [
+      {
+        "id": "/aws/lambda/checkout-worker-v1",
+        "monthlyCostUsd": 0.0015
+      }
+    ]
+  }
+}

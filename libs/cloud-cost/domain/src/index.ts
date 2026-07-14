@@ -75,6 +75,12 @@ export { TransitGatewayAttachment } from './entities/transit-gateway-attachment.
 export type { TransitGatewayAttachmentProps } from './entities/transit-gateway-attachment.entity';
 export { KinesisStream } from './entities/kinesis-stream.entity';
 export type { KinesisStreamProps } from './entities/kinesis-stream.entity';
+export { SqsDlqAbandoned } from './entities/sqs-dlq-abandoned.entity';
+export type { SqsDlqAbandonedProps } from './entities/sqs-dlq-abandoned.entity';
+export { LambdaLogGroupOrphaned } from './entities/lambda-loggroup-orphaned.entity';
+export type { LambdaLogGroupOrphanedProps } from './entities/lambda-loggroup-orphaned.entity';
+export { AuroraServerlessOverprovisioned } from './entities/aurora-serverless-overprovisioned.entity';
+export type { AuroraServerlessOverprovisionedProps } from './entities/aurora-serverless-overprovisioned.entity';
 
 // Value Objects
 export { AwsRegion, InvalidAwsRegionError } from './value-objects/aws-region.value-object';
@@ -119,6 +125,9 @@ export {
   VpnConnectionIdlePolicy,
   TransitGatewayIdleAttachmentPolicy,
   KinesisProvisionedIdleStreamPolicy,
+  SqsDlqAbandonedWastePolicy,
+  LambdaLogGroupOrphanedPolicy,
+  AuroraServerlessOverprovisionedPolicy,
 } from './policies/resource-waste-policies';
 
 // Outbound Ports

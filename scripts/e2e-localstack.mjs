@@ -5,10 +5,13 @@
 // directly) — this one is free, repeatable, and exercises the whole CLI
 // (config loading, composition root, formatters, exit codes).
 //
-// Scope: 16 of 29 scanners (see docs/adr/0002-localstack-e2e-scope.md,
-// docs/adr/0036-ec2-underutilized-excluded-from-localstack-e2e.md, and
+// Scope: 17 of 32 scanners (see docs/adr/0002-localstack-e2e-scope.md,
+// docs/adr/0036-ec2-underutilized-excluded-from-localstack-e2e.md,
 // docs/adr/0040-localstack-bumped-4-14-0-cloudwatch-fixed.md for the Phase 5.5
-// additions). Not wired into lint/test/build/typecheck — opt-in via:
+// additions, and docs/adr/0065-vertical-premium-scanners-phase-6-strategy.md
+// for the Phase 6.1 addition; aurora-serverless-overprovisioned from Phase 6.2
+// is not RDS-LocalStack-coverable, see scripts/capture-contract-fixtures.mjs).
+// Not wired into lint/test/build/typecheck — opt-in via:
 //
 //   pnpm nx run cli:e2e-localstack
 //
@@ -52,6 +55,11 @@ const EXPECTED_KINDS = [
   'kinesis-provisioned-idle-stream',
   'vpn-connection-idle',
   'transit-gateway-idle-attachment',
+  // Phase 6.1 (ADR-0065): needs no CloudWatch metric (function deleted, log
+  // group left behind is directly observable via Describe*/List* alone) —
+  // hard-required like the rest. sqs-dlq-abandoned is NOT here; see
+  // scripts/seed-localstack.mjs for why.
+  'lambda-loggroup-orphaned',
 ];
 // Historically partial LocalStack Community support — a missed finding here
 // is a warning, not a hard failure (see docs/adr/0002-localstack-e2e-scope.md).

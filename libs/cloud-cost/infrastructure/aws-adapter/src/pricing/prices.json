@@ -29,7 +29,8 @@
     "fsx-openzfs":   0.093,
     "vpn-connection": 36.500,
     "transit-gateway-attachment": 36.500,
-    "kinesis-shard": 10.950
+    "kinesis-shard": 10.950,
+    "aurora-acu": 87.600
   },
   "us-east-1": {
     "ebs-gp2":       0.100,
