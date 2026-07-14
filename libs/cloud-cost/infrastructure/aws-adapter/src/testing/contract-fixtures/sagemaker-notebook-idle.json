@@ -1,0 +1,35 @@
+{
+  "kind": "sagemaker-notebook-idle",
+  "source": "transcribed from the AWS API reference (--live-pricing scanner, see ec2-underutilized.json), 2026-07-14 — expected cost = stub price 45",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "ListNotebookInstancesCommand": [
+      {
+        "NotebookInstances": [
+          {
+            "NotebookInstanceName": "notebook-analytics-1",
+            "NotebookInstanceStatus": "InService",
+            "InstanceType": "ml.t3.medium",
+            "Url": "notebook-analytics-1.notebook.us-east-1.sagemaker.aws",
+            "CreationTime": "2023-05-01T00:00:00.000Z",
+            "LastModifiedTime": "2023-06-01T00:00:00.000Z"
+          }
+        ],
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ],
+    "GetMetricStatisticsCommand": [
+      {
+        "Label": "CPUUtilization",
+        "Datapoints": [],
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ]
+  },
+  "expected": {
+    "findings": [
+      { "id": "notebook-analytics-1", "monthlyCostUsd": 45 }
+    ]
+  }
+}

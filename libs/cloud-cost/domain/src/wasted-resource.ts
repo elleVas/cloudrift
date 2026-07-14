@@ -35,6 +35,9 @@ export const RESOURCE_KINDS = [
   'sqs-dlq-abandoned',
   'lambda-loggroup-orphaned',
   'aurora-serverless-overprovisioned',
+  'sagemaker-notebook-idle',
+  'sagemaker-endpoint-idle',
+  'sagemaker-training-orphaned',
 ] as const;
 
 export type ResourceKind = (typeof RESOURCE_KINDS)[number];
@@ -118,6 +121,16 @@ export const RESOURCE_KIND_META: Record<ResourceKind, ResourceKindMeta> = {
   // floor is a heuristic (peak + 20% margin), hence estimated.
   'aurora-serverless-overprovisioned': {
     label: 'Aurora Serverless v2 (overprovisioned Min ACU)',
+    category: 'optimization',
+    estimated: true,
+  },
+  // Phase 6.3 (ADR-0065): SageMaker vertical. Notebook/endpoint costs are
+  // per-instance-type (requires --live-pricing); training-orphaned is a
+  // namespace-hygiene flag priced via the static S3 storage estimate.
+  'sagemaker-notebook-idle': { label: 'SageMaker Notebook Instances (idle)', category: 'waste', estimated: false },
+  'sagemaker-endpoint-idle': { label: 'SageMaker Endpoints (idle)', category: 'waste', estimated: false },
+  'sagemaker-training-orphaned': {
+    label: 'SageMaker Models (orphaned, no endpoint)',
     category: 'optimization',
     estimated: true,
   },

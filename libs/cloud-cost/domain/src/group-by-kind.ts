@@ -32,6 +32,9 @@ import type { KinesisStream } from './entities/kinesis-stream.entity';
 import type { SqsDlqAbandoned } from './entities/sqs-dlq-abandoned.entity';
 import type { LambdaLogGroupOrphaned } from './entities/lambda-loggroup-orphaned.entity';
 import type { AuroraServerlessOverprovisioned } from './entities/aurora-serverless-overprovisioned.entity';
+import type { SageMakerNotebookIdle } from './entities/sagemaker-notebook-idle.entity';
+import type { SageMakerEndpointIdle } from './entities/sagemaker-endpoint-idle.entity';
+import type { SageMakerTrainingOrphaned } from './entities/sagemaker-training-orphaned.entity';
 
 /**
  * Map kind → concrete entity. Allows consumers (formatters, frontend)
@@ -70,6 +73,9 @@ export interface ResourceKindMap {
   'sqs-dlq-abandoned': SqsDlqAbandoned;
   'lambda-loggroup-orphaned': LambdaLogGroupOrphaned;
   'aurora-serverless-overprovisioned': AuroraServerlessOverprovisioned;
+  'sagemaker-notebook-idle': SageMakerNotebookIdle;
+  'sagemaker-endpoint-idle': SageMakerEndpointIdle;
+  'sagemaker-training-orphaned': SageMakerTrainingOrphaned;
 }
 
 export type FindingsByKind = {

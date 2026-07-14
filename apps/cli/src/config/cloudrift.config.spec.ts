@@ -117,6 +117,18 @@ describe('parseConfig', () => {
     if (!result.ok) expect(result.error.message).toContain('dynamoCapacityUtilizationPercent');
   });
 
+  it('parses thresholds.sagemakerNotebookCpuPercent', () => {
+    const result = parseConfig(JSON.stringify({ thresholds: { sagemakerNotebookCpuPercent: 3 } }));
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.thresholds?.sagemakerNotebookCpuPercent).toBe(3);
+  });
+
+  it('rejects a thresholds.sagemakerNotebookCpuPercent outside 0-100', () => {
+    const result = parseConfig(JSON.stringify({ thresholds: { sagemakerNotebookCpuPercent: 150 } }));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.message).toContain('sagemakerNotebookCpuPercent');
+  });
+
   it('returns empty config for an empty object', () => {
     const result = parseConfig('{}');
     expect(result.ok).toBe(true);

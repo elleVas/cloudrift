@@ -32,6 +32,9 @@ import type { KinesisStream } from '../entities/kinesis-stream.entity';
 import type { SqsDlqAbandoned } from '../entities/sqs-dlq-abandoned.entity';
 import type { LambdaLogGroupOrphaned } from '../entities/lambda-loggroup-orphaned.entity';
 import type { AuroraServerlessOverprovisioned } from '../entities/aurora-serverless-overprovisioned.entity';
+import type { SageMakerNotebookIdle } from '../entities/sagemaker-notebook-idle.entity';
+import type { SageMakerEndpointIdle } from '../entities/sagemaker-endpoint-idle.entity';
+import type { SageMakerTrainingOrphaned } from '../entities/sagemaker-training-orphaned.entity';
 
 export class EbsVolumeWastePolicy extends WastePolicy<EbsVolume> {
   protected judge(volume: EbsVolume, now: Date): WasteVerdict {
@@ -409,6 +412,43 @@ export class AuroraServerlessOverprovisionedPolicy extends WastePolicy<AuroraSer
       return notWaste(`created less than ${this.minAgeDays}d ago`);
     }
     return waste(`peak ${cluster.peakAcu.toFixed(2)} ACU / Min ACU ${cluster.minAcu} over ${cluster.windowHours}h`);
+  }
+}
+
+export class SageMakerNotebookIdlePolicy extends WastePolicy<SageMakerNotebookIdle> {
+  /** maxCpuPercent: maximum CPU threshold below which an InService notebook is "idle". Default 2. */
+  constructor(options: WastePolicyOptions = {}, private readonly maxCpuPercent = 2) {
+    super(options);
+  }
+
+  protected judge(notebook: SageMakerNotebookIdle, now: Date): WasteVerdict {
+    if (notebook.status !== 'InService') return notWaste(`status is ${notebook.status}, not InService`);
+    if (notebook.maxCpuPercent >= this.maxCpuPercent) return notWaste('CPU above threshold');
+    if (this.isWithinGracePeriod(notebook.lastModifiedTime, now)) {
+      return notWaste(`last modified less than ${this.minAgeDays}d ago`);
+    }
+    return waste(`InService, max CPU ${notebook.maxCpuPercent.toFixed(1)}% over ${notebook.windowHours}h`);
+  }
+}
+
+export class SageMakerEndpointIdlePolicy extends WastePolicy<SageMakerEndpointIdle> {
+  protected judge(endpoint: SageMakerEndpointIdle, now: Date): WasteVerdict {
+    if (endpoint.status !== 'InService') return notWaste(`status is ${endpoint.status}, not InService`);
+    if (endpoint.invocationsLastWindow > 0) return notWaste('has invocations');
+    if (this.isWithinGracePeriod(endpoint.creationTime, now)) {
+      return notWaste(`created less than ${this.minAgeDays}d ago`);
+    }
+    return waste(`InService, zero invocations over ${endpoint.windowHours}h`);
+  }
+}
+
+export class SageMakerTrainingOrphanedPolicy extends WastePolicy<SageMakerTrainingOrphaned> {
+  protected judge(model: SageMakerTrainingOrphaned, now: Date): WasteVerdict {
+    if (model.referencedByEndpointConfig) return notWaste('referenced by an endpoint config');
+    if (this.isWithinGracePeriod(model.creationTime, now)) {
+      return notWaste(`created less than ${this.minAgeDays}d ago`);
+    }
+    return waste('not referenced by any endpoint config');
   }
 }
 

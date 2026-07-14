@@ -101,6 +101,7 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 | [0039](0039-cloudwatch-localstack-incompatibility.md) | `GetMetricStatistics` fails on LocalStack 4.0 — CloudWatch scanners marked soft | Superseded by [ADR-0040](0040-localstack-bumped-4-14-0-cloudwatch-fixed.md) |
 | [0040](0040-localstack-bumped-4-14-0-cloudwatch-fixed.md) | LocalStack bumped to 4.14.0 — CloudWatch incompatibility resolved | Accepted |
 | [0055](0055-pdf-formatter-smoke-test.md) | PDF formatter gets a full-coverage smoke test, not a layout snapshot | Accepted |
+| [0068](0068-sagemaker-scanners-excluded-from-localstack-e2e.md) | SageMaker scanners excluded from the LocalStack e2e harness | Accepted |
 
 ## Future / non-implemented
 

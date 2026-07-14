@@ -5,12 +5,14 @@
 // directly) — this one is free, repeatable, and exercises the whole CLI
 // (config loading, composition root, formatters, exit codes).
 //
-// Scope: 17 of 32 scanners (see docs/adr/0002-localstack-e2e-scope.md,
+// Scope: 17 of 35 scanners (see docs/adr/0002-localstack-e2e-scope.md,
 // docs/adr/0036-ec2-underutilized-excluded-from-localstack-e2e.md,
 // docs/adr/0040-localstack-bumped-4-14-0-cloudwatch-fixed.md for the Phase 5.5
 // additions, and docs/adr/0065-vertical-premium-scanners-phase-6-strategy.md
 // for the Phase 6.1 addition; aurora-serverless-overprovisioned from Phase 6.2
-// is not RDS-LocalStack-coverable, see scripts/capture-contract-fixtures.mjs).
+// is not RDS-LocalStack-coverable, see scripts/capture-contract-fixtures.mjs;
+// the 3 Phase 6.3 sagemaker-* scanners are excluded entirely too, see
+// docs/adr/0068-sagemaker-scanners-excluded-from-localstack-e2e.md).
 // Not wired into lint/test/build/typecheck — opt-in via:
 //
 //   pnpm nx run cli:e2e-localstack

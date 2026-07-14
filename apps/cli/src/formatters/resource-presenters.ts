@@ -383,6 +383,30 @@ export const presenters: PresenterMap = {
     recommend: (c) =>
       `Lower Aurora Serverless v2 cluster ${c.id} (${c.engine}) in ${c.region.code} Min ACU ${c.minAcu}→${c.suggestedMinAcu} — peak ${c.peakAcu.toFixed(2)} ACU over ${c.windowHours}h (verify real workload peaks first)`,
   },
+  'sagemaker-notebook-idle': {
+    title: 'SageMaker Notebook Instances — Idle (checks CPU only, not Jupyter kernel activity)',
+    head: ['Notebook', 'Region', 'Instance Type', 'Max CPU', 'Last Modified'],
+    colWidths: [130, 72, 100, 66, 84, 80],
+    row: (n) => [n.id, n.region.code, n.instanceType, `${n.maxCpuPercent.toFixed(1)}%`, day(n.lastModifiedTime)],
+    recommend: (n) =>
+      `Stop or delete idle SageMaker notebook ${n.id} (${n.instanceType}) in ${n.region.code} — max CPU ${n.maxCpuPercent.toFixed(1)}% over ${n.windowHours}h`,
+  },
+  'sagemaker-endpoint-idle': {
+    title: 'SageMaker Endpoints — Idle (zero invocations)',
+    head: ['Endpoint', 'Region', 'Instance Type', 'Count', 'Created'],
+    colWidths: [130, 72, 100, 56, 84, 80],
+    row: (e) => [e.id, e.region.code, e.instanceType, `${e.instanceCount}`, day(e.creationTime)],
+    recommend: (e) =>
+      `Delete idle SageMaker endpoint ${e.id} (${e.instanceCount}x ${e.instanceType}) in ${e.region.code} — zero invocations over ${e.windowHours}h`,
+  },
+  'sagemaker-training-orphaned': {
+    title: 'SageMaker Models — Orphaned (not deployed to any endpoint, estimated storage cost)',
+    head: ['Model', 'Region', 'Created', 'Model Data URL'],
+    colWidths: [130, 72, 84, 200, 80],
+    row: (m) => [m.id, m.region.code, day(m.creationTime), m.modelDataUrl],
+    recommend: (m) =>
+      `Delete orphaned SageMaker model ${m.id} in ${m.region.code} — not referenced by any endpoint config (verify it isn't a rollback/backup target first)`,
+  },
 };
 
 /**
@@ -454,6 +478,9 @@ export function rowFor(finding: AnyResourceEntity): string[] {
     case 'sqs-dlq-abandoned': return presenters['sqs-dlq-abandoned'].row(finding);
     case 'lambda-loggroup-orphaned': return presenters['lambda-loggroup-orphaned'].row(finding);
     case 'aurora-serverless-overprovisioned': return presenters['aurora-serverless-overprovisioned'].row(finding);
+    case 'sagemaker-notebook-idle': return presenters['sagemaker-notebook-idle'].row(finding);
+    case 'sagemaker-endpoint-idle': return presenters['sagemaker-endpoint-idle'].row(finding);
+    case 'sagemaker-training-orphaned': return presenters['sagemaker-training-orphaned'].row(finding);
   }
 }
 
@@ -492,5 +519,8 @@ export function recommendFor(finding: AnyResourceEntity): string {
     case 'sqs-dlq-abandoned': return presenters['sqs-dlq-abandoned'].recommend(finding);
     case 'lambda-loggroup-orphaned': return presenters['lambda-loggroup-orphaned'].recommend(finding);
     case 'aurora-serverless-overprovisioned': return presenters['aurora-serverless-overprovisioned'].recommend(finding);
+    case 'sagemaker-notebook-idle': return presenters['sagemaker-notebook-idle'].recommend(finding);
+    case 'sagemaker-endpoint-idle': return presenters['sagemaker-endpoint-idle'].recommend(finding);
+    case 'sagemaker-training-orphaned': return presenters['sagemaker-training-orphaned'].recommend(finding);
   }
 }
