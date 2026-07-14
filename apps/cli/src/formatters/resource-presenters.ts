@@ -340,6 +340,49 @@ export const presenters: PresenterMap = {
     recommend: (s) =>
       `Delete or scale down idle Kinesis stream ${s.id} in ${s.region.code} — ${s.wasteReason}`,
   },
+  'sqs-dlq-abandoned': {
+    title: 'SQS Dead Letter Queues — Abandoned (hygiene, no direct cost)',
+    head: ['Queue Name', 'Region', 'Messages', 'Oldest Message', 'Source Queue'],
+    colWidths: [150, 70, 65, 80, 150, 80],
+    row: (q) => [
+      q.queueName,
+      q.region.code,
+      `${q.approximateNumberOfMessages}`,
+      `${Math.floor(q.oldestMessageAgeSeconds / 86400)}d`,
+      q.sourceQueueArn ?? 'unknown',
+    ],
+    recommend: (q) =>
+      `Review DLQ ${q.queueName} in ${q.region.code} — ${q.wasteReason}`,
+  },
+  'lambda-loggroup-orphaned': {
+    title: 'CloudWatch Log Groups — Orphaned Lambda (function no longer exists)',
+    head: ['Log Group', 'Function (deleted)', 'Region', 'Stored', 'Last Event'],
+    colWidths: [150, 130, 65, 70, 84, 80],
+    row: (g) => [
+      g.id,
+      g.functionName,
+      g.region.code,
+      `${(g.storedBytes / 1024 ** 3).toFixed(1)} GB`,
+      day(g.lastEventTimestamp),
+    ],
+    recommend: (g) =>
+      `Delete orphaned log group ${g.id} in ${g.region.code} — ${g.wasteReason}`,
+  },
+  'aurora-serverless-overprovisioned': {
+    title: 'Aurora Serverless v2 — Overprovisioned Min ACU (rightsizing candidate, verify before acting)',
+    head: ['Cluster', 'Region', 'Engine', 'Min ACU', 'Peak ACU', 'Suggested Min'],
+    colWidths: [130, 72, 100, 66, 68, 84, 80],
+    row: (c) => [
+      c.id,
+      c.region.code,
+      c.engine,
+      `${c.minAcu}`,
+      `${c.peakAcu.toFixed(2)}`,
+      `${c.suggestedMinAcu}`,
+    ],
+    recommend: (c) =>
+      `Lower Aurora Serverless v2 cluster ${c.id} (${c.engine}) in ${c.region.code} Min ACU ${c.minAcu}→${c.suggestedMinAcu} — peak ${c.peakAcu.toFixed(2)} ACU over ${c.windowHours}h (verify real workload peaks first)`,
+  },
 };
 
 /**
@@ -369,7 +412,7 @@ type AnyResourceEntity = ResourceKindMap[ResourceKind];
  * kind IS the finding's own, so there is nothing to decouple. Compiler
  * enforced: `noImplicitReturns` (tsconfig.base.json) fails the build if a
  * kind is left unhandled, and `noFallthroughCasesInSwitch` blocks accidental
- * fallthrough between the 29 cases.
+ * fallthrough between the cases (one per `ResourceKind`, see `RESOURCE_KINDS`).
  *
  * Tried a generic `presenterFor<K extends ResourceKind>(kind: K): ResourcePresenter<ResourceKindMap[K]>`
  * first: it does not work, because every real call site derives `kind` from
@@ -408,6 +451,9 @@ export function rowFor(finding: AnyResourceEntity): string[] {
     case 'vpn-connection-idle': return presenters['vpn-connection-idle'].row(finding);
     case 'transit-gateway-idle-attachment': return presenters['transit-gateway-idle-attachment'].row(finding);
     case 'kinesis-provisioned-idle-stream': return presenters['kinesis-provisioned-idle-stream'].row(finding);
+    case 'sqs-dlq-abandoned': return presenters['sqs-dlq-abandoned'].row(finding);
+    case 'lambda-loggroup-orphaned': return presenters['lambda-loggroup-orphaned'].row(finding);
+    case 'aurora-serverless-overprovisioned': return presenters['aurora-serverless-overprovisioned'].row(finding);
   }
 }
 
@@ -443,5 +489,8 @@ export function recommendFor(finding: AnyResourceEntity): string {
     case 'vpn-connection-idle': return presenters['vpn-connection-idle'].recommend(finding);
     case 'transit-gateway-idle-attachment': return presenters['transit-gateway-idle-attachment'].recommend(finding);
     case 'kinesis-provisioned-idle-stream': return presenters['kinesis-provisioned-idle-stream'].recommend(finding);
+    case 'sqs-dlq-abandoned': return presenters['sqs-dlq-abandoned'].recommend(finding);
+    case 'lambda-loggroup-orphaned': return presenters['lambda-loggroup-orphaned'].recommend(finding);
+    case 'aurora-serverless-overprovisioned': return presenters['aurora-serverless-overprovisioned'].recommend(finding);
   }
 }

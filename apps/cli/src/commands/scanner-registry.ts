@@ -29,6 +29,9 @@ import {
   VpnConnectionIdlePolicy,
   TransitGatewayIdleAttachmentPolicy,
   KinesisProvisionedIdleStreamPolicy,
+  SqsDlqAbandonedWastePolicy,
+  LambdaLogGroupOrphanedPolicy,
+  AuroraServerlessOverprovisionedPolicy,
   RESOURCE_KINDS,
 } from 'cloud-cost-domain';
 import type {
@@ -67,6 +70,9 @@ import {
   AwsVpnConnectionIdleScanner,
   AwsTransitGatewayIdleScanner,
   AwsKinesisIdleScanner,
+  AwsSqsDlqAbandonedScanner,
+  AwsLambdaLogGroupOrphanedScanner,
+  AwsAuroraServerlessIdleScanner,
 } from 'cloud-cost-infrastructure-aws-adapter';
 import type { AwsPricingApiAdapter } from 'cloud-cost-infrastructure-aws-adapter';
 import type { CloudriftConfig } from '../config/cloudrift.config';
@@ -228,6 +234,36 @@ export const ALWAYS_ON_SCANNERS: ScannerRegistration<ScannerBuildContext>[] = [
         ctx.accountId,
         new KinesisProvisionedIdleStreamPolicy(ctx.policyOptions),
         ctx.cloudwatchWindowHours,
+      ),
+  },
+  // Phase 6.1 (ADR-0065): serverless orphans vertical.
+  {
+    kind: 'sqs-dlq-abandoned',
+    create: (ctx) => new AwsSqsDlqAbandonedScanner(ctx.accountId, new SqsDlqAbandonedWastePolicy(ctx.policyOptions)),
+  },
+  {
+    kind: 'lambda-loggroup-orphaned',
+    create: (ctx) =>
+      new AwsLambdaLogGroupOrphanedScanner(
+        ctx.pricing,
+        ctx.accountId,
+        new LambdaLogGroupOrphanedPolicy(ctx.policyOptions),
+      ),
+  },
+  // Phase 6.2 (ADR-0065): Aurora Serverless v2 vertical. Static flat ACU-hour
+  // price, so always-on (ADR-0037); uses the longer utilization window (peak,
+  // not zero-activity), like the CPU-underutilized scanners.
+  {
+    kind: 'aurora-serverless-overprovisioned',
+    create: (ctx) =>
+      new AwsAuroraServerlessIdleScanner(
+        ctx.pricing,
+        ctx.accountId,
+        new AuroraServerlessOverprovisionedPolicy(
+          ctx.policyOptions,
+          ctx.config.thresholds?.auroraMinAcuUtilizationPercent ?? 50,
+        ),
+        ctx.utilizationWindowHours,
       ),
   },
 ];

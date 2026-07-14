@@ -55,6 +55,8 @@ export interface CloudriftConfig {
     efsIoBytesMin?: number;
     /** Maximum RCU/WCU utilization (%) below which a DynamoDB table is "overprovisioned". Default 10. */
     dynamoCapacityUtilizationPercent?: number;
+    /** Maximum peak-to-Min-ACU ratio (%) below which an Aurora Serverless v2 Min ACU floor is "overprovisioned". Default 50. */
+    auroraMinAcuUtilizationPercent?: number;
   };
 }
 
@@ -118,6 +120,7 @@ const configSchema = z.object({
       lambdaInvocationsMin: nonNegativeAmount.optional(),
       efsIoBytesMin: nonNegativeAmount.optional(),
       dynamoCapacityUtilizationPercent: percent.optional(),
+      auroraMinAcuUtilizationPercent: percent.optional(),
     })
     .optional(),
 }) satisfies z.ZodType<CloudriftConfig, unknown>;

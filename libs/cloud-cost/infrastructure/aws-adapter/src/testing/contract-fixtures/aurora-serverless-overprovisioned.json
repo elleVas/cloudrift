@@ -1,0 +1,50 @@
+{
+  "kind": "aurora-serverless-overprovisioned",
+  "source": "hand-transcribed from the RDS/CloudWatch API reference, 2026-07-14 (rds not in the LocalStack Community license)",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "DescribeDBClustersCommand": [
+      {
+        "DBClusters": [
+          {
+            "DBClusterIdentifier": "analytics-serverless",
+            "DBClusterArn": "arn:aws:rds:us-east-1:000000000000:cluster:analytics-serverless",
+            "Engine": "aurora-postgresql",
+            "EngineVersion": "15.4",
+            "EngineMode": "provisioned",
+            "Status": "available",
+            "ClusterCreateTime": "2025-01-01T00:00:00.000Z",
+            "ServerlessV2ScalingConfiguration": { "MinCapacity": 16, "MaxCapacity": 64 },
+            "TagList": [{ "Key": "team", "Value": "data" }]
+          },
+          {
+            "DBClusterIdentifier": "legacy-provisioned",
+            "DBClusterArn": "arn:aws:rds:us-east-1:000000000000:cluster:legacy-provisioned",
+            "Engine": "aurora-mysql",
+            "EngineMode": "provisioned",
+            "Status": "available",
+            "ClusterCreateTime": "2025-01-01T00:00:00.000Z",
+            "TagList": []
+          }
+        ],
+        "$metadata": { "httpStatusCode": 200, "requestId": "5c4b3a2d-3333-4a2b-9c3d-000000000001", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ],
+    "GetMetricStatisticsCommand": [
+      {
+        "Label": "ServerlessDatabaseCapacity",
+        "Datapoints": [{ "Timestamp": "2026-07-13T12:00:00.000Z", "Maximum": 4.0, "Unit": "Count" }],
+        "$metadata": { "httpStatusCode": 200, "requestId": "5c4b3a2d-3333-4a2b-9c3d-000000000002", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ]
+  },
+  "expected": {
+    "findings": [
+      {
+        "id": "analytics-serverless",
+        "monthlyCostUsd": 963.6
+      }
+    ]
+  }
+}

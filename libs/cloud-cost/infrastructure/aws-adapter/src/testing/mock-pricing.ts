@@ -19,6 +19,7 @@ const PRICES_BY_KEY: Record<string, number> = {
   'vpn-connection': 36.5,
   'transit-gateway-attachment': 36.5,
   'kinesis-shard': 10.95,
+  'aurora-acu': 87.6,
 };
 
 export const mockPricing: PricingPort = {

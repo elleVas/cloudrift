@@ -44,6 +44,9 @@ import {
   VpnConnectionIdlePolicy,
   TransitGatewayIdleAttachmentPolicy,
   KinesisProvisionedIdleStreamPolicy,
+  SqsDlqAbandonedWastePolicy,
+  LambdaLogGroupOrphanedPolicy,
+  AuroraServerlessOverprovisionedPolicy,
 } from 'cloud-cost-domain';
 import type { ResourceKind, WasteScannerPort } from 'cloud-cost-domain';
 import { AwsEbsVolumeScanner } from './aws-ebs-volume.scanner';
@@ -75,6 +78,9 @@ import { AwsWorkspacesIdleScanner } from './aws-workspaces-idle.scanner';
 import { AwsVpnConnectionIdleScanner } from './aws-vpn-connection-idle.scanner';
 import { AwsTransitGatewayIdleScanner } from './aws-transit-gateway-idle.scanner';
 import { AwsKinesisIdleScanner } from './aws-kinesis-idle.scanner';
+import { AwsSqsDlqAbandonedScanner } from './aws-sqs-dlq-abandoned.scanner';
+import { AwsLambdaLogGroupOrphanedScanner } from './aws-lambda-loggroup-orphaned.scanner';
+import { AwsAuroraServerlessIdleScanner } from './aws-aurora-serverless-idle.scanner';
 import { StaticPriceTableAdapter } from '../pricing/static-price-table.adapter';
 
 interface ContractFixture {
@@ -181,6 +187,11 @@ const scannerFactories: Record<ResourceKind, () => WasteScannerPort> = {
     new AwsTransitGatewayIdleScanner(pricing, ACCOUNT, new TransitGatewayIdleAttachmentPolicy(po)),
   'kinesis-provisioned-idle-stream': () =>
     new AwsKinesisIdleScanner(pricing, ACCOUNT, new KinesisProvisionedIdleStreamPolicy(po)),
+  'sqs-dlq-abandoned': () => new AwsSqsDlqAbandonedScanner(ACCOUNT, new SqsDlqAbandonedWastePolicy(po)),
+  'lambda-loggroup-orphaned': () =>
+    new AwsLambdaLogGroupOrphanedScanner(pricing, ACCOUNT, new LambdaLogGroupOrphanedPolicy(po)),
+  'aurora-serverless-overprovisioned': () =>
+    new AwsAuroraServerlessIdleScanner(pricing, ACCOUNT, new AuroraServerlessOverprovisionedPolicy(po, 50)),
   'ec2-underutilized': () => new AwsEc2UnderutilizedScanner(livePrices, ACCOUNT, new Ec2UnderutilizedPolicy(po, 5)),
   'rds-underutilized': () => new AwsRdsUnderutilizedScanner(livePrices, ACCOUNT, new RdsUnderutilizedPolicy(po, 5)),
   'elasticache-idle': () => new AwsElastiCacheIdleScanner(livePrices, ACCOUNT, new ElastiCacheIdlePolicy(po)),

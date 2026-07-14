@@ -32,6 +32,9 @@ export const RESOURCE_KINDS = [
   'vpn-connection-idle',
   'transit-gateway-idle-attachment',
   'kinesis-provisioned-idle-stream',
+  'sqs-dlq-abandoned',
+  'lambda-loggroup-orphaned',
+  'aurora-serverless-overprovisioned',
 ] as const;
 
 export type ResourceKind = (typeof RESOURCE_KINDS)[number];
@@ -101,6 +104,22 @@ export const RESOURCE_KIND_META: Record<ResourceKind, ResourceKindMeta> = {
     label: 'Kinesis Streams (idle, Provisioned mode)',
     category: 'waste',
     estimated: false,
+  },
+  // Phase 6.1 (ADR-0065): serverless orphans vertical. $0 hygiene flag, same
+  // rationale as 'eni-orphaned' — no direct AWS cost, but signals ignored errors.
+  'sqs-dlq-abandoned': { label: 'SQS Dead Letter Queues (abandoned)', category: 'waste', estimated: false },
+  'lambda-loggroup-orphaned': {
+    label: 'CloudWatch Log Groups (orphaned Lambda)',
+    category: 'waste',
+    estimated: false,
+  },
+  // Phase 6.2: Aurora Serverless v2 vertical. The Min ACU floor is always
+  // billed (730h/mo); lowering it is a definite saving, but the recommended
+  // floor is a heuristic (peak + 20% margin), hence estimated.
+  'aurora-serverless-overprovisioned': {
+    label: 'Aurora Serverless v2 (overprovisioned Min ACU)',
+    category: 'optimization',
+    estimated: true,
   },
 };
 

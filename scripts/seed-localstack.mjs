@@ -19,6 +19,19 @@
 //   LocalStack-mockable.
 // All 8 stay on `scripts/verify-against-aws.mjs` manual verification.
 //
+// Phase 6.1 (ADR-0065): lambda-loggroup-orphaned IS seeded below — its waste
+// condition (function deleted, log group left behind) needs no CloudWatch
+// metric at all, unlike sqs-dlq-abandoned below.
+//
+// Phase 6.1 (ADR-0065): sqs-dlq-abandoned is excluded from this harness too,
+// for a different reason than the ones above. Unlike the idle scanners
+// (waste = missing CloudWatch datapoint, which LocalStack's un-pushed
+// metrics already satisfy for free), this scanner needs a real, large
+// `ApproximateAgeOfOldestMessage` value to trigger a finding — nobody
+// publishes that metric in a freshly seeded LocalStack queue, so a missing
+// datapoint resolves to age 0 (not waste), the opposite of what every other
+// CloudWatch-backed scanner here relies on. Stays on manual verification.
+//
 // CloudWatch-backed scanners (nat-gateway, ebs-idle, lambda-underutilized,
 // dynamodb-overprovisioned, and the 3 seeded above) need no explicit metric
 // seeding: every scanner treats a missing datapoint as zero usage
@@ -68,7 +81,7 @@ import {
   CreateTargetGroupCommand,
 } from '@aws-sdk/client-elastic-load-balancing-v2';
 import { CreateBucketCommand } from '@aws-sdk/client-s3';
-import { CreateFunctionCommand } from '@aws-sdk/client-lambda';
+import { CreateFunctionCommand, DeleteFunctionCommand } from '@aws-sdk/client-lambda';
 import { CreateTableCommand } from '@aws-sdk/client-dynamodb';
 import { CreateLogGroupCommand } from '@aws-sdk/client-cloudwatch-logs';
 
@@ -254,6 +267,25 @@ export async function seedLocalstack(regionCode) {
   await seed('log-group', async () => {
     await logs.send(new CreateLogGroupCommand({ logGroupName: `/cloudrift-e2e/${Date.now()}` }));
     // No PutRetentionPolicy call — missing retention is the waste condition.
+  });
+
+  // Phase 6.1 (ADR-0065): the log group is created explicitly rather than
+  // relying on Lambda's own lazy auto-creation on first invocation (whose
+  // timing/behavior isn't guaranteed identical on LocalStack), so the
+  // "function deleted, log group left behind" condition is deterministic.
+  await seed('lambda-loggroup-orphaned', async () => {
+    const functionName = `cloudrift-e2e-orphan-${Date.now()}`;
+    await lambda.send(
+      new CreateFunctionCommand({
+        FunctionName: functionName,
+        Runtime: 'nodejs18.x',
+        Role: FAKE_LAMBDA_ROLE_ARN,
+        Handler: 'index.handler',
+        Code: { ZipFile: buildLambdaZip() },
+      }),
+    );
+    await logs.send(new CreateLogGroupCommand({ logGroupName: `/aws/lambda/${functionName}` }));
+    await lambda.send(new DeleteFunctionCommand({ FunctionName: functionName }));
   });
 
   await seed('s3-no-lifecycle', async () => {

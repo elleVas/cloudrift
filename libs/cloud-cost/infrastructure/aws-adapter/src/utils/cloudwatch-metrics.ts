@@ -82,6 +82,18 @@ export async function sumMetrics(
   return sums.reduce((total, sum) => total + sum, 0);
 }
 
+/** Maximum of a single metric over `window`, `0` if there's no datapoint. */
+export async function maxMetric(
+  cw: CloudWatchClient,
+  namespace: string,
+  metricName: string,
+  dimensions: Dimension[],
+  window: MetricWindow,
+): Promise<number> {
+  const dp = await getMetricDatapoint(cw, namespace, metricName, dimensions, window, ['Maximum']);
+  return dp.Maximum ?? 0;
+}
+
 /** Average of a single metric over `window`, `0` if there's no datapoint. */
 export async function avgMetric(
   cw: CloudWatchClient,
