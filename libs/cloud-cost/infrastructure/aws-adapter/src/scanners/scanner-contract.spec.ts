@@ -47,6 +47,9 @@ import {
   SqsDlqAbandonedWastePolicy,
   LambdaLogGroupOrphanedPolicy,
   AuroraServerlessOverprovisionedPolicy,
+  SageMakerNotebookIdlePolicy,
+  SageMakerEndpointIdlePolicy,
+  SageMakerTrainingOrphanedPolicy,
 } from 'cloud-cost-domain';
 import type { ResourceKind, WasteScannerPort } from 'cloud-cost-domain';
 import { AwsEbsVolumeScanner } from './aws-ebs-volume.scanner';
@@ -81,6 +84,9 @@ import { AwsKinesisIdleScanner } from './aws-kinesis-idle.scanner';
 import { AwsSqsDlqAbandonedScanner } from './aws-sqs-dlq-abandoned.scanner';
 import { AwsLambdaLogGroupOrphanedScanner } from './aws-lambda-loggroup-orphaned.scanner';
 import { AwsAuroraServerlessIdleScanner } from './aws-aurora-serverless-idle.scanner';
+import { AwsSageMakerNotebookIdleScanner } from './aws-sagemaker-notebook-idle.scanner';
+import { AwsSageMakerEndpointIdleScanner } from './aws-sagemaker-endpoint-idle.scanner';
+import { AwsSageMakerTrainingOrphanedScanner } from './aws-sagemaker-training-orphaned.scanner';
 import { StaticPriceTableAdapter } from '../pricing/static-price-table.adapter';
 
 interface ContractFixture {
@@ -152,6 +158,8 @@ const livePrices = {
   getNeptuneInstancePricePerMonth: async () => 90,
   getMqBrokerPricePerMonth: async () => 80,
   getWorkSpacesBundlePricePerMonth: async () => 35,
+  getSageMakerNotebookInstancePricePerMonth: async () => 45,
+  getSageMakerEndpointInstancePricePerMonth: async () => 140,
 };
 
 // The captured fixtures' resources were seeded moments before the capture,
@@ -203,6 +211,12 @@ const scannerFactories: Record<ResourceKind, () => WasteScannerPort> = {
   'neptune-idle-instance': () => new AwsNeptuneIdleScanner(livePrices, ACCOUNT, new NeptuneIdleInstancePolicy(po)),
   'mq-idle-broker': () => new AwsMqIdleScanner(livePrices, ACCOUNT, new MqIdleBrokerPolicy(po)),
   'workspaces-idle': () => new AwsWorkspacesIdleScanner(livePrices, ACCOUNT, new WorkspacesIdlePolicy(po)),
+  'sagemaker-notebook-idle': () =>
+    new AwsSageMakerNotebookIdleScanner(livePrices, ACCOUNT, new SageMakerNotebookIdlePolicy(po, 2)),
+  'sagemaker-endpoint-idle': () =>
+    new AwsSageMakerEndpointIdleScanner(livePrices, ACCOUNT, new SageMakerEndpointIdlePolicy(po)),
+  'sagemaker-training-orphaned': () =>
+    new AwsSageMakerTrainingOrphanedScanner(pricing, ACCOUNT, new SageMakerTrainingOrphanedPolicy(po)),
 };
 
 const byId = (a: { id: string }, b: { id: string }) => a.id.localeCompare(b.id);

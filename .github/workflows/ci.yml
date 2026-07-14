@@ -12,9 +12,7 @@ concurrency:
 
 permissions:
   contents: read
-# Disables Nx Cloud for all jobs below
-env:
-  NX_NO_CLOUD: "true"
+
 jobs:
   lint:
     name: Lint

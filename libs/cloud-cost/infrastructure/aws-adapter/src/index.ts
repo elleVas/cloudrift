@@ -41,6 +41,11 @@ export { AwsKinesisIdleScanner } from './scanners/aws-kinesis-idle.scanner';
 export { AwsSqsDlqAbandonedScanner } from './scanners/aws-sqs-dlq-abandoned.scanner';
 export { AwsLambdaLogGroupOrphanedScanner } from './scanners/aws-lambda-loggroup-orphaned.scanner';
 export { AwsAuroraServerlessIdleScanner, suggestMinAcu } from './scanners/aws-aurora-serverless-idle.scanner';
+export { AwsSageMakerNotebookIdleScanner } from './scanners/aws-sagemaker-notebook-idle.scanner';
+export type { SageMakerNotebookInstancePricingSource } from './scanners/aws-sagemaker-notebook-idle.scanner';
+export { AwsSageMakerEndpointIdleScanner } from './scanners/aws-sagemaker-endpoint-idle.scanner';
+export type { SageMakerEndpointInstancePricingSource } from './scanners/aws-sagemaker-endpoint-idle.scanner';
+export { AwsSageMakerTrainingOrphanedScanner } from './scanners/aws-sagemaker-training-orphaned.scanner';
 export { AwsAdapterError } from './errors/aws-adapter.error';
 export {
   StaticPriceTableAdapter,

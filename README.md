@@ -427,6 +427,13 @@ The AWS principal needs the following read-only permissions:
     "dynamodb:ListTables",
     "dynamodb:DescribeTable",
     "elasticache:DescribeCacheClusters",
+    "sagemaker:ListNotebookInstances",
+    "sagemaker:ListEndpoints",
+    "sagemaker:DescribeEndpoint",
+    "sagemaker:DescribeEndpointConfig",
+    "sagemaker:ListEndpointConfigs",
+    "sagemaker:ListModels",
+    "sagemaker:DescribeModel",
     "sts:GetCallerIdentity"
   ],
   "Resource": "*"
@@ -936,6 +943,13 @@ Il principal AWS deve avere le seguenti permission in sola lettura:
     "dynamodb:ListTables",
     "dynamodb:DescribeTable",
     "elasticache:DescribeCacheClusters",
+    "sagemaker:ListNotebookInstances",
+    "sagemaker:ListEndpoints",
+    "sagemaker:DescribeEndpoint",
+    "sagemaker:DescribeEndpointConfig",
+    "sagemaker:ListEndpointConfigs",
+    "sagemaker:ListModels",
+    "sagemaker:DescribeModel",
     "sts:GetCallerIdentity"
   ],
   "Resource": "*"

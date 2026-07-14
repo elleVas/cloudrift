@@ -17,7 +17,7 @@ This document describes the test pyramid for cloudrift: what each level covers, 
         │  Domain (entity/policy) │   pure logic: waste rules, boundaries, no I/O
         └─────────────────────────┘
         ┌─────────────────────────┐
-        │  LocalStack e2e (free)  │   scripts/e2e-localstack.mjs (this doc), 16/29 scanners
+        │  LocalStack e2e (free)  │   scripts/e2e-localstack.mjs (this doc), 17/35 scanners
         ├─────────────────────────┤
         │  Manual AWS sandbox     │   scripts/verify-against-aws.mjs (this doc)
         └─────────────────────────┘
@@ -56,11 +56,13 @@ Fixture provenance is recorded in each file's `source` field: 14 were captured f
 
 The specs above mock the AWS SDK, so they verify the *shape* of a query but never actually run the built CLI binary against anything. [`scripts/e2e-localstack.mjs`](../../scripts/e2e-localstack.mjs) closes that gap without real AWS cost or credentials: it starts a [LocalStack](https://www.localstack.cloud/) container (`docker-compose.localstack.yml`), seeds one wasted/optimizable resource per kind (`scripts/seed-localstack.mjs`), runs the built `cloudrift analyze` against it, asserts that every expected `kind` produced a finding, and tears the container down — even on failure. It passes `--all-services` explicitly so the run always covers every scanner regardless of the [interactive picker](../adr/0041-interactive-scanner-selection-wizard.md)'s trigger logic — belt and suspenders, since `spawnSync`'s piped stdout is never a TTY anyway.
 
-Scope is 16 of 29 scanners (see [ADR-0002](../adr/0002-localstack-e2e-scope.md), [ADR-0036](../adr/0036-ec2-underutilized-excluded-from-localstack-e2e.md), and [ADR-0040](../adr/0040-localstack-bumped-4-14-0-cloudwatch-fixed.md)):
+Scope is 17 of 35 scanners (see [ADR-0002](../adr/0002-localstack-e2e-scope.md), [ADR-0036](../adr/0036-ec2-underutilized-excluded-from-localstack-e2e.md), and [ADR-0040](../adr/0040-localstack-bumped-4-14-0-cloudwatch-fixed.md)):
 
 - `rds-instance`, `rds-underutilized`, `elasticache-idle`, `efs-unused` (LocalStack's free Hobby plan doesn't emulate RDS/ElastiCache/EFS) and `ec2-underutilized` (the Pricing API match it needs isn't reliable on Hobby) are excluded entirely and remain covered only by the manual AWS sandbox script below.
 - The 7 scanners added in Phase 5.5 that require `--live-pricing` (`redshift-idle-cluster`, `opensearch-idle-domain`, `msk-idle-cluster`, `documentdb-idle-instance`, `neptune-idle-instance`, `mq-idle-broker`, `workspaces-idle`) are excluded entirely too: the AWS Pricing API is a real signed endpoint that doesn't work against LocalStack's fake credentials.
 - `fsx-idle-filesystem` is excluded entirely: LocalStack Community rejects every FSx call outright (`"API for service 'fsx' not yet implemented or pro feature"`).
+- `aurora-serverless-overprovisioned` (Phase 6.2) and `sqs-dlq-abandoned` (Phase 6.1, [ADR-0065](../adr/0065-vertical-premium-scanners-phase-6-strategy.md)) are excluded entirely: not realistically seedable/coverable on LocalStack Community, so both stay on manual verification.
+- `sagemaker-notebook-idle`, `sagemaker-endpoint-idle`, and `sagemaker-training-orphaned` (Phase 6.3, [ADR-0068](../adr/0068-sagemaker-scanners-excluded-from-localstack-e2e.md)) are excluded entirely: LocalStack Community doesn't expose the `sagemaker` service at all — confirmed empirically, not just assumed from ADR-0002's RDS/ElastiCache/EFS precedent.
 - `load-balancer` and `nat-gateway` are included in the expected-kinds list but treated as soft-missing — `load-balancer` because LocalStack Hobby rejects `elbv2` calls outright with a license error; `nat-gateway`'s soft status predates and is unrelated to the CloudWatch incompatibility below.
 - The 3 remaining always-on Phase 5.5 scanners (`vpn-connection-idle`, `transit-gateway-idle-attachment`, `kinesis-provisioned-idle-stream`) were soft-missing because `GetMetricStatistics` failed outright on LocalStack 4.0 for every CloudWatch-backed scanner, old and new alike — see [ADR-0039](../adr/0039-cloudwatch-localstack-incompatibility.md). Fixed in [ADR-0040](../adr/0040-localstack-bumped-4-14-0-cloudwatch-fixed.md) by bumping the pinned image to `localstack/localstack:4.14.0`; all 3, plus the pre-existing `ebs-idle`, `lambda-underutilized`, `dynamodb-overprovisioned`, and `s3-no-lifecycle`, are hard-required again.
 

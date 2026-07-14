@@ -15,6 +15,7 @@
   "thresholds": {
     "ebsIdleMaxOps": 0,
     "ec2CpuPercent": 5,
-    "rdsCpuPercent": 5
+    "rdsCpuPercent": 5,
+    "sagemakerNotebookCpuPercent": 2
   }
 }

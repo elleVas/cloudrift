@@ -1,0 +1,41 @@
+{
+  "kind": "sagemaker-training-orphaned",
+  "source": "transcribed from the AWS API reference, 2026-07-14 — expected cost = 5 GB assumed artifact size x static s3-standard price 0.023",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "ListModelsCommand": [
+      {
+        "Models": [
+          {
+            "ModelName": "orphan-model-1",
+            "ModelArn": "arn:aws:sagemaker:us-east-1:000000000000:model/orphan-model-1",
+            "CreationTime": "2023-05-01T00:00:00.000Z"
+          }
+        ],
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ],
+    "ListEndpointConfigsCommand": [
+      {
+        "EndpointConfigs": [],
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ],
+    "DescribeModelCommand": [
+      {
+        "ModelName": "orphan-model-1",
+        "PrimaryContainer": {
+          "Image": "683313688378.dkr.ecr.us-east-1.amazonaws.com/sagemaker-scikit-learn:0.23-1-cpu-py3",
+          "ModelDataUrl": "s3://cloudrift-models/orphan-model-1/model.tar.gz"
+        },
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ]
+  },
+  "expected": {
+    "findings": [
+      { "id": "orphan-model-1", "monthlyCostUsd": 0.115 }
+    ]
+  }
+}

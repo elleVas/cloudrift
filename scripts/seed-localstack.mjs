@@ -32,6 +32,14 @@
 // datapoint resolves to age 0 (not waste), the opposite of what every other
 // CloudWatch-backed scanner here relies on. Stays on manual verification.
 //
+// Phase 6.3 (ADR-0068): sagemaker-notebook-idle, sagemaker-endpoint-idle and
+// sagemaker-training-orphaned are excluded entirely, same treatment as
+// fsx-idle-filesystem above — confirmed empirically on 2026-07-14 that
+// LocalStack Community doesn't expose the sagemaker service at all
+// (missing from `/_localstack/health`, and a direct API call returns
+// "not included within your LocalStack license, but is available in an
+// upgraded license"). No seed is attempted for any of the three.
+//
 // CloudWatch-backed scanners (nat-gateway, ebs-idle, lambda-underutilized,
 // dynamodb-overprovisioned, and the 3 seeded above) need no explicit metric
 // seeding: every scanner treats a missing datapoint as zero usage

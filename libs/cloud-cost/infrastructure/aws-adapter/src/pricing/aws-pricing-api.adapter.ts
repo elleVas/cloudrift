@@ -411,6 +411,49 @@ export class AwsPricingApiAdapter {
   }
 
   /**
+   * Monthly on-demand price for a SageMaker notebook instance type, resolved
+   * on demand. The `component: 'Notebook Instances'` filter (in addition to
+   * `instanceType`) disambiguates from the same instance type billed under
+   * Hosting/Training — without it, `AmazonSageMaker`'s `productFamily` alone
+   * (`ML Instance`) would match all three and `fetchPrice` would refuse to
+   * pick one (safe degrade to no price, never a wrong one).
+   */
+  async getSageMakerNotebookInstancePricePerMonth(region: AwsRegion, instanceType: string): Promise<number | undefined> {
+    const location = REGION_TO_LOCATION[region.code];
+    if (!location) return undefined;
+    return this.fetchPrice(
+      {
+        key: `sagemaker-notebook-${instanceType}`,
+        serviceCode: 'AmazonSageMaker',
+        filters: [
+          { Field: 'instanceType', Value: instanceType },
+          { Field: 'component', Value: 'Notebook Instances' },
+        ],
+        unit: 'hourly',
+      },
+      location,
+    );
+  }
+
+  /** Monthly on-demand price for a SageMaker real-time inference (Hosting) instance type, resolved on demand. */
+  async getSageMakerEndpointInstancePricePerMonth(region: AwsRegion, instanceType: string): Promise<number | undefined> {
+    const location = REGION_TO_LOCATION[region.code];
+    if (!location) return undefined;
+    return this.fetchPrice(
+      {
+        key: `sagemaker-endpoint-${instanceType}`,
+        serviceCode: 'AmazonSageMaker',
+        filters: [
+          { Field: 'instanceType', Value: instanceType },
+          { Field: 'component', Value: 'Hosting' },
+        ],
+        unit: 'hourly',
+      },
+      location,
+    );
+  }
+
+  /**
    * Returns the price for a spec **only if the returned products agree on a
    * single value**. Ambiguous filters (more than one distinct value) ⇒
    * `undefined`, to avoid risking a wrong price (worse than the price list).

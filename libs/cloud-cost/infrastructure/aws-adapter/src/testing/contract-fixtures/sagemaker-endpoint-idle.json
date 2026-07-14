@@ -1,0 +1,52 @@
+{
+  "kind": "sagemaker-endpoint-idle",
+  "source": "transcribed from the AWS API reference (--live-pricing scanner, see ec2-underutilized.json), 2026-07-14 — expected cost = stub price 140",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "ListEndpointsCommand": [
+      {
+        "Endpoints": [
+          {
+            "EndpointName": "endpoint-inference-1",
+            "EndpointStatus": "InService",
+            "CreationTime": "2023-05-01T00:00:00.000Z",
+            "LastModifiedTime": "2023-05-01T00:00:00.000Z"
+          }
+        ],
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ],
+    "DescribeEndpointCommand": [
+      {
+        "EndpointName": "endpoint-inference-1",
+        "EndpointConfigName": "endpoint-inference-1-config",
+        "EndpointStatus": "InService",
+        "CreationTime": "2023-05-01T00:00:00.000Z",
+        "LastModifiedTime": "2023-05-01T00:00:00.000Z",
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ],
+    "DescribeEndpointConfigCommand": [
+      {
+        "EndpointConfigName": "endpoint-inference-1-config",
+        "ProductionVariants": [
+          { "VariantName": "AllTraffic", "InstanceType": "ml.m5.xlarge", "InitialInstanceCount": 1 }
+        ],
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ],
+    "GetMetricStatisticsCommand": [
+      {
+        "Label": "Invocations",
+        "Datapoints": [],
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ]
+  },
+  "expected": {
+    "findings": [
+      { "id": "endpoint-inference-1", "monthlyCostUsd": 140 }
+    ]
+  }
+}

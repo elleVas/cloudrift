@@ -57,6 +57,8 @@ export interface CloudriftConfig {
     dynamoCapacityUtilizationPercent?: number;
     /** Maximum peak-to-Min-ACU ratio (%) below which an Aurora Serverless v2 Min ACU floor is "overprovisioned". Default 50. */
     auroraMinAcuUtilizationPercent?: number;
+    /** Maximum CPU (%) below which an InService SageMaker notebook instance is "idle". Default 2. */
+    sagemakerNotebookCpuPercent?: number;
   };
 }
 
@@ -121,6 +123,7 @@ const configSchema = z.object({
       efsIoBytesMin: nonNegativeAmount.optional(),
       dynamoCapacityUtilizationPercent: percent.optional(),
       auroraMinAcuUtilizationPercent: percent.optional(),
+      sagemakerNotebookCpuPercent: percent.optional(),
     })
     .optional(),
 }) satisfies z.ZodType<CloudriftConfig, unknown>;

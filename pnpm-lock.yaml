@@ -65,6 +65,9 @@ importers:
       '@aws-sdk/client-s3':
         specifier: ^3.1073.0
         version: 3.1073.0
+      '@aws-sdk/client-sagemaker':
+        specifier: ^3.1075.0
+        version: 3.1086.0
       '@aws-sdk/client-sqs':
         specifier: ~3.1075.0
         version: 3.1075.0
@@ -332,6 +335,10 @@ packages:
 
   '@aws-sdk/client-s3@3.1073.0':
     resolution: {integrity: sha512-/Dvhrff0I4D2YUWSdm8uLKa1bfXdw9BMRDUME6ZeoTrrdQKQDeo2scLDjdpC5X2YdvTc/ZnUCR2HAvD7qXvS1w==}
+    engines: {node: '>=20.0.0'}
+
+  '@aws-sdk/client-sagemaker@3.1086.0':
+    resolution: {integrity: sha512-BX/+exHq93HA8NNulpDu5jkROvEg0Q0ohU2SThvWXzMNJVOQE6lrTuBJAKbSZ8rjDdcsSpfiwCm72vYZ6aalYA==}
     engines: {node: '>=20.0.0'}
 
   '@aws-sdk/client-sqs@3.1075.0':
@@ -4442,6 +4449,17 @@ snapshots:
       '@aws-sdk/middleware-flexible-checksums': 3.974.32
       '@aws-sdk/middleware-sdk-s3': 3.972.53
       '@aws-sdk/signature-v4-multi-region': 3.996.39
+      '@aws-sdk/types': 3.974.0
+      '@smithy/core': 3.29.3
+      '@smithy/fetch-http-handler': 5.6.5
+      '@smithy/node-http-handler': 4.9.5
+      '@smithy/types': 4.16.1
+      tslib: 2.8.1
+
+  '@aws-sdk/client-sagemaker@3.1086.0':
+    dependencies:
+      '@aws-sdk/core': 3.975.1
+      '@aws-sdk/credential-provider-node': 3.972.67
       '@aws-sdk/types': 3.974.0
       '@smithy/core': 3.29.3
       '@smithy/fetch-http-handler': 5.6.5

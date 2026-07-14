@@ -81,6 +81,12 @@ export { LambdaLogGroupOrphaned } from './entities/lambda-loggroup-orphaned.enti
 export type { LambdaLogGroupOrphanedProps } from './entities/lambda-loggroup-orphaned.entity';
 export { AuroraServerlessOverprovisioned } from './entities/aurora-serverless-overprovisioned.entity';
 export type { AuroraServerlessOverprovisionedProps } from './entities/aurora-serverless-overprovisioned.entity';
+export { SageMakerNotebookIdle } from './entities/sagemaker-notebook-idle.entity';
+export type { SageMakerNotebookIdleProps } from './entities/sagemaker-notebook-idle.entity';
+export { SageMakerEndpointIdle } from './entities/sagemaker-endpoint-idle.entity';
+export type { SageMakerEndpointIdleProps } from './entities/sagemaker-endpoint-idle.entity';
+export { SageMakerTrainingOrphaned } from './entities/sagemaker-training-orphaned.entity';
+export type { SageMakerTrainingOrphanedProps } from './entities/sagemaker-training-orphaned.entity';
 
 // Value Objects
 export { AwsRegion, InvalidAwsRegionError } from './value-objects/aws-region.value-object';
@@ -128,6 +134,9 @@ export {
   SqsDlqAbandonedWastePolicy,
   LambdaLogGroupOrphanedPolicy,
   AuroraServerlessOverprovisionedPolicy,
+  SageMakerNotebookIdlePolicy,
+  SageMakerEndpointIdlePolicy,
+  SageMakerTrainingOrphanedPolicy,
 } from './policies/resource-waste-policies';
 
 // Outbound Ports

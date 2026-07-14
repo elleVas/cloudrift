@@ -32,6 +32,9 @@ import {
   SqsDlqAbandonedWastePolicy,
   LambdaLogGroupOrphanedPolicy,
   AuroraServerlessOverprovisionedPolicy,
+  SageMakerNotebookIdlePolicy,
+  SageMakerEndpointIdlePolicy,
+  SageMakerTrainingOrphanedPolicy,
   RESOURCE_KINDS,
 } from 'cloud-cost-domain';
 import type {
@@ -73,6 +76,9 @@ import {
   AwsSqsDlqAbandonedScanner,
   AwsLambdaLogGroupOrphanedScanner,
   AwsAuroraServerlessIdleScanner,
+  AwsSageMakerNotebookIdleScanner,
+  AwsSageMakerEndpointIdleScanner,
+  AwsSageMakerTrainingOrphanedScanner,
 } from 'cloud-cost-infrastructure-aws-adapter';
 import type { AwsPricingApiAdapter } from 'cloud-cost-infrastructure-aws-adapter';
 import type { CloudriftConfig } from '../config/cloudrift.config';
@@ -266,6 +272,13 @@ export const ALWAYS_ON_SCANNERS: ScannerRegistration<ScannerBuildContext>[] = [
         ctx.utilizationWindowHours,
       ),
   },
+  // Phase 6.3 (ADR-0065): SageMaker vertical. A model's own cost is $0; the
+  // static S3-storage estimate keeps this always-on, like lambda-loggroup-orphaned.
+  {
+    kind: 'sagemaker-training-orphaned',
+    create: (ctx) =>
+      new AwsSageMakerTrainingOrphanedScanner(ctx.pricing, ctx.accountId, new SageMakerTrainingOrphanedPolicy(ctx.policyOptions)),
+  },
 ];
 
 // Gated on --live-pricing: the price per instance type/RDS class/ElastiCache
@@ -370,6 +383,28 @@ export const LIVE_PRICING_SCANNERS: ScannerRegistration<LivePricingScannerBuildC
     kind: 'workspaces-idle',
     create: (ctx) =>
       new AwsWorkspacesIdleScanner(ctx.livePricingAdapter, ctx.accountId, new WorkspacesIdlePolicy(ctx.policyOptions)),
+  },
+  // Phase 6.3 (ADR-0065): SageMaker vertical. Per-instance-type pricing, same
+  // reasoning as EC2/RDS/ElastiCache above (ADR-0037).
+  {
+    kind: 'sagemaker-notebook-idle',
+    create: (ctx) =>
+      new AwsSageMakerNotebookIdleScanner(
+        ctx.livePricingAdapter,
+        ctx.accountId,
+        new SageMakerNotebookIdlePolicy(ctx.policyOptions, ctx.config.thresholds?.sagemakerNotebookCpuPercent ?? 2),
+        ctx.utilizationWindowHours,
+      ),
+  },
+  {
+    kind: 'sagemaker-endpoint-idle',
+    create: (ctx) =>
+      new AwsSageMakerEndpointIdleScanner(
+        ctx.livePricingAdapter,
+        ctx.accountId,
+        new SageMakerEndpointIdlePolicy(ctx.policyOptions),
+        ctx.cloudwatchWindowHours,
+      ),
   },
 ];
 
