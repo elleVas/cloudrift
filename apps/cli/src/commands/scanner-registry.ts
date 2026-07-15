@@ -35,6 +35,7 @@ import {
   SageMakerNotebookIdlePolicy,
   SageMakerEndpointIdlePolicy,
   SageMakerTrainingOrphanedPolicy,
+  EnvironmentGhostPolicy,
   RESOURCE_KINDS,
 } from 'cloud-cost-domain';
 import type {
@@ -79,6 +80,7 @@ import {
   AwsSageMakerNotebookIdleScanner,
   AwsSageMakerEndpointIdleScanner,
   AwsSageMakerTrainingOrphanedScanner,
+  AwsEnvironmentGhostScanner,
 } from 'cloud-cost-infrastructure-aws-adapter';
 import type { AwsPricingApiAdapter } from 'cloud-cost-infrastructure-aws-adapter';
 import type { CloudriftConfig } from '../config/cloudrift.config';
@@ -278,6 +280,21 @@ export const ALWAYS_ON_SCANNERS: ScannerRegistration<ScannerBuildContext>[] = [
     kind: 'sagemaker-training-orphaned',
     create: (ctx) =>
       new AwsSageMakerTrainingOrphanedScanner(ctx.pricing, ctx.accountId, new SageMakerTrainingOrphanedPolicy(ctx.policyOptions)),
+  },
+  // Phase 6.4 (ADR-0065): Dev/PR ghost environments. $0 hygiene flag (see
+  // EnvironmentGhost), so always-on like sqs-dlq-abandoned/eni-orphaned.
+  {
+    kind: 'environment-ghost',
+    create: (ctx) => {
+      const inactivityDays = ctx.config.environmentDetection?.inactivityDays ?? 7;
+      return new AwsEnvironmentGhostScanner(
+        ctx.accountId,
+        new EnvironmentGhostPolicy(ctx.policyOptions, inactivityDays),
+        ctx.config.environmentDetection?.tagKeys,
+        ctx.config.environmentDetection?.namingPatterns,
+        inactivityDays,
+      );
+    },
   },
 ];
 

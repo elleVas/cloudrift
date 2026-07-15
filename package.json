@@ -59,6 +59,7 @@
     "@aws-sdk/client-pricing": "^3.1070.0",
     "@aws-sdk/client-rds": "^3.741.0",
     "@aws-sdk/client-redshift": "^3.1075.0",
+    "@aws-sdk/client-resource-groups-tagging-api": "^3.1075.0",
     "@aws-sdk/client-s3": "^3.1073.0",
     "@aws-sdk/client-sagemaker": "^3.1075.0",
     "@aws-sdk/client-sqs": "~3.1075.0",

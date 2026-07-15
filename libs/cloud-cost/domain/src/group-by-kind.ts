@@ -35,6 +35,7 @@ import type { AuroraServerlessOverprovisioned } from './entities/aurora-serverle
 import type { SageMakerNotebookIdle } from './entities/sagemaker-notebook-idle.entity';
 import type { SageMakerEndpointIdle } from './entities/sagemaker-endpoint-idle.entity';
 import type { SageMakerTrainingOrphaned } from './entities/sagemaker-training-orphaned.entity';
+import type { EnvironmentGhost } from './entities/environment-ghost.entity';
 
 /**
  * Map kind → concrete entity. Allows consumers (formatters, frontend)
@@ -76,6 +77,7 @@ export interface ResourceKindMap {
   'sagemaker-notebook-idle': SageMakerNotebookIdle;
   'sagemaker-endpoint-idle': SageMakerEndpointIdle;
   'sagemaker-training-orphaned': SageMakerTrainingOrphaned;
+  'environment-ghost': EnvironmentGhost;
 }
 
 export type FindingsByKind = {

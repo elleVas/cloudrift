@@ -50,6 +50,7 @@ import {
   SageMakerNotebookIdlePolicy,
   SageMakerEndpointIdlePolicy,
   SageMakerTrainingOrphanedPolicy,
+  EnvironmentGhostPolicy,
 } from 'cloud-cost-domain';
 import type { ResourceKind, WasteScannerPort } from 'cloud-cost-domain';
 import { AwsEbsVolumeScanner } from './aws-ebs-volume.scanner';
@@ -87,6 +88,7 @@ import { AwsAuroraServerlessIdleScanner } from './aws-aurora-serverless-idle.sca
 import { AwsSageMakerNotebookIdleScanner } from './aws-sagemaker-notebook-idle.scanner';
 import { AwsSageMakerEndpointIdleScanner } from './aws-sagemaker-endpoint-idle.scanner';
 import { AwsSageMakerTrainingOrphanedScanner } from './aws-sagemaker-training-orphaned.scanner';
+import { AwsEnvironmentGhostScanner } from './aws-environment-ghost.scanner';
 import { StaticPriceTableAdapter } from '../pricing/static-price-table.adapter';
 
 interface ContractFixture {
@@ -217,6 +219,8 @@ const scannerFactories: Record<ResourceKind, () => WasteScannerPort> = {
     new AwsSageMakerEndpointIdleScanner(livePrices, ACCOUNT, new SageMakerEndpointIdlePolicy(po)),
   'sagemaker-training-orphaned': () =>
     new AwsSageMakerTrainingOrphanedScanner(pricing, ACCOUNT, new SageMakerTrainingOrphanedPolicy(po)),
+  'environment-ghost': () =>
+    new AwsEnvironmentGhostScanner(ACCOUNT, new EnvironmentGhostPolicy(po, 7), undefined, undefined, 7),
 };
 
 const byId = (a: { id: string }, b: { id: string }) => a.id.localeCompare(b.id);

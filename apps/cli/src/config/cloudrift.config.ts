@@ -60,6 +60,15 @@ export interface CloudriftConfig {
     /** Maximum CPU (%) below which an InService SageMaker notebook instance is "idle". Default 2. */
     sagemakerNotebookCpuPercent?: number;
   };
+  /** Dev/PR "ghost environment" detection (environment-ghost scanner). */
+  environmentDetection?: {
+    /** Tag keys checked, in priority order, to group resources into an environment. Default ["Environment", "env", "branch"]. */
+    tagKeys?: string[];
+    /** Glob naming-convention fallback for resources with no matching tag. Default ["*-pr-*", "*-preview-*", "*-dev-*", "*-feat-*"]. */
+    namingPatterns?: string[];
+    /** Days every resource in a group must look inactive before the group is "ghost". Default 7. */
+    inactivityDays?: number;
+  };
 }
 
 export class ConfigError extends DomainError {
@@ -124,6 +133,13 @@ const configSchema = z.object({
       dynamoCapacityUtilizationPercent: percent.optional(),
       auroraMinAcuUtilizationPercent: percent.optional(),
       sagemakerNotebookCpuPercent: percent.optional(),
+    })
+    .optional(),
+  environmentDetection: z
+    .object({
+      tagKeys: z.array(z.string().min(1)).optional(),
+      namingPatterns: z.array(z.string().min(1)).optional(),
+      inactivityDays: z.number().int().nonnegative().optional(),
     })
     .optional(),
 }) satisfies z.ZodType<CloudriftConfig, unknown>;
