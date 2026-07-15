@@ -35,6 +35,7 @@ import type { AuroraServerlessOverprovisioned } from '../entities/aurora-serverl
 import type { SageMakerNotebookIdle } from '../entities/sagemaker-notebook-idle.entity';
 import type { SageMakerEndpointIdle } from '../entities/sagemaker-endpoint-idle.entity';
 import type { SageMakerTrainingOrphaned } from '../entities/sagemaker-training-orphaned.entity';
+import type { EnvironmentGhost } from '../entities/environment-ghost.entity';
 
 export class EbsVolumeWastePolicy extends WastePolicy<EbsVolume> {
   protected judge(volume: EbsVolume, now: Date): WasteVerdict {
@@ -449,6 +450,29 @@ export class SageMakerTrainingOrphanedPolicy extends WastePolicy<SageMakerTraini
       return notWaste(`created less than ${this.minAgeDays}d ago`);
     }
     return waste('not referenced by any endpoint config');
+  }
+}
+
+export class EnvironmentGhostPolicy extends WastePolicy<EnvironmentGhost> {
+  /** inactivityDays: how long every resource in the group must have looked inactive before the group is "ghost". Default 7 — distinct from `minAgeDays`, which the base class's grace period does not apply here (there is no single "creation date" for a heterogeneous group). */
+  constructor(options: WastePolicyOptions = {}, private readonly inactivityDays = 7) {
+    super(options);
+  }
+
+  protected judge(env: EnvironmentGhost, now: Date): WasteVerdict {
+    if (env.resourceCount === 0) {
+      return notWaste('no evaluable resources in group (unsupported types only)');
+    }
+    if (env.inactiveResourceCount < env.resourceCount) {
+      return notWaste('at least one resource still active');
+    }
+    const idleDays = this.ageInDays(env.lastActivityTimestamp, now);
+    if (idleDays < this.inactivityDays) {
+      return notWaste(`inactive ${idleDays.toFixed(1)}d, within ${this.inactivityDays}d threshold`);
+    }
+    return waste(
+      `${env.resourceCount} resource(s) (${env.resourceTypes.join(', ')}) inactive for ${idleDays.toFixed(1)}d`,
+    );
   }
 }
 

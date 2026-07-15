@@ -1,0 +1,64 @@
+{
+  "kind": "environment-ghost",
+  "source": "hand-transcribed from the ResourceGroupsTaggingAPI/EC2 API reference, 2026-07-15",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "GetResourcesCommand": [
+      {
+        "ResourceTagMappingList": [
+          {
+            "ResourceARN": "arn:aws:ec2:us-east-1:000000000000:instance/i-0abc123def456",
+            "Tags": [{ "Key": "Environment", "Value": "pr-1234" }]
+          }
+        ],
+        "$metadata": { "httpStatusCode": 200, "requestId": "9a1b2c3d-1111-4a2b-9c3d-000000000001", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ],
+    "DescribeInstancesCommand": [
+      {
+        "Reservations": [
+          {
+            "Instances": [
+              {
+                "InstanceId": "i-0abc123def456",
+                "InstanceType": "t3.micro",
+                "State": { "Name": "stopped" },
+                "StateTransitionReason": "User initiated (2020-01-15 08:00:00 GMT)",
+                "LaunchTime": "2019-01-01T00:00:00.000Z",
+                "Tags": [{ "Key": "Environment", "Value": "pr-1234" }]
+              }
+            ]
+          }
+        ],
+        "$metadata": { "httpStatusCode": 200, "requestId": "9a1b2c3d-1111-4a2b-9c3d-000000000002", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ],
+    "DescribeDBInstancesCommand": [
+      {
+        "DBInstances": [],
+        "$metadata": { "httpStatusCode": 200, "requestId": "9a1b2c3d-1111-4a2b-9c3d-000000000003", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ],
+    "ListFunctionsCommand": [
+      {
+        "Functions": [],
+        "$metadata": { "httpStatusCode": 200, "requestId": "9a1b2c3d-1111-4a2b-9c3d-000000000004", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ],
+    "DescribeLoadBalancersCommand": [
+      {
+        "LoadBalancers": [],
+        "$metadata": { "httpStatusCode": 200, "requestId": "9a1b2c3d-1111-4a2b-9c3d-000000000005", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ]
+  },
+  "expected": {
+    "findings": [
+      {
+        "id": "pr-1234",
+        "monthlyCostUsd": 0
+      }
+    ]
+  }
+}

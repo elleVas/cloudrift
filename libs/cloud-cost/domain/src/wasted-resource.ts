@@ -38,6 +38,7 @@ export const RESOURCE_KINDS = [
   'sagemaker-notebook-idle',
   'sagemaker-endpoint-idle',
   'sagemaker-training-orphaned',
+  'environment-ghost',
 ] as const;
 
 export type ResourceKind = (typeof RESOURCE_KINDS)[number];
@@ -133,6 +134,14 @@ export const RESOURCE_KIND_META: Record<ResourceKind, ResourceKindMeta> = {
     label: 'SageMaker Models (orphaned, no endpoint)',
     category: 'optimization',
     estimated: true,
+  },
+  // Phase 6.4 (ADR-0065): Dev/PR ghost environments. $0 hygiene flag, same
+  // rationale as 'eni-orphaned'/'sqs-dlq-abandoned' — no direct AWS cost,
+  // signals a group of resources nobody tore down.
+  'environment-ghost': {
+    label: 'Dev/PR Environments (ghost, all resources inactive)',
+    category: 'waste',
+    estimated: false,
   },
 };
 

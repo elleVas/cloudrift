@@ -407,6 +407,21 @@ export const presenters: PresenterMap = {
     recommend: (m) =>
       `Delete orphaned SageMaker model ${m.id} in ${m.region.code} — not referenced by any endpoint config (verify it isn't a rollback/backup target first)`,
   },
+  'environment-ghost': {
+    title: 'Dev/PR Environments — Ghost (all evaluated resources inactive, hygiene, no direct cost)',
+    head: ['Environment', 'Region', 'Method', 'Resources', 'Types', 'Last Activity'],
+    colWidths: [130, 65, 75, 65, 130, 84, 90],
+    row: (e) => [
+      e.environmentName,
+      e.region.code,
+      e.detectionMethod,
+      `${e.resourceCount}`,
+      e.resourceTypes.join(', '),
+      day(e.lastActivityTimestamp),
+    ],
+    recommend: (e) =>
+      `Review ghost environment "${e.environmentName}" in ${e.region.code} — ${e.wasteReason} (verify before deleting)`,
+  },
 };
 
 /**
@@ -481,6 +496,7 @@ export function rowFor(finding: AnyResourceEntity): string[] {
     case 'sagemaker-notebook-idle': return presenters['sagemaker-notebook-idle'].row(finding);
     case 'sagemaker-endpoint-idle': return presenters['sagemaker-endpoint-idle'].row(finding);
     case 'sagemaker-training-orphaned': return presenters['sagemaker-training-orphaned'].row(finding);
+    case 'environment-ghost': return presenters['environment-ghost'].row(finding);
   }
 }
 
@@ -522,5 +538,6 @@ export function recommendFor(finding: AnyResourceEntity): string {
     case 'sagemaker-notebook-idle': return presenters['sagemaker-notebook-idle'].recommend(finding);
     case 'sagemaker-endpoint-idle': return presenters['sagemaker-endpoint-idle'].recommend(finding);
     case 'sagemaker-training-orphaned': return presenters['sagemaker-training-orphaned'].recommend(finding);
+    case 'environment-ghost': return presenters['environment-ghost'].recommend(finding);
   }
 }

@@ -46,6 +46,7 @@ export type { SageMakerNotebookInstancePricingSource } from './scanners/aws-sage
 export { AwsSageMakerEndpointIdleScanner } from './scanners/aws-sagemaker-endpoint-idle.scanner';
 export type { SageMakerEndpointInstancePricingSource } from './scanners/aws-sagemaker-endpoint-idle.scanner';
 export { AwsSageMakerTrainingOrphanedScanner } from './scanners/aws-sagemaker-training-orphaned.scanner';
+export { AwsEnvironmentGhostScanner } from './scanners/aws-environment-ghost.scanner';
 export { AwsAdapterError } from './errors/aws-adapter.error';
 export {
   StaticPriceTableAdapter,

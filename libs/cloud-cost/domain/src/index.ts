@@ -87,6 +87,8 @@ export { SageMakerEndpointIdle } from './entities/sagemaker-endpoint-idle.entity
 export type { SageMakerEndpointIdleProps } from './entities/sagemaker-endpoint-idle.entity';
 export { SageMakerTrainingOrphaned } from './entities/sagemaker-training-orphaned.entity';
 export type { SageMakerTrainingOrphanedProps } from './entities/sagemaker-training-orphaned.entity';
+export { EnvironmentGhost } from './entities/environment-ghost.entity';
+export type { EnvironmentGhostProps, EnvironmentGhostDetectionMethod } from './entities/environment-ghost.entity';
 
 // Value Objects
 export { AwsRegion, InvalidAwsRegionError } from './value-objects/aws-region.value-object';
@@ -137,6 +139,7 @@ export {
   SageMakerNotebookIdlePolicy,
   SageMakerEndpointIdlePolicy,
   SageMakerTrainingOrphanedPolicy,
+  EnvironmentGhostPolicy,
 } from './policies/resource-waste-policies';
 
 // Outbound Ports
