@@ -4,6 +4,7 @@ import {
   ListEndpointsCommand,
   DescribeEndpointCommand,
   DescribeEndpointConfigCommand,
+  ListTagsCommand,
 } from '@aws-sdk/client-sagemaker';
 import { CloudWatchClient, GetMetricStatisticsCommand } from '@aws-sdk/client-cloudwatch';
 import { AwsSageMakerEndpointIdleScanner } from './aws-sagemaker-endpoint-idle.scanner';
@@ -34,6 +35,7 @@ function mockEndpointDescribeCalls() {
     if (cmd instanceof DescribeEndpointCommand) {
       return Promise.resolve({
         EndpointName: 'endpoint-1',
+        EndpointArn: 'arn:aws:sagemaker:us-east-1:123456789012:endpoint/endpoint-1',
         EndpointConfigName: 'config-1',
         EndpointStatus: 'InService',
         CreationTime: OLD_DATE,
@@ -44,6 +46,9 @@ function mockEndpointDescribeCalls() {
         EndpointConfigName: 'config-1',
         ProductionVariants: [{ VariantName: 'variant-1', InstanceType: 'ml.m5.xlarge', InitialInstanceCount: 2 }],
       });
+    }
+    if (cmd instanceof ListTagsCommand) {
+      return Promise.resolve({ Tags: [{ Key: 'team', Value: 'ml-platform' }] });
     }
     return Promise.resolve({ Endpoints: [{ EndpointName: 'endpoint-1', EndpointStatus: 'InService', CreationTime: OLD_DATE }] });
   });
@@ -69,6 +74,49 @@ describe('AwsSageMakerEndpointIdleScanner', () => {
   it('does not report an endpoint with invocations', async () => {
     mockEndpointDescribeCalls();
     mockCwSend.mockResolvedValue({ Datapoints: [{ Sum: 5 }] });
+
+    const result = await scanner.scan(region);
+
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value).toHaveLength(0);
+  });
+
+  it('resolves tags via ListTags using the endpoint ARN', async () => {
+    mockEndpointDescribeCalls();
+    mockCwSend.mockResolvedValue({ Datapoints: [{ Sum: 0 }] });
+
+    const result = await scanner.scan(region);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value[0].tags).toEqual({ team: 'ml-platform' });
+    const args = (ListTagsCommand as unknown as jest.Mock).mock.calls[0][0];
+    expect(args.ResourceArn).toBe('arn:aws:sagemaker:us-east-1:123456789012:endpoint/endpoint-1');
+  });
+
+  it('excludes an endpoint carrying the cloudrift:ignore tag', async () => {
+    mockSageMakerSend.mockImplementation((cmd: unknown) => {
+      if (cmd instanceof DescribeEndpointCommand) {
+        return Promise.resolve({
+          EndpointName: 'endpoint-1',
+          EndpointArn: 'arn:aws:sagemaker:us-east-1:123456789012:endpoint/endpoint-1',
+          EndpointConfigName: 'config-1',
+          EndpointStatus: 'InService',
+          CreationTime: OLD_DATE,
+        });
+      }
+      if (cmd instanceof DescribeEndpointConfigCommand) {
+        return Promise.resolve({
+          EndpointConfigName: 'config-1',
+          ProductionVariants: [{ VariantName: 'variant-1', InstanceType: 'ml.m5.xlarge', InitialInstanceCount: 2 }],
+        });
+      }
+      if (cmd instanceof ListTagsCommand) {
+        return Promise.resolve({ Tags: [{ Key: 'cloudrift:ignore', Value: 'true' }] });
+      }
+      return Promise.resolve({ Endpoints: [{ EndpointName: 'endpoint-1', EndpointStatus: 'InService', CreationTime: OLD_DATE }] });
+    });
+    mockCwSend.mockResolvedValue({ Datapoints: [{ Sum: 0 }] });
 
     const result = await scanner.scan(region);
 

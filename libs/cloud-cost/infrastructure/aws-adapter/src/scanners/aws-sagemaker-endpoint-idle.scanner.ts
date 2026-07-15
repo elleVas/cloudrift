@@ -4,6 +4,7 @@ import {
   ListEndpointsCommand,
   DescribeEndpointCommand,
   DescribeEndpointConfigCommand,
+  ListTagsCommand,
   type EndpointSummary,
 } from '@aws-sdk/client-sagemaker';
 import type { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
@@ -33,6 +34,7 @@ interface EndpointDetail {
   instanceType: string;
   instanceCount: number;
   variantNames: string[];
+  tags: Record<string, string>;
 }
 
 /**
@@ -41,8 +43,10 @@ interface EndpointDetail {
  * expose the hosted instance type — resolving it requires an extra
  * `DescribeEndpointConfig` call per endpoint (beyond the 3 read actions
  * listed in the original vertical plan), documented in the README IAM
- * block. Requires `--live-pricing`: without a price per instance type, no
- * saving can be estimated.
+ * block. Neither of those calls returns tags either, so a further
+ * `ListTags` call per endpoint resolves them — without it, `cloudrift:ignore`
+ * could never exclude an endpoint finding. Requires `--live-pricing`:
+ * without a price per instance type, no saving can be estimated.
  */
 export class AwsSageMakerEndpointIdleScanner extends CloudWatchIdleScanner<
   SageMakerClient,
@@ -93,6 +97,11 @@ export class AwsSageMakerEndpointIdleScanner extends CloudWatchIdleScanner<
         logger.debug(`${this.kind}: ${summary.EndpointName} has ${variants.length} variants, pricing the first only`);
       }
 
+      const tagsResult = endpoint.EndpointArn
+        ? await client.send(new ListTagsCommand({ ResourceArn: endpoint.EndpointArn }))
+        : undefined;
+      const tags = Object.fromEntries((tagsResult?.Tags ?? []).map((t) => [t.Key ?? '', t.Value ?? '']));
+
       const detail: EndpointDetail = {
         endpointName: summary.EndpointName,
         endpointConfigName,
@@ -101,6 +110,7 @@ export class AwsSageMakerEndpointIdleScanner extends CloudWatchIdleScanner<
         instanceType: primary.InstanceType,
         instanceCount: primary.InitialInstanceCount ?? 1,
         variantNames: variants.map((v) => v.VariantName).filter((n): n is string => !!n),
+        tags,
       };
       return detail;
     });
@@ -160,8 +170,7 @@ export class AwsSageMakerEndpointIdleScanner extends CloudWatchIdleScanner<
       windowHours: this.windowHours,
       creationTime: endpoint.creationTime,
       detectedAt: now,
-      // Neither DescribeEndpoint nor DescribeEndpointConfig return tags.
-      tags: {},
+      tags: endpoint.tags,
       monthlyCostUsd: +monthlyPrice.toFixed(4),
     });
   }

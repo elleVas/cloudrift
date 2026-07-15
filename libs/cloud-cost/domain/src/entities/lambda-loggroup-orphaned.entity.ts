@@ -14,6 +14,7 @@ export interface LambdaLogGroupOrphanedProps {
   accountId: string;
   tags: Record<string, string>;
   monthlyCostUsd: number;
+  detectedAt: Date;
 }
 
 /**
@@ -39,7 +40,7 @@ export class LambdaLogGroupOrphaned extends Entity<string> implements WastedReso
   get accountId(): string { return this.props.accountId; }
   get tags(): Record<string, string> { return this.props.tags; }
 
-  get detectedAt(): Date { return new Date(); }
+  get detectedAt(): Date { return this.props.detectedAt; }
   get kind(): 'lambda-loggroup-orphaned' { return 'lambda-loggroup-orphaned'; }
   get wasteReason(): string {
     return `function ${this.props.functionName} no longer exists`;

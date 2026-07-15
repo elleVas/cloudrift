@@ -318,6 +318,7 @@ export class AwsEnvironmentGhostScanner implements WasteScannerPort {
       region,
       accountId: this.accountId,
       tags,
+      detectedAt: now,
     });
   }
 

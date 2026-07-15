@@ -176,6 +176,11 @@ export class AwsEksNodeOverprovisionedScanner extends CloudWatchIdleScanner<
     now: Date,
   ): EksNodeOverprovisioned {
     const instanceType = ng.instanceTypes[0] ?? 'unknown';
+    if (ng.instanceTypes.length > 1) {
+      logger.debug(
+        `${this.kind}: ${ng.nodegroupName} has ${ng.instanceTypes.length} instance types, pricing ${instanceType} only`,
+      );
+    }
     const nodeCount = ng.scalingConfig.desiredSize;
     const cpuRequestedPercent =
       metric.cpuAllocatableMillis > 0 ? (metric.cpuRequestedMillis / metric.cpuAllocatableMillis) * 100 : 0;

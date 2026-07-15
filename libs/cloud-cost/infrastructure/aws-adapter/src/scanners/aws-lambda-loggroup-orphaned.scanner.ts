@@ -77,6 +77,7 @@ export class AwsLambdaLogGroupOrphanedScanner implements WasteScannerPort {
           accountId: this.accountId,
           tags: {},
           monthlyCostUsd: +((storedBytes / 1024 ** 3) * pricePerGb).toFixed(4),
+          detectedAt: now,
         });
       });
 
