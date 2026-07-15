@@ -36,6 +36,8 @@ import type { SageMakerNotebookIdle } from '../entities/sagemaker-notebook-idle.
 import type { SageMakerEndpointIdle } from '../entities/sagemaker-endpoint-idle.entity';
 import type { SageMakerTrainingOrphaned } from '../entities/sagemaker-training-orphaned.entity';
 import type { EnvironmentGhost } from '../entities/environment-ghost.entity';
+import type { EksNodeOverprovisioned } from '../entities/eks-node-overprovisioned.entity';
+import type { EksOrphanPvc } from '../entities/eks-orphan-pvc.entity';
 
 export class EbsVolumeWastePolicy extends WastePolicy<EbsVolume> {
   protected judge(volume: EbsVolume, now: Date): WasteVerdict {
@@ -473,6 +475,47 @@ export class EnvironmentGhostPolicy extends WastePolicy<EnvironmentGhost> {
     return waste(
       `${env.resourceCount} resource(s) (${env.resourceTypes.join(', ')}) inactive for ${idleDays.toFixed(1)}d`,
     );
+  }
+}
+
+export class EksNodeOverprovisionedPolicy extends WastePolicy<EksNodeOverprovisioned> {
+  /** cpuUtilizationPercent: CPU-requested-to-allocatable ratio (%) below which a node group is "overprovisioned". Default 30. */
+  constructor(options: WastePolicyOptions = {}, private readonly cpuUtilizationPercent = 30) {
+    super(options);
+  }
+
+  protected judge(nodegroup: EksNodeOverprovisioned, now: Date): WasteVerdict {
+    // No Container Insights datapoint is "no evidence" (likely not enabled
+    // on the cluster), not "confirmed zero requests" — same reasoning as
+    // AuroraServerlessOverprovisionedPolicy's hasDatapoint guard.
+    if (!nodegroup.hasDatapoint) return notWaste('no Container Insights datapoint in window');
+    if (nodegroup.cpuRequestedPercent >= this.cpuUtilizationPercent) {
+      return notWaste('CPU requested above threshold');
+    }
+    if (nodegroup.suggestedNodeCount >= nodegroup.nodeCount) {
+      return notWaste('no node count reduction available');
+    }
+    if (this.isWithinGracePeriod(nodegroup.nodegroupCreateTime, now)) {
+      return notWaste(`created less than ${this.minAgeDays}d ago`);
+    }
+    return waste(
+      `CPU requested ${nodegroup.cpuRequestedPercent.toFixed(1)}% of allocatable across ${nodegroup.nodeCount} node(s) over ${nodegroup.windowHours}h`,
+    );
+  }
+}
+
+export class EksOrphanPvcPolicy extends WastePolicy<EksOrphanPvc> {
+  protected judge(volume: EksOrphanPvc, now: Date): WasteVerdict {
+    const orphanedByMissingCluster = volume.isOrphanedByMissingCluster;
+    if (!volume.isUnattached() && !orphanedByMissingCluster) {
+      return notWaste('attached and owning cluster still exists (or unknown)');
+    }
+    if (this.isWithinGracePeriod(volume.createdTime, now)) {
+      return notWaste(`created less than ${this.minAgeDays}d ago`);
+    }
+    return orphanedByMissingCluster
+      ? waste(`owning EKS cluster "${volume.clusterName}" no longer exists`)
+      : waste('unattached (Kubernetes PVC volume, no Pod using it)');
   }
 }
 

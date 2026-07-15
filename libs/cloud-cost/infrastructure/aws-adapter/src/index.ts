@@ -47,6 +47,9 @@ export { AwsSageMakerEndpointIdleScanner } from './scanners/aws-sagemaker-endpoi
 export type { SageMakerEndpointInstancePricingSource } from './scanners/aws-sagemaker-endpoint-idle.scanner';
 export { AwsSageMakerTrainingOrphanedScanner } from './scanners/aws-sagemaker-training-orphaned.scanner';
 export { AwsEnvironmentGhostScanner } from './scanners/aws-environment-ghost.scanner';
+export { AwsEksNodeOverprovisionedScanner, suggestNodeCount } from './scanners/aws-eks-node-overprovisioned.scanner';
+export type { EksNodeInstancePricingSource } from './scanners/aws-eks-node-overprovisioned.scanner';
+export { AwsEksOrphanPvcScanner } from './scanners/aws-eks-orphan-pvc.scanner';
 export { AwsAdapterError } from './errors/aws-adapter.error';
 export {
   StaticPriceTableAdapter,

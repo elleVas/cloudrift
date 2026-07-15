@@ -20,6 +20,11 @@ function day(date: Date): string {
   return date.toISOString().split('T')[0];
 }
 
+function clusterDisplay(clusterName: string | undefined, clusterExists: boolean): string {
+  if (clusterName === undefined) return 'unknown';
+  return clusterExists ? clusterName : `${clusterName} (deleted)`;
+}
+
 type PresenterMap = { [K in ResourceKind]: ResourcePresenter<ResourceKindMap[K]> };
 
 export const presenters: PresenterMap = {
@@ -422,6 +427,37 @@ export const presenters: PresenterMap = {
     recommend: (e) =>
       `Review ghost environment "${e.environmentName}" in ${e.region.code} — ${e.wasteReason} (verify before deleting)`,
   },
+  'eks-node-overprovisioned': {
+    title:
+      'EKS Node Groups — Overprovisioned (rightsizing candidate, Container Insights node-level aggregate only, verify before acting)',
+    head: ['Cluster / Node Group', 'Region', 'Instance Type', 'Nodes', 'CPU Requested', 'Suggested Nodes'],
+    colWidths: [150, 72, 100, 50, 80, 80, 80],
+    row: (n) => [
+      n.id,
+      n.region.code,
+      n.instanceType,
+      `${n.nodeCount}`,
+      `${n.cpuRequestedPercent.toFixed(1)}%`,
+      `${n.suggestedNodeCount}`,
+    ],
+    recommend: (n) =>
+      `Scale EKS node group ${n.id} (${n.instanceType}) in ${n.region.code} ${n.nodeCount}→${n.suggestedNodeCount} nodes — CPU requested ${n.cpuRequestedPercent.toFixed(1)}% of allocatable over ${n.windowHours}h (Container Insights node-level aggregate, not individual Pod requests — verify real workload peaks first)`,
+  },
+  'eks-orphan-pvc': {
+    title: 'EKS Orphaned PVC Volumes — Unattached or owning cluster deleted',
+    head: ['Volume ID', 'PVC Name', 'Namespace', 'Cluster', 'Size', 'Type'],
+    colWidths: [130, 100, 90, 110, 48, 48, 80],
+    row: (v) => [
+      v.id,
+      v.pvcName,
+      v.pvcNamespace,
+      clusterDisplay(v.clusterName, v.clusterExists),
+      `${v.sizeGb} GB`,
+      v.volumeType,
+    ],
+    recommend: (v) =>
+      `Delete orphaned Kubernetes PVC volume ${v.id} (${v.pvcNamespace}/${v.pvcName}) in ${v.region.code} — ${v.wasteReason}`,
+  },
 };
 
 /**
@@ -497,6 +533,8 @@ export function rowFor(finding: AnyResourceEntity): string[] {
     case 'sagemaker-endpoint-idle': return presenters['sagemaker-endpoint-idle'].row(finding);
     case 'sagemaker-training-orphaned': return presenters['sagemaker-training-orphaned'].row(finding);
     case 'environment-ghost': return presenters['environment-ghost'].row(finding);
+    case 'eks-node-overprovisioned': return presenters['eks-node-overprovisioned'].row(finding);
+    case 'eks-orphan-pvc': return presenters['eks-orphan-pvc'].row(finding);
   }
 }
 
@@ -539,5 +577,7 @@ export function recommendFor(finding: AnyResourceEntity): string {
     case 'sagemaker-endpoint-idle': return presenters['sagemaker-endpoint-idle'].recommend(finding);
     case 'sagemaker-training-orphaned': return presenters['sagemaker-training-orphaned'].recommend(finding);
     case 'environment-ghost': return presenters['environment-ghost'].recommend(finding);
+    case 'eks-node-overprovisioned': return presenters['eks-node-overprovisioned'].recommend(finding);
+    case 'eks-orphan-pvc': return presenters['eks-orphan-pvc'].recommend(finding);
   }
 }

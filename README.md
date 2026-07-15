@@ -144,12 +144,23 @@ If everything is configured correctly you'll see tables listing the wasted resou
 | **Site-to-Site VPN Connections (idle)** | Zero tunnel traffic in the last 48h | ~$36.50/month fixed |
 | **Transit Gateway Attachments (idle)** | Zero traffic in the last 48h | ~$36.50/month fixed |
 | **Kinesis Streams (idle, Provisioned mode)** | Zero incoming records in the last 48h (On-Demand mode out of scope — pay-per-use) | ~$10.95/month per shard |
+| **SQS Dead Letter Queues (abandoned)** | Identified as a DLQ (RedrivePolicy/naming), oldest unconsumed message older than 14 days | $0 (hygiene flag — SQS has no storage cost) |
+| **CloudWatch Log Groups (orphaned Lambda)** | `/aws/lambda/*` log group whose function no longer exists | $0.03/GB-month (stored log data) |
+| **Aurora Serverless v2 (overprovisioned Min ACU)** | Min ACU floor set well above the observed peak ACU over 7 days — rightsizing candidate | Saving: (Min ACU − suggested Min ACU) × $87.60/ACU-month |
+| **SageMaker Notebook Instances (idle)** | `InService`, max CPU ≤ 2% over 7 days, requires `--live-pricing` | Full instance-hour cost |
+| **SageMaker Endpoints (idle)** | `InService`, zero invocations over 7 days, requires `--live-pricing` | Full instance-hour cost × instance count |
+| **SageMaker Models (orphaned, no endpoint)** | Not referenced by any endpoint config — model-namespace hygiene | Estimated S3 Standard storage cost |
+| **Dev/PR Environments (ghost, all resources inactive)** | Resources grouped by tag or naming pattern, all inactive for 7+ days | Estimated total cost of the resource group |
+| **EKS Node Groups (overprovisioned)** | CPU requested < 30% of allocatable per Container Insights, requires `--live-pricing` | Saving: (nodes − suggested nodes) × instance price |
+| **EKS Orphaned PVC Volumes** | Kubernetes-provisioned EBS volume unattached, or its owning cluster no longer exists | gp3: $0.08/GB-mo · gp2: $0.10/GB-mo (same table as EBS Volumes) |
 
-Every finding is also tagged `waste` or `optimization`: `waste` is money being spent now and feeds the headline total and the CI gate; `optimization` (gp2→gp3, EC2/RDS underutilized, S3 no-lifecycle, Lambda underutilized, DynamoDB overprovisioned) is a saving opportunity that keeps the resource, shown separately and never gated. `EC2/RDS Instances (underutilized)`, `S3 Buckets (no lifecycle)` and `DynamoDB Tables (overprovisioned)` are additionally *estimates* — verify before acting.
+Every finding is also tagged `waste` or `optimization`: `waste` is money being spent now and feeds the headline total and the CI gate; `optimization` (gp2→gp3, EC2/RDS underutilized, S3 no-lifecycle, Lambda underutilized, DynamoDB overprovisioned, Aurora Serverless overprovisioned, SageMaker Models orphaned, EKS Node Groups overprovisioned) is a saving opportunity that keeps the resource, shown separately and never gated. `EC2/RDS Instances (underutilized)`, `S3 Buckets (no lifecycle)`, `DynamoDB Tables (overprovisioned)`, `Aurora Serverless v2 (overprovisioned Min ACU)`, `SageMaker Models (orphaned)` and `EKS Node Groups (overprovisioned)` are additionally *estimates* — verify before acting.
 
 > **Honest caveat (Lambda):** we only check invocation count over the lookback window, nothing else. We do **not** rightsize memory allocation — that requires Lambda Insights (extra cost, must be enabled per-function), which isn't part of a zero-extra-IAM read-only scan. A function with zero invocations has, by definition, $0 direct cost (pay-per-use); the value of this finding is hygiene (dead code, unnecessary IAM roles/event sources), not a dollar saving. It also won't catch idle **Provisioned Concurrency**, which *is* billed regardless of invocations — out of scope for now.
 
 > **Honest caveat (rightsizing):** the underutilized check is a single-metric heuristic — max CPU below a threshold over the lookback window, nothing else. It does **not** look at RAM, network throughput, IOPS or connection counts, so it can't tell you *which* smaller instance type actually fits. We do this because it requires no extra IAM permissions and works the same on every account; we don't replace [AWS Compute Optimizer](https://aws.amazon.com/compute-optimizer/), which models multiple metrics and recommends a specific target type. Treat our finding as "go check this instance," not as a sizing recommendation — cross-check with Compute Optimizer (or your own metrics) before resizing.
+
+> **Honest caveat (EKS):** the node-overprovisioned check reads Container Insights' **node-level** CPU/memory aggregates (`node_cpu_request`/`node_cpu_limit`) via the AWS API only — it never sees individual Pod requests/limits and never talks to the Kubernetes API (no kubeconfig, see ADR-0066). If Container Insights isn't enabled on the cluster, the scanner reports nothing rather than guessing. Treat the suggested node count as a starting point for investigation, not a sizing recommendation. Separately, the orphaned-PVC-volume check can only recover the owning cluster's name from the legacy `kubernetes.io/cluster/<name>` tag — CSI-driver-provisioned volumes without `--extra-tags` won't carry it, so those volumes are only ever flagged via the unattached check, never the deleted-cluster check.
 
 **False-positive guards (waste policies):**
 
@@ -416,6 +427,7 @@ The AWS principal needs the following read-only permissions:
     "ec2:DescribeNetworkInterfaces",
     "cloudwatch:GetMetricStatistics",
     "rds:DescribeDBInstances",
+    "rds:DescribeDBClusters",
     "elasticloadbalancing:DescribeLoadBalancers",
     "elasticloadbalancing:DescribeTargetGroups",
     "elasticloadbalancing:DescribeTargetHealth",
@@ -434,6 +446,14 @@ The AWS principal needs the following read-only permissions:
     "sagemaker:ListEndpointConfigs",
     "sagemaker:ListModels",
     "sagemaker:DescribeModel",
+    "sqs:ListQueues",
+    "sqs:GetQueueAttributes",
+    "sqs:ListDeadLetterSourceQueues",
+    "sqs:ListQueueTags",
+    "tag:GetResources",
+    "eks:ListClusters",
+    "eks:ListNodegroups",
+    "eks:DescribeNodegroup",
     "sts:GetCallerIdentity"
   ],
   "Resource": "*"
@@ -492,6 +512,7 @@ Full documentation is in the [`docs/`](./docs/) folder — English in [`docs/en/
 | [docs/en/testing.md](./docs/en/testing.md)                      | Test pyramid, where each level lives, manual AWS verification |
 | [docs/en/policy-as-code.md](./docs/en/policy-as-code.md)        | From-zero OPA walkthrough for the example policies in `policy/` |
 | [docs/en/releasing.md](./docs/en/releasing.md)                  | How `@cloudrift/cli` is built and published to npm     |
+| [docs/en/vertical-scanners.md](./docs/en/vertical-scanners.md)  | The Phase 6 vertical scanners (Serverless, Aurora, SageMaker, Dev/PR, EKS) — what they detect, their caveats, and how to configure them |
 
 ### Adding a new resource type
 
@@ -645,12 +666,23 @@ Se tutto è configurato correttamente vedrai tabelle con le risorse sprecate tro
 | **Connessioni VPN Site-to-Site (idle)** | Zero traffico nei tunnel nelle ultime 48h | ~$36,50/mese fisso |
 | **Transit Gateway Attachments (idle)** | Zero traffico nelle ultime 48h | ~$36,50/mese fisso |
 | **Kinesis Streams (idle, modalità Provisioned)** | Zero record in ingresso nelle ultime 48h (modalità On-Demand fuori scope — pay-per-use) | ~$10,95/mese per shard |
+| **Code SQS Dead Letter (abbandonate)** | Identificata come DLQ (RedrivePolicy/naming), messaggio più vecchio non consumato da oltre 14 giorni | $0 (segnalazione di igiene — SQS non ha costo di storage) |
+| **CloudWatch Log Groups (Lambda orfani)** | Log group `/aws/lambda/*` la cui funzione non esiste più | $0,03/GB-mese (dati di log memorizzati) |
+| **Aurora Serverless v2 (Min ACU sovradimensionato)** | Min ACU molto superiore al picco osservato in 7 giorni — candidato a rightsizing | Risparmio: (Min ACU − Min ACU suggerito) × $87,60/ACU-mese |
+| **SageMaker Notebook Instances (idle)** | `InService`, CPU massima ≤ 2% in 7 giorni, richiede `--live-pricing` | Costo pieno instance-hour |
+| **SageMaker Endpoints (idle)** | `InService`, zero invocazioni in 7 giorni, richiede `--live-pricing` | Costo pieno instance-hour × numero di istanze |
+| **SageMaker Models (orfani, nessun endpoint)** | Non referenziati da nessuna endpoint config — igiene del namespace modelli | Costo stimato storage S3 Standard |
+| **Ambienti Dev/PR fantasma (tutte le risorse inattive)** | Risorse raggruppate per tag o naming pattern, tutte inattive da 7+ giorni | Costo stimato totale del gruppo di risorse |
+| **EKS Node Groups (sovradimensionati)** | CPU richiesta < 30% dell'allocabile secondo Container Insights, richiede `--live-pricing` | Risparmio: (nodi − nodi suggeriti) × prezzo istanza |
+| **EKS Volumi PVC orfani** | Volume EBS creato da Kubernetes non attaccato, oppure cluster proprietario non più esistente | gp3: $0,08/GB-mese · gp2: $0,10/GB-mese (stessa tabella di EBS Volumes) |
 
-Ogni finding è anche etichettato `waste` o `optimization`: `waste` è denaro speso ora e contribuisce al totale principale e al gate CI; `optimization` (gp2→gp3, EC2/RDS underutilized, S3 no-lifecycle, Lambda underutilized, DynamoDB overprovisioned) è un'opportunità di risparmio che mantiene la risorsa, mostrata a parte e mai usata come gate. `EC2/RDS Instances (underutilized)`, `S3 Buckets (no lifecycle)` e `DynamoDB Tables (overprovisioned)` sono inoltre delle *stime* — da verificare prima di agire.
+Ogni finding è anche etichettato `waste` o `optimization`: `waste` è denaro speso ora e contribuisce al totale principale e al gate CI; `optimization` (gp2→gp3, EC2/RDS underutilized, S3 no-lifecycle, Lambda underutilized, DynamoDB overprovisioned, Aurora Serverless overprovisioned, SageMaker Models orfani, EKS Node Groups sovradimensionati) è un'opportunità di risparmio che mantiene la risorsa, mostrata a parte e mai usata come gate. `EC2/RDS Instances (underutilized)`, `S3 Buckets (no lifecycle)`, `DynamoDB Tables (overprovisioned)`, `Aurora Serverless v2 (Min ACU sovradimensionato)`, `SageMaker Models (orfani)` e `EKS Node Groups (sovradimensionati)` sono inoltre delle *stime* — da verificare prima di agire.
 
 > **Nota onesta (Lambda):** controlliamo solo il numero di invocazioni nella finestra di osservazione, nient'altro. **Non** facciamo rightsizing della memoria — richiederebbe Lambda Insights (costo extra, da attivare per ogni funzione), fuori scope per uno scan read-only senza permessi IAM aggiuntivi. Una funzione con zero invocazioni ha per definizione $0 di costo diretto (pay-per-use); il valore di questo finding è igiene (codice morto, ruoli IAM/event source inutili), non un risparmio in dollari. Non rileva nemmeno la **Provisioned Concurrency** idle, che invece *è* fatturata indipendentemente dalle invocazioni — fuori scope per ora.
 
 > **Nota onesta (rightsizing):** il check di sottoutilizzo è un'euristica su una singola metrica — CPU massima sotto una soglia nella finestra di osservazione, nient'altro. **Non** guarda RAM, throughput di rete, IOPS o numero di connessioni, quindi non può dirti *quale* instance type più piccolo sia davvero adatto. Lo facciamo così perché non richiede permessi IAM aggiuntivi e funziona uguale su ogni account; non sostituiamo [AWS Compute Optimizer](https://aws.amazon.com/compute-optimizer/), che modella più metriche e raccomanda un target specifico. Tratta il nostro finding come "vai a controllare questa istanza", non come una raccomandazione di sizing — verifica con Compute Optimizer (o con le tue metriche) prima di ridimensionare.
+
+> **Nota onesta (EKS):** il check sul sovradimensionamento dei nodi legge gli aggregati **a livello di nodo** di Container Insights (`node_cpu_request`/`node_cpu_limit`) tramite la sola AWS API — non vede mai le richieste/limiti dei singoli Pod e non parla con la Kubernetes API (nessun kubeconfig, vedi ADR-0066). Se Container Insights non è attivo sul cluster, lo scanner non segnala nulla invece di indovinare. Tratta il numero di nodi suggerito come punto di partenza per l'indagine, non come raccomandazione di sizing. Separatamente, il check sui volumi PVC orfani può recuperare il nome del cluster proprietario solo dal tag legacy `kubernetes.io/cluster/<nome>` — i volumi creati dal CSI driver senza `--extra-tags` non lo portano, quindi vengono segnalati solo tramite il check "non attaccato", mai tramite quello sul cluster cancellato.
 
 **Protezioni contro i falsi positivi (waste policies):**
 
@@ -932,6 +964,7 @@ Il principal AWS deve avere le seguenti permission in sola lettura:
     "ec2:DescribeNetworkInterfaces",
     "cloudwatch:GetMetricStatistics",
     "rds:DescribeDBInstances",
+    "rds:DescribeDBClusters",
     "elasticloadbalancing:DescribeLoadBalancers",
     "elasticloadbalancing:DescribeTargetGroups",
     "elasticloadbalancing:DescribeTargetHealth",
@@ -950,6 +983,14 @@ Il principal AWS deve avere le seguenti permission in sola lettura:
     "sagemaker:ListEndpointConfigs",
     "sagemaker:ListModels",
     "sagemaker:DescribeModel",
+    "sqs:ListQueues",
+    "sqs:GetQueueAttributes",
+    "sqs:ListDeadLetterSourceQueues",
+    "sqs:ListQueueTags",
+    "tag:GetResources",
+    "eks:ListClusters",
+    "eks:ListNodegroups",
+    "eks:DescribeNodegroup",
     "sts:GetCallerIdentity"
   ],
   "Resource": "*"
@@ -1008,6 +1049,7 @@ Tutta la documentazione è nella cartella [`docs/`](./docs/) — italiano in [`d
 | [docs/it/test.md](./docs/it/test.md)                                 | Piramide dei test, dove vive ogni livello, verifica manuale AWS   |
 | [docs/it/policy-as-code.md](./docs/it/policy-as-code.md)             | Guida OPA da zero per le policy di esempio in `policy/`           |
 | [docs/it/rilascio.md](./docs/it/rilascio.md)                         | Come `@cloudrift/cli` viene buildato e pubblicato su npm           |
+| [docs/it/scanner-verticali-guida.md](./docs/it/scanner-verticali-guida.md) | Gli scanner verticali di Phase 6 (Serverless, Aurora, SageMaker, Dev/PR, EKS) — cosa rilevano, i loro limiti, come configurarli |
 
 ## Licenza
 

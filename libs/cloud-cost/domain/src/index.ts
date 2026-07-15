@@ -89,6 +89,10 @@ export { SageMakerTrainingOrphaned } from './entities/sagemaker-training-orphane
 export type { SageMakerTrainingOrphanedProps } from './entities/sagemaker-training-orphaned.entity';
 export { EnvironmentGhost } from './entities/environment-ghost.entity';
 export type { EnvironmentGhostProps, EnvironmentGhostDetectionMethod } from './entities/environment-ghost.entity';
+export { EksNodeOverprovisioned } from './entities/eks-node-overprovisioned.entity';
+export type { EksNodeOverprovisionedProps } from './entities/eks-node-overprovisioned.entity';
+export { EksOrphanPvc } from './entities/eks-orphan-pvc.entity';
+export type { EksOrphanPvcProps } from './entities/eks-orphan-pvc.entity';
 
 // Value Objects
 export { AwsRegion, InvalidAwsRegionError } from './value-objects/aws-region.value-object';
@@ -140,6 +144,8 @@ export {
   SageMakerEndpointIdlePolicy,
   SageMakerTrainingOrphanedPolicy,
   EnvironmentGhostPolicy,
+  EksNodeOverprovisionedPolicy,
+  EksOrphanPvcPolicy,
 } from './policies/resource-waste-policies';
 
 // Outbound Ports
