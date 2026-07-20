@@ -36,6 +36,8 @@ import type { SageMakerNotebookIdle } from './entities/sagemaker-notebook-idle.e
 import type { SageMakerEndpointIdle } from './entities/sagemaker-endpoint-idle.entity';
 import type { SageMakerTrainingOrphaned } from './entities/sagemaker-training-orphaned.entity';
 import type { EnvironmentGhost } from './entities/environment-ghost.entity';
+import type { EksNodeOverprovisioned } from './entities/eks-node-overprovisioned.entity';
+import type { EksOrphanPvc } from './entities/eks-orphan-pvc.entity';
 
 /**
  * Map kind → concrete entity. Allows consumers (formatters, frontend)
@@ -78,6 +80,8 @@ export interface ResourceKindMap {
   'sagemaker-endpoint-idle': SageMakerEndpointIdle;
   'sagemaker-training-orphaned': SageMakerTrainingOrphaned;
   'environment-ghost': EnvironmentGhost;
+  'eks-node-overprovisioned': EksNodeOverprovisioned;
+  'eks-orphan-pvc': EksOrphanPvc;
 }
 
 export type FindingsByKind = {

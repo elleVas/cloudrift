@@ -41,11 +41,18 @@ export class OpenSearchDomain extends Entity<string> implements WastedResource {
 
   get kind(): 'opensearch-idle-domain' { return 'opensearch-idle-domain'; }
   get wasteReason(): string {
-    return `zero search/indexing requests in last ${this.props.metricWindowHours}h`;
+    return `near-zero search/indexing requests in last ${this.props.metricWindowHours}h (${this.props.requestsLastWindow}, below internal cluster chatter)`;
   }
 
+  /**
+   * OpenSearch nodes publish a low but nonzero SearchRate even with no
+   * external traffic (cluster health checks, ISM policy polling, ...), so a
+   * strict `=== 0` check never fires. Threshold is set well above observed
+   * internal chatter (~1-2 req/h) and well below any real usage.
+   */
   isIdle(): boolean {
-    return this.props.requestsLastWindow === 0;
+    const internalTrafficThreshold = 5 * this.props.metricWindowHours;
+    return this.props.requestsLastWindow < internalTrafficThreshold;
   }
 
   get costEstimate(): CostEstimate {

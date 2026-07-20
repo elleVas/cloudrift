@@ -1,0 +1,37 @@
+{
+  "kind": "eks-orphan-pvc",
+  "source": "transcribed from the AWS API reference (static-pricing scanner, see ebs-volume.json), 2026-07-15 — expected cost = 50 GB * ebs-gp3 us-east-1 price 0.08",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "DescribeVolumesCommand": [
+      {
+        "Volumes": [
+          {
+            "VolumeId": "vol-0pvc12345",
+            "Size": 50,
+            "VolumeType": "gp3",
+            "State": "available",
+            "CreateTime": "2023-01-01T00:00:00.000Z",
+            "Tags": [
+              { "Key": "kubernetes.io/created-for/pvc/name", "Value": "data-pvc" },
+              { "Key": "kubernetes.io/created-for/pvc/namespace", "Value": "app-ns" }
+            ]
+          }
+        ],
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ],
+    "ListClustersCommand": [
+      {
+        "clusters": ["prod-cluster"],
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ]
+  },
+  "expected": {
+    "findings": [
+      { "id": "vol-0pvc12345", "monthlyCostUsd": 4 }
+    ]
+  }
+}

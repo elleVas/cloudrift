@@ -74,6 +74,15 @@ interface PriceSpec {
   /** TERM_MATCH filters in addition to `location` (added automatically). */
   filters: Array<{ Field: string; Value: string }>;
   unit: PriceUnit;
+  /**
+   * Extra client-side filter over each item's raw product attributes, for
+   * products where the disambiguating value isn't its own filterable
+   * `TERM_MATCH` attribute at all (e.g. MSK broker instance type is only
+   * embedded in `usagetype`, like `EUC1-Kafka.t3.small` — the region-code
+   * prefix rules out a `TERM_MATCH` on the full string). Applied in addition
+   * to `filters`, before the distinct-price check.
+   */
+  matchAttributes?: (attributes: Record<string, string>) => boolean;
 }
 
 /**
@@ -302,7 +311,13 @@ export class AwsPricingApiAdapter {
     );
   }
 
-  /** Monthly on-demand price for an OpenSearch/Elasticsearch instance type, resolved on demand. */
+  /**
+   * Monthly on-demand price for an OpenSearch/Elasticsearch instance type,
+   * resolved on demand. `productFamily` is `'Amazon OpenSearch Service
+   * Instance'` (not the older `'ES Instance'` name) as of the
+   * Elasticsearch→OpenSearch Service rebrand — verified against a live
+   * `GetProducts` call, 2026-07-20.
+   */
   async getOpenSearchInstancePricePerMonth(region: AwsRegion, instanceType: string): Promise<number | undefined> {
     const location = REGION_TO_LOCATION[region.code];
     if (!location) return undefined;
@@ -312,7 +327,7 @@ export class AwsPricingApiAdapter {
         serviceCode: 'AmazonES',
         filters: [
           { Field: 'instanceType', Value: instanceType },
-          { Field: 'productFamily', Value: 'ES Instance' },
+          { Field: 'productFamily', Value: 'Amazon OpenSearch Service Instance' },
         ],
         unit: 'hourly',
       },
@@ -324,21 +339,33 @@ export class AwsPricingApiAdapter {
   async getMskBrokerPricePerMonth(region: AwsRegion, brokerInstanceType: string): Promise<number | undefined> {
     const location = REGION_TO_LOCATION[region.code];
     if (!location) return undefined;
+    // MSK broker pricing has no `instanceType`/`productFamily`-per-broker-type
+    // attribute to `TERM_MATCH` on at all — the instance type only appears
+    // embedded in `usagetype` (e.g. `EUC1-Kafka.t3.small`), and the
+    // region-code prefix ("EUC1") rules out an exact TERM_MATCH on the full
+    // string. Disambiguated client-side instead — verified against a live
+    // `GetProducts` call, 2026-07-20.
     return this.fetchPrice(
       {
         key: `msk-${brokerInstanceType}`,
         serviceCode: 'AmazonMSK',
-        filters: [
-          { Field: 'instanceType', Value: brokerInstanceType },
-          { Field: 'productFamily', Value: 'Kafka Broker' },
-        ],
+        filters: [{ Field: 'productFamily', Value: 'Managed Streaming for Apache Kafka (MSK)' }],
         unit: 'hourly',
+        matchAttributes: (attrs) =>
+          (attrs.usagetype ?? '').toLowerCase().endsWith(brokerInstanceType.toLowerCase()),
       },
       location,
     );
   }
 
-  /** Monthly on-demand price for a DocumentDB instance class, resolved on demand. */
+  /**
+   * Monthly on-demand price for a DocumentDB instance class, resolved on
+   * demand. `instanceType` + `productFamily` alone are ambiguous: each
+   * instance class has two SKUs (`storageType` `Standard` vs the newer
+   * opt-in `I/O-Optimized` tier, ~10% pricier) — verified against a live
+   * `GetProducts` call, 2026-07-20. `Standard` matches what a cluster uses
+   * unless it explicitly opts into I/O-Optimized storage.
+   */
   async getDocDbInstancePricePerMonth(region: AwsRegion, dbInstanceClass: string): Promise<number | undefined> {
     const location = REGION_TO_LOCATION[region.code];
     if (!location) return undefined;
@@ -349,6 +376,7 @@ export class AwsPricingApiAdapter {
         filters: [
           { Field: 'instanceType', Value: dbInstanceClass },
           { Field: 'productFamily', Value: 'Database Instance' },
+          { Field: 'storageType', Value: 'Standard' },
         ],
         unit: 'hourly',
       },
@@ -356,7 +384,13 @@ export class AwsPricingApiAdapter {
     );
   }
 
-  /** Monthly on-demand price for a Neptune instance class, resolved on demand. */
+  /**
+   * Monthly on-demand price for a Neptune instance class, resolved on
+   * demand. Same `Standard` vs `I/O Optimized` storage-tier ambiguity as
+   * DocumentDB, disambiguated via `volumeType` (Neptune's equivalent
+   * attribute name) instead of `storageType` — verified against a live
+   * `GetProducts` call, 2026-07-20.
+   */
   async getNeptuneInstancePricePerMonth(region: AwsRegion, dbInstanceClass: string): Promise<number | undefined> {
     const location = REGION_TO_LOCATION[region.code];
     if (!location) return undefined;
@@ -367,6 +401,7 @@ export class AwsPricingApiAdapter {
         filters: [
           { Field: 'instanceType', Value: dbInstanceClass },
           { Field: 'productFamily', Value: 'Database Instance' },
+          { Field: 'volumeType', Value: 'Standard' },
         ],
         unit: 'hourly',
       },
@@ -374,17 +409,39 @@ export class AwsPricingApiAdapter {
     );
   }
 
-  /** Monthly on-demand price for an Amazon MQ broker instance type, resolved on demand. */
-  async getMqBrokerPricePerMonth(region: AwsRegion, hostInstanceType: string): Promise<number | undefined> {
+  /**
+   * Monthly on-demand price for an Amazon MQ broker instance type, resolved
+   * on demand. Three corrections needed against the actual Pricing API data
+   * (verified via a live `GetProducts` call, 2026-07-20):
+   * - `productFamily` is `'Broker Instances'` (plural), not `'Broker
+   *   Instance'`.
+   * - The Pricing API's `instanceType` attribute has no `mq.` prefix (e.g.
+   *   `t3.micro`), while `HostInstanceType` from `DescribeBroker`/
+   *   `ListBrokers` does (e.g. `mq.t3.micro`) — the prefix must be stripped
+   *   before filtering.
+   * - `instanceType` + `productFamily` alone are still ambiguous: each
+   *   instance type has a distinct price per `deploymentOption`
+   *   (Single-AZ/Multi-AZ) and `brokerEngine` (ActiveMQ/RabbitMQ), so both
+   *   must be passed in and filtered on too.
+   */
+  async getMqBrokerPricePerMonth(
+    region: AwsRegion,
+    hostInstanceType: string,
+    deploymentOption: string,
+    brokerEngine: string,
+  ): Promise<number | undefined> {
     const location = REGION_TO_LOCATION[region.code];
     if (!location) return undefined;
+    const instanceType = hostInstanceType.replace(/^mq\./, '');
     return this.fetchPrice(
       {
-        key: `mq-${hostInstanceType}`,
+        key: `mq-${instanceType}-${deploymentOption}-${brokerEngine}`,
         serviceCode: 'AmazonMQ',
         filters: [
-          { Field: 'instanceType', Value: hostInstanceType },
-          { Field: 'productFamily', Value: 'Broker Instance' },
+          { Field: 'instanceType', Value: instanceType },
+          { Field: 'productFamily', Value: 'Broker Instances' },
+          { Field: 'deploymentOption', Value: deploymentOption },
+          { Field: 'brokerEngine', Value: brokerEngine },
         ],
         unit: 'hourly',
       },
@@ -470,6 +527,7 @@ export class AwsPricingApiAdapter {
 
     const distinct = new Set<number>();
     for (const item of response.PriceList ?? []) {
+      if (spec.matchAttributes && !spec.matchAttributes(extractProductAttributes(item))) continue;
       for (const usd of extractOnDemandUsd(item)) distinct.add(usd);
     }
     if (distinct.size !== 1) return undefined;
@@ -478,6 +536,27 @@ export class AwsPricingApiAdapter {
     const monthly = spec.unit === 'hourly' ? usd * HOURS_PER_MONTH : usd;
     return +monthly.toFixed(4);
   }
+}
+
+/**
+ * Extracts `product.attributes` (e.g. `usagetype`, `instanceType`,
+ * `storageType`) from a PriceList entry, for specs whose `matchAttributes`
+ * needs to filter on a field the Pricing API doesn't expose as a
+ * `TERM_MATCH`-able attribute of its own.
+ */
+function extractProductAttributes(item: unknown): Record<string, string> {
+  let product: unknown;
+  if (typeof item === 'string') {
+    try {
+      product = JSON.parse(item);
+    } catch {
+      return {};
+    }
+  } else {
+    product = item;
+  }
+  const attributes = (product as { product?: { attributes?: Record<string, string> } })?.product?.attributes;
+  return attributes ?? {};
 }
 
 /**

@@ -59,6 +59,8 @@ export interface CloudriftConfig {
     auroraMinAcuUtilizationPercent?: number;
     /** Maximum CPU (%) below which an InService SageMaker notebook instance is "idle". Default 2. */
     sagemakerNotebookCpuPercent?: number;
+    /** Maximum CPU-requested-to-allocatable ratio (%) below which an EKS node group is "overprovisioned". Default 30. */
+    eksNodeUtilizationPercent?: number;
   };
   /** Dev/PR "ghost environment" detection (environment-ghost scanner). */
   environmentDetection?: {
@@ -133,6 +135,7 @@ const configSchema = z.object({
       dynamoCapacityUtilizationPercent: percent.optional(),
       auroraMinAcuUtilizationPercent: percent.optional(),
       sagemakerNotebookCpuPercent: percent.optional(),
+      eksNodeUtilizationPercent: percent.optional(),
     })
     .optional(),
   environmentDetection: z

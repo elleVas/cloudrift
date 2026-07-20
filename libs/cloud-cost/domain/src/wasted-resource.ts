@@ -39,6 +39,8 @@ export const RESOURCE_KINDS = [
   'sagemaker-endpoint-idle',
   'sagemaker-training-orphaned',
   'environment-ghost',
+  'eks-node-overprovisioned',
+  'eks-orphan-pvc',
 ] as const;
 
 export type ResourceKind = (typeof RESOURCE_KINDS)[number];
@@ -140,6 +142,20 @@ export const RESOURCE_KIND_META: Record<ResourceKind, ResourceKindMeta> = {
   // signals a group of resources nobody tore down.
   'environment-ghost': {
     label: 'Dev/PR Environments (ghost, all resources inactive)',
+    category: 'waste',
+    estimated: false,
+  },
+  // Phase 6.5 (ADR-0065/ADR-0066): EKS cost visibility vertical. Per-instance-
+  // type pricing (requires --live-pricing); the suggested node count is a
+  // heuristic (Container Insights aggregate, not Pod-level), hence estimated.
+  'eks-node-overprovisioned': {
+    label: 'EKS Node Groups (overprovisioned)',
+    category: 'optimization',
+    estimated: true,
+  },
+  // Phase 6.5 (ADR-0065/ADR-0066): EBS pricing is static, no --live-pricing gate.
+  'eks-orphan-pvc': {
+    label: 'EKS Orphaned PVC Volumes',
     category: 'waste',
     estimated: false,
   },

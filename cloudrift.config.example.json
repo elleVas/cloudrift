@@ -16,6 +16,13 @@
     "ebsIdleMaxOps": 0,
     "ec2CpuPercent": 5,
     "rdsCpuPercent": 5,
-    "sagemakerNotebookCpuPercent": 2
+    "auroraMinAcuUtilizationPercent": 50,
+    "sagemakerNotebookCpuPercent": 2,
+    "eksNodeUtilizationPercent": 30
+  },
+  "environmentDetection": {
+    "tagKeys": ["Environment", "env", "branch"],
+    "namingPatterns": ["*-pr-*", "*-preview-*", "*-dev-*", "*-feat-*"],
+    "inactivityDays": 7
   }
 }

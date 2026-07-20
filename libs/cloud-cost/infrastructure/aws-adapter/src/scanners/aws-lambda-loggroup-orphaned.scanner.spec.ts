@@ -84,7 +84,10 @@ describe('AwsLambdaLogGroupOrphanedScanner', () => {
     const result = await scanner.scan(region);
 
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value).toHaveLength(1);
+    if (!result.ok) return;
+    expect(result.value).toHaveLength(1);
+    // Never logged is not the same as "logged at the Unix epoch" — must stay null, not fall back to new Date(0).
+    expect((result.value[0] as { lastEventTimestamp: Date | null }).lastEventTimestamp).toBeNull();
   });
 
   it('queries DescribeLogStreams ordered by LastEventTime, most recent first', async () => {

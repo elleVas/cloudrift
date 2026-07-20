@@ -19,6 +19,7 @@ export interface EnvironmentGhostProps {
   region: AwsRegion;
   accountId: string;
   tags: Record<string, string>;
+  detectedAt: Date;
 }
 
 /**
@@ -51,7 +52,7 @@ export class EnvironmentGhost extends Entity<string> implements WastedResource {
   get accountId(): string { return this.props.accountId; }
   get tags(): Record<string, string> { return this.props.tags; }
 
-  get detectedAt(): Date { return new Date(); }
+  get detectedAt(): Date { return this.props.detectedAt; }
   get kind(): 'environment-ghost' { return 'environment-ghost'; }
   get wasteReason(): string {
     return `${this.props.resourceCount} resource(s) inactive (${this.props.detectionMethod}), last activity ${this.props.lastActivityTimestamp.toISOString().split('T')[0]}`;

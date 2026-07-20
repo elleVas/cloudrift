@@ -51,6 +51,8 @@ import {
   SageMakerEndpointIdlePolicy,
   SageMakerTrainingOrphanedPolicy,
   EnvironmentGhostPolicy,
+  EksNodeOverprovisionedPolicy,
+  EksOrphanPvcPolicy,
 } from 'cloud-cost-domain';
 import type { ResourceKind, WasteScannerPort } from 'cloud-cost-domain';
 import { AwsEbsVolumeScanner } from './aws-ebs-volume.scanner';
@@ -89,6 +91,8 @@ import { AwsSageMakerNotebookIdleScanner } from './aws-sagemaker-notebook-idle.s
 import { AwsSageMakerEndpointIdleScanner } from './aws-sagemaker-endpoint-idle.scanner';
 import { AwsSageMakerTrainingOrphanedScanner } from './aws-sagemaker-training-orphaned.scanner';
 import { AwsEnvironmentGhostScanner } from './aws-environment-ghost.scanner';
+import { AwsEksNodeOverprovisionedScanner } from './aws-eks-node-overprovisioned.scanner';
+import { AwsEksOrphanPvcScanner } from './aws-eks-orphan-pvc.scanner';
 import { StaticPriceTableAdapter } from '../pricing/static-price-table.adapter';
 
 interface ContractFixture {
@@ -221,6 +225,9 @@ const scannerFactories: Record<ResourceKind, () => WasteScannerPort> = {
     new AwsSageMakerTrainingOrphanedScanner(pricing, ACCOUNT, new SageMakerTrainingOrphanedPolicy(po)),
   'environment-ghost': () =>
     new AwsEnvironmentGhostScanner(ACCOUNT, new EnvironmentGhostPolicy(po, 7), undefined, undefined, 7),
+  'eks-node-overprovisioned': () =>
+    new AwsEksNodeOverprovisionedScanner(livePrices, ACCOUNT, new EksNodeOverprovisionedPolicy(po, 30)),
+  'eks-orphan-pvc': () => new AwsEksOrphanPvcScanner(pricing, ACCOUNT, new EksOrphanPvcPolicy(po)),
 };
 
 const byId = (a: { id: string }, b: { id: string }) => a.id.localeCompare(b.id);

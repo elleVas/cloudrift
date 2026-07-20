@@ -49,12 +49,24 @@ describe('AwsOpenSearchIdleScanner', () => {
 
   it('does not report a domain with traffic', async () => {
     mockDomain('busy-domain');
-    mockCwSend.mockResolvedValueOnce({ Datapoints: [{ Sum: 10 }] }).mockResolvedValueOnce({ Datapoints: [] });
+    mockCwSend.mockResolvedValueOnce({ Datapoints: [{ Sum: 300 }] }).mockResolvedValueOnce({ Datapoints: [] });
 
     const result = await scanner.scan(region);
 
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.value).toHaveLength(0);
+  });
+
+  it('still reports a domain whose only traffic is internal cluster chatter (health checks, ISM polling)', async () => {
+    mockDomain('quiet-domain');
+    // A handful of internal SearchRate events over the 48h window — real
+    // OpenSearch domains publish these even with zero external traffic.
+    mockCwSend.mockResolvedValueOnce({ Datapoints: [{ Sum: 3 }] }).mockResolvedValueOnce({ Datapoints: [] });
+
+    const result = await scanner.scan(region);
+
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.map((d) => d.id)).toEqual(['quiet-domain']);
   });
 
   it('skips CloudWatch entirely when no domains exist', async () => {

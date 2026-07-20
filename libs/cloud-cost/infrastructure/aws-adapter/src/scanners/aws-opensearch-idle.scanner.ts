@@ -27,9 +27,11 @@ export interface OpenSearchInstancePricingSource {
 type DomainWithName = DomainStatus & { DomainName: string };
 
 /**
- * Detects OpenSearch/Elasticsearch domains with zero search/indexing
- * traffic in the observed window. Requires `--live-pricing`: without a
- * price per instance type, no saving can be estimated.
+ * Detects OpenSearch/Elasticsearch domains with near-zero search/indexing
+ * traffic in the observed window — see `OpenSearchDomain.isIdle()` for why
+ * this isn't a strict zero check (nodes publish low-volume internal
+ * SearchRate even with no external traffic). Requires `--live-pricing`:
+ * without a price per instance type, no saving can be estimated.
  */
 export class AwsOpenSearchIdleScanner extends CloudWatchIdleScanner<
   OpenSearchClient,

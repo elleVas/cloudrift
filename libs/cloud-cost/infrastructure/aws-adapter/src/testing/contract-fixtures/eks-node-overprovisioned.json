@@ -1,0 +1,61 @@
+{
+  "kind": "eks-node-overprovisioned",
+  "source": "transcribed from the AWS API reference (--live-pricing scanner, see ec2-underutilized.json), 2026-07-15 — expected cost = (10 - 3) * stub price 70",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "ListClustersCommand": [
+      {
+        "clusters": ["prod-cluster"],
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ],
+    "ListNodegroupsCommand": [
+      {
+        "nodegroups": ["app-workers"],
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ],
+    "DescribeNodegroupCommand": [
+      {
+        "nodegroup": {
+          "nodegroupName": "app-workers",
+          "clusterName": "prod-cluster",
+          "status": "ACTIVE",
+          "instanceTypes": ["m5.xlarge"],
+          "scalingConfig": { "minSize": 3, "maxSize": 15, "desiredSize": 10 },
+          "createdAt": "2023-01-01T00:00:00.000Z",
+          "tags": {}
+        },
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ],
+    "GetMetricStatisticsCommand": [
+      {
+        "Label": "node_cpu_request",
+        "Datapoints": [{ "Average": 700 }],
+        "$metadata": { "httpStatusCode": 200 }
+      },
+      {
+        "Label": "node_cpu_limit",
+        "Datapoints": [{ "Average": 4000 }],
+        "$metadata": { "httpStatusCode": 200 }
+      },
+      {
+        "Label": "node_memory_request",
+        "Datapoints": [{ "Average": 2000000000 }],
+        "$metadata": { "httpStatusCode": 200 }
+      },
+      {
+        "Label": "node_memory_limit",
+        "Datapoints": [{ "Average": 8000000000 }],
+        "$metadata": { "httpStatusCode": 200 }
+      }
+    ]
+  },
+  "expected": {
+    "findings": [
+      { "id": "prod-cluster/app-workers", "monthlyCostUsd": 490 }
+    ]
+  }
+}

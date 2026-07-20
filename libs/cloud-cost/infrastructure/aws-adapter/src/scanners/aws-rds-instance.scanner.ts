@@ -16,6 +16,7 @@ import { RdsInstance, RdsInstanceWastePolicy } from 'cloud-cost-domain';
 import { AwsAdapterError } from '../errors/aws-adapter.error';
 import { paginate } from '../utils/paginate';
 import { createAwsClientConfig } from '../utils/client-config';
+import { NON_RDS_ENGINES } from '../utils/non-rds-engines';
 
 const logger = createLogger('cloudrift:scanner');
 
@@ -43,10 +44,12 @@ export class AwsRdsInstanceScanner implements WasteScannerPort {
       });
 
       const now = new Date();
-      const validInstances = rawInstances.filter((db): db is DbInstanceWithId => !!db.DBInstanceIdentifier);
+      const validInstances = rawInstances.filter(
+        (db): db is DbInstanceWithId => !!db.DBInstanceIdentifier && !NON_RDS_ENGINES.has(db.Engine ?? ''),
+      );
       if (validInstances.length !== rawInstances.length) {
         logger.debug(
-          `${this.kind}: skipped ${rawInstances.length - validInstances.length} entries missing DBInstanceIdentifier`,
+          `${this.kind}: skipped ${rawInstances.length - validInstances.length} entries with non-RDS engine or missing DBInstanceIdentifier`,
         );
       }
 

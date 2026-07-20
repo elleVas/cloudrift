@@ -101,6 +101,48 @@ describe('AwsMqIdleScanner', () => {
     expect(mockCwSend).not.toHaveBeenCalled();
   });
 
+  it('resolves price with the broker instance type, deployment option, and engine, mapped to Pricing API attribute values', async () => {
+    mockMqSend.mockResolvedValueOnce({
+      BrokerSummaries: [
+        {
+          BrokerId: 'broker-1',
+          BrokerName: 'my-broker',
+          BrokerState: 'RUNNING',
+          HostInstanceType: 'mq.m5.large',
+          DeploymentMode: 'ACTIVE_STANDBY_MULTI_AZ',
+          EngineType: 'RABBITMQ',
+          Created: OLD_DATE,
+        },
+      ],
+    });
+    mockCwSend.mockResolvedValueOnce({ Datapoints: [] });
+
+    await scanner.scan(region);
+
+    expect(mockPricingSource.getMqBrokerPricePerMonth).toHaveBeenCalledWith(
+      region,
+      'mq.m5.large',
+      'Multi-AZ',
+      'RabbitMQ',
+    );
+  });
+
+  it('defaults to ActiveMQ/Single-AZ when EngineType/DeploymentMode are missing (SDK types mark them required, but real responses aren\'t guaranteed to send them)', async () => {
+    mockMqSend.mockResolvedValueOnce({
+      BrokerSummaries: [{ BrokerId: 'broker-1', BrokerName: 'my-broker', BrokerState: 'RUNNING', HostInstanceType: 'mq.t3.micro', Created: OLD_DATE }],
+    });
+    mockCwSend.mockResolvedValueOnce({ Datapoints: [] });
+
+    await scanner.scan(region);
+
+    expect(mockPricingSource.getMqBrokerPricePerMonth).toHaveBeenCalledWith(
+      region,
+      'mq.t3.micro',
+      'Single-AZ',
+      'ActiveMQ',
+    );
+  });
+
   it('queries the NetworkIn metric from the AWS/AmazonMQ namespace', async () => {
     mockMqSend.mockResolvedValueOnce({
       BrokerSummaries: [

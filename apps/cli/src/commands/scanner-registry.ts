@@ -36,6 +36,8 @@ import {
   SageMakerEndpointIdlePolicy,
   SageMakerTrainingOrphanedPolicy,
   EnvironmentGhostPolicy,
+  EksNodeOverprovisionedPolicy,
+  EksOrphanPvcPolicy,
   RESOURCE_KINDS,
 } from 'cloud-cost-domain';
 import type {
@@ -81,6 +83,8 @@ import {
   AwsSageMakerEndpointIdleScanner,
   AwsSageMakerTrainingOrphanedScanner,
   AwsEnvironmentGhostScanner,
+  AwsEksNodeOverprovisionedScanner,
+  AwsEksOrphanPvcScanner,
 } from 'cloud-cost-infrastructure-aws-adapter';
 import type { AwsPricingApiAdapter } from 'cloud-cost-infrastructure-aws-adapter';
 import type { CloudriftConfig } from '../config/cloudrift.config';
@@ -296,6 +300,12 @@ export const ALWAYS_ON_SCANNERS: ScannerRegistration<ScannerBuildContext>[] = [
       );
     },
   },
+  // Phase 6.5 (ADR-0065/ADR-0066): EKS cost visibility vertical. Static EBS
+  // pricing, so always-on (ADR-0037) — pairs with eks-node-overprovisioned above.
+  {
+    kind: 'eks-orphan-pvc',
+    create: (ctx) => new AwsEksOrphanPvcScanner(ctx.pricing, ctx.accountId, new EksOrphanPvcPolicy(ctx.policyOptions)),
+  },
 ];
 
 // Gated on --live-pricing: the price per instance type/RDS class/ElastiCache
@@ -421,6 +431,18 @@ export const LIVE_PRICING_SCANNERS: ScannerRegistration<LivePricingScannerBuildC
         ctx.accountId,
         new SageMakerEndpointIdlePolicy(ctx.policyOptions),
         ctx.cloudwatchWindowHours,
+      ),
+  },
+  // Phase 6.5 (ADR-0065/ADR-0066): EKS cost visibility vertical. Per-instance-
+  // type pricing, same reasoning as EC2/RDS/SageMaker above (ADR-0037).
+  {
+    kind: 'eks-node-overprovisioned',
+    create: (ctx) =>
+      new AwsEksNodeOverprovisionedScanner(
+        ctx.livePricingAdapter,
+        ctx.accountId,
+        new EksNodeOverprovisionedPolicy(ctx.policyOptions, ctx.config.thresholds?.eksNodeUtilizationPercent ?? 30),
+        ctx.utilizationWindowHours,
       ),
   },
 ];

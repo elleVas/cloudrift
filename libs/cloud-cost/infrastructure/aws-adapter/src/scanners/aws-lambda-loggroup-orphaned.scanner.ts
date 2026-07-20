@@ -77,6 +77,7 @@ export class AwsLambdaLogGroupOrphanedScanner implements WasteScannerPort {
           accountId: this.accountId,
           tags: {},
           monthlyCostUsd: +((storedBytes / 1024 ** 3) * pricePerGb).toFixed(4),
+          detectedAt: now,
         });
       });
 
@@ -89,11 +90,12 @@ export class AwsLambdaLogGroupOrphanedScanner implements WasteScannerPort {
     }
   }
 
-  private async lastEventTimestamp(client: CloudWatchLogsClient, logGroupName: string): Promise<Date> {
+  /** `null` when the log group has no log stream, or a stream with no events (never logged) — not the same as "logged long ago". */
+  private async lastEventTimestamp(client: CloudWatchLogsClient, logGroupName: string): Promise<Date | null> {
     const r = await client.send(
       new DescribeLogStreamsCommand({ logGroupName, orderBy: 'LastEventTime', descending: true, limit: 1 }),
     );
     const timestamp = r.logStreams?.[0]?.lastEventTimestamp;
-    return timestamp ? new Date(timestamp) : new Date(0);
+    return timestamp ? new Date(timestamp) : null;
   }
 }
