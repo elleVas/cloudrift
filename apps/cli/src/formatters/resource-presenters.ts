@@ -261,7 +261,7 @@ export const presenters: PresenterMap = {
       `Delete or pause idle Redshift cluster ${c.id} (${c.nodeType}) in ${c.region.code} — ${c.wasteReason}`,
   },
   'opensearch-idle-domain': {
-    title: 'OpenSearch Domains — Idle (zero search/indexing traffic, requires --live-pricing)',
+    title: 'OpenSearch Domains — Idle (near-zero search/indexing traffic, requires --live-pricing)',
     head: ['Domain', 'Region', 'Instance Type', 'Instances'],
     colWidths: [140, 80, 100, 60, 80],
     row: (d) => [d.id, d.region.code, d.instanceType, `${d.instanceCount}`],
@@ -368,7 +368,7 @@ export const presenters: PresenterMap = {
       g.functionName,
       g.region.code,
       `${(g.storedBytes / 1024 ** 3).toFixed(1)} GB`,
-      day(g.lastEventTimestamp),
+      g.lastEventTimestamp ? day(g.lastEventTimestamp) : 'never',
     ],
     recommend: (g) =>
       `Delete orphaned log group ${g.id} in ${g.region.code} — ${g.wasteReason}`,

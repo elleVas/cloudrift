@@ -11,6 +11,7 @@ import { RdsUnderutilizedInstance, RdsUnderutilizedPolicy, type WastePolicy } fr
 import { paginate } from '../utils/paginate';
 import { mapWithConcurrency } from '../utils/map-with-concurrency';
 import { createAwsClientConfig } from '../utils/client-config';
+import { NON_RDS_ENGINES } from '../utils/non-rds-engines';
 import { avgMaxMetric, type MetricWindow } from '../utils/cloudwatch-metrics';
 import { CloudWatchIdleScanner } from './cloudwatch-idle.scanner';
 
@@ -99,10 +100,13 @@ export class AwsRdsUnderutilizedScanner extends CloudWatchIdleScanner<
       return { items: r.DBInstances ?? [], cursor: r.Marker };
     });
     const valid = instances.filter(
-      (db): db is DbInstanceWithId => !!db.DBInstanceIdentifier && db.DBInstanceStatus === 'available',
+      (db): db is DbInstanceWithId =>
+        !!db.DBInstanceIdentifier &&
+        db.DBInstanceStatus === 'available' &&
+        !NON_RDS_ENGINES.has(db.Engine ?? ''),
     );
     if (valid.length !== instances.length) {
-      logger.debug(`${this.kind}: skipped ${instances.length - valid.length} entries not available or missing DBInstanceIdentifier`);
+      logger.debug(`${this.kind}: skipped ${instances.length - valid.length} entries not available, non-RDS engine, or missing DBInstanceIdentifier`);
     }
     return valid;
   }

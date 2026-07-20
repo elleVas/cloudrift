@@ -92,6 +92,21 @@ describe('AwsRdsInstanceScanner', () => {
     if (result.ok) expect(result.value.map((db) => db.id)).toEqual(['db-stopped']);
   });
 
+  it('excludes docdb and neptune instances, since DescribeDBInstances also returns those engines', async () => {
+    mockSend.mockResolvedValueOnce({
+      DBInstances: [
+        { DBInstanceIdentifier: 'db-rds', Engine: 'postgres', DBInstanceStatus: 'stopped', AllocatedStorage: 10 },
+        { DBInstanceIdentifier: 'db-docdb', Engine: 'docdb', DBInstanceStatus: 'stopped', AllocatedStorage: 10 },
+        { DBInstanceIdentifier: 'db-neptune', Engine: 'neptune', DBInstanceStatus: 'stopped', AllocatedStorage: 10 },
+      ],
+    });
+
+    const result = await scanner.scan(region);
+
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.map((db) => db.id)).toEqual(['db-rds']);
+  });
+
   it('follows the Marker cursor across pages', async () => {
     mockSend
       .mockResolvedValueOnce({

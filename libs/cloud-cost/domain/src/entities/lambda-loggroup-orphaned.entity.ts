@@ -9,7 +9,8 @@ export interface LambdaLogGroupOrphanedProps {
   functionName: string;
   functionExists: boolean;
   storedBytes: number;
-  lastEventTimestamp: Date;
+  /** `null` when the log group has no log stream, or a stream with no events (never logged). */
+  lastEventTimestamp: Date | null;
   region: AwsRegion;
   accountId: string;
   tags: Record<string, string>;
@@ -35,7 +36,7 @@ export class LambdaLogGroupOrphaned extends Entity<string> implements WastedReso
   get functionName(): string { return this.props.functionName; }
   get functionExists(): boolean { return this.props.functionExists; }
   get storedBytes(): number { return this.props.storedBytes; }
-  get lastEventTimestamp(): Date { return this.props.lastEventTimestamp; }
+  get lastEventTimestamp(): Date | null { return this.props.lastEventTimestamp; }
   get region(): AwsRegion { return this.props.region; }
   get accountId(): string { return this.props.accountId; }
   get tags(): Record<string, string> { return this.props.tags; }

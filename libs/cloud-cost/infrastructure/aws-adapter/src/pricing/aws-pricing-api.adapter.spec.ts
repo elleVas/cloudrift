@@ -38,6 +38,22 @@ function priceListItem(usd: string): string {
   });
 }
 
+/** Like `priceListItem`, but with `product.attributes` for `matchAttributes` specs (e.g. MSK). */
+function priceListItemWithAttrs(usd: string, attributes: Record<string, string>): string {
+  return JSON.stringify({
+    product: { attributes },
+    terms: {
+      OnDemand: {
+        offer1: {
+          priceDimensions: {
+            dim1: { pricePerUnit: { USD: usd } },
+          },
+        },
+      },
+    },
+  });
+}
+
 describe('extractOnDemandUsd', () => {
   it('extracts a positive USD price from a JSON string', () => {
     expect(extractOnDemandUsd(priceListItem('0.0880000000'))).toEqual([0.088]);
@@ -171,5 +187,123 @@ describe('AwsPricingApiAdapter.getElastiCacheNodePricePerMonth', () => {
 
     expect(price).toBeUndefined();
     expect(mockSend).not.toHaveBeenCalled();
+  });
+});
+
+describe('AwsPricingApiAdapter.getOpenSearchInstancePricePerMonth', () => {
+  it('filters on the current "Amazon OpenSearch Service Instance" productFamily (renamed from the old "ES Instance")', async () => {
+    mockSend.mockResolvedValue({ PriceList: [priceListItem('0.0420000000')] });
+
+    const adapter = new AwsPricingApiAdapter();
+    const price = await adapter.getOpenSearchInstancePricePerMonth(euWest1, 't3.small.search');
+
+    expect(price).toBe(+(0.042 * 730).toFixed(4));
+    const filters = (mockSend.mock.calls[0][0] as GetProductsCommand).input.Filters ?? [];
+    expect(filters).toEqual(
+      expect.arrayContaining([
+        { Type: 'TERM_MATCH', Field: 'instanceType', Value: 't3.small.search' },
+        { Type: 'TERM_MATCH', Field: 'productFamily', Value: 'Amazon OpenSearch Service Instance' },
+      ]),
+    );
+  });
+});
+
+describe('AwsPricingApiAdapter.getDocDbInstancePricePerMonth', () => {
+  it('disambiguates the Standard vs I/O-Optimized storage tier via storageType', async () => {
+    mockSend.mockResolvedValue({ PriceList: [priceListItem('0.0920000000')] });
+
+    const adapter = new AwsPricingApiAdapter();
+    const price = await adapter.getDocDbInstancePricePerMonth(euWest1, 'db.t3.medium');
+
+    expect(price).toBe(+(0.092 * 730).toFixed(4));
+    const filters = (mockSend.mock.calls[0][0] as GetProductsCommand).input.Filters ?? [];
+    expect(filters).toEqual(
+      expect.arrayContaining([
+        { Type: 'TERM_MATCH', Field: 'instanceType', Value: 'db.t3.medium' },
+        { Type: 'TERM_MATCH', Field: 'productFamily', Value: 'Database Instance' },
+        { Type: 'TERM_MATCH', Field: 'storageType', Value: 'Standard' },
+      ]),
+    );
+  });
+});
+
+describe('AwsPricingApiAdapter.getNeptuneInstancePricePerMonth', () => {
+  it('disambiguates the Standard vs I/O Optimized storage tier via volumeType', async () => {
+    mockSend.mockResolvedValue({ PriceList: [priceListItem('0.1150000000')] });
+
+    const adapter = new AwsPricingApiAdapter();
+    const price = await adapter.getNeptuneInstancePricePerMonth(euWest1, 'db.t3.medium');
+
+    expect(price).toBe(+(0.115 * 730).toFixed(4));
+    const filters = (mockSend.mock.calls[0][0] as GetProductsCommand).input.Filters ?? [];
+    expect(filters).toEqual(
+      expect.arrayContaining([
+        { Type: 'TERM_MATCH', Field: 'instanceType', Value: 'db.t3.medium' },
+        { Type: 'TERM_MATCH', Field: 'productFamily', Value: 'Database Instance' },
+        { Type: 'TERM_MATCH', Field: 'volumeType', Value: 'Standard' },
+      ]),
+    );
+  });
+});
+
+describe('AwsPricingApiAdapter.getMqBrokerPricePerMonth', () => {
+  it('strips the "mq." prefix and filters on the current "Broker Instances" productFamily (plural)', async () => {
+    mockSend.mockResolvedValue({ PriceList: [priceListItem('0.0312000000')] });
+
+    const adapter = new AwsPricingApiAdapter();
+    const price = await adapter.getMqBrokerPricePerMonth(euWest1, 'mq.t3.micro', 'Single-AZ', 'ActiveMQ');
+
+    expect(price).toBe(+(0.0312 * 730).toFixed(4));
+    const filters = (mockSend.mock.calls[0][0] as GetProductsCommand).input.Filters ?? [];
+    expect(filters).toEqual(
+      expect.arrayContaining([
+        { Type: 'TERM_MATCH', Field: 'instanceType', Value: 't3.micro' },
+        { Type: 'TERM_MATCH', Field: 'productFamily', Value: 'Broker Instances' },
+        { Type: 'TERM_MATCH', Field: 'deploymentOption', Value: 'Single-AZ' },
+        { Type: 'TERM_MATCH', Field: 'brokerEngine', Value: 'ActiveMQ' },
+      ]),
+    );
+  });
+});
+
+describe('AwsPricingApiAdapter.getMskBrokerPricePerMonth', () => {
+  it('matches the broker instance type client-side via usagetype, since the Pricing API exposes no instanceType attribute for MSK', async () => {
+    mockSend.mockResolvedValue({
+      PriceList: [
+        priceListItemWithAttrs('0.0526000000', { usagetype: 'EUC1-Kafka.t3.small' }),
+        // Different instance type in the same response — must be excluded, not counted as ambiguity.
+        priceListItemWithAttrs('0.1900000000', { usagetype: 'EUC1-Kafka.m5.large' }),
+      ],
+    });
+
+    const adapter = new AwsPricingApiAdapter();
+    const price = await adapter.getMskBrokerPricePerMonth(euWest1, 'kafka.t3.small');
+
+    expect(price).toBe(+(0.0526 * 730).toFixed(4));
+  });
+
+  it('is case-insensitive when matching usagetype against the broker instance type', async () => {
+    mockSend.mockResolvedValue({
+      PriceList: [priceListItemWithAttrs('0.0526000000', { usagetype: 'EUC1-KAFKA.T3.SMALL' })],
+    });
+
+    const adapter = new AwsPricingApiAdapter();
+    const price = await adapter.getMskBrokerPricePerMonth(euWest1, 'kafka.t3.small');
+
+    expect(price).toBe(+(0.0526 * 730).toFixed(4));
+  });
+
+  it('returns undefined when the matching entries still disagree on price (genuine ambiguity)', async () => {
+    mockSend.mockResolvedValue({
+      PriceList: [
+        priceListItemWithAttrs('0.0526000000', { usagetype: 'EUC1-Kafka.t3.small' }),
+        priceListItemWithAttrs('0.0600000000', { usagetype: 'USE1-Kafka.t3.small' }),
+      ],
+    });
+
+    const adapter = new AwsPricingApiAdapter();
+    const price = await adapter.getMskBrokerPricePerMonth(euWest1, 'kafka.t3.small');
+
+    expect(price).toBeUndefined();
   });
 });

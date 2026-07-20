@@ -137,6 +137,22 @@ describe('AwsRdsUnderutilizedScanner', () => {
     expect(mockCwSend).toHaveBeenCalledTimes(1);
   });
 
+  it('excludes docdb and neptune instances, since DescribeDBInstances also returns those engines', async () => {
+    mockRdsSend.mockResolvedValueOnce({
+      DBInstances: [
+        availableInstance({ DBInstanceIdentifier: 'db-rds', Engine: 'postgres' }),
+        availableInstance({ DBInstanceIdentifier: 'db-docdb', Engine: 'docdb' }),
+        availableInstance({ DBInstanceIdentifier: 'db-neptune', Engine: 'neptune' }),
+      ],
+    });
+    mockCwSend.mockResolvedValue({ Datapoints: [{ Average: 1, Maximum: 2 }] });
+
+    const result = await scanner.scan(region);
+
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.map((i) => i.id)).toEqual(['db-rds']);
+  });
+
   it('queries AWS/RDS CPUUtilization with Average and Maximum statistics', async () => {
     mockRdsSend.mockResolvedValueOnce({ DBInstances: [availableInstance()] });
     mockCwSend.mockResolvedValue({ Datapoints: [{ Average: 1, Maximum: 2 }] });
