@@ -54,6 +54,17 @@ jobs:
       - name: Package the CLI for npm
         run: pnpm nx package cli
 
+      - name: Generate SBOM
+        working-directory: apps/cli/dist
+        run: |
+          # `npm sbom` reads the installed dependency tree, not just package.json —
+          # apps/cli/dist has no node_modules of its own (pnpm hoists to the
+          # workspace root), so install the published dependency graph here first.
+          # npm publish never includes node_modules regardless, so this is safe.
+          npm install --ignore-scripts
+          npm sbom --sbom-format cyclonedx > sbom.cyclonedx.json
+          npm sbom --sbom-format spdx > sbom.spdx.json
+
       - name: Publish to npm
         run: npm publish --provenance --access public
         working-directory: apps/cli/dist
@@ -63,4 +74,6 @@ jobs:
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --generate-notes
+        run: |
+          gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --generate-notes
+          gh release upload "$GITHUB_REF_NAME" apps/cli/dist/sbom.cyclonedx.json apps/cli/dist/sbom.spdx.json

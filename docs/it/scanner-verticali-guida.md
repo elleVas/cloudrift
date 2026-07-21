@@ -2,7 +2,7 @@
 
 > 🇬🇧 [English version](../en/vertical-scanners.md)
 
-La Phase 6 ha aggiunto 9 `ResourceKind` distribuiti su 5 verticali, sopra i 29 scanner generalisti già esistenti: igiene event-driven (SQS/Lambda), Aurora Serverless v2, la suite SageMaker, ambienti Dev/PR fantasma, e visibilità sui costi EKS. Motivazioni e alternative valutate sono in [ADR-0065](../adr/0065-vertical-premium-scanners-phase-6-strategy.md) (strategia generale) e [ADR-0066](../adr/0066-eks-scanners-aws-api-only-kubeconfig-deferred.md) (EKS nello specifico). Questo documento è il riferimento pratico: cosa rileva ogni scanner, il suo limite di accuratezza, e come configurarlo — la tabella [Cosa rileva](../../README.md#cosa-rileva) del README ha il riepilogo in una riga e la formula del costo per ciascuno.
+La Phase 6 ha aggiunto 9 `ResourceKind` distribuiti su 5 verticali, sopra i 29 scanner generalisti già esistenti: igiene event-driven (SQS/Lambda), Aurora Serverless v2, la suite SageMaker, ambienti Dev/PR fantasma, e visibilità sui costi EKS. Motivazioni e alternative valutate sono in [ADR-0065](../adr/0065-vertical-premium-scanners-phase-6-strategy.md) (strategia generale) e [ADR-0066](../adr/0066-eks-scanners-aws-api-only-kubeconfig-deferred.md) (EKS nello specifico). Questo documento è il riferimento pratico: cosa rileva ogni scanner, il suo limite di accuratezza, e come configurarlo — la tabella [Cosa rileva](leggimi.md#cosa-rileva) ha il riepilogo in una riga e la formula del costo per ciascuno.
 
 Esegui uno qualsiasi standalone con `--scanners <kind>`, es.:
 
@@ -78,4 +78,4 @@ Il costo usa la stessa tabella di prezzi EBS statica dello scanner `ebs-volume` 
 
 ## Permessi IAM
 
-Le azioni richieste da tutti e 9 gli scanner sono già incluse nel blocco di policy [Permessi IAM necessari](../../README.md#permessi-iam-necessari) del README: `sqs:ListQueues`/`GetQueueAttributes`/`ListDeadLetterSourceQueues`/`ListQueueTags`, `rds:DescribeDBClusters`, `tag:GetResources`, `eks:ListClusters`/`ListNodegroups`/`DescribeNodegroup`, più le azioni `sagemaker:*` in lettura già preesistenti. `eks-node-overprovisioned` e gli scanner idle di SageMaker richiedono inoltre `pricing:GetProducts` quando eseguiti con `--live-pricing`, come ogni altro scanner con prezzo per-instance-type.
+Le azioni richieste da tutti e 9 gli scanner sono già incluse nel blocco di policy [Permessi IAM necessari](permessi-iam.md): `sqs:ListQueues`/`GetQueueAttributes`/`ListDeadLetterSourceQueues`/`ListQueueTags`, `rds:DescribeDBClusters`, `tag:GetResources`, `eks:ListClusters`/`ListNodegroups`/`DescribeNodegroup`, più le azioni `sagemaker:*` in lettura già preesistenti. `eks-node-overprovisioned` e gli scanner idle di SageMaker richiedono inoltre `pricing:GetProducts` quando eseguiti con `--live-pricing`, come ogni altro scanner con prezzo per-instance-type.

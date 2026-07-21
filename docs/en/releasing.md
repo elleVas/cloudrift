@@ -40,8 +40,9 @@ The [release workflow](../../.github/workflows/release.yml) then, on the `v*` ta
 1. verifies the tag matches the package version,
 2. runs lint + test across the workspace,
 3. `pnpm nx package cli` (build + generate `dist/package.json`),
-4. `npm publish --provenance` from `apps/cli/dist` (using `NPM_TOKEN`),
-5. creates a GitHub Release with auto-generated notes.
+4. generates a CycloneDX and an SPDX SBOM via `npm sbom` (run from `apps/cli/dist`, so it reflects only the published tarball's runtime deps, not the monorepo's `nx`/`eslint`/etc. — `npm sbom` reads the installed dependency tree, not just `package.json`, so this step runs a plain `npm install` in `apps/cli/dist` first; harmless, since `npm publish` never includes `node_modules` regardless of what's on disk),
+5. `npm publish --provenance` from `apps/cli/dist` (using `NPM_TOKEN`),
+6. creates a GitHub Release with auto-generated notes and attaches both SBOM files to it.
 
 ## Verify locally before tagging
 
@@ -62,4 +63,17 @@ npx cloudrift --version                  # must print the new version
 
 ## Node compatibility
 
-The package targets **Node 18+** (`engines`). The bundle is CommonJS, so every external dependency must be `require()`-able: this is why `chalk` is pinned to **v4** (v5 is ESM-only and would throw `ERR_REQUIRE_ESM` on Node < 22).
+The package targets **Node 20+** (`engines`). The bundle is CommonJS, so every external dependency must be `require()`-able: this is why `chalk` is pinned to **v4** (v5 is ESM-only and would throw `ERR_REQUIRE_ESM` on Node < 22). CI only ever builds/publishes on Node 24.x — the `>=20` floor is a stated minimum, not one exercised by a dedicated CI job; bump it (or add a Node 20 test job) if that gap ever matters.
+
+## GitHub Action
+
+[`action.yml`](../../action.yml) at the repo root is a composite action that installs `@cloudrift/cli` from npm and runs `cloudrift analyze`, so `uses: elleVas/cloudrift@v<version>` only works once the referenced version is actually published to npm (same gate as everything else in this document). After a release, sanity-check it with a `workflow_dispatch` run in a scratch workflow before pointing real consumers at the new tag — nothing in CI exercises `action.yml` today.
+
+## Homebrew (after the first npm publish)
+
+No Homebrew tap exists yet. This is documented ahead of time so Phase B doesn't start from zero, but none of it is built or automated yet:
+
+1. Homebrew's tap naming convention requires a **separate** GitHub repository named `homebrew-cloudrift` (e.g. `elleVas/homebrew-cloudrift`) — a formula cannot live in this repo and be installable via `brew install elleVas/cloudrift/cloudrift`.
+2. The formula should use Homebrew's `Language::Node` npm-install pattern (the standard approach for npm-published CLIs — no separate build step, `depends_on "node"`, `def install; system "npm", "install", *std_npm_args; end`), pointing `url` at the published npm tarball (`https://registry.npmjs.org/@cloudrift/cli/-/cli-<version>.tgz`) with its `sha256`. The tarball only exists — and its checksum is only knowable — after the corresponding version is actually on npm.
+3. Every release after the first needs the tap formula's `url`/`sha256`/`version` bumped to match — either by hand or with a small follow-up script; not built yet.
+4. Validate locally with `brew audit --strict cloudrift` and `brew test cloudrift` before publishing tap changes.

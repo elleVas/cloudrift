@@ -12,7 +12,7 @@ cloudrift is distributed under the [Apache License 2.0](./LICENSE.md). By submit
 
 - **Node.js 18+**
 - **pnpm** (`npm install -g pnpm`) — this is a pnpm workspace; do not use `npm`/`yarn`
-- AWS credentials with read-only permissions if you want to run the CLI against a real account (see the [README](./README.md#required-iam-permissions))
+- AWS credentials with read-only permissions if you want to run the CLI against a real account (see [Required IAM permissions](./docs/en/iam-permissions.md))
 
 ## Getting set up
 

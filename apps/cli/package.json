@@ -1,6 +1,6 @@
 {
   "name": "@cloudrift/cli",
-  "version": "0.3.0",
+  "version": "0.5.0",
   "description": "Detect and report wasted AWS cloud resources — built to run in CI/CD and fail pipelines over a cost threshold.",
   "keywords": [
     "aws",
@@ -27,7 +27,7 @@
     "url": "https://github.com/elleVas/cloudrift/issues"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
   "main": "./main.js",
   "bin": {
