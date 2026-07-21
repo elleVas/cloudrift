@@ -1,0 +1,112 @@
+name: 'cloudrift'
+description: 'Scan an AWS account for wasted cloud resources and fail the job over a cost budget'
+author: 'elleVas'
+branding:
+  icon: 'cloud'
+  color: 'blue'
+
+inputs:
+  regions:
+    description: 'Space-separated AWS regions to scan'
+    required: false
+    default: 'us-east-1'
+  account-id:
+    description: 'AWS account ID override (auto-detected via STS when omitted)'
+    required: false
+  config:
+    description: 'Path to a cloudrift config file, relative to the checkout (this is where costAlertThresholdUsd — the budget gate — is set)'
+    required: false
+  live-pricing:
+    description: 'Fetch current list prices from the AWS Pricing API instead of the static table'
+    required: false
+    default: 'false'
+  scanners:
+    description: 'Space-separated resource kinds to run (default: every scanner)'
+    required: false
+  min-age-days:
+    description: 'Grace period: resources younger than this many days are not reported'
+    required: false
+  ignore-tag:
+    description: 'Resources carrying this tag are excluded from the report'
+    required: false
+  format:
+    description: 'stdout report format: table, json, or markdown'
+    required: false
+    default: 'markdown'
+  pdf:
+    description: 'Also write a PDF report to this path (omit to skip)'
+    required: false
+  json:
+    description: 'Also write a JSON report to this path (omit to skip)'
+    required: false
+  step-summary:
+    description: 'Append the report to $GITHUB_STEP_SUMMARY when format is markdown'
+    required: false
+    default: 'true'
+  version:
+    description: 'Version (or dist-tag) of @cloudrift/cli to install'
+    required: false
+    default: 'latest'
+
+outputs:
+  report:
+    description: 'The full stdout report produced by cloudrift analyze'
+    value: ${{ steps.analyze.outputs.report }}
+  exit-code:
+    description: 'cloudrift exit code: 0 ok, 1 scan error, 2 waste over the configured budget'
+    value: ${{ steps.analyze.outputs.exit-code }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install @cloudrift/cli
+      shell: bash
+      run: npm install -g "@cloudrift/cli@${{ inputs.version }}"
+
+    - name: Run cloudrift analyze
+      id: analyze
+      shell: bash
+      env:
+        CLOUDRIFT_REGIONS: ${{ inputs.regions }}
+        CLOUDRIFT_ACCOUNT_ID: ${{ inputs.account-id }}
+        CLOUDRIFT_CONFIG: ${{ inputs.config }}
+        CLOUDRIFT_LIVE_PRICING: ${{ inputs.live-pricing }}
+        CLOUDRIFT_SCANNERS: ${{ inputs.scanners }}
+        CLOUDRIFT_MIN_AGE_DAYS: ${{ inputs.min-age-days }}
+        CLOUDRIFT_IGNORE_TAG: ${{ inputs.ignore-tag }}
+        CLOUDRIFT_FORMAT: ${{ inputs.format }}
+        CLOUDRIFT_PDF: ${{ inputs.pdf }}
+        CLOUDRIFT_JSON: ${{ inputs.json }}
+        CLOUDRIFT_STEP_SUMMARY: ${{ inputs.step-summary }}
+      run: |
+        set +e
+        args=(--regions $CLOUDRIFT_REGIONS --format "$CLOUDRIFT_FORMAT")
+        [ -n "$CLOUDRIFT_ACCOUNT_ID" ] && args+=(--account-id "$CLOUDRIFT_ACCOUNT_ID")
+        [ -n "$CLOUDRIFT_CONFIG" ] && args+=(--config "$CLOUDRIFT_CONFIG")
+        [ "$CLOUDRIFT_LIVE_PRICING" = "true" ] && args+=(--live-pricing)
+        [ -n "$CLOUDRIFT_SCANNERS" ] && args+=(--scanners $CLOUDRIFT_SCANNERS)
+        [ -n "$CLOUDRIFT_MIN_AGE_DAYS" ] && args+=(--min-age-days "$CLOUDRIFT_MIN_AGE_DAYS")
+        [ -n "$CLOUDRIFT_IGNORE_TAG" ] && args+=(--ignore-tag "$CLOUDRIFT_IGNORE_TAG")
+        [ -n "$CLOUDRIFT_PDF" ] && args+=(--pdf "$CLOUDRIFT_PDF")
+        [ -n "$CLOUDRIFT_JSON" ] && args+=(--json "$CLOUDRIFT_JSON")
+
+        output="$(cloudrift analyze "${args[@]}")"
+        code=$?
+        set -e
+
+        {
+          echo "report<<CLOUDRIFT_REPORT_EOF"
+          echo "$output"
+          echo "CLOUDRIFT_REPORT_EOF"
+          echo "exit-code=$code"
+        } >> "$GITHUB_OUTPUT"
+
+        if [ "$CLOUDRIFT_STEP_SUMMARY" = "true" ] && [ "$CLOUDRIFT_FORMAT" = "markdown" ]; then
+          echo "$output" >> "$GITHUB_STEP_SUMMARY"
+        else
+          echo "$output"
+        fi
+
+        # Same semantics as running the CLI directly: 0 ok, 1 scan error, 2
+        # waste over the configured budget — both non-zero codes fail the job.
+        exit "$code"

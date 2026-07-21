@@ -6,7 +6,7 @@ import { analyzeWasteCommand } from './commands/analyze-waste.command';
 program
   .name('cloudrift')
   .description('Detect and report wasted AWS cloud resources')
-  .version('0.3.0');
+  .version('0.5.0');
 
 program
   .command('analyze')

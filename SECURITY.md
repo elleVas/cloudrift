@@ -36,7 +36,7 @@ Out of scope:
 
 - vulnerabilities in AWS services themselves (report those to AWS Security)
 - issues that require an attacker to already have write access to your AWS credentials or local filesystem
-- the IAM permissions you grant to the credentials you run cloudrift with — that's on the user to scope to read-only, as documented in the [README](./README.md#required-iam-permissions)
+- the IAM permissions you grant to the credentials you run cloudrift with — that's on the user to scope to read-only, as documented in [Required IAM permissions](./docs/en/iam-permissions.md)
 
 ### If you're wrapping cloudrift in another service
 

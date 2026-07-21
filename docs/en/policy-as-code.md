@@ -6,7 +6,7 @@ This document is a from-zero walkthrough: what [Open Policy Agent](https://www.o
 
 ## What this is (and isn't)
 
-`cloudrift analyze` already has one built-in gate: set `costAlertThresholdUsd` in `cloudrift.config.json` and the command exits with code 2 when `totalWasteMonthlyUsd` goes over it (`applyCostGate` in [`analyze-waste.command.ts`](../../apps/cli/src/commands/analyze-waste.command.ts)) — enough to fail a CI job on a budget breach. See [Use in CI/CD](../../README.md#use-in-cicd) in the main README.
+`cloudrift analyze` already has one built-in gate: set `costAlertThresholdUsd` in `cloudrift.config.json` and the command exits with code 2 when `totalWasteMonthlyUsd` goes over it (`applyCostGate` in [`analyze-waste.command.ts`](../../apps/cli/src/commands/analyze-waste.command.ts)) — enough to fail a CI job on a budget breach. See [Use in CI/CD](./ci-cd.md).
 
 That gate can only ever compare one number to another. It cannot say "only block if the wasted resource is tagged `production`" or "block if there are more than N idle volumes, regardless of their cost." Rules like that need an actual rule engine, evaluated against the structured findings, not just a total — which is what OPA is for.
 
@@ -93,7 +93,7 @@ deny contains msg if {
 
 ## Wire it into CI
 
-Add a step after the scan, right next to the native budget gate from the [main README](../../README.md#use-in-cicd):
+Add a step after the scan, right next to the native budget gate from [Use in CI/CD](./ci-cd.md):
 
 ```yaml
       - run: node cloudrift-cli/apps/cli/dist/main.js analyze -r us-east-1 --format json > report.json
