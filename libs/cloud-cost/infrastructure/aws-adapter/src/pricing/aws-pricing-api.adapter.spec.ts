@@ -63,6 +63,11 @@ describe('extractOnDemandUsd', () => {
     expect(extractOnDemandUsd(JSON.parse(priceListItem('0.045')))).toEqual([0.045]);
   });
 
+  it('extracts from a boxed String (the real GetProducts SDK response shape, not a primitive)', () => {
+    // eslint-disable-next-line no-new-wrappers -- reproducing the SDK's own boxed-string PriceList entries
+    expect(extractOnDemandUsd(new String(priceListItem('0.052')))).toEqual([0.052]);
+  });
+
   it('ignores zero-priced dimensions (free tiers)', () => {
     expect(extractOnDemandUsd(priceListItem('0.0000000000'))).toEqual([]);
   });
