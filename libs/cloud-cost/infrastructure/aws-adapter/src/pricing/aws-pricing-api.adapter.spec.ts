@@ -63,6 +63,11 @@ describe('extractOnDemandUsd', () => {
     expect(extractOnDemandUsd(JSON.parse(priceListItem('0.045')))).toEqual([0.045]);
   });
 
+  it('extracts from a boxed String (the real GetProducts SDK response shape, not a primitive)', () => {
+    // eslint-disable-next-line no-new-wrappers -- reproducing the SDK's own boxed-string PriceList entries
+    expect(extractOnDemandUsd(new String(priceListItem('0.052')))).toEqual([0.052]);
+  });
+
   it('ignores zero-priced dimensions (free tiers)', () => {
     expect(extractOnDemandUsd(priceListItem('0.0000000000'))).toEqual([]);
   });
@@ -91,6 +96,8 @@ describe('AwsPricingApiAdapter.warmUp', () => {
     const prices = result.value['eu-west-1'];
     expect(prices['ebs-gp3']).toBe(0.088);
     expect(prices['nat-gateway']).toBe(+(0.045 * 730).toFixed(4)); // 32.85
+    expect(mockDestroy).not.toHaveBeenCalled();
+    adapter.dispose();
     expect(mockDestroy).toHaveBeenCalledTimes(1);
   });
 
@@ -125,6 +132,7 @@ describe('AwsPricingApiAdapter.warmUp', () => {
     const result = await adapter.warmUp([euWest1]);
 
     expect(result.ok).toBe(false);
+    adapter.dispose();
     expect(mockDestroy).toHaveBeenCalledTimes(1);
   });
 });

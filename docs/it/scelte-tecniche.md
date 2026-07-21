@@ -85,9 +85,9 @@ try {
 
 ## `CloudWatchIdleScanner` — template method condiviso per gli scanner CloudWatch
 
-**Scelta:** 18 dei 29 scanner estendono la classe astratta `CloudWatchIdleScanner<TPrimaryClient, TRaw, TMetric, TEntity>` (`scanners/cloudwatch-idle.scanner.ts`) invece di scrivere il proprio `scan()`.
+**Scelta:** 23 dei 38 scanner estendono la classe astratta `CloudWatchIdleScanner<TPrimaryClient, TRaw, TMetric, TEntity>` (`scanners/cloudwatch-idle.scanner.ts`) invece di scrivere il proprio `scan()`.
 
-**Perché:** questi 18 scanner condividono la stessa forma — creano un client, elencano i candidati, recuperano una metrica CloudWatch per candidato (alcuni risolvono in più un prezzo live per-tipo), mappano a un'entità, applicano la policy, wrappano gli errori, distruggono il client. La base class possiede quel lifecycle; uno scanner concreto implementa solo `createPrimaryClient`/`destroyPrimaryClient`/`listResources`/`fetchMetric`/`toEntity`, più un `resolvePrices` opzionale per i 9 gated da `--live-pricing`. Vedi [ADR-0044](../adr/0044-cloudwatch-idle-scanner-template-method.md).
+**Perché:** questi 23 scanner condividono la stessa forma — creano un client, elencano i candidati, recuperano una metrica CloudWatch per candidato (alcuni risolvono in più un prezzo live per-tipo), mappano a un'entità, applicano la policy, wrappano gli errori, distruggono il client. La base class possiede quel lifecycle; uno scanner concreto implementa solo `createPrimaryClient`/`destroyPrimaryClient`/`listResources`/`fetchMetric`/`toEntity`, più un `resolvePrices` opzionale per i 12 gated da `--live-pricing`. Vedi [ADR-0044](../adr/0044-cloudwatch-idle-scanner-template-method.md).
 
 **Non tutti gli scanner ci entrano:** `s3-no-lifecycle` resta standalone — la sua chiamata CloudWatch ha un periodo fisso di 1 giorno indipendente dalla finestra di lookback e una dimensione extra, il che avrebbe forzato il template a piegarsi per un solo outlier. Gli 11 scanner non-CloudWatch (`ebs-volume`, `ebs-snapshot`, `elastic-ip`, `eni-orphaned`, `gp2-upgrade`, `load-balancer`, `log-group`, `rds-instance`, `workspaces-idle`, `ec2-instance`, `s3-no-lifecycle`) mantengono il proprio `scan()`.
 

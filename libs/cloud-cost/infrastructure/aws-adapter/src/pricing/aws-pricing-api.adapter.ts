@@ -7,6 +7,7 @@ import {
 import { Result } from 'shared-kernel';
 import type { AwsRegion } from 'cloud-cost-domain';
 import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { createAwsClientConfig } from '../utils/client-config';
 import { mapWithConcurrency } from '../utils/map-with-concurrency';
 import type { PriceTable, RegionPrices } from './table-pricing.adapter';
 
@@ -167,7 +168,10 @@ const PRICE_SPECS: readonly PriceSpec[] = [
  */
 export class AwsPricingApiAdapter {
   constructor(
-    private readonly client = new PricingClient({ region: PRICING_API_REGION }),
+    private readonly client = new PricingClient({
+      ...createAwsClientConfig(),
+      region: PRICING_API_REGION,
+    }),
   ) {}
 
   /**
@@ -197,9 +201,12 @@ export class AwsPricingApiAdapter {
       return Result.ok(table);
     } catch (err) {
       return Result.fail(new AwsAdapterError('Pricing', err as Error));
-    } finally {
-      this.client.destroy();
     }
+  }
+
+  /** Release the underlying HTTP connection pool. Call once after all scans complete. */
+  dispose(): void {
+    this.client.destroy();
   }
 
   /**
@@ -539,22 +546,32 @@ export class AwsPricingApiAdapter {
 }
 
 /**
+ * Parses a PriceList entry into the product object. Entries are usually a
+ * JSON string, but the SDK returns them as a boxed `String` (its own
+ * lazily-parsed JSON wrapper) rather than a primitive — `typeof` on those is
+ * `'object'`, not `'string'`, so a plain `typeof item === 'string'` check
+ * misses them and silently drops every price. `instanceof String` catches
+ * that case too; already-parsed plain objects fall through unchanged.
+ */
+function parseProductItem(item: unknown): unknown {
+  if (typeof item === 'string' || item instanceof String) {
+    try {
+      return JSON.parse(item as string);
+    } catch {
+      return undefined;
+    }
+  }
+  return item;
+}
+
+/**
  * Extracts `product.attributes` (e.g. `usagetype`, `instanceType`,
  * `storageType`) from a PriceList entry, for specs whose `matchAttributes`
  * needs to filter on a field the Pricing API doesn't expose as a
  * `TERM_MATCH`-able attribute of its own.
  */
 function extractProductAttributes(item: unknown): Record<string, string> {
-  let product: unknown;
-  if (typeof item === 'string') {
-    try {
-      product = JSON.parse(item);
-    } catch {
-      return {};
-    }
-  } else {
-    product = item;
-  }
+  const product = parseProductItem(item);
   const attributes = (product as { product?: { attributes?: Record<string, string> } })?.product?.attributes;
   return attributes ?? {};
 }
@@ -564,17 +581,7 @@ function extractProductAttributes(item: unknown): Record<string, string> {
  * is a JSON string (or already an object, depending on the SDK version).
  */
 export function extractOnDemandUsd(item: unknown): number[] {
-  let product: unknown;
-  if (typeof item === 'string') {
-    try {
-      product = JSON.parse(item);
-    } catch {
-      return [];
-    }
-  } else {
-    product = item;
-  }
-
+  const product = parseProductItem(item);
   const onDemand = (product as { terms?: { OnDemand?: Record<string, unknown> } })?.terms?.OnDemand;
   if (!onDemand || typeof onDemand !== 'object') return [];
 
