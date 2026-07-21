@@ -1,10 +1,12 @@
 # cloudrift
 
-<p align="center">
-  <img src="docs/assets/cli-banner.png" alt="cloudrift CLI banner" />
-</p>
+[![npm version](https://img.shields.io/npm/v/@cloudrift/cli.svg)](https://www.npmjs.com/package/@cloudrift/cli)
+[![License](https://img.shields.io/npm/l/@cloudrift/cli.svg)](https://github.com/elleVas/cloudrift/blob/main/LICENSE.md)
+[![🇮🇹 Italiano](https://img.shields.io/badge/🇮🇹-Italiano-lightgrey.svg)](https://github.com/elleVas/cloudrift/blob/main/docs/it/leggimi.md)
 
-> 🇮🇹 [Leggimi in italiano](docs/it/leggimi.md)
+<p align="center">
+  <img src="https://raw.githubusercontent.com/elleVas/cloudrift/main/docs/assets/cli-banner.png" alt="cloudrift CLI banner" />
+</p>
 
 **cloudrift** is a command-line tool that scans AWS accounts for wasted resources and estimates the monthly cost of that waste.
 
@@ -23,7 +25,7 @@
 ### Prerequisites
 
 - **Node.js 18+** — check with `node --version`
-- **AWS credentials** with read-only permissions (see [Required IAM permissions](docs/en/iam-permissions.md))
+- **AWS credentials** with read-only permissions (see [Required IAM permissions](https://github.com/elleVas/cloudrift/blob/main/docs/en/iam-permissions.md))
 - **pnpm** — required to build from source (`npm install -g pnpm`)
 
 ---
@@ -84,7 +86,7 @@ export AWS_DEFAULT_REGION=us-east-1
 
 #### Step 3 — Make sure you have the right IAM permissions
 
-The AWS user/role must have the policy listed in [Required IAM permissions](docs/en/iam-permissions.md). If using an IAM user, attach it from the [IAM Console](https://console.aws.amazon.com/iam/) → User → Add permissions → Create inline policy.
+The AWS user/role must have the policy listed in [Required IAM permissions](https://github.com/elleVas/cloudrift/blob/main/docs/en/iam-permissions.md). If using an IAM user, attach it from the [IAM Console](https://console.aws.amazon.com/iam/) → User → Add permissions → Create inline policy.
 
 #### Step 4 — Run
 
@@ -100,7 +102,7 @@ node apps/cli/dist/main.js analyze -r us-east-1 eu-west-1
 
 The account ID is auto-detected via STS. If everything is configured correctly you'll see tables listing the wasted resources found and an estimated total cost. If the account has no wasted resources you'll see "No wasted resources found".
 
-> **No npm package yet.** `@cloudrift/cli` is not published on npm — the [release workflow](.github/workflows/release.yml) exists but hasn't been triggered with a version tag. For now, use the "From source" path above; the rest of this README uses `node apps/cli/dist/main.js …` accordingly. See [docs/en/releasing.md](docs/en/releasing.md) for the publishing process.
+> **No npm package yet.** `@cloudrift/cli` is not published on npm — the [release workflow](https://github.com/elleVas/cloudrift/blob/main/.github/workflows/release.yml) exists but hasn't been triggered with a version tag. For now, use the "From source" path above; the rest of this README uses `node apps/cli/dist/main.js …` accordingly. See [docs/en/releasing.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/releasing.md) for the publishing process.
 
 ---
 
@@ -155,7 +157,7 @@ Every finding is also tagged `waste` or `optimization`: `waste` is money being s
 
 > **Honest caveat (EKS):** the node-overprovisioned check reads Container Insights' **node-level** CPU/memory aggregates (`node_cpu_request`/`node_cpu_limit`) via the AWS API only — it never sees individual Pod requests/limits and never talks to the Kubernetes API (no kubeconfig, see ADR-0066). If Container Insights isn't enabled on the cluster, the scanner reports nothing rather than guessing. Treat the suggested node count as a starting point for investigation, not a sizing recommendation. Separately, the orphaned-PVC-volume check can only recover the owning cluster's name from the legacy `kubernetes.io/cluster/<name>` tag — CSI-driver-provisioned volumes without `--extra-tags` won't carry it, so those volumes are only ever flagged via the unattached check, never the deleted-cluster check.
 
-> **Honest caveat (real-AWS verification):** 33 of the 38 scanners have been verified against a real AWS account; 5 remain unverified against real AWS by design, not oversight — `rds-underutilized`, `environment-ghost`, `sqs-dlq-abandoned`, `aurora-serverless-overprovisioned`, and `eks-node-overprovisioned` all need resources that have accumulated real, organic usage patterns over 7–14 days, which a short-lived synthetic test stack can't produce. All 5 are still covered by unit tests and fixture-replay contract tests (mocked AWS responses) — the gap is specifically "confirmed against a live AWS account," not "untested." See [docs/en/testing.md](docs/en/testing.md#real-aws-verification-status-broader-than-verify-against-awsmjs) for the full breakdown.
+> **Honest caveat (real-AWS verification):** 33 of the 38 scanners have been verified against a real AWS account; 5 remain unverified against real AWS by design, not oversight — `rds-underutilized`, `environment-ghost`, `sqs-dlq-abandoned`, `aurora-serverless-overprovisioned`, and `eks-node-overprovisioned` all need resources that have accumulated real, organic usage patterns over 7–14 days, which a short-lived synthetic test stack can't produce. All 5 are still covered by unit tests and fixture-replay contract tests (mocked AWS responses) — the gap is specifically "confirmed against a live AWS account," not "untested." See [docs/en/testing.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/testing.md#real-aws-verification-status-broader-than-verify-against-awsmjs) for the full breakdown.
 
 **False-positive guards (waste policies):**
 
@@ -169,24 +171,24 @@ Every finding is also tagged `waste` or `optimization`: `waste` is money being s
 
 ## Documentation
 
-The full reference — flags, config file, pricing sources, CI/CD, IAM permissions, contributing, architecture — lives in [`docs/`](./docs/): English in [`docs/en/`](./docs/en/), Italian in [`docs/it/`](./docs/it/).
+The full reference — flags, config file, pricing sources, CI/CD, IAM permissions, contributing, architecture — lives in [`docs/`](https://github.com/elleVas/cloudrift/tree/main/docs/): English in [`docs/en/`](https://github.com/elleVas/cloudrift/tree/main/docs/en/), Italian in [`docs/it/`](https://github.com/elleVas/cloudrift/tree/main/docs/it/).
 
 | Guide                                                       | Content                                                |
 | ------------------------------------------------------------ | ------------------------------------------------------ |
-| [docs/en/usage.md](docs/en/usage.md)                         | CLI flags, examples, PDF report, partial-failure handling |
-| [docs/en/configuration.md](docs/en/configuration.md)         | `cloudrift.config.json` fields, overrides, false-positive tuning |
-| [docs/en/pricing-sources.md](docs/en/pricing-sources.md)     | Static table, live AWS Pricing API, your overrides     |
-| [docs/en/ci-cd.md](docs/en/ci-cd.md)                         | GitHub Actions examples, the budget gate, Policy as Code (OPA) |
-| [docs/en/iam-permissions.md](docs/en/iam-permissions.md)     | The read-only IAM policy cloudrift needs               |
-| [docs/en/development.md](docs/en/development.md)             | Watch mode, per-library tests, lint, typecheck          |
-| [docs/en/releasing.md](docs/en/releasing.md)                 | How `@cloudrift/cli` is built and published to npm      |
-| [docs/en/architecture.md](docs/en/architecture.md)           | Architectural decisions, layers, multi-cloud path       |
-| [docs/en/technical-choices.md](docs/en/technical-choices.md) | Nx, pnpm, TypeScript, AWS SDK v3, Result pattern, jest  |
-| [docs/en/how-it-works.md](docs/en/how-it-works.md)           | End-to-end execution flow, code walkthrough             |
-| [docs/en/testing.md](docs/en/testing.md)                     | Test pyramid, real-AWS verification status              |
-| [docs/en/vertical-scanners.md](docs/en/vertical-scanners.md) | The Phase 6 vertical scanners (Serverless, Aurora, SageMaker, Dev/PR, EKS) |
-| [docs/en/adding-a-resource.md](docs/en/adding-a-resource.md) | Step-by-step guide to adding a new resource type        |
+| [docs/en/usage.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/usage.md)                         | CLI flags, examples, PDF report, partial-failure handling |
+| [docs/en/configuration.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/configuration.md)         | `cloudrift.config.json` fields, overrides, false-positive tuning |
+| [docs/en/pricing-sources.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/pricing-sources.md)     | Static table, live AWS Pricing API, your overrides     |
+| [docs/en/ci-cd.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/ci-cd.md)                         | GitHub Actions examples, the budget gate, Policy as Code (OPA) |
+| [docs/en/iam-permissions.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/iam-permissions.md)     | The read-only IAM policy cloudrift needs               |
+| [docs/en/development.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/development.md)             | Watch mode, per-library tests, lint, typecheck          |
+| [docs/en/releasing.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/releasing.md)                 | How `@cloudrift/cli` is built and published to npm      |
+| [docs/en/architecture.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/architecture.md)           | Architectural decisions, layers, multi-cloud path       |
+| [docs/en/technical-choices.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/technical-choices.md) | Nx, pnpm, TypeScript, AWS SDK v3, Result pattern, jest  |
+| [docs/en/how-it-works.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/how-it-works.md)           | End-to-end execution flow, code walkthrough             |
+| [docs/en/testing.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/testing.md)                     | Test pyramid, real-AWS verification status              |
+| [docs/en/vertical-scanners.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/vertical-scanners.md) | The Phase 6 vertical scanners (Serverless, Aurora, SageMaker, Dev/PR, EKS) |
+| [docs/en/adding-a-resource.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/adding-a-resource.md) | Step-by-step guide to adding a new resource type        |
 
 ## License
 
-Apache License 2.0 — see [LICENSE.md](./LICENSE.md). Free to use, modify, and distribute, including commercially.
+Apache License 2.0 — see [LICENSE.md](https://github.com/elleVas/cloudrift/blob/main/LICENSE.md). Free to use, modify, and distribute, including commercially.
