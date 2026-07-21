@@ -5,7 +5,7 @@
 // directly) — this one is free, repeatable, and exercises the whole CLI
 // (config loading, composition root, formatters, exit codes).
 //
-// Scope: 17 of 35 scanners (see docs/adr/0002-localstack-e2e-scope.md,
+// Scope: 17 of 38 scanners (see docs/adr/0002-localstack-e2e-scope.md,
 // docs/adr/0036-ec2-underutilized-excluded-from-localstack-e2e.md,
 // docs/adr/0040-localstack-bumped-4-14-0-cloudwatch-fixed.md for the Phase 5.5
 // additions, and docs/adr/0065-vertical-premium-scanners-phase-6-strategy.md
