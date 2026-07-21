@@ -197,9 +197,12 @@ export class AwsPricingApiAdapter {
       return Result.ok(table);
     } catch (err) {
       return Result.fail(new AwsAdapterError('Pricing', err as Error));
-    } finally {
-      this.client.destroy();
     }
+  }
+
+  /** Release the underlying HTTP connection pool. Call once after all scans complete. */
+  dispose(): void {
+    this.client.destroy();
   }
 
   /**

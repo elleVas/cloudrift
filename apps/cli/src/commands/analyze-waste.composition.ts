@@ -29,6 +29,8 @@ export interface AnalysisContext {
 export interface Analysis {
   useCase: FindWastedResourcesUseCasePort;
   pricesAsOf: string;
+  /** Releases resources held by the pricing adapter. Call after all scans complete. */
+  dispose?: () => void;
 }
 
 /**
@@ -80,7 +82,11 @@ async function defaultCreateAnalysis(ctx: AnalysisContext): Promise<Analysis> {
     concurrencyOverride === undefined
       ? new AnalyzeCloudWasteUseCase(selected)
       : new AnalyzeCloudWasteUseCase(selected, concurrencyOverride);
-  return { useCase, pricesAsOf: pricing.getPricesAsOf() };
+  return {
+    useCase,
+    pricesAsOf: pricing.getPricesAsOf(),
+    dispose: () => livePricingAdapter?.dispose(),
+  };
 }
 
 export const defaultAnalyzeDeps: AnalyzeDeps = {

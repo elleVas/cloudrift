@@ -148,7 +148,7 @@ export async function analyzeWasteCommand(
     excludeTagValues: config.excludeTagValues,
   };
 
-  const { useCase, pricesAsOf } = await deps.createAnalysis({
+  const { useCase, pricesAsOf, dispose } = await deps.createAnalysis({
     regions,
     config,
     accountId,
@@ -161,6 +161,7 @@ export async function analyzeWasteCommand(
   });
 
   const result = await useCase.execute({ regions });
+  dispose?.();
   if (!result.ok) return fail(result.error.message);
 
   const meta: WasteReportMeta = {

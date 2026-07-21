@@ -134,7 +134,7 @@ If everything is configured correctly you'll see tables listing the wasted resou
 | **DynamoDB Tables (overprovisioned)** | PROVISIONED mode, read/write capacity utilization < 10% over 7 days — rightsizing candidate | Saving: ~50% of the provisioned RCU/WCU monthly cost (estimate — verify traffic spikes before acting) |
 | **ElastiCache Clusters (idle)** | Zero client connections in the last 48h, requires `--live-pricing` | Full node-hour cost (node billed regardless of usage) |
 | **Redshift Clusters (idle)** | Zero database connections in the last 48h, requires `--live-pricing` | Full node-hour cost × number of nodes |
-| **OpenSearch Domains (idle)** | Zero search/indexing requests in the last 48h, requires `--live-pricing` | Full instance-hour cost × instance count |
+| **OpenSearch Domains (idle)** | Near-zero search/indexing requests in the last 48h (below the internal cluster-chatter threshold — health checks/ISM polling never hit literal zero), requires `--live-pricing` | Full instance-hour cost × instance count |
 | **MSK Clusters (idle)** | Provisioned mode, zero broker traffic in the last 48h, requires `--live-pricing` | Full broker-hour cost × number of brokers |
 | **FSx File Systems (idle)** | Zero read/write I/O in the last 48h | $0.093–$0.14/GB-month depending on file system type |
 | **DocumentDB Instances (idle)** | Zero database connections in the last 48h, requires `--live-pricing` | Full instance-hour cost |
@@ -657,7 +657,7 @@ Se tutto è configurato correttamente vedrai tabelle con le risorse sprecate tro
 | **DynamoDB Tables (overprovisioned)** | Modalità PROVISIONED, utilizzo capacità read/write < 10% in 7 giorni — candidato a rightsizing | Risparmio: ~50% del costo mensile RCU/WCU provisioned (stima — verificare picchi di traffico prima di agire) |
 | **ElastiCache Clusters (idle)** | Zero connessioni client nelle ultime 48h, richiede `--live-pricing` | Costo pieno node-hour (il nodo è fatturato indipendentemente dall'uso) |
 | **Redshift Clusters (idle)** | Zero connessioni al database nelle ultime 48h, richiede `--live-pricing` | Costo pieno node-hour × numero di nodi |
-| **OpenSearch Domains (idle)** | Zero richieste di ricerca/indicizzazione nelle ultime 48h, richiede `--live-pricing` | Costo pieno instance-hour × numero di istanze |
+| **OpenSearch Domains (idle)** | Richieste di ricerca/indicizzazione quasi nulle nelle ultime 48h (sotto la soglia di rumore interno del cluster — health check/ISM polling non arrivano mai a zero letterale), richiede `--live-pricing` | Costo pieno instance-hour × numero di istanze |
 | **MSK Clusters (idle)** | Modalità Provisioned, zero traffico broker nelle ultime 48h, richiede `--live-pricing` | Costo pieno broker-hour × numero di broker |
 | **FSx File Systems (idle)** | Zero I/O di lettura/scrittura nelle ultime 48h | $0,093–$0,14/GB-mese a seconda del tipo di file system |
 | **DocumentDB Instances (idle)** | Zero connessioni al database nelle ultime 48h, richiede `--live-pricing` | Costo pieno instance-hour |

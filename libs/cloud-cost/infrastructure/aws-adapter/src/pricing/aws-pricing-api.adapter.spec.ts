@@ -91,6 +91,8 @@ describe('AwsPricingApiAdapter.warmUp', () => {
     const prices = result.value['eu-west-1'];
     expect(prices['ebs-gp3']).toBe(0.088);
     expect(prices['nat-gateway']).toBe(+(0.045 * 730).toFixed(4)); // 32.85
+    expect(mockDestroy).not.toHaveBeenCalled();
+    adapter.dispose();
     expect(mockDestroy).toHaveBeenCalledTimes(1);
   });
 
@@ -125,6 +127,7 @@ describe('AwsPricingApiAdapter.warmUp', () => {
     const result = await adapter.warmUp([euWest1]);
 
     expect(result.ok).toBe(false);
+    adapter.dispose();
     expect(mockDestroy).toHaveBeenCalledTimes(1);
   });
 });
