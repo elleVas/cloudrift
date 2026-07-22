@@ -16,6 +16,7 @@
     }
   },
   "nx": {
+    "tags": ["scope:shared"],
     "targets": {
       "test": {
         "executor": "@nx/jest:jest",

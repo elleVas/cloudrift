@@ -16,6 +16,7 @@
     }
   },
   "nx": {
+    "tags": ["scope:infrastructure"],
     "targets": {
       "test": {
         "executor": "@nx/jest:jest",

@@ -43,7 +43,7 @@ The sections below describe the waste-detection path in depth, since it's the la
 └─────────────────────────────────────────────────────────┘
 ```
 
-**Fundamental rule:** dependencies always point inward (towards the domain). The domain knows nothing about the AWS SDK, Commander.js or pdfkit.
+**Fundamental rule:** dependencies always point inward (towards the domain). The domain knows nothing about the AWS SDK, Commander.js or pdfkit. This is enforced by tooling, not just convention: each project is tagged (`scope:shared`/`scope:domain`/`scope:application`/`scope:infrastructure`/`scope:app`) and `@nx/enforce-module-boundaries`' `depConstraints` in `eslint.config.mjs` fails the lint on any import that crosses a layer the wrong way ([ADR-0075](../adr/0075-nx-dep-constraints-layer-enforcement.md)).
 
 ---
 
