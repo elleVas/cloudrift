@@ -8,6 +8,7 @@ export interface WorkspaceProps {
   workspaceId: string;
   region: AwsRegion;
   accountId: string;
+  userName: string;
   computeTypeName: string;
   /** Only AlwaysOn WorkSpaces are in scope: AutoStop bills per hour used, not a fixed cost at rest. */
   runningMode: string;
@@ -28,6 +29,7 @@ export class Workspace extends Entity<string> implements WastedResource {
 
   get region(): AwsRegion { return this.props.region; }
   get accountId(): string { return this.props.accountId; }
+  get userName(): string { return this.props.userName; }
   get computeTypeName(): string { return this.props.computeTypeName; }
   get runningMode(): string { return this.props.runningMode; }
   get lastKnownUserConnectionTimestamp(): Date | undefined { return this.props.lastKnownUserConnectionTimestamp; }

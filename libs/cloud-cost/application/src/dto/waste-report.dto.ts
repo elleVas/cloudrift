@@ -3,7 +3,9 @@ import { RESOURCE_KIND_META, groupByKind } from 'cloud-cost-domain';
 import type {
   FindingCategory,
   ResourceKind,
+  WastedResource,
   WastedResourcesSummary,
+  Workspace,
 } from 'cloud-cost-domain';
 import { REPORT_CONTACT, REPORT_DISCLAIMER } from '../constants/report-disclaimer';
 
@@ -50,6 +52,8 @@ export interface WasteReportDto {
     description: string;
     monthlyCostUsd: number;
     tags: Record<string, string>;
+    /** Only set for `workspaces-idle` findings — the WorkSpace's assigned user. */
+    userName?: string;
   }>;
   scanErrors: Array<{
     kind: ResourceKind;
@@ -118,6 +122,7 @@ export function toWasteReportDto(
       description: finding.costEstimate.description,
       monthlyCostUsd: finding.costEstimate.monthlyCostUsd,
       tags: finding.tags,
+      ...(isWorkspace(finding) ? { userName: finding.userName } : {}),
     })),
     scanErrors: summary.scanErrors.map(({ kind, region, error }) => ({
       kind,
@@ -129,4 +134,8 @@ export function toWasteReportDto(
 
 function round2(value: number): number {
   return +value.toFixed(2);
+}
+
+function isWorkspace(finding: WastedResource): finding is Workspace {
+  return finding.kind === 'workspaces-idle';
 }

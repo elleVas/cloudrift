@@ -93,6 +93,7 @@ export class AwsWorkspacesIdleScanner implements WasteScannerPort {
             workspaceId: w.WorkspaceId,
             region,
             accountId: this.accountId,
+            userName: w.UserName ?? 'unknown',
             computeTypeName,
             runningMode: w.WorkspaceProperties?.RunningMode ?? 'ALWAYS_ON',
             lastKnownUserConnectionTimestamp: lastConnectionByWorkspaceId.get(w.WorkspaceId),

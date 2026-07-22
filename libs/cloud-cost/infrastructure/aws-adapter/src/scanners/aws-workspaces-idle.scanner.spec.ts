@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { WorkSpacesClient } from '@aws-sdk/client-workspaces';
 import { AwsWorkspacesIdleScanner } from './aws-workspaces-idle.scanner';
-import { AwsRegion } from 'cloud-cost-domain';
+import { AwsRegion, type Workspace } from 'cloud-cost-domain';
 import { AwsAdapterError } from '../errors/aws-adapter.error';
 
 jest.mock('@aws-sdk/client-workspaces');
@@ -21,7 +21,11 @@ const scanner = new AwsWorkspacesIdleScanner(mockPricingSource);
 function mockWorkspace(workspaceId: string, runningMode = 'ALWAYS_ON') {
   mockSend.mockResolvedValueOnce({
     Workspaces: [
-      { WorkspaceId: workspaceId, WorkspaceProperties: { RunningMode: runningMode, ComputeTypeName: 'VALUE' } },
+      {
+        WorkspaceId: workspaceId,
+        UserName: 'jdoe',
+        WorkspaceProperties: { RunningMode: runningMode, ComputeTypeName: 'VALUE' },
+      },
     ],
   });
 }
@@ -43,6 +47,7 @@ describe('AwsWorkspacesIdleScanner', () => {
     if (!result.ok) return;
     expect(result.value.map((w) => w.id)).toEqual(['ws-1']);
     expect(result.value[0].costEstimate.monthlyCostUsd).toBeCloseTo(35, 2);
+    expect((result.value[0] as Workspace).userName).toBe('jdoe');
   });
 
   it('reports an AlwaysOn WorkSpace with no connection in the last 30 days', async () => {

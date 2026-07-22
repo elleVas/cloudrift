@@ -76,7 +76,7 @@ describe('formatWasteReportAsMarkdown', () => {
     expect(md).toContain('| **Total waste** | **2** | **$12.00** |');
     expect(md).toContain('<details>');
     expect(md).toContain('vol-aaa');
-    expect(md).toContain('| vol-aaa | us-east-1 | 100 GB | gp3 | 2025-01-01 | $8.00 |');
+    expect(md).toContain('| vol-aaa | — | us-east-1 | 100 GB | gp3 | 2025-01-01 | $8.00 |');
     const recIndexAaa = md.indexOf('Delete unattached EBS vol-aaa');
     const recIndexBbb = md.indexOf('Delete unattached EBS vol-bbb');
     expect(recIndexAaa).toBeGreaterThan(-1);
