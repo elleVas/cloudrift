@@ -1,0 +1,29 @@
+{
+  "kind": "s3-multipart-upload-abandoned",
+  "source": "hand-transcribed from the AWS API reference, 2026-07-22 (S3 multipart upload listing not seeded in the LocalStack capture script)",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "ListBucketsCommand": [
+      {
+        "Buckets": [{ "Name": "my-bucket", "BucketRegion": "us-east-1", "CreationDate": "2023-01-01T00:00:00.000Z" }],
+        "$metadata": { "httpStatusCode": 200, "requestId": "req-1", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ],
+    "ListMultipartUploadsCommand": [
+      {
+        "Uploads": [{ "UploadId": "upload-abc123", "Key": "big-file.zip", "Initiated": "2024-01-15T00:00:00.000Z" }],
+        "IsTruncated": false,
+        "$metadata": { "httpStatusCode": 200, "requestId": "req-2", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ],
+    "ListPartsCommand": [
+      {
+        "Parts": [{ "PartNumber": 1, "Size": 1073741824 }],
+        "IsTruncated": false,
+        "$metadata": { "httpStatusCode": 200, "requestId": "req-3", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ]
+  },
+  "expected": { "findings": [{ "id": "upload-abc123", "monthlyCostUsd": 0.023 }] }
+}

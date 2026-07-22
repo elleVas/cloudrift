@@ -93,6 +93,16 @@ export { EksNodeOverprovisioned } from './entities/eks-node-overprovisioned.enti
 export type { EksNodeOverprovisionedProps } from './entities/eks-node-overprovisioned.entity';
 export { EksOrphanPvc } from './entities/eks-orphan-pvc.entity';
 export type { EksOrphanPvcProps } from './entities/eks-orphan-pvc.entity';
+export { AmiUnused } from './entities/ami-unused.entity';
+export type { AmiUnusedProps } from './entities/ami-unused.entity';
+export { EcrImageUntagged } from './entities/ecr-image-untagged.entity';
+export type { EcrImageUntaggedProps } from './entities/ecr-image-untagged.entity';
+export { S3MultipartUploadAbandoned } from './entities/s3-multipart-upload-abandoned.entity';
+export type { S3MultipartUploadAbandonedProps } from './entities/s3-multipart-upload-abandoned.entity';
+export { RdsManualSnapshotOld } from './entities/rds-manual-snapshot-old.entity';
+export type { RdsManualSnapshotOldProps } from './entities/rds-manual-snapshot-old.entity';
+export { SecretsManagerUnused } from './entities/secretsmanager-unused.entity';
+export type { SecretsManagerUnusedProps } from './entities/secretsmanager-unused.entity';
 
 // Value Objects
 export { AwsRegion, InvalidAwsRegionError } from './value-objects/aws-region.value-object';
@@ -146,6 +156,11 @@ export {
   EnvironmentGhostPolicy,
   EksNodeOverprovisionedPolicy,
   EksOrphanPvcPolicy,
+  AmiUnusedPolicy,
+  EcrImageUntaggedPolicy,
+  S3MultipartUploadAbandonedPolicy,
+  RdsManualSnapshotOldPolicy,
+  SecretsManagerUnusedPolicy,
 } from './policies/resource-waste-policies';
 
 // Outbound Ports

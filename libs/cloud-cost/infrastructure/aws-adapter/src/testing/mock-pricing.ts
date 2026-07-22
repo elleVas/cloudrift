@@ -20,6 +20,9 @@ const PRICES_BY_KEY: Record<string, number> = {
   'transit-gateway-attachment': 36.5,
   'kinesis-shard': 10.95,
   'aurora-acu': 87.6,
+  'ecr-storage': 0.1,
+  'rds-manual-snapshot': 0.095,
+  'secretsmanager-secret': 0.4,
 };
 
 export const mockPricing: PricingPort = {

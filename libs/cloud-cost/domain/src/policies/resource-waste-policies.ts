@@ -38,6 +38,11 @@ import type { SageMakerTrainingOrphaned } from '../entities/sagemaker-training-o
 import type { EnvironmentGhost } from '../entities/environment-ghost.entity';
 import type { EksNodeOverprovisioned } from '../entities/eks-node-overprovisioned.entity';
 import type { EksOrphanPvc } from '../entities/eks-orphan-pvc.entity';
+import type { AmiUnused } from '../entities/ami-unused.entity';
+import type { EcrImageUntagged } from '../entities/ecr-image-untagged.entity';
+import type { S3MultipartUploadAbandoned } from '../entities/s3-multipart-upload-abandoned.entity';
+import type { RdsManualSnapshotOld } from '../entities/rds-manual-snapshot-old.entity';
+import type { SecretsManagerUnused } from '../entities/secretsmanager-unused.entity';
 
 export class EbsVolumeWastePolicy extends WastePolicy<EbsVolume> {
   protected judge(volume: EbsVolume, now: Date): WasteVerdict {
@@ -519,6 +524,68 @@ export class EksOrphanPvcPolicy extends WastePolicy<EksOrphanPvc> {
     return orphanedByMissingCluster
       ? waste(`owning EKS cluster "${volume.clusterName}" no longer exists`)
       : waste('unattached (Kubernetes PVC volume, no Pod using it)');
+  }
+}
+
+// Added 2026-07-22.
+
+export class AmiUnusedPolicy extends WastePolicy<AmiUnused> {
+  protected judge(ami: AmiUnused, now: Date): WasteVerdict {
+    if (!ami.isUnused()) return notWaste('referenced by an instance or launch template');
+    if (this.isWithinGracePeriod(ami.creationDate, now)) {
+      return notWaste(`created less than ${this.minAgeDays}d ago`);
+    }
+    return waste('not referenced by any instance or launch template');
+  }
+}
+
+export class EcrImageUntaggedPolicy extends WastePolicy<EcrImageUntagged> {
+  protected judge(image: EcrImageUntagged, now: Date): WasteVerdict {
+    // The scanner only builds entities for already-untagged images; we only
+    // apply the grace period so as not to flag an image mid-push/mid-CI-tag.
+    if (this.isWithinGracePeriod(image.imagePushedAt, now)) {
+      return notWaste(`pushed less than ${this.minAgeDays}d ago`);
+    }
+    return waste('no image tag');
+  }
+}
+
+export class S3MultipartUploadAbandonedPolicy extends WastePolicy<S3MultipartUploadAbandoned> {
+  protected judge(upload: S3MultipartUploadAbandoned, now: Date): WasteVerdict {
+    // Every upload the scanner sees is by definition incomplete (still
+    // listed by ListMultipartUploads); we only apply the grace period so as
+    // not to flag an upload still actively in progress.
+    if (this.isWithinGracePeriod(upload.initiated, now)) {
+      return notWaste(`initiated less than ${this.minAgeDays}d ago`);
+    }
+    return waste('incomplete multipart upload past the grace period');
+  }
+}
+
+export class RdsManualSnapshotOldPolicy extends WastePolicy<RdsManualSnapshotOld> {
+  protected judge(snapshot: RdsManualSnapshotOld, now: Date): WasteVerdict {
+    if (this.isWithinGracePeriod(snapshot.snapshotCreateTime, now)) {
+      return notWaste(`created less than ${this.minAgeDays}d ago`);
+    }
+    return waste(`manual snapshot ${this.ageInDays(snapshot.snapshotCreateTime, now).toFixed(0)}d old`);
+  }
+}
+
+export class SecretsManagerUnusedPolicy extends WastePolicy<SecretsManagerUnused> {
+  /** unusedDays: days since last access (or creation, if never accessed) after which a secret is "unused". Default 30 — longer than the base grace period, since infrequent-but-legitimate access patterns exist; `minAgeDays`'s grace period does not apply here (same reasoning as SqsDlqAbandonedWastePolicy). */
+  constructor(options: WastePolicyOptions = {}, private readonly unusedDays = 30) {
+    super(options);
+  }
+
+  protected judge(secret: SecretsManagerUnused, now: Date): WasteVerdict {
+    const referenceDate = secret.lastAccessedDate ?? secret.createdDate;
+    const idleDays = this.ageInDays(referenceDate, now);
+    if (idleDays < this.unusedDays) {
+      return notWaste(
+        `${secret.lastAccessedDate ? 'last accessed' : 'created'} ${idleDays.toFixed(1)}d ago, within ${this.unusedDays}d threshold`,
+      );
+    }
+    return waste(`${secret.wasteReason}, ${idleDays.toFixed(1)}d`);
   }
 }
 

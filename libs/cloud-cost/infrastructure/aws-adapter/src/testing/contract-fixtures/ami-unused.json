@@ -1,0 +1,35 @@
+{
+  "kind": "ami-unused",
+  "source": "hand-transcribed from the AWS API reference, 2026-07-22 (EC2 DescribeImages/DescribeInstances/DescribeLaunchTemplates not seeded in the LocalStack capture script)",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "DescribeImagesCommand": [
+      {
+        "Images": [
+          {
+            "ImageId": "ami-0123456789abcdef0",
+            "Name": "my-old-ami",
+            "CreationDate": "2024-01-15T00:00:00.000Z",
+            "BlockDeviceMappings": [{ "DeviceName": "/dev/sda1", "Ebs": { "VolumeSize": 20, "SnapshotId": "snap-0123456789abcdef0" } }],
+            "Tags": []
+          }
+        ],
+        "$metadata": { "httpStatusCode": 200, "requestId": "req-1", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ],
+    "DescribeInstancesCommand": [
+      {
+        "Reservations": [],
+        "$metadata": { "httpStatusCode": 200, "requestId": "req-2", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ],
+    "DescribeLaunchTemplatesCommand": [
+      {
+        "LaunchTemplates": [],
+        "$metadata": { "httpStatusCode": 200, "requestId": "req-3", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ]
+  },
+  "expected": { "findings": [{ "id": "ami-0123456789abcdef0", "monthlyCostUsd": 1 }] }
+}

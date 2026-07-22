@@ -50,6 +50,11 @@ export { AwsEnvironmentGhostScanner } from './scanners/aws-environment-ghost.sca
 export { AwsEksNodeOverprovisionedScanner, suggestNodeCount } from './scanners/aws-eks-node-overprovisioned.scanner';
 export type { EksNodeInstancePricingSource } from './scanners/aws-eks-node-overprovisioned.scanner';
 export { AwsEksOrphanPvcScanner } from './scanners/aws-eks-orphan-pvc.scanner';
+export { AwsAmiUnusedScanner } from './scanners/aws-ami-unused.scanner';
+export { AwsEcrImageUntaggedScanner } from './scanners/aws-ecr-image-untagged.scanner';
+export { AwsS3MultipartUploadAbandonedScanner } from './scanners/aws-s3-multipart-upload-abandoned.scanner';
+export { AwsRdsManualSnapshotOldScanner } from './scanners/aws-rds-manual-snapshot-old.scanner';
+export { AwsSecretsManagerUnusedScanner } from './scanners/aws-secretsmanager-unused.scanner';
 export { AwsAdapterError } from './errors/aws-adapter.error';
 export {
   StaticPriceTableAdapter,

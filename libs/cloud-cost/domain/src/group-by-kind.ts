@@ -38,6 +38,11 @@ import type { SageMakerTrainingOrphaned } from './entities/sagemaker-training-or
 import type { EnvironmentGhost } from './entities/environment-ghost.entity';
 import type { EksNodeOverprovisioned } from './entities/eks-node-overprovisioned.entity';
 import type { EksOrphanPvc } from './entities/eks-orphan-pvc.entity';
+import type { AmiUnused } from './entities/ami-unused.entity';
+import type { EcrImageUntagged } from './entities/ecr-image-untagged.entity';
+import type { S3MultipartUploadAbandoned } from './entities/s3-multipart-upload-abandoned.entity';
+import type { RdsManualSnapshotOld } from './entities/rds-manual-snapshot-old.entity';
+import type { SecretsManagerUnused } from './entities/secretsmanager-unused.entity';
 
 /**
  * Map kind → concrete entity. Allows consumers (formatters, frontend)
@@ -82,6 +87,11 @@ export interface ResourceKindMap {
   'environment-ghost': EnvironmentGhost;
   'eks-node-overprovisioned': EksNodeOverprovisioned;
   'eks-orphan-pvc': EksOrphanPvc;
+  'ami-unused': AmiUnused;
+  'ecr-image-untagged': EcrImageUntagged;
+  's3-multipart-upload-abandoned': S3MultipartUploadAbandoned;
+  'rds-manual-snapshot-old': RdsManualSnapshotOld;
+  'secretsmanager-unused': SecretsManagerUnused;
 }
 
 export type FindingsByKind = {

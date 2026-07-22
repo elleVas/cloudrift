@@ -38,6 +38,11 @@ import {
   EnvironmentGhostPolicy,
   EksNodeOverprovisionedPolicy,
   EksOrphanPvcPolicy,
+  AmiUnusedPolicy,
+  EcrImageUntaggedPolicy,
+  S3MultipartUploadAbandonedPolicy,
+  RdsManualSnapshotOldPolicy,
+  SecretsManagerUnusedPolicy,
   RESOURCE_KINDS,
 } from 'cloud-cost-domain';
 import type {
@@ -85,6 +90,11 @@ import {
   AwsEnvironmentGhostScanner,
   AwsEksNodeOverprovisionedScanner,
   AwsEksOrphanPvcScanner,
+  AwsAmiUnusedScanner,
+  AwsEcrImageUntaggedScanner,
+  AwsS3MultipartUploadAbandonedScanner,
+  AwsRdsManualSnapshotOldScanner,
+  AwsSecretsManagerUnusedScanner,
 } from 'cloud-cost-infrastructure-aws-adapter';
 import type { AwsPricingApiAdapter } from 'cloud-cost-infrastructure-aws-adapter';
 import type { CloudriftConfig } from '../config/cloudrift.config';
@@ -305,6 +315,36 @@ export const ALWAYS_ON_SCANNERS: ScannerRegistration<ScannerBuildContext>[] = [
   {
     kind: 'eks-orphan-pvc',
     create: (ctx) => new AwsEksOrphanPvcScanner(ctx.pricing, ctx.accountId, new EksOrphanPvcPolicy(ctx.policyOptions)),
+  },
+  // Added 2026-07-22: all fixed at-rest cost, always-on like the rest of
+  // the EC2/S3/RDS scanners above.
+  {
+    kind: 'ami-unused',
+    create: (ctx) => new AwsAmiUnusedScanner(ctx.pricing, ctx.accountId, new AmiUnusedPolicy(ctx.policyOptions)),
+  },
+  {
+    kind: 'ecr-image-untagged',
+    create: (ctx) =>
+      new AwsEcrImageUntaggedScanner(ctx.pricing, ctx.accountId, new EcrImageUntaggedPolicy(ctx.policyOptions)),
+  },
+  {
+    kind: 's3-multipart-upload-abandoned',
+    create: (ctx) =>
+      new AwsS3MultipartUploadAbandonedScanner(
+        ctx.pricing,
+        ctx.accountId,
+        new S3MultipartUploadAbandonedPolicy(ctx.policyOptions),
+      ),
+  },
+  {
+    kind: 'rds-manual-snapshot-old',
+    create: (ctx) =>
+      new AwsRdsManualSnapshotOldScanner(ctx.pricing, ctx.accountId, new RdsManualSnapshotOldPolicy(ctx.policyOptions)),
+  },
+  {
+    kind: 'secretsmanager-unused',
+    create: (ctx) =>
+      new AwsSecretsManagerUnusedScanner(ctx.pricing, ctx.accountId, new SecretsManagerUnusedPolicy(ctx.policyOptions)),
   },
 ];
 

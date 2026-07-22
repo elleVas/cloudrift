@@ -458,6 +458,53 @@ export const presenters: PresenterMap = {
     recommend: (v) =>
       `Delete orphaned Kubernetes PVC volume ${v.id} (${v.pvcNamespace}/${v.pvcName}) in ${v.region.code} — ${v.wasteReason}`,
   },
+  'ami-unused': {
+    title: 'AMIs — Unused (backing snapshots still billed)',
+    head: ['Image ID', 'Name', 'Region', 'Snapshot Size', 'Created'],
+    colWidths: [110, 130, 70, 70, 84, 80],
+    row: (a) => [a.id, a.name, a.region.code, `${a.totalSnapshotSizeGb} GB`, day(a.creationDate)],
+    recommend: (a) =>
+      `Deregister unused AMI ${a.id} (${a.name}) in ${a.region.code} — ${a.wasteReason}`,
+  },
+  'ecr-image-untagged': {
+    title: 'ECR Images — Untagged (dangling)',
+    head: ['Digest', 'Repository', 'Region', 'Size', 'Pushed'],
+    colWidths: [150, 130, 70, 60, 84, 80],
+    row: (i) => [i.id, i.repositoryName, i.region.code, `${(i.sizeBytes / 1024 ** 3).toFixed(2)} GB`, day(i.imagePushedAt)],
+    recommend: (i) =>
+      `Delete untagged ECR image ${i.id} in repository ${i.repositoryName} (${i.region.code}) — ${i.wasteReason}`,
+  },
+  's3-multipart-upload-abandoned': {
+    title: 'S3 Multipart Uploads — Abandoned (never completed or aborted)',
+    head: ['Upload ID', 'Bucket', 'Key', 'Region', 'Uploaded', 'Initiated'],
+    colWidths: [130, 110, 130, 65, 70, 84, 80],
+    row: (u) => [u.id, u.bucketName, u.key, u.region.code, `${(u.uploadedBytes / 1024 ** 3).toFixed(2)} GB`, day(u.initiated)],
+    recommend: (u) =>
+      `Abort incomplete multipart upload ${u.id} for ${u.bucketName}/${u.key} in ${u.region.code} — ${u.wasteReason}`,
+  },
+  'rds-manual-snapshot-old': {
+    title: 'RDS Manual Snapshots — Old',
+    head: ['Snapshot ID', 'Source DB', 'Region', 'Engine', 'Storage', 'Created'],
+    colWidths: [130, 110, 70, 68, 60, 84, 80],
+    row: (s) => [
+      s.id,
+      s.sourceDbInstanceId,
+      s.region.code,
+      s.engine,
+      `${s.allocatedStorageGb} GB`,
+      day(s.snapshotCreateTime),
+    ],
+    recommend: (s) =>
+      `Delete old manual RDS snapshot ${s.id} (${s.allocatedStorageGb} GB) in ${s.region.code} — ${s.wasteReason}`,
+  },
+  'secretsmanager-unused': {
+    title: 'Secrets Manager Secrets — Unused',
+    head: ['Name', 'Region', 'Created', 'Last Accessed'],
+    colWidths: [180, 80, 90, 84, 85],
+    row: (s) => [s.name, s.region.code, day(s.createdDate), s.lastAccessedDate ? day(s.lastAccessedDate) : 'never'],
+    recommend: (s) =>
+      `Delete unused Secrets Manager secret "${s.name}" in ${s.region.code} — ${s.wasteReason}`,
+  },
 };
 
 /**
@@ -535,6 +582,11 @@ export function rowFor(finding: AnyResourceEntity): string[] {
     case 'environment-ghost': return presenters['environment-ghost'].row(finding);
     case 'eks-node-overprovisioned': return presenters['eks-node-overprovisioned'].row(finding);
     case 'eks-orphan-pvc': return presenters['eks-orphan-pvc'].row(finding);
+    case 'ami-unused': return presenters['ami-unused'].row(finding);
+    case 'ecr-image-untagged': return presenters['ecr-image-untagged'].row(finding);
+    case 's3-multipart-upload-abandoned': return presenters['s3-multipart-upload-abandoned'].row(finding);
+    case 'rds-manual-snapshot-old': return presenters['rds-manual-snapshot-old'].row(finding);
+    case 'secretsmanager-unused': return presenters['secretsmanager-unused'].row(finding);
   }
 }
 
@@ -579,5 +631,10 @@ export function recommendFor(finding: AnyResourceEntity): string {
     case 'environment-ghost': return presenters['environment-ghost'].recommend(finding);
     case 'eks-node-overprovisioned': return presenters['eks-node-overprovisioned'].recommend(finding);
     case 'eks-orphan-pvc': return presenters['eks-orphan-pvc'].recommend(finding);
+    case 'ami-unused': return presenters['ami-unused'].recommend(finding);
+    case 'ecr-image-untagged': return presenters['ecr-image-untagged'].recommend(finding);
+    case 's3-multipart-upload-abandoned': return presenters['s3-multipart-upload-abandoned'].recommend(finding);
+    case 'rds-manual-snapshot-old': return presenters['rds-manual-snapshot-old'].recommend(finding);
+    case 'secretsmanager-unused': return presenters['secretsmanager-unused'].recommend(finding);
   }
 }

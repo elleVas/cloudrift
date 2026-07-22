@@ -41,6 +41,11 @@ export const RESOURCE_KINDS = [
   'environment-ghost',
   'eks-node-overprovisioned',
   'eks-orphan-pvc',
+  'ami-unused',
+  'ecr-image-untagged',
+  's3-multipart-upload-abandoned',
+  'rds-manual-snapshot-old',
+  'secretsmanager-unused',
 ] as const;
 
 export type ResourceKind = (typeof RESOURCE_KINDS)[number];
@@ -159,6 +164,17 @@ export const RESOURCE_KIND_META: Record<ResourceKind, ResourceKindMeta> = {
     category: 'waste',
     estimated: false,
   },
+  // Added 2026-07-22: all fixed at-rest cost, always-on like the rest of
+  // the EC2/S3/RDS scanners above.
+  'ami-unused': { label: 'AMIs (unused, backing snapshots still billed)', category: 'waste', estimated: false },
+  'ecr-image-untagged': { label: 'ECR Images (untagged)', category: 'waste', estimated: false },
+  's3-multipart-upload-abandoned': {
+    label: 'S3 Multipart Uploads (abandoned)',
+    category: 'waste',
+    estimated: false,
+  },
+  'rds-manual-snapshot-old': { label: 'RDS Manual Snapshots (old)', category: 'waste', estimated: false },
+  'secretsmanager-unused': { label: 'Secrets Manager Secrets (unused)', category: 'waste', estimated: false },
 };
 
 /** Human-readable labels, derived from RESOURCE_KIND_META (single source). */
