@@ -32,6 +32,7 @@
     "eslint": "^9.39.4",
     "eslint-config-prettier": "^10.1.8",
     "jest": "^29.7.0",
+    "jimp": "^1.6.1",
     "jsonc-eslint-parser": "^2.4.2",
     "nx": "22.7.5",
     "prettier": "^3.8.1",
@@ -43,6 +44,7 @@
   "dependencies": {
     "@aws-sdk/client-cloudwatch": "^3.741.0",
     "@aws-sdk/client-cloudwatch-logs": "^3.1073.0",
+    "@aws-sdk/client-cost-explorer": "^3.1092.0",
     "@aws-sdk/client-docdb": "^3.1075.0",
     "@aws-sdk/client-dynamodb": "^3.1073.0",
     "@aws-sdk/client-ec2": "^3.741.0",

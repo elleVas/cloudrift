@@ -5,7 +5,8 @@ interface AwsRegionProps {
   code: string;
 }
 
-const VALID_AWS_REGIONS = new Set([
+/** Every recognized AWS region code — the authoritative list `AwsRegion.parse` validates against, and the one source consumers (e.g. the CLI's interactive region picker) build their own options from instead of duplicating it. */
+export const AWS_REGION_CODES: readonly string[] = [
   'us-east-1', 'us-east-2', 'us-west-1', 'us-west-2',
   'ca-central-1', 'ca-west-1',
   'eu-central-1', 'eu-central-2', 'eu-west-1', 'eu-west-2', 'eu-west-3',
@@ -20,7 +21,9 @@ const VALID_AWS_REGIONS = new Set([
   'cn-north-1', 'cn-northwest-1',
   'il-central-1',
   'mx-central-1',
-]);
+];
+
+const VALID_AWS_REGIONS = new Set(AWS_REGION_CODES);
 
 export class InvalidAwsRegionError extends DomainError {
   constructor(code: string) {

@@ -21,6 +21,13 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 | [0038](0038-eleven-fixed-cost-scanners-phase-5-5.md) | 11 new fixed-cost scanners in v0.5.0 Phase 5.5 | Accepted |
 | [0065](0065-vertical-premium-scanners-phase-6-strategy.md) | Vertical premium scanners — Phase 6 strategy | Accepted |
 
+## Cost analytics (`cost` / `trend`)
+
+| ADR | Title | Status |
+|---|---|---|
+| [0069](0069-cost-explorer-integration-billed-api-confirmation.md) | AWS Cost Explorer integration for `cost`/`trend`, gated by an explicit billing confirmation | Accepted |
+| [0070](0070-cost-explorer-disk-cache-decorator.md) | Cost Explorer responses cached on disk via a decorator, only once a period is safely closed | Accepted |
+
 ## Pricing
 
 | ADR | Title | Status |
@@ -84,6 +91,8 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 | [0061](0061-pdfkit-lazy-import-and-dynamic-external-detection.md) | `pdfkit` loaded via lazy dynamic import; publish-manifest generator scans for dynamic imports too | Accepted |
 | [0064](0064-per-client-requesthandler-not-shared.md) | Every AWS SDK client gets its own `NodeHttpHandler`, not a shared singleton | Accepted |
 | [0066](0066-eks-scanners-aws-api-only-kubeconfig-deferred.md) | EKS scanners — AWS API only, kubeconfig deferred | Accepted |
+| [0071](0071-unified-entry-wizard-bare-invocation.md) | Bare `cloudrift` (no subcommand, real terminal) launches a unified mode-picker wizard | Accepted |
+| [0073](0073-brand-mark-pixel-art-pipeline.md) | Brand mark generated from the real logo via an offline pixel-art sampling pipeline | Accepted |
 
 ## Reporting
 
@@ -92,6 +101,7 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 | [0034](0034-pdfkit-link-linebreak-bug.md) | PDF links via pdfkit's `link` option, never combined with `lineBreak: false` | Accepted |
 | [0035](0035-output-always-english.md) | Report output is always in English | Accepted |
 | [0059](0059-presenter-dispatch-exhaustive-switch.md) | Presenter dispatch via an exhaustive switch on the finding, not a generic `presenterFor(kind)` | Accepted |
+| [0072](0072-pdf-shared-layout-module.md) | Shared PDF layout module across all three reports; table cells never truncated | Accepted |
 
 ## Testing
 

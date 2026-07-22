@@ -2,7 +2,7 @@
 import chalk from 'chalk';
 import { dirname, resolve } from 'path';
 import { mkdir, writeFile } from 'fs/promises';
-import type { WastedResourcesSummary } from 'cloud-cost-domain';
+import type { CostComparisonSummary, WastedResourcesSummary } from 'cloud-cost-domain';
 import type { WasteReportMeta } from 'cloud-cost-application';
 import type { CloudriftConfig } from '../config/cloudrift.config';
 import { formatWasteReportAsJson } from '../formatters/waste-report.json-formatter';
@@ -60,6 +60,34 @@ export function applyCostGate(
     chalk.red.bold(
       `\n  Waste threshold exceeded: $${summary.totalWasteMonthlyUsd.toFixed(2)}/mo ` +
         `> $${config.costAlertThresholdUsd.toFixed(2)}/mo threshold.\n`,
+    ),
+  );
+  process.exitCode = 2;
+}
+
+/**
+ * `cost` command threshold: exit code 2 when the current-vs-previous-period
+ * spend increase exceeds `thresholdPercent` (CLI `--fail-on-increase`, or
+ * config's `costIncreaseAlertPercent`). A `null` changePercent (previous
+ * period was $0) never trips the gate — there's no meaningful percentage to
+ * compare against a threshold.
+ */
+export function applyCostTrendGate(
+  summary: CostComparisonSummary,
+  thresholdPercent: number | undefined,
+): void {
+  if (
+    thresholdPercent === undefined ||
+    summary.changePercent === null ||
+    summary.changePercent <= thresholdPercent
+  ) {
+    return;
+  }
+  console.error(
+    chalk.red.bold(
+      `\n  Spend increase threshold exceeded: +${summary.changePercent.toFixed(1)}% ` +
+        `(current $${summary.current.totalUsd.toFixed(2)} vs previous $${summary.previous.totalUsd.toFixed(2)}) ` +
+        `> ${thresholdPercent}% threshold.\n`,
     ),
   );
   process.exitCode = 2;

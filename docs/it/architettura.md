@@ -13,6 +13,8 @@ Questa scelta compra due cose, e vale la pena essere espliciti su quali:
 
 Ciò che **non** compra da sola è il multi-cloud: vedi la sezione [Verso il multi-cloud](#verso-il-multi-cloud) per il percorso onesto.
 
+Le sezioni sotto descrivono in dettaglio il percorso di waste-detection, essendo il più grande e il più vecchio dei due; la seconda capability della CLI, confrontare/tracciare la spesa reale via Cost Explorer (`cost`/`trend`), è costruita nello stesso modo esagonale ed è descritta a parte in [Cost analytics](#cost-analytics-cost--trend).
+
 ---
 
 ## Struttura dei layer
@@ -246,7 +248,34 @@ Particolarità:
 
 `analyze-waste.composition.ts` è l'unico punto in cui le implementazioni concrete vengono istanziate. È un registry dichiarativo, non una lista scritta a mano: `ALWAYS_ON_SCANNERS` e `LIVE_PRICING_SCANNERS` sono ciascuno un array di entry `{ kind, create(ctx) }`, e `buildScanners()` è un `map`/`filter` su entrambi (il secondo solo se è disponibile un adapter di live pricing), filtrato poi ancora secondo la selezione scanner risolta (`AnalysisContext.scannerKinds`, undefined = nessun filtro). `assertRegistryMatchesResourceKinds()` gira al module load e lancia un errore se un `ResourceKind` manca da entrambi i registry, o è duplicato tra i due — un errore di wiring fallisce all'avvio, non silenziosamente durante la scansione. Vedi [ADR-0043](../adr/0043-declarative-scanner-registry.md). Le entry di `LIVE_PRICING_SCANNERS` (`AwsEc2UnderutilizedScanner`, `AwsRdsUnderutilizedScanner`, `AwsElastiCacheIdleScanner` e gli equivalenti Redshift/OpenSearch/MSK/DocumentDB/Neptune/MQ/WorkSpaces) vengono costruite solo se `--live-pricing` è attivo: la loro stima di costo richiede un prezzo per instance type/classe/node type che il listino statico non contiene (troppi tipi distinti da mantenere), quindi senza prezzi live non c'è nulla di affidabile da riportare e gli scanner vengono esclusi piuttosto che registrati con una stima a zero.
 
+Lanciare `cloudrift` senza alcun sottocomando, in un vero terminale, salta del tutto Commander e passa la mano a `runEntryWizard()` (`apps/cli/src/wizard/entry.wizard.ts`) — un mode picker (waste / cost / trend) che raccoglie le stesse opzioni di un'invocazione equivalente guidata da flag e poi chiama direttamente `analyzeWasteCommand`/`costCommand`/`trendCommand`, quindi il wizard è puramente uno strato di raccolta input, senza logica di business duplicata. Qualunque sottocomando esplicito o flag, CI, o stdout non interattivo aggirano il wizard senza alcuna modifica. Vedi [ADR-0071](../adr/0071-unified-entry-wizard-bare-invocation.md).
+
 Tornati in `analyze-waste.command.ts`, il risultato passa ai formatter. I quattro formatter (tabella console, PDF, JSON, Markdown) condividono il registry `resource-presenters.ts`, tipizzato `Record<ResourceKind, ResourcePresenter<…>>`: dimenticare il presenter di un nuovo kind è un errore di compilazione. Tabella, PDF e Markdown fanno tutti dispatch per ogni finding tramite `rowFor`/`recommendFor` — uno `switch` esaustivo sul `kind` del finding stesso, non una chiamata `presenterFor(kind)` abbinata a un finding ottenuto separatamente — quindi non esiste una coppia (kind, finding) che una modifica futura potrebbe disaccoppiare; un case mancante fa fallire la build ([ADR-0059](../adr/0059-presenter-dispatch-exhaustive-switch.md)). Il formato di output si sceglie con `--format` (`table` | `json` | `markdown`); `markdown` è pensato per CI / commenti PR.
+
+---
+
+## Cost analytics: `cost` / `trend`
+
+Accanto alla waste detection, la CLI ha una seconda capability sorella, costruita nello stesso modo esagonale: confrontare e tracciare la spesa AWS reale via Cost Explorer ([ADR-0069](../adr/0069-cost-explorer-integration-billed-api-confirmation.md)). Condivide `shared/kernel` ma non è un'estensione di `WastedResource` — un confronto di spesa non ha un'entità, né una waste policy, solo numeri aggregati da una singola API esterna, quindi forzarlo dentro il modello di waste vorrebbe dire entità finte senza base nel linguaggio ubiquo.
+
+```
+CostComparisonSummary / CostTrendSummary   (cloud-cost/domain)
+        ▲ prodotto da
+CompareCostUseCase / CostTrendUseCase      (cloud-cost/application)
+        │ dipende da
+CostExplorerPort                           (cloud-cost/domain, outbound)
+        ▲ implementato da
+AwsCostExplorerAdapter                     (infrastructure/aws-adapter)
+        ▲ wrappato da (decorator)
+CachedCostExplorerAdapter                  (infrastructure/aws-adapter)
+```
+
+- **`CostExplorerPort`** — un unico outbound port `getCostAndUsage({ startDate, endDate, granularity })`, con lo stesso minimalismo di `WasteScannerPort`. `AwsCostExplorerAdapter` lo implementa su `@aws-sdk/client-cost-explorer`; a differenza di ogni altro adapter, non è mai parametrizzato per regione — Cost Explorer è un endpoint globale unico (`us-east-1` fisso).
+- **Fatturato, a differenza di tutto il resto.** Ogni scanner e `analyze` chiamano solo API describe/list gratuite; Cost Explorer fattura $0.01/richiesta. `cost.command.ts`/`trend.command.ts` chiamano entrambi `confirmCostExplorerCharge()` prima di toccare il port, così la conferma protegge l'uso diretto da CLI/script esattamente come il percorso del wizard — vedi [ADR-0069](../adr/0069-cost-explorer-integration-billed-api-confirmation.md).
+- **`CachedCostExplorerAdapter`** — un decorator (non una modifica dell'adapter) che caching la risposta di una query su disco, tenuta in chiave dai suoi parametri esatti, ma solo quando l'intero intervallo richiesto è più vecchio di 2 giorni (il ritardo di riconciliazione che AWS stessa documenta per i dati recenti). Composto di default in `cost-analytics.composition.ts`; `--refresh-cache` lo bypassa. Vedi [ADR-0070](../adr/0070-cost-explorer-disk-cache-decorator.md).
+- **`CompareCostUseCase`** — spesa corrente (dal 1° del mese a oggi) vs. lo stesso intervallo di giorni del mese scorso, così un'esecuzione a inizio mese non sembra un falso risparmio dovuto a un numero di giorni diseguale.
+- **`CostTrendUseCase`** — spesa a granularità `MONTHLY` sugli ultimi N mesi, opzionalmente filtrata per servizi specifici.
+- **`cost-analytics.composition.ts`** rispecchia il seam `AnalyzeDeps` di `analyze-waste.composition.ts` (`CostAnalyticsDeps`), così `cost.command.spec.ts`/`trend.command.spec.ts` iniettano un `CostExplorerPort` finto e non toccano mai AWS — né soldi veri — nei test.
 
 ---
 

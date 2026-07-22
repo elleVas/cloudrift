@@ -105,7 +105,7 @@ export { SecretsManagerUnused } from './entities/secretsmanager-unused.entity';
 export type { SecretsManagerUnusedProps } from './entities/secretsmanager-unused.entity';
 
 // Value Objects
-export { AwsRegion, InvalidAwsRegionError } from './value-objects/aws-region.value-object';
+export { AwsRegion, InvalidAwsRegionError, AWS_REGION_CODES } from './value-objects/aws-region.value-object';
 export { CostEstimate } from './value-objects/cost-estimate.value-object';
 
 // Waste Policies
@@ -166,6 +166,11 @@ export {
 // Outbound Ports
 export type { PricingPort } from './ports/outbound/pricing.port';
 export type { WasteScannerPort } from './ports/outbound/waste-scanner.port';
+export type {
+  CostExplorerPort,
+  CostByService,
+  CostPeriodBucket,
+} from './ports/outbound/cost-explorer.port';
 
 // Inbound Ports
 export type {
@@ -174,3 +179,19 @@ export type {
   WastedResourcesSummary,
   ResourceScanError,
 } from './ports/inbound/find-wasted-resources.use-case.port';
+export type {
+  CompareCostRequest,
+  CompareCostUseCasePort,
+} from './ports/inbound/compare-cost.use-case.port';
+export type {
+  CostTrendRequest,
+  CostTrendUseCasePort,
+} from './ports/inbound/cost-trend.use-case.port';
+
+// Cost Analytics
+export type {
+  CostComparisonSummary,
+  CostServiceDelta,
+  CostPeriodTotal,
+} from './cost-comparison';
+export type { CostTrendSummary, CostTrendMonth } from './cost-trend';

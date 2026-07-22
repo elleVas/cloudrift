@@ -13,6 +13,8 @@ This choice buys two things, and it is worth being explicit about which:
 
 What it does **not** buy on its own is multi-cloud: see [Towards multi-cloud](#towards-multi-cloud) for the honest path.
 
+The sections below describe the waste-detection path in depth, since it's the larger and older of the two; the CLI's second capability, comparing/trending actual spend via Cost Explorer (`cost`/`trend`), is built the same hexagonal way and described separately in [Cost analytics](#cost-analytics-cost--trend).
+
 ---
 
 ## Layer structure
@@ -245,7 +247,34 @@ Specifics:
 
 `analyze-waste.composition.ts` is the only place where concrete implementations are instantiated. It's a declarative registry, not a hand-written list: `ALWAYS_ON_SCANNERS` and `LIVE_PRICING_SCANNERS` are each an array of `{ kind, create(ctx) }` entries, and `buildScanners()` is a `map`/`filter` over both (the second only when a live-pricing adapter is available), then filtered again down to the resolved scanner selection (`AnalysisContext.scannerKinds`, undefined = no filter). `assertRegistryMatchesResourceKinds()` runs at module load and throws if any `ResourceKind` is missing from, or duplicated across, the two registries — a wiring mistake fails at startup, not silently at scan time. See [ADR-0043](../adr/0043-declarative-scanner-registry.md). The `LIVE_PRICING_SCANNERS` entries (`AwsEc2UnderutilizedScanner`, `AwsRdsUnderutilizedScanner`, `AwsElastiCacheIdleScanner` and the Redshift/OpenSearch/MSK/DocumentDB/Neptune/MQ/WorkSpaces equivalents) are only built when `--live-pricing` is set: their cost estimate needs a per-instance-type/class/node-type price that the static table doesn't carry (too many distinct types to maintain), so without live pricing there is nothing reliable to report and the scanners are left out rather than registered with a zero estimate.
 
+Running `cloudrift` with no subcommand at all, in a real terminal, skips Commander entirely and hands off to `runEntryWizard()` (`apps/cli/src/wizard/entry.wizard.ts`) — a mode picker (waste / cost / trend) that gathers the same options as an equivalent flag-driven invocation and then calls `analyzeWasteCommand`/`costCommand`/`trendCommand` directly, so the wizard is purely an input-gathering layer with no duplicated business logic. Any explicit subcommand or flag, CI, or non-interactive stdout bypasses the wizard unchanged. See [ADR-0071](../adr/0071-unified-entry-wizard-bare-invocation.md).
+
 Back in `analyze-waste.command.ts`, the result is handed to the formatters. The four formatters (console table, PDF, JSON, Markdown) share the `resource-presenters.ts` registry, typed `Record<ResourceKind, ResourcePresenter<…>>`: forgetting the presenter for a new kind is a compile error. Table, PDF and Markdown all dispatch per finding through `rowFor`/`recommendFor` — an exhaustive `switch` on the finding's own `kind`, not a `presenterFor(kind)` call paired with a separately-obtained finding — so there is no (kind, finding) pair a future edit could decouple; a missing case fails the build ([ADR-0059](../adr/0059-presenter-dispatch-exhaustive-switch.md)). The output format is selected by `--format` (`table` | `json` | `markdown`); `markdown` targets CI / PR comments.
+
+---
+
+## Cost analytics: `cost` / `trend`
+
+Alongside waste detection, the CLI has a second, sibling capability built the same hexagonal way: comparing and trending actual AWS spend via Cost Explorer ([ADR-0069](../adr/0069-cost-explorer-integration-billed-api-confirmation.md)). It shares `shared/kernel` but is not an extension of `WastedResource` — a spend comparison has no entity, no waste policy, just aggregate numbers from one external API, so forcing it through the waste model would mean fake entities with no basis in the ubiquitous language.
+
+```
+CostComparisonSummary / CostTrendSummary   (cloud-cost/domain)
+        ▲ produced by
+CompareCostUseCase / CostTrendUseCase      (cloud-cost/application)
+        │ depends on
+CostExplorerPort                           (cloud-cost/domain, outbound)
+        ▲ implemented by
+AwsCostExplorerAdapter                     (infrastructure/aws-adapter)
+        ▲ wrapped by (decorator)
+CachedCostExplorerAdapter                  (infrastructure/aws-adapter)
+```
+
+- **`CostExplorerPort`** — a single `getCostAndUsage({ startDate, endDate, granularity })` outbound port, mirroring `WasteScannerPort`'s minimalism. `AwsCostExplorerAdapter` implements it against `@aws-sdk/client-cost-explorer`; unlike every other adapter, it is never parameterized by region — Cost Explorer is a single global endpoint (`us-east-1` fixed).
+- **Billed, unlike everything else.** Every scanner and `analyze` call only free describe/list APIs; Cost Explorer bills $0.01/request. `cost.command.ts`/`trend.command.ts` both call `confirmCostExplorerCharge()` before touching the port, so the confirmation protects direct CLI/script usage identically to the wizard's path — see [ADR-0069](../adr/0069-cost-explorer-integration-billed-api-confirmation.md).
+- **`CachedCostExplorerAdapter`** — a decorator (not a modification of the adapter) that caches a query's response on disk, keyed by its exact parameters, but only once the whole requested range is more than 2 days in the past (AWS's own reconciliation lag for recent data). Composed by default in `cost-analytics.composition.ts`; `--refresh-cache` bypasses it. See [ADR-0070](../adr/0070-cost-explorer-disk-cache-decorator.md).
+- **`CompareCostUseCase`** — current spend (1st of the month through today) vs. the identical day-of-month range last month, so an early-month run doesn't look like a false saving from an unequal day count.
+- **`CostTrendUseCase`** — `MONTHLY`-granularity spend over the last N months, optionally filtered to specific services.
+- **`cost-analytics.composition.ts`** mirrors `analyze-waste.composition.ts`'s `AnalyzeDeps` seam (`CostAnalyticsDeps`), so `cost.command.spec.ts`/`trend.command.spec.ts` inject a fake `CostExplorerPort` and never touch AWS — or real money — in tests.
 
 ---
 

@@ -2,17 +2,37 @@
 
 > 🇬🇧 [English version](../../README.md)
 
-**cloudrift** è uno strumento da riga di comando che scansiona account AWS alla ricerca di risorse inutilizzate e stima il costo mensile di eventuali sprechi.
+<p align="center">
+  <img src="https://raw.githubusercontent.com/elleVas/cloudrift/main/docs/assets/banner-readme.png" alt="Il wizard interattivo di cloudrift mentre scansiona un account AWS alla ricerca di risorse sprecate" width="850" />
+</p>
 
-> ⚠️ **Disclaimer:** cloudrift è uno strumento di analisi in sola lettura: segnala solo spreco stimato e raccomandazioni — non cancella, modifica o ferma alcuna risorsa AWS. Ogni finding deve essere validato dal tuo team infrastrutturale prima di agire. I maintainer non si assumono alcuna responsabilità per le azioni intraprese sulla base di questo report.
->
+<p align="center"><strong>Scansiona account AWS alla ricerca di risorse sprecate e stima il costo mensile di quello spreco.</strong><br />Sola lettura. Nessuna telemetria. Non cancella, modifica o ferma nulla — segnala soltanto.</p>
+
+## Guida rapida
+
+```sh
+npm install -g @cloudrift/cli
+cloudrift
+```
+
+Tutto qui — nessun sottocomando necessario, il wizard interattivo ti guida nella scelta di regioni e scanner. Richiede **Node.js 20+** e credenziali AWS con [permessi IAM in sola lettura](#permessi-iam-necessari) (`aws configure`, o variabili d'ambiente — vedi [setup completo](#setup-completo-credenziali-aws-da-zero-dai-sorgenti) qui sotto se ti serve prima quello).
+
+Preferisci i flag al wizard (script, CI)? Stesso tool, stesso output:
+
+```sh
+cloudrift analyze -r us-east-1 eu-west-1 --pdf
+```
+
+Vedi [Utilizzo](#utilizzo) per l'elenco completo dei flag.
+
+> ⚠️ **Disclaimer:** cloudrift segnala solo spreco stimato e raccomandazioni — non cancella, modifica o ferma alcuna risorsa AWS. Ogni finding deve essere validato dal tuo team infrastrutturale prima di agire. I maintainer non si assumono alcuna responsabilità per le azioni intraprese sulla base di questo report.
 > **Contatti:** [raffaelevasini@gmail.com](mailto:raffaelevasini@gmail.com) · <a href="https://github.com/elleVas" target="_blank" rel="noopener noreferrer">GitHub</a> · <a href="https://www.linkedin.com/in/raffaele-vasini-87937470/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
 
 **📑 Indice**
 
-- [Prerequisiti](#prerequisiti)
 - [Guida rapida](#guida-rapida)
 - [Cosa rileva](#cosa-rileva)
+- [Confronto e trend di spesa](#confronto-e-trend-di-spesa-cost--trend)
 - [Utilizzo](#utilizzo)
 - [File di configurazione](#file-di-configurazione)
 - [Fonti dei prezzi](#fonti-dei-prezzi)
@@ -25,17 +45,14 @@
 - [Documentazione tecnica](#documentazione-tecnica)
 - [Licenza](#licenza)
 
-### Prerequisiti
+<details>
+<summary><strong>Setup completo</strong> — credenziali AWS da zero, dai sorgenti</summary>
+
+#### Setup completo (credenziali AWS da zero, dai sorgenti)
 
 - **Node.js 20+** — verifica con `node --version`
 - **Credenziali AWS** con permessi in sola lettura (vedi sezione [Permessi IAM](#permessi-iam-necessari) qui sotto)
 - **pnpm** — necessario solo per compilare dai sorgenti (`npm install -g pnpm`)
-
----
-
-### Guida rapida
-
-Segui questi passi nell'ordine per passare da zero all'output del tool.
 
 #### Passo 1 — Installa
 
@@ -93,6 +110,7 @@ L'utente/ruolo AWS deve avere la policy elencata nella sezione [Permessi IAM](#p
 
 ```sh
 # con npm install:
+cloudrift                                      # nessun sottocomando, in un vero terminale: wizard interattivo
 cloudrift analyze                              # scansione su us-east-1 (default)
 cloudrift analyze -r us-east-1 eu-west-1       # scansione su più regioni
 
@@ -102,6 +120,8 @@ node apps/cli/dist/main.js analyze -r us-east-1 eu-west-1
 ```
 
 L'account ID viene rilevato automaticamente via STS. Se tutto è configurato correttamente vedrai tabelle con le risorse sprecate trovate e il totale stimato. Se un account non ha risorse sprecate vedrai un messaggio "No wasted resources found".
+
+</details>
 
 ---
 
@@ -170,6 +190,19 @@ Ogni finding è anche etichettato `waste` o `optimization`: `waste` è denaro sp
 - **Snapshot legati ad AMI** — gli snapshot orfani referenziati da un'AMI registrata non vengono segnalati (non sarebbero comunque cancellabili).
 
 > I prezzi variano per regione. Il tool usa prezzi specifici per: `us-east-1`, `us-west-2`, `eu-west-1`, `eu-central-1`, `ap-southeast-1`, `ap-northeast-1`. Ogni report indica la data di ultima verifica del listino (`prices as of`).
+
+---
+
+### Confronto e trend di spesa (`cost` / `trend`)
+
+Oltre alla waste detection, cloudrift può anche confrontare e tracciare la spesa AWS reale via Cost Explorer:
+
+```sh
+cloudrift cost                          # questo mese finora vs. gli stessi giorni del mese scorso, per servizio
+cloudrift trend --months 12             # spesa mensile negli ultimi 12 mesi, grafico a barre ANSI
+```
+
+> ⚠️ A differenza di ogni scanner sopra (chiamate describe/list gratuite), `cost`/`trend` chiamano **AWS Cost Explorer, che fattura $0.01 a richiesta** — gli unici comandi di cloudrift che possono generare un costo AWS. Entrambi chiedono conferma prima della prima chiamata (saltabile con `-y`/`--yes`); i periodi di fatturazione chiusi vengono cachati su disco così rilanciare lo stesso comando per le stesse date non fattura di nuovo. Vedi [Utilizzo](#utilizzo) per il riferimento completo dei flag.
 
 ---
 
@@ -285,6 +318,33 @@ Se la scansione di un tipo di risorsa fallisce (es. permessi mancanti su CloudWa
 **Prezzi per regione:**
 
 I prezzi sono per-regione (file `prices.json` nell'infrastruttura). Regioni supportate con prezzi specifici: `us-east-1`, `us-west-2`, `eu-west-1`, `eu-central-1`, `ap-southeast-1`, `ap-northeast-1`. Per le altre regioni viene usato il prezzo di default (us-east-1).
+
+#### `cost` / `trend` — confronto e trend di spesa
+
+> ⚠️ Chiamano AWS Cost Explorer, che fattura **$0.01 a richiesta** — gli unici comandi di cloudrift che possono generare un costo AWS. Chiedono conferma prima della prima chiamata a meno di `-y`/`--yes`, `--silent`, o esecuzione fuori da un TTY/in CI. I periodi chiusi vengono cachati su disco (`~/.cloudrift/cache/cost-explorer/`). Nessuno dei due comandi ha un flag `--regions` — Cost Explorer è un endpoint globale unico.
+
+| Opzione (`cost`) | Descrizione | Default |
+| --- | --- | --- |
+| `--account-id <id>` | Override account ID | auto-rilevato |
+| `--format <format>` | `table` o `json` | `table` |
+| `--fail-on-increase <pct>` | Esce con codice 2 se la spesa è aumentata più di questa percentuale | off |
+| `--refresh-cache` | Ignora la cache locale | off |
+| `-y, --yes` | Salta la conferma di fatturazione | — |
+| `--pdf [filename]` | Scrive anche un PDF | — |
+
+| Opzione (`trend`) | Descrizione | Default |
+| --- | --- | --- |
+| `--months <n>` | Mesi solari da mostrare (1–36) | `6` |
+| `--services <nomi...>` | Limita a questi servizi (es. `ec2 s3`) | tutti |
+| `--format <format>` | `table` (grafico ANSI) o `json` | `table` |
+| `--refresh-cache` / `-y, --yes` / `--pdf [filename]` | Come `cost` | — |
+
+```sh
+node apps/cli/dist/main.js cost --fail-on-increase 20 --format json
+node apps/cli/dist/main.js trend --months 12 --services ec2 s3 --yes
+```
+
+Riferimento completo, comportamento della cache e dettagli sulla conferma di fatturazione: [docs/en/usage.md](../en/usage.md#cost--trend--spend-comparison-and-monthly-trend) (in inglese) o [utilizzo.md](./utilizzo.md#cost--trend--confronto-e-trend-di-spesa).
 
 </details>
 

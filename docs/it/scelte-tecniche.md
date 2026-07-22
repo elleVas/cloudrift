@@ -203,7 +203,23 @@ if (!parsed.ok) return fail(parsed.error.message); // messaggio pulito, exit 1, 
 - API a basso livello, verbosa ma prevedibile
 - Stream-based: scrive su `fs.createWriteStream` senza bufferizzare l'intero PDF
 
-**Gestione overflow:** `drawTable` implementa il salto pagina — quando le righe superano il margine inferiore, chiude il bordo del segmento, apre una nuova pagina e ridisegna l'intestazione. Le celle troppo lunghe vengono troncate con ellissi (`clip()` via `widthOfString`).
+**Gestione overflow:** `drawTable` implementa il salto pagina — quando le righe superano il margine inferiore, chiude il bordo del segmento, apre una nuova pagina e ridisegna l'intestazione. Il contenuto delle celle **non viene mai troncato**: `wrapToLines()` fa crescere una cella a quante righe servono (un singolo token troppo lungo, es. un ARN di un log group senza spazi, viene spezzato a livello di carattere così ciò che viene misurato corrisponde sempre a ciò che viene renderizzato), e l'altezza della riga cresce di conseguenza. Il comportamento ellissi di `clip()` esiste ancora ma viene usato solo dove un chiamante sceglie esplicitamente un limite fisso di righe — nessun formatter attuale lo fa. Le larghezze delle colonne sono dimensionate sul contenuto reale di intestazione/celle invece che su un rapporto fisso per tipo, restringendo per prima la colonna più larga se il totale supera la pagina. Condiviso da tutti e tre i report PDF (waste, confronto costi, trend di spesa) tramite `pdf-shared.ts`, estratto insieme ai PDF di `cost`/`trend` — vedi [ADR-0072](../adr/0072-pdf-shared-layout-module.md).
+
+---
+
+## AWS Cost Explorer per `cost`/`trend`
+
+**Scelta:** `GetCostAndUsageCommand` di `@aws-sdk/client-cost-explorer`, incapsulato da un unico `CostExplorerPort` (`getCostAndUsage`) — lo stesso minimalismo a un metodo di `PricingPort`.
+
+**Perché:** è l'unica API AWS chiamata da questo progetto che fattura per richiesta ($0.01), quindi riceve un trattamento che nient'altro richiede: un client globale, senza regione (Cost Explorer ha un endpoint fisso unico, `us-east-1`), un prompt di conferma obbligatorio prima della prima chiamata (bypassabile con `-y`/`--yes`/`--silent`/CI, stessa convenzione del wizard di [ADR-0041](../adr/0041-interactive-scanner-selection-wizard.md)), e una cache su disco (`CachedCostExplorerAdapter`) che caching solo gli intervalli di date più vecchi di 2 giorni, per il ritardo di riconciliazione che AWS stessa documenta sui dati recenti. Vedi [ADR-0069](../adr/0069-cost-explorer-integration-billed-api-confirmation.md) / [ADR-0070](../adr/0070-cost-explorer-disk-cache-decorator.md).
+
+---
+
+## jimp per la pipeline di generazione del brand mark
+
+**Scelta:** `jimp`, una devDependency usata solo da tre script di codegen offline (`scripts/generate-brand-mark-icon.mjs`, `generate-brand-mark-title.mjs`, e il correlato `generate-pdf-logo-data.mjs`, che invece non usa jimp) — mai importata dal codice runtime della CLI, mai spedita nel bundle pubblicato.
+
+**Perché:** il brand mark della CLI (mostrato sia dall'intro del wizard sia dal banner di `analyze`) è una piccola resa pixel-art del logo reale (`docs/assets/cloudrift.png`), campionata una volta offline in un file dati TypeScript committato invece che processata a runtime — nessuna dipendenza di image-processing nel pacchetto spedito. `posterize()` prima del resize era necessario per la leggibilità: i bordi anti-aliased del PNG sorgente non hanno una griglia a bassa risoluzione pulita da recuperare col solo resize. Vedi [ADR-0073](../adr/0073-brand-mark-pixel-art-pipeline.md).
 
 ---
 
