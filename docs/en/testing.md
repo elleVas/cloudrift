@@ -10,18 +10,18 @@ This document describes the test pyramid for cloudrift: what each level covers, 
         ┌─────────────────────────┐
         │   CLI e2e (apps/cli)    │   command-level: format, exit code, artifacts
         ├─────────────────────────┤
-        │ Infra (contract tests)  │   real response fixtures replayed: shape → findings, 38/38
+        │ Infra (contract tests)  │   real response fixtures replayed: shape → findings, 43/43
         ├─────────────────────────┤
         │  Infra (scanner specs)  │   AWS SDK mocked: query shape, pagination, errors
         ├─────────────────────────┤
         │  Domain (entity/policy) │   pure logic: waste rules, boundaries, no I/O
         └─────────────────────────┘
         ┌─────────────────────────┐
-        │  LocalStack e2e (free)  │   scripts/e2e-localstack.mjs (this doc), 17/38 scanners
+        │  LocalStack e2e (free)  │   scripts/e2e-localstack.mjs (this doc), 17/43 scanners
         ├─────────────────────────┤
         │  Manual AWS sandbox     │   scripts/verify-against-aws.mjs (this doc)
         ├─────────────────────────┤
-        │  Real-AWS verification  │   external CDK test harness (see below), 33/38 scanners
+        │  Real-AWS verification  │   external CDK test harness (see below), 36/43 scanners
         └─────────────────────────┘
 ```
 
@@ -46,9 +46,9 @@ One spec per scanner under [`libs/cloud-cost/infrastructure/aws-adapter/src/scan
 
 ### Infra — contract tests (fixture replay)
 
-The scanner specs above build minimal payloads by hand, so they can't tell whether the shape a scanner *expects* still matches what AWS actually *returns*. [`scanner-contract.spec.ts`](../../libs/cloud-cost/infrastructure/aws-adapter/src/scanners/scanner-contract.spec.ts) closes that gap for all 38 scanners ([ADR-0053](../adr/0053-contract-tests-fixture-replay.md)): each kind has a JSON fixture in [`src/testing/contract-fixtures/`](../../libs/cloud-cost/infrastructure/aws-adapter/src/testing/contract-fixtures/) holding full raw responses — `$metadata`, pagination cursors and all — keyed by Command name, plus the exact findings the live run produced; the spec replays the pages through the scanner's whole pipeline (list → type-narrowing → metric → `toEntity` → policy) and asserts the same findings come out. The Command classes stay real (no `jest.mock` of the SDK modules): the only seam is the `send` method on the SDK's shared `Client` base class. A coverage test fails if a `ResourceKind` ever ships without a fixture, and the `ebs-snapshot` fixture doubles as the pagination contract (its expected finding lives on page 2, reachable only by following `NextToken`).
+The scanner specs above build minimal payloads by hand, so they can't tell whether the shape a scanner *expects* still matches what AWS actually *returns*. [`scanner-contract.spec.ts`](../../libs/cloud-cost/infrastructure/aws-adapter/src/scanners/scanner-contract.spec.ts) closes that gap for all 43 scanners ([ADR-0053](../adr/0053-contract-tests-fixture-replay.md)): each kind has a JSON fixture in [`src/testing/contract-fixtures/`](../../libs/cloud-cost/infrastructure/aws-adapter/src/testing/contract-fixtures/) holding full raw responses — `$metadata`, pagination cursors and all — keyed by Command name, plus the exact findings the live run produced; the spec replays the pages through the scanner's whole pipeline (list → type-narrowing → metric → `toEntity` → policy) and asserts the same findings come out. The Command classes stay real (no `jest.mock` of the SDK modules): the only seam is the `send` method on the SDK's shared `Client` base class. A coverage test fails if a `ResourceKind` ever ships without a fixture, and the `ebs-snapshot` fixture doubles as the pagination contract (its expected finding lives on page 2, reachable only by following `NextToken`).
 
-Fixture provenance is recorded in each file's `source` field: 14 were captured from seeded LocalStack by [`scripts/capture-contract-fixtures.mjs`](../../scripts/capture-contract-fixtures.mjs) (rerun it to regenerate them after an SDK bump or a scanner query change — it never overwrites the transcribed ones), and 24 were transcribed from the AWS API reference for the kinds LocalStack Community can't host (elbv2/RDS/EFS/FSx rejected by license, the 10 `--live-pricing` scanners because the Pricing API is a real signed endpoint; `ebs-snapshot` is transcribed instead of captured because moto pre-seeds >1000 canned public snapshots).
+Fixture provenance is recorded in each file's `source` field: 14 were captured from seeded LocalStack by [`scripts/capture-contract-fixtures.mjs`](../../scripts/capture-contract-fixtures.mjs) (rerun it to regenerate them after an SDK bump or a scanner query change — it never overwrites the transcribed ones), and 29 were transcribed from the AWS API reference for the kinds LocalStack Community can't host (elbv2/RDS/EFS/FSx rejected by license, the 10 `--live-pricing` scanners because the Pricing API is a real signed endpoint; `ebs-snapshot` is transcribed instead of captured because moto pre-seeds >1000 canned public snapshots) — plus the 5 scanners added 2026-07-22 (`ami-unused`, `ecr-image-untagged`, `s3-multipart-upload-abandoned`, `rds-manual-snapshot-old`, `secretsmanager-unused`), none of which the capture script covers yet either.
 
 ### CLI e2e
 
@@ -58,7 +58,7 @@ Fixture provenance is recorded in each file's `source` field: 14 were captured f
 
 The specs above mock the AWS SDK, so they verify the *shape* of a query but never actually run the built CLI binary against anything. [`scripts/e2e-localstack.mjs`](../../scripts/e2e-localstack.mjs) closes that gap without real AWS cost or credentials: it starts a [LocalStack](https://www.localstack.cloud/) container (`docker-compose.localstack.yml`), seeds one wasted/optimizable resource per kind (`scripts/seed-localstack.mjs`), runs the built `cloudrift analyze` against it, asserts that every expected `kind` produced a finding, and tears the container down — even on failure. It passes `--all-services` explicitly so the run always covers every scanner regardless of the [interactive picker](../adr/0041-interactive-scanner-selection-wizard.md)'s trigger logic — belt and suspenders, since `spawnSync`'s piped stdout is never a TTY anyway.
 
-Scope is 17 of 38 scanners (see [ADR-0002](../adr/0002-localstack-e2e-scope.md), [ADR-0036](../adr/0036-ec2-underutilized-excluded-from-localstack-e2e.md), and [ADR-0040](../adr/0040-localstack-bumped-4-14-0-cloudwatch-fixed.md)):
+Scope is 17 of 43 scanners (see [ADR-0002](../adr/0002-localstack-e2e-scope.md), [ADR-0036](../adr/0036-ec2-underutilized-excluded-from-localstack-e2e.md), and [ADR-0040](../adr/0040-localstack-bumped-4-14-0-cloudwatch-fixed.md)):
 
 - `rds-instance`, `rds-underutilized`, `elasticache-idle`, `efs-unused` (LocalStack's free Hobby plan doesn't emulate RDS/ElastiCache/EFS) and `ec2-underutilized` (the Pricing API match it needs isn't reliable on Hobby) are excluded entirely and remain covered only by the manual AWS sandbox script below.
 - The 7 scanners added in Phase 5.5 that require `--live-pricing` (`redshift-idle-cluster`, `opensearch-idle-domain`, `msk-idle-cluster`, `documentdb-idle-instance`, `neptune-idle-instance`, `mq-idle-broker`, `workspaces-idle`) are excluded entirely too: the AWS Pricing API is a real signed endpoint that doesn't work against LocalStack's fake credentials.
@@ -161,8 +161,9 @@ Once when phase 3 (the full test pyramid) lands, and afterwards only when CloudW
 
 As the scanner count grew well past what `verify-against-aws.mjs` covers, real-AWS verification moved to a separate deploy/validate/destroy cycle against a real AWS account (a test CDK stack in a sister repo, `cloudrift-cdk-test`, not part of this repository). This is manual, ad hoc, and not wired into CI — it exists to catch the class of bug no mock or LocalStack fixture can (wrong Pricing API `productFamily`/`instanceType` filters, boxed-`String` SDK response shapes, etc.), at a real dollar cost per run.
 
-**Current coverage: 33 of 38 scanners verified against real AWS.** The remaining 5 are deliberately deferred, not an open gap to close on the next pass:
+**Current coverage: 36 of 43 scanners have found real waste against a live AWS account** (33 original + `ami-unused`, `ecr-image-untagged`, `s3-multipart-upload-abandoned`, confirmed 2026-07-22 via the `cloudrift-cdk-test` harness). The remaining 7 split into two different kinds of gap:
 
+- `rds-manual-snapshot-old` and `secretsmanager-unused` ran end-to-end against the same real account with zero SDK/IAM/parsing errors, but found nothing to flag: no manual RDS snapshot existed in the test account to list, and the test secret was younger than the 30-day `unusedDays` grace period. The SDK call and response-shape are confirmed live; the finding-and-policy path is not yet, since nothing matched the waste condition. Re-run once a real manual snapshot exists / the secret ages past 30 days.
 - `rds-underutilized`, `ec2-underutilized`'s sibling `aurora-serverless-overprovisioned`, `sqs-dlq-abandoned`, `eks-node-overprovisioned`, and `environment-ghost` all need resources that have been running with real, organic usage patterns for 7–14 days — not something a short-lived synthetic CDK stack can produce. They require a real production-like account, not more budget on the same kind of test stack.
 
 Real runs so far have found and fixed several bugs invisible to mocks — most notably a shared `PricingClient` construction bug and a boxed-`String` (`instanceof String`, not `typeof === 'string'`) parsing bug in `AwsPricingApiAdapter` that silently zeroed out every on-demand (`--live-pricing`) price. See [ADR-0058](../adr/0058-aws-client-request-timeout.md)/[ADR-0064](../adr/0064-per-client-requesthandler-not-shared.md) for the related per-client-handler pattern this class of bug follows.

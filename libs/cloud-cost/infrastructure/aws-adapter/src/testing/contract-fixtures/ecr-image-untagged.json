@@ -1,0 +1,39 @@
+{
+  "kind": "ecr-image-untagged",
+  "source": "hand-transcribed from the AWS API reference, 2026-07-22 (ECR not seeded in the LocalStack capture script)",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "DescribeRepositoriesCommand": [
+      {
+        "repositories": [{ "repositoryName": "my-repo", "repositoryArn": "arn:aws:ecr:us-east-1:000000000000:repository/my-repo" }],
+        "$metadata": { "httpStatusCode": 200, "requestId": "req-1", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ],
+    "DescribeImagesCommand": [
+      {
+        "imageDetails": [
+          {
+            "imageDigest": "sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef12345678",
+            "repositoryName": "my-repo",
+            "imageSizeInBytes": 1073741824,
+            "imagePushedAt": "2024-01-15T00:00:00.000Z"
+          },
+          {
+            "imageDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111",
+            "repositoryName": "my-repo",
+            "imageTags": ["latest"],
+            "imageSizeInBytes": 1073741824,
+            "imagePushedAt": "2024-01-15T00:00:00.000Z"
+          }
+        ],
+        "$metadata": { "httpStatusCode": 200, "requestId": "req-2", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ]
+  },
+  "expected": {
+    "findings": [
+      { "id": "sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef12345678", "monthlyCostUsd": 0.1 }
+    ]
+  }
+}

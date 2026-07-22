@@ -12,6 +12,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { EC2Client } from '@aws-sdk/client-ec2';
+import { ECRClient } from '@aws-sdk/client-ecr';
 import {
   AwsRegion,
   RESOURCE_KINDS,
@@ -53,6 +54,11 @@ import {
   EnvironmentGhostPolicy,
   EksNodeOverprovisionedPolicy,
   EksOrphanPvcPolicy,
+  AmiUnusedPolicy,
+  EcrImageUntaggedPolicy,
+  S3MultipartUploadAbandonedPolicy,
+  RdsManualSnapshotOldPolicy,
+  SecretsManagerUnusedPolicy,
 } from 'cloud-cost-domain';
 import type { ResourceKind, WasteScannerPort } from 'cloud-cost-domain';
 import { AwsEbsVolumeScanner } from './aws-ebs-volume.scanner';
@@ -93,6 +99,11 @@ import { AwsSageMakerTrainingOrphanedScanner } from './aws-sagemaker-training-or
 import { AwsEnvironmentGhostScanner } from './aws-environment-ghost.scanner';
 import { AwsEksNodeOverprovisionedScanner } from './aws-eks-node-overprovisioned.scanner';
 import { AwsEksOrphanPvcScanner } from './aws-eks-orphan-pvc.scanner';
+import { AwsAmiUnusedScanner } from './aws-ami-unused.scanner';
+import { AwsEcrImageUntaggedScanner } from './aws-ecr-image-untagged.scanner';
+import { AwsS3MultipartUploadAbandonedScanner } from './aws-s3-multipart-upload-abandoned.scanner';
+import { AwsRdsManualSnapshotOldScanner } from './aws-rds-manual-snapshot-old.scanner';
+import { AwsSecretsManagerUnusedScanner } from './aws-secretsmanager-unused.scanner';
 import { StaticPriceTableAdapter } from '../pricing/static-price-table.adapter';
 
 interface ContractFixture {
@@ -120,21 +131,27 @@ const fixtures = readdirSync(FIXTURES_DIR)
   .sort()
   .map(loadFixture);
 
-// Every @aws-sdk/client-* class extends the same Client base instance —
-// stubbing its `send` intercepts every SDK call from every scanner without
-// jest.mock'ing 20 modules (and keeps the Command classes real).
-const clientBase = Object.getPrototypeOf(EC2Client) as {
-  prototype: { send: (...args: unknown[]) => Promise<unknown> };
-};
-const realSend = clientBase.prototype.send;
+// Every @aws-sdk/client-* class extends a shared Client base instance —
+// stubbing its `send` intercepts every SDK call from every scanner using that
+// base without jest.mock'ing 20 modules (and keeps the Command classes real).
+// As of the ECR/Secrets Manager clients (added 2026-07-22), pnpm resolved a
+// newer @smithy/core for those two than the one EC2/RDS/S3/... share, so they
+// extend a *different* Client base object — hence patching two bases, not
+// one (verified empirically: EC2Client/RDSClient/S3Client's base is the same
+// object and distinct from ECRClient/SecretsManagerClient's).
+type ClientBase = { prototype: { send: (...args: unknown[]) => Promise<unknown> } };
+const clientBases = [Object.getPrototypeOf(EC2Client), Object.getPrototypeOf(ECRClient)] as ClientBase[];
+const realSends = clientBases.map((base) => base.prototype.send);
 afterAll(() => {
-  clientBase.prototype.send = realSend;
+  clientBases.forEach((base, i) => {
+    base.prototype.send = realSends[i];
+  });
 });
 
 /** Serves fixture pages by Command name, in call order (last page repeats). */
 function serveFixturePages(pages: ContractFixture['pages']): void {
   const consumed: Record<string, number> = {};
-  clientBase.prototype.send = async function (command: unknown) {
+  const fakeSend = async function (command: unknown) {
     const name = (command as { constructor: { name: string } }).constructor.name;
     const list = pages[name];
     if (!list || list.length === 0) {
@@ -146,7 +163,10 @@ function serveFixturePages(pages: ContractFixture['pages']): void {
     const error = page['$error'] as { name: string; message: string } | undefined;
     if (error) throw Object.assign(new Error(error.message), { name: error.name });
     return page;
-  } as typeof realSend;
+  };
+  for (const base of clientBases) {
+    base.prototype.send = fakeSend as typeof realSends[number];
+  }
 }
 
 const pricing = new StaticPriceTableAdapter();
@@ -228,6 +248,14 @@ const scannerFactories: Record<ResourceKind, () => WasteScannerPort> = {
   'eks-node-overprovisioned': () =>
     new AwsEksNodeOverprovisionedScanner(livePrices, ACCOUNT, new EksNodeOverprovisionedPolicy(po, 30)),
   'eks-orphan-pvc': () => new AwsEksOrphanPvcScanner(pricing, ACCOUNT, new EksOrphanPvcPolicy(po)),
+  'ami-unused': () => new AwsAmiUnusedScanner(pricing, ACCOUNT, new AmiUnusedPolicy(po)),
+  'ecr-image-untagged': () => new AwsEcrImageUntaggedScanner(pricing, ACCOUNT, new EcrImageUntaggedPolicy(po)),
+  's3-multipart-upload-abandoned': () =>
+    new AwsS3MultipartUploadAbandonedScanner(pricing, ACCOUNT, new S3MultipartUploadAbandonedPolicy(po)),
+  'rds-manual-snapshot-old': () =>
+    new AwsRdsManualSnapshotOldScanner(pricing, ACCOUNT, new RdsManualSnapshotOldPolicy(po)),
+  'secretsmanager-unused': () =>
+    new AwsSecretsManagerUnusedScanner(pricing, ACCOUNT, new SecretsManagerUnusedPolicy(po)),
 };
 
 const byId = (a: { id: string }, b: { id: string }) => a.id.localeCompare(b.id);

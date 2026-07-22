@@ -4,7 +4,7 @@
 
 ## Context
 
-A competitive analysis (aws-finops-dashboard, Infracost, Cloud Custodian) surfaced AWS services with a fixed at-rest cost that cloudrift did not yet cover. Redshift specifically had been deferred since [ADR-0003](0003-redshift-deferred.md).
+A review of AWS services with a fixed at-rest cost surfaced several cloudrift did not yet cover. Redshift specifically had been deferred since [ADR-0003](0003-redshift-deferred.md).
 
 ## Decision
 

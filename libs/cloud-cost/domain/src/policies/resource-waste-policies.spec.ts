@@ -18,6 +18,11 @@ import {
   EfsUnusedPolicy,
   DynamoDbOverprovisionedPolicy,
   ElastiCacheIdlePolicy,
+  AmiUnusedPolicy,
+  EcrImageUntaggedPolicy,
+  S3MultipartUploadAbandonedPolicy,
+  RdsManualSnapshotOldPolicy,
+  SecretsManagerUnusedPolicy,
 } from './resource-waste-policies';
 import { DEFAULT_IGNORE_TAG, DEFAULT_MIN_AGE_DAYS } from './waste-policy';
 import { EbsVolume } from '../entities/ebs-volume.entity';
@@ -40,6 +45,11 @@ import { UnderutilizedLambdaFunction } from '../entities/underutilized-lambda-fu
 import { EfsFileSystem } from '../entities/efs-file-system.entity';
 import { OverprovisionedDynamoDbTable } from '../entities/overprovisioned-dynamodb-table.entity';
 import { IdleElastiCacheCluster } from '../entities/idle-elasticache-cluster.entity';
+import { AmiUnused } from '../entities/ami-unused.entity';
+import { EcrImageUntagged } from '../entities/ecr-image-untagged.entity';
+import { S3MultipartUploadAbandoned } from '../entities/s3-multipart-upload-abandoned.entity';
+import { RdsManualSnapshotOld } from '../entities/rds-manual-snapshot-old.entity';
+import { SecretsManagerUnused } from '../entities/secretsmanager-unused.entity';
 import type { EbsSnapshotProps } from '../entities/ebs-snapshot.entity';
 import type { Ec2InstanceProps } from '../entities/ec2-instance.entity';
 import { AwsRegion } from '../value-objects/aws-region.value-object';
@@ -806,5 +816,150 @@ describe('ElastiCacheIdlePolicy', () => {
 
   it('does not flag a freshly created cluster (grace period)', () => {
     expect(policy.evaluate(makeCluster(0, yesterday), now).isWaste).toBe(false);
+  });
+});
+
+function makeAmi(overrides: { creationDate?: Date; inUse?: boolean } = {}): AmiUnused {
+  return new AmiUnused({
+    imageId: 'ami-1',
+    region,
+    accountId: '123456789012',
+    name: 'my-ami',
+    creationDate: overrides.creationDate ?? oldDate,
+    detectedAt: now,
+    inUse: overrides.inUse ?? false,
+    totalSnapshotSizeGb: 20,
+    tags: {},
+    monthlyCostUsd: 1,
+  });
+}
+
+describe('AmiUnusedPolicy', () => {
+  const policy = new AmiUnusedPolicy();
+
+  it('flags an old AMI not referenced by any instance or launch template', () => {
+    expect(policy.evaluate(makeAmi(), now).isWaste).toBe(true);
+  });
+
+  it('does not flag an AMI referenced by an instance/launch template', () => {
+    expect(policy.evaluate(makeAmi({ inUse: true }), now).isWaste).toBe(false);
+  });
+
+  it('does not flag a freshly created AMI (grace period)', () => {
+    expect(policy.evaluate(makeAmi({ creationDate: yesterday }), now).isWaste).toBe(false);
+  });
+});
+
+function makeEcrImage(overrides: { imagePushedAt?: Date } = {}): EcrImageUntagged {
+  return new EcrImageUntagged({
+    imageDigest: 'sha256:abc',
+    region,
+    accountId: '123456789012',
+    repositoryName: 'my-repo',
+    sizeBytes: 1024 ** 3,
+    imagePushedAt: overrides.imagePushedAt ?? oldDate,
+    detectedAt: now,
+    tags: {},
+    monthlyCostUsd: 0.1,
+  });
+}
+
+describe('EcrImageUntaggedPolicy', () => {
+  const policy = new EcrImageUntaggedPolicy();
+
+  it('flags an old untagged image', () => {
+    expect(policy.evaluate(makeEcrImage(), now).isWaste).toBe(true);
+  });
+
+  it('does not flag a freshly pushed image (grace period)', () => {
+    expect(policy.evaluate(makeEcrImage({ imagePushedAt: yesterday }), now).isWaste).toBe(false);
+  });
+});
+
+function makeUpload(overrides: { initiated?: Date } = {}): S3MultipartUploadAbandoned {
+  return new S3MultipartUploadAbandoned({
+    uploadId: 'upload-1',
+    region,
+    accountId: '123456789012',
+    bucketName: 'my-bucket',
+    key: 'file.zip',
+    uploadedBytes: 1024 ** 3,
+    initiated: overrides.initiated ?? oldDate,
+    detectedAt: now,
+    tags: {},
+    monthlyCostUsd: 0.02,
+  });
+}
+
+describe('S3MultipartUploadAbandonedPolicy', () => {
+  const policy = new S3MultipartUploadAbandonedPolicy();
+
+  it('flags an old abandoned upload', () => {
+    expect(policy.evaluate(makeUpload(), now).isWaste).toBe(true);
+  });
+
+  it('does not flag a freshly initiated upload (grace period)', () => {
+    expect(policy.evaluate(makeUpload({ initiated: yesterday }), now).isWaste).toBe(false);
+  });
+});
+
+function makeRdsSnapshot(overrides: { snapshotCreateTime?: Date } = {}): RdsManualSnapshotOld {
+  return new RdsManualSnapshotOld({
+    snapshotId: 'snap-1',
+    region,
+    accountId: '123456789012',
+    sourceDbInstanceId: 'my-db',
+    engine: 'postgres',
+    allocatedStorageGb: 100,
+    snapshotCreateTime: overrides.snapshotCreateTime ?? oldDate,
+    detectedAt: now,
+    tags: {},
+    monthlyCostUsd: 9.5,
+  });
+}
+
+describe('RdsManualSnapshotOldPolicy', () => {
+  const policy = new RdsManualSnapshotOldPolicy();
+
+  it('flags an old manual snapshot', () => {
+    expect(policy.evaluate(makeRdsSnapshot(), now).isWaste).toBe(true);
+  });
+
+  it('does not flag a freshly created snapshot (grace period)', () => {
+    expect(policy.evaluate(makeRdsSnapshot({ snapshotCreateTime: yesterday }), now).isWaste).toBe(false);
+  });
+});
+
+function makeSecret(overrides: { createdDate?: Date; lastAccessedDate?: Date } = {}): SecretsManagerUnused {
+  return new SecretsManagerUnused({
+    arn: 'arn:aws:secretsmanager:us-east-1:123456789012:secret:my-secret-abc',
+    region,
+    accountId: '123456789012',
+    name: 'my-secret',
+    createdDate: overrides.createdDate ?? oldDate,
+    lastAccessedDate: overrides.lastAccessedDate,
+    detectedAt: now,
+    tags: {},
+    monthlyCostUsd: 0.4,
+  });
+}
+
+describe('SecretsManagerUnusedPolicy', () => {
+  const policy = new SecretsManagerUnusedPolicy();
+
+  it('flags a secret never accessed and older than the unused threshold', () => {
+    expect(policy.evaluate(makeSecret(), now).isWaste).toBe(true);
+  });
+
+  it('does not flag a recently created, never-accessed secret', () => {
+    expect(policy.evaluate(makeSecret({ createdDate: yesterday }), now).isWaste).toBe(false);
+  });
+
+  it('flags a secret not accessed within the unused threshold', () => {
+    expect(policy.evaluate(makeSecret({ lastAccessedDate: oldDate }), now).isWaste).toBe(true);
+  });
+
+  it('does not flag a secret accessed recently', () => {
+    expect(policy.evaluate(makeSecret({ lastAccessedDate: yesterday }), now).isWaste).toBe(false);
   });
 });

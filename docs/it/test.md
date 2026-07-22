@@ -10,18 +10,18 @@ Questo documento descrive la piramide dei test di cloudrift: cosa copre ciascun 
         ┌─────────────────────────┐
         │   CLI e2e (apps/cli)    │   a livello comando: formato, exit code, artefatti
         ├─────────────────────────┤
-        │  Infra (contract test)  │   fixture di risposte reali riprodotte: shape → findings, 38/38
+        │  Infra (contract test)  │   fixture di risposte reali riprodotte: shape → findings, 43/43
         ├─────────────────────────┤
         │  Infra (scanner spec)   │   SDK AWS mockato: forma della query, paginazione, errori
         ├─────────────────────────┤
         │  Dominio (entity/policy)│   logica pura: regole di spreco, boundary, niente I/O
         └─────────────────────────┘
         ┌─────────────────────────┐
-        │  e2e LocalStack (free)  │   scripts/e2e-localstack.mjs (questo doc), 17/38 scanner
+        │  e2e LocalStack (free)  │   scripts/e2e-localstack.mjs (questo doc), 17/43 scanner
         ├─────────────────────────┤
         │  Verifica manuale AWS   │   scripts/verify-against-aws.mjs (questo doc)
         ├─────────────────────────┤
-        │  Verifica AWS reale     │   harness CDK esterno (vedi sotto), 33/38 scanner
+        │  Verifica AWS reale     │   harness CDK esterno (vedi sotto), 36/43 scanner
         └─────────────────────────┘
 ```
 
@@ -46,9 +46,9 @@ Uno spec per scanner in [`libs/cloud-cost/infrastructure/aws-adapter/src/scanner
 
 ### Infra — contract test (replay di fixture)
 
-Gli scanner spec qui sopra costruiscono payload minimi a mano, quindi non possono dire se la shape che uno scanner *si aspetta* corrisponde ancora a quella che AWS *restituisce* davvero. [`scanner-contract.spec.ts`](../../libs/cloud-cost/infrastructure/aws-adapter/src/scanners/scanner-contract.spec.ts) chiude questo gap per tutti i 38 scanner ([ADR-0053](../adr/0053-contract-tests-fixture-replay.md)): ogni kind ha una fixture JSON in [`src/testing/contract-fixtures/`](../../libs/cloud-cost/infrastructure/aws-adapter/src/testing/contract-fixtures/) con le risposte raw complete — `$metadata`, cursori di paginazione e tutto — indicizzate per nome del Command, più i findings esatti prodotti dall'esecuzione live; lo spec riproduce le pagine attraverso l'intera pipeline dello scanner (list → type-narrowing → metrica → `toEntity` → policy) e verifica che escano gli stessi findings. Le classi Command restano reali (nessun `jest.mock` dei moduli SDK): l'unico seam è il metodo `send` della classe base `Client` condivisa dall'SDK. Un test di copertura fallisce se un `ResourceKind` arriva mai senza fixture, e la fixture `ebs-snapshot` fa anche da contratto di paginazione (il finding atteso vive a pagina 2, raggiungibile solo seguendo `NextToken`).
+Gli scanner spec qui sopra costruiscono payload minimi a mano, quindi non possono dire se la shape che uno scanner *si aspetta* corrisponde ancora a quella che AWS *restituisce* davvero. [`scanner-contract.spec.ts`](../../libs/cloud-cost/infrastructure/aws-adapter/src/scanners/scanner-contract.spec.ts) chiude questo gap per tutti i 43 scanner ([ADR-0053](../adr/0053-contract-tests-fixture-replay.md)): ogni kind ha una fixture JSON in [`src/testing/contract-fixtures/`](../../libs/cloud-cost/infrastructure/aws-adapter/src/testing/contract-fixtures/) con le risposte raw complete — `$metadata`, cursori di paginazione e tutto — indicizzate per nome del Command, più i findings esatti prodotti dall'esecuzione live; lo spec riproduce le pagine attraverso l'intera pipeline dello scanner (list → type-narrowing → metrica → `toEntity` → policy) e verifica che escano gli stessi findings. Le classi Command restano reali (nessun `jest.mock` dei moduli SDK): l'unico seam è il metodo `send` della classe base `Client` condivisa dall'SDK. Un test di copertura fallisce se un `ResourceKind` arriva mai senza fixture, e la fixture `ebs-snapshot` fa anche da contratto di paginazione (il finding atteso vive a pagina 2, raggiungibile solo seguendo `NextToken`).
 
-La provenienza di ogni fixture è registrata nel suo campo `source`: 14 sono state catturate da LocalStack seedato con [`scripts/capture-contract-fixtures.mjs`](../../scripts/capture-contract-fixtures.mjs) (rilanciarlo per rigenerarle dopo un bump dell'SDK o un cambio di query di uno scanner — non sovrascrive mai quelle trascritte), e 24 sono state trascritte dalla reference API AWS per i kind che LocalStack Community non può ospitare (elbv2/RDS/EFS/FSx rifiutati per licenza, i 10 scanner `--live-pricing` perché la Pricing API è un endpoint reale firmato; `ebs-snapshot` è trascritta invece che catturata perché moto pre-popola >1000 snapshot pubbliche di catalogo).
+La provenienza di ogni fixture è registrata nel suo campo `source`: 14 sono state catturate da LocalStack seedato con [`scripts/capture-contract-fixtures.mjs`](../../scripts/capture-contract-fixtures.mjs) (rilanciarlo per rigenerarle dopo un bump dell'SDK o un cambio di query di uno scanner — non sovrascrive mai quelle trascritte), e 29 sono state trascritte dalla reference API AWS per i kind che LocalStack Community non può ospitare (elbv2/RDS/EFS/FSx rifiutati per licenza, i 10 scanner `--live-pricing` perché la Pricing API è un endpoint reale firmato; `ebs-snapshot` è trascritta invece che catturata perché moto pre-popola >1000 snapshot pubbliche di catalogo) — più i 5 scanner aggiunti il 2026-07-22 (`ami-unused`, `ecr-image-untagged`, `s3-multipart-upload-abandoned`, `rds-manual-snapshot-old`, `secretsmanager-unused`), nessuno dei quali ancora coperto dallo script di cattura.
 
 ### CLI e2e
 
@@ -58,7 +58,7 @@ La provenienza di ogni fixture è registrata nel suo campo `source`: 14 sono sta
 
 Gli spec sopra mockano l'SDK AWS, quindi verificano la *forma* di una query ma non lanciano mai davvero il binario CLI buildato contro qualcosa. [`scripts/e2e-localstack.mjs`](../../scripts/e2e-localstack.mjs) chiude questo gap senza costi né credenziali AWS reali: avvia un container [LocalStack](https://www.localstack.cloud/) (`docker-compose.localstack.yml`), semina una risorsa sprecata/ottimizzabile per ogni kind (`scripts/seed-localstack.mjs`), lancia `cloudrift analyze` buildato contro quel container, verifica che ogni kind atteso produca un finding, e smonta il container — anche in caso di fallimento. Passa `--all-services` esplicitamente così l'esecuzione copre sempre tutti gli scanner indipendentemente dalla logica di trigger del [picker interattivo](../adr/0041-interactive-scanner-selection-wizard.md) — cintura e bretelle, dato che lo stdout in pipe di `spawnSync` non è comunque mai un TTY.
 
-Lo scope è 17 dei 38 scanner (vedi [ADR-0002](../adr/0002-localstack-e2e-scope.md), [ADR-0036](../adr/0036-ec2-underutilized-excluded-from-localstack-e2e.md) e [ADR-0040](../adr/0040-localstack-bumped-4-14-0-cloudwatch-fixed.md)):
+Lo scope è 17 dei 43 scanner (vedi [ADR-0002](../adr/0002-localstack-e2e-scope.md), [ADR-0036](../adr/0036-ec2-underutilized-excluded-from-localstack-e2e.md) e [ADR-0040](../adr/0040-localstack-bumped-4-14-0-cloudwatch-fixed.md)):
 
 - `rds-instance`, `rds-underutilized`, `elasticache-idle`, `efs-unused` (il piano Hobby gratuito di LocalStack non emula RDS/ElastiCache/EFS) ed `ec2-underutilized` (il match con la Pricing API di cui ha bisogno non è affidabile sul piano Hobby) sono esclusi del tutto e restano coperti solo dallo script di verifica manuale AWS più sotto.
 - I 7 scanner della Fase 5.5 che richiedono `--live-pricing` (`redshift-idle-cluster`, `opensearch-idle-domain`, `msk-idle-cluster`, `documentdb-idle-instance`, `neptune-idle-instance`, `mq-idle-broker`, `workspaces-idle`) sono esclusi anch'essi del tutto: la Pricing API AWS è un endpoint reale firmato che non funziona con le credenziali fittizie di LocalStack.
@@ -160,8 +160,9 @@ Una volta all'atterraggio della fase 3 (la piramide dei test completa), poi solo
 
 Con la crescita del numero di scanner ben oltre quanto copre `verify-against-aws.mjs`, la verifica su AWS reale si è spostata su un ciclo separato di deploy/validate/destroy contro un account AWS reale (uno stack CDK di test in un repo gemello, `cloudrift-cdk-test`, non parte di questo repository). È manuale, ad hoc, e non cablato in CI — esiste per intercettare la classe di bug che nessun mock o fixture LocalStack può vedere (filtri `productFamily`/`instanceType` sbagliati nella Pricing API, shape SDK con `String` boxed, ecc.), a un costo reale in dollari per ogni run.
 
-**Copertura attuale: 33 dei 38 scanner verificati contro AWS reale.** I restanti 5 sono deliberatamente deferiti, non un gap aperto da chiudere al prossimo giro:
+**Copertura attuale: 36 dei 43 scanner hanno trovato uno spreco reale su un account AWS live** (33 originali + `ami-unused`, `ecr-image-untagged`, `s3-multipart-upload-abandoned`, confermati il 2026-07-22 tramite l'harness `cloudrift-cdk-test`). I restanti 7 si dividono in due tipi di gap diversi:
 
+- `rds-manual-snapshot-old` e `secretsmanager-unused` sono girati end-to-end sullo stesso account reale senza nessun errore SDK/IAM/parsing, ma senza trovare nulla da segnalare: nessuno snapshot RDS manuale era presente nell'account di test da listare, e il secret di test era più giovane del grace period di 30 giorni (`unusedDays`). La chiamata SDK e la shape della risposta sono confermate live; il percorso finding+policy non ancora, perché nulla ha soddisfatto la condizione di spreco. Da rilanciare quando esiste uno snapshot manuale reale / il secret supera i 30 giorni.
 - `rds-underutilized`, `aurora-serverless-overprovisioned`, `sqs-dlq-abandoned`, `eks-node-overprovisioned` ed `environment-ghost` richiedono tutti risorse rimaste attive con pattern d'uso reali e organici per 7–14 giorni — non qualcosa che uno stack CDK sintetico di breve durata può produrre. Serve un account reale in stile produzione, non più budget sullo stesso tipo di stack di test.
 
 I run reali fatti finora hanno trovato e sistemato diversi bug invisibili ai mock — in particolare un bug nella costruzione condivisa del `PricingClient` e un bug di parsing su `String` boxed (`instanceof String`, non `typeof === 'string'`) in `AwsPricingApiAdapter` che azzerava silenziosamente ogni prezzo on-demand (`--live-pricing`). Vedi [ADR-0058](../adr/0058-aws-client-request-timeout.md)/[ADR-0064](../adr/0064-per-client-requesthandler-not-shared.md) per il pattern per-client-handler collegato a questa classe di bug.

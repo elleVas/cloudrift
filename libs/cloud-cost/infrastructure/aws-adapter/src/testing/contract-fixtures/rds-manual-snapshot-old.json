@@ -1,0 +1,25 @@
+{
+  "kind": "rds-manual-snapshot-old",
+  "source": "hand-transcribed from the AWS API reference, 2026-07-22 (manual RDS snapshots not seeded in the LocalStack capture script)",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "DescribeDBSnapshotsCommand": [
+      {
+        "DBSnapshots": [
+          {
+            "DBSnapshotIdentifier": "my-db-final-snapshot",
+            "DBInstanceIdentifier": "my-db",
+            "Engine": "postgres",
+            "AllocatedStorage": 100,
+            "SnapshotCreateTime": "2024-01-15T00:00:00.000Z",
+            "SnapshotType": "manual",
+            "TagList": []
+          }
+        ],
+        "$metadata": { "httpStatusCode": 200, "requestId": "req-1", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ]
+  },
+  "expected": { "findings": [{ "id": "my-db-final-snapshot", "monthlyCostUsd": 9.5 }] }
+}

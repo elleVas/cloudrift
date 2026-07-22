@@ -85,7 +85,7 @@ try {
 
 ## `CloudWatchIdleScanner` — template method condiviso per gli scanner CloudWatch
 
-**Scelta:** 23 dei 38 scanner estendono la classe astratta `CloudWatchIdleScanner<TPrimaryClient, TRaw, TMetric, TEntity>` (`scanners/cloudwatch-idle.scanner.ts`) invece di scrivere il proprio `scan()`.
+**Scelta:** 23 dei 43 scanner estendono la classe astratta `CloudWatchIdleScanner<TPrimaryClient, TRaw, TMetric, TEntity>` (`scanners/cloudwatch-idle.scanner.ts`) invece di scrivere il proprio `scan()`.
 
 **Perché:** questi 23 scanner condividono la stessa forma — creano un client, elencano i candidati, recuperano una metrica CloudWatch per candidato (alcuni risolvono in più un prezzo live per-tipo), mappano a un'entità, applicano la policy, wrappano gli errori, distruggono il client. La base class possiede quel lifecycle; uno scanner concreto implementa solo `createPrimaryClient`/`destroyPrimaryClient`/`listResources`/`fetchMetric`/`toEntity`, più un `resolvePrices` opzionale per i 12 gated da `--live-pricing`. Vedi [ADR-0044](../adr/0044-cloudwatch-idle-scanner-template-method.md).
 

@@ -4,7 +4,7 @@
 
 ## Context
 
-cloudrift covers 29 resource kinds with a generalist approach: EBS, EC2, RDS, networking, and a broad set of "idle/underutilized" scanners added through v0.4.0/v0.5.0. That breadth is complete enough that the next unit of differentiation isn't a 30th generalist scanner — it's depth in niches competitors and native AWS tools (Cost Explorer, Compute Optimizer) don't look at: Kubernetes (EKS), AI/ML (SageMaker), serverless database (Aurora Serverless v2), ephemeral environments (Dev/PR), and event-driven hygiene (SQS DLQs, orphaned Lambda log groups).
+cloudrift covers 29 resource kinds with a generalist approach: EBS, EC2, RDS, networking, and a broad set of "idle/underutilized" scanners added through v0.4.0/v0.5.0. That breadth is complete enough that the next unit of differentiation isn't a 30th generalist scanner — it's depth in niches native AWS tools (Cost Explorer, Compute Optimizer) don't look at: Kubernetes (EKS), AI/ML (SageMaker), serverless database (Aurora Serverless v2), ephemeral environments (Dev/PR), and event-driven hygiene (SQS DLQs, orphaned Lambda log groups).
 
 The existing `WasteScannerPort` + `WastePolicy` + declarative scanner registry ([ADR-0043](0043-declarative-scanner-registry.md)) already makes adding a scanner a mechanical, testable operation — no changes needed to the use case, DTO, or report layer. This is what makes 8 new scanners across 5 verticals tractable as a single phase rather than 8 separate initiatives.
 
