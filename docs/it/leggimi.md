@@ -27,9 +27,9 @@
 
 ### Prerequisiti
 
-- **Node.js 18+** — verifica con `node --version`
+- **Node.js 20+** — verifica con `node --version`
 - **Credenziali AWS** con permessi in sola lettura (vedi sezione [Permessi IAM](#permessi-iam-necessari) qui sotto)
-- **pnpm** — necessario per compilare dai sorgenti (`npm install -g pnpm`)
+- **pnpm** — necessario solo per compilare dai sorgenti (`npm install -g pnpm`)
 
 ---
 
@@ -39,15 +39,13 @@ Segui questi passi nell'ordine per passare da zero all'output del tool.
 
 #### Passo 1 — Installa
 
-**Una volta pubblicato `@cloudrift/cli`** (vedi la nota alla fine di questa sezione):
-
 ```sh
 npm install -g @cloudrift/cli
 # oppure eseguilo una tantum, senza installarlo:
 npx @cloudrift/cli analyze
 ```
 
-**Dai sorgenti, oggi** (anche il percorso per contribuire):
+**Dai sorgenti** (per contribuire, o per eseguire modifiche non ancora rilasciate):
 
 ```sh
 git clone <repo-url>
@@ -94,7 +92,7 @@ L'utente/ruolo AWS deve avere la policy elencata nella sezione [Permessi IAM](#p
 #### Passo 4 — Esegui
 
 ```sh
-# con npm install (una volta pubblicato):
+# con npm install:
 cloudrift analyze                              # scansione su us-east-1 (default)
 cloudrift analyze -r us-east-1 eu-west-1       # scansione su più regioni
 
@@ -104,8 +102,6 @@ node apps/cli/dist/main.js analyze -r us-east-1 eu-west-1
 ```
 
 L'account ID viene rilevato automaticamente via STS. Se tutto è configurato correttamente vedrai tabelle con le risorse sprecate trovate e il totale stimato. Se un account non ha risorse sprecate vedrai un messaggio "No wasted resources found".
-
-> **Nessun pacchetto npm ancora.** `@cloudrift/cli` non è pubblicato su npm — il [workflow di rilascio](#rilascio) esiste ma non è ancora stato attivato con un tag di versione. Per ora usa il percorso "Dai sorgenti" qui sopra; il resto di questo documento usa quindi `node apps/cli/dist/main.js …`. Vedi [rilascio.md](rilascio.md) per il processo di pubblicazione.
 
 ---
 
@@ -363,7 +359,7 @@ cloudrift è pensato per girare dentro le pipeline, non solo nel terminale. Due 
 1. `--format markdown` produce un commento pronto per le Pull Request (totali, breakdown, raccomandazioni principali).
 2. `costAlertThresholdUsd` nel config fa **uscire con codice 2** quando lo spreco supera il budget, facendo fallire il job.
 
-**GitHub Actions — come azione riutilizzabile.** [`action.yml`](../../action.yml) nella root del repo incapsula `npm install -g @cloudrift/cli` + `cloudrift analyze`, pubblica il report markdown nel job summary, e fa fallire il job con gli stessi exit code della CLI (`2` = oltre budget). Installa `@cloudrift/cli` da npm internamente, quindi funziona solo una volta pubblicato il pacchetto — fino ad allora usa l'esempio da sorgenti qui sotto.
+**GitHub Actions — come azione riutilizzabile.** [`action.yml`](../../action.yml) nella root del repo incapsula `npm install -g @cloudrift/cli` + `cloudrift analyze`, pubblica il report markdown nel job summary, e fa fallire il job con gli stessi exit code della CLI (`2` = oltre budget).
 
 ```yaml
 name: Cloud cost check
@@ -385,7 +381,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - uses: elleVas/cloudrift@v0.5.0
+      - uses: elleVas/cloudrift@v0.5.1
         with:
           regions: us-east-1 eu-west-1
           config: cloudrift.config.json
@@ -393,7 +389,7 @@ jobs:
 
 Con un `cloudrift.config.json` committato (`{"costAlertThresholdUsd": 500}`), l'azione fa fallire il check automaticamente quando lo spreco supera il budget — la pipeline si blocca quando nuove risorse lo spingono oltre la soglia. Vedi `action.yml` per tutti gli input (`live-pricing`, `scanners`, `min-age-days`, `ignore-tag`, `pdf`, `json`, `format`, `version`, …) e gli output `report`/`exit-code`.
 
-**GitHub Actions — compilando dai sorgenti (funziona già oggi, prima che azione/pacchetto npm siano pubblicati):**
+**GitHub Actions — compilando dai sorgenti:** alternativa se preferisci puntare a un commit non ancora rilasciato invece che a una versione pubblicata.
 
 ```yaml
 name: Cloud cost check

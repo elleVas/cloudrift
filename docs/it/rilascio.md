@@ -2,7 +2,7 @@
 
 > 🇬🇧 [English version](../en/releasing.md)
 
-Questo documento descrive come il pacchetto npm viene buildato e pubblicato. È pensato per i manutentori — agli utenti basta il [Leggimi](leggimi.md#guida-rapida) (non è ancora stata pubblicata nessuna versione, quindi oggi l'unico percorso è compilare dai sorgenti).
+Questo documento descrive come il pacchetto npm viene buildato e pubblicato. È pensato per i manutentori — agli utenti basta il [Leggimi](leggimi.md#guida-rapida).
 
 ## Cosa viene pubblicato
 
@@ -67,7 +67,7 @@ Il pacchetto punta a **Node 20+** (`engines`). Il bundle è CommonJS, quindi ogn
 
 ## GitHub Action
 
-[`action.yml`](../../action.yml) nella root del repo è un'azione composita che installa `@cloudrift/cli` da npm ed esegue `cloudrift analyze`, quindi `uses: elleVas/cloudrift@v<versione>` funziona solo una volta che la versione referenziata è effettivamente pubblicata su npm (stesso gate di tutto il resto in questo documento). Dopo un rilascio, verificala con un run `workflow_dispatch` in un workflow usa-e-getta prima di puntarci consumer reali — oggi nessuna CI esercita `action.yml`.
+[`action.yml`](../../action.yml) nella root del repo è un'azione composita che installa `@cloudrift/cli` da npm ed esegue `cloudrift analyze`, quindi `uses: elleVas/cloudrift@v<versione>` funziona una volta che la versione referenziata è pubblicata su npm. Dopo un rilascio, verificala con un run `workflow_dispatch` in un workflow usa-e-getta prima di puntarci consumer reali — oggi nessuna CI esercita `action.yml`.
 
 ## Homebrew (dopo il primo publish npm)
 

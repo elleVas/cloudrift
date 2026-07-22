@@ -9,7 +9,7 @@ cloudrift is built to run inside pipelines, not just a terminal. Two ingredients
 1. `--format markdown` produces a Pull-Request-ready comment (totals, breakdown, top recommendations).
 2. `costAlertThresholdUsd` in the config (see [Configuration file](./configuration.md)) makes the command **exit 2** when waste exceeds the budget, which fails the job.
 
-**GitHub Actions — as a reusable action.** [`action.yml`](../../action.yml) at the repo root wraps `npm install -g @cloudrift/cli` + `cloudrift analyze`, posts the markdown report to the job summary, and fails the job on the same exit codes as the CLI (`2` = over budget). It installs `@cloudrift/cli` from npm under the hood, so it only works once the package is published — until then, use the source-build example below.
+**GitHub Actions — as a reusable action.** [`action.yml`](../../action.yml) at the repo root wraps `npm install -g @cloudrift/cli` + `cloudrift analyze`, posts the markdown report to the job summary, and fails the job on the same exit codes as the CLI (`2` = over budget).
 
 ```yaml
 name: Cloud cost check
@@ -31,7 +31,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - uses: elleVas/cloudrift@v0.5.0
+      - uses: elleVas/cloudrift@v0.5.1
         with:
           regions: us-east-1 eu-west-1
           config: cloudrift.config.json
@@ -39,7 +39,7 @@ jobs:
 
 With a `cloudrift.config.json` committed (`{"costAlertThresholdUsd": 500}`), the action fails the check automatically when waste exceeds the budget — the pipeline blocks when newly created resources push it over the threshold. See `action.yml` for every input (`live-pricing`, `scanners`, `min-age-days`, `ignore-tag`, `pdf`, `json`, `format`, `version`, …) and the `report`/`exit-code` outputs.
 
-**GitHub Actions — building from source (works today, before the action/npm package are published):**
+**GitHub Actions — building from source:** an alternative if you'd rather pin to an unreleased commit instead of a published version.
 
 ```yaml
 name: Cloud cost check

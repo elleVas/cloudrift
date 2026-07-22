@@ -24,9 +24,9 @@
 
 ### Prerequisites
 
-- **Node.js 18+** — check with `node --version`
+- **Node.js 20+** — check with `node --version`
 - **AWS credentials** with read-only permissions (see [Required IAM permissions](https://github.com/elleVas/cloudrift/blob/main/docs/en/iam-permissions.md))
-- **pnpm** — required to build from source (`npm install -g pnpm`)
+- **pnpm** — only needed if building from source (`npm install -g pnpm`)
 
 ---
 
@@ -36,15 +36,13 @@ Follow these steps in order to go from zero to seeing output.
 
 #### Step 1 — Install
 
-**Once `@cloudrift/cli` is published** (see the note at the end of this section):
-
 ```sh
 npm install -g @cloudrift/cli
 # or run it once-off, without installing:
 npx @cloudrift/cli analyze
 ```
 
-**From source, today** (also the path for contributing):
+**From source** (for contributing, or to run unreleased changes):
 
 ```sh
 git clone <repo-url>
@@ -91,7 +89,7 @@ The AWS user/role must have the policy listed in [Required IAM permissions](http
 #### Step 4 — Run
 
 ```sh
-# npm install (once published):
+# npm install:
 cloudrift analyze                              # scan us-east-1 (default)
 cloudrift analyze -r us-east-1 eu-west-1       # scan multiple regions
 
@@ -101,8 +99,6 @@ node apps/cli/dist/main.js analyze -r us-east-1 eu-west-1
 ```
 
 The account ID is auto-detected via STS. If everything is configured correctly you'll see tables listing the wasted resources found and an estimated total cost. If the account has no wasted resources you'll see "No wasted resources found".
-
-> **No npm package yet.** `@cloudrift/cli` is not published on npm — the [release workflow](https://github.com/elleVas/cloudrift/blob/main/.github/workflows/release.yml) exists but hasn't been triggered with a version tag. For now, use the "From source" path above; the rest of this README uses `node apps/cli/dist/main.js …` accordingly. See [docs/en/releasing.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/releasing.md) for the publishing process.
 
 ---
 

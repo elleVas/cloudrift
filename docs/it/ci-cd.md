@@ -9,7 +9,7 @@ cloudrift è pensato per girare dentro le pipeline, non solo nel terminale. Due 
 1. `--format markdown` produce un commento pronto per le Pull Request (totali, breakdown, raccomandazioni principali).
 2. `costAlertThresholdUsd` nel config (vedi [File di configurazione](./configurazione.md)) fa **uscire con codice 2** quando lo spreco supera il budget, facendo fallire il job.
 
-**GitHub Actions — come azione riutilizzabile.** [`action.yml`](../../action.yml) nella root del repo incapsula `npm install -g @cloudrift/cli` + `cloudrift analyze`, pubblica il report markdown nel job summary, e fa fallire il job con gli stessi exit code della CLI (`2` = oltre budget). Installa `@cloudrift/cli` da npm internamente, quindi funziona solo una volta pubblicato il pacchetto — fino ad allora usa l'esempio da sorgenti qui sotto.
+**GitHub Actions — come azione riutilizzabile.** [`action.yml`](../../action.yml) nella root del repo incapsula `npm install -g @cloudrift/cli` + `cloudrift analyze`, pubblica il report markdown nel job summary, e fa fallire il job con gli stessi exit code della CLI (`2` = oltre budget).
 
 ```yaml
 name: Cloud cost check
@@ -31,7 +31,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - uses: elleVas/cloudrift@v0.5.0
+      - uses: elleVas/cloudrift@v0.5.1
         with:
           regions: us-east-1 eu-west-1
           config: cloudrift.config.json
@@ -39,7 +39,7 @@ jobs:
 
 Con un `cloudrift.config.json` committato (`{"costAlertThresholdUsd": 500}`), l'azione fa fallire il check automaticamente quando lo spreco supera il budget — la pipeline si blocca quando nuove risorse lo spingono oltre la soglia. Vedi `action.yml` per tutti gli input (`live-pricing`, `scanners`, `min-age-days`, `ignore-tag`, `pdf`, `json`, `format`, `version`, …) e gli output `report`/`exit-code`.
 
-**GitHub Actions — compilando dai sorgenti (funziona già oggi, prima che azione/pacchetto npm siano pubblicati):**
+**GitHub Actions — compilando dai sorgenti:** alternativa se preferisci puntare a un commit non ancora rilasciato invece che a una versione pubblicata.
 
 ```yaml
 name: Cloud cost check
