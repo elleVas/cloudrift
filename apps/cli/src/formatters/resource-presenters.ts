@@ -25,22 +25,31 @@ function clusterDisplay(clusterName: string | undefined, clusterExists: boolean)
   return clusterExists ? clusterName : `${clusterName} (deleted)`;
 }
 
+/**
+ * `Name` tag alongside an opaque AWS-generated ID (`vol-…`, `i-…`, `eni-…`) so
+ * the resource is recognizable at a glance, without replacing the ID itself —
+ * the ID stays the reliable value to paste into the AWS console search.
+ */
+function tagName(tags: Record<string, string>): string {
+  return tags.Name || '—';
+}
+
 type PresenterMap = { [K in ResourceKind]: ResourcePresenter<ResourceKindMap[K]> };
 
 export const presenters: PresenterMap = {
   'ebs-volume': {
     title: 'EBS Volumes — Unattached',
-    head: ['Volume ID', 'Region', 'Size', 'Type', 'Created'],
-    colWidths: [135, 80, 48, 48, 84, 80],
-    row: (v) => [v.id, v.region.code, `${v.sizeGb} GB`, v.volumeType, day(v.createTime)],
+    head: ['Volume ID', 'Name', 'Region', 'Size', 'Type', 'Created'],
+    colWidths: [135, 90, 80, 48, 48, 84, 80],
+    row: (v) => [v.id, tagName(v.tags), v.region.code, `${v.sizeGb} GB`, v.volumeType, day(v.createTime)],
     recommend: (v) =>
       `Delete unattached EBS ${v.id} — ${v.sizeGb} GB ${v.volumeType} in ${v.region.code}`,
   },
   'elastic-ip': {
     title: 'Elastic IPs — Unassociated',
-    head: ['Allocation ID', 'Region', 'Public IP'],
-    colWidths: [175, 84, 156, 80],
-    row: (ip) => [ip.id, ip.region.code, ip.publicIp],
+    head: ['Allocation ID', 'Name', 'Region', 'Public IP'],
+    colWidths: [175, 90, 84, 156, 80],
+    row: (ip) => [ip.id, tagName(ip.tags), ip.region.code, ip.publicIp],
     recommend: (ip) =>
       `Release unassociated Elastic IP ${ip.publicIp} (${ip.id}) in ${ip.region.code}`,
   },
@@ -68,10 +77,11 @@ export const presenters: PresenterMap = {
   },
   'ec2-instance': {
     title: 'EC2 Instances — Stopped (EBS still billed)',
-    head: ['Instance ID', 'Region', 'Type', 'Volumes', 'Stopped since'],
-    colWidths: [110, 72, 62, 115, 80, 56],
+    head: ['Instance ID', 'Name', 'Region', 'Type', 'Volumes', 'Stopped since'],
+    colWidths: [110, 90, 72, 62, 115, 80, 56],
     row: (inst) => [
       inst.id,
+      tagName(inst.tags),
       inst.region.code,
       inst.instanceType,
       inst.attachedVolumes.length === 0
@@ -84,10 +94,11 @@ export const presenters: PresenterMap = {
   },
   'ebs-snapshot': {
     title: 'EBS Snapshots — Orphaned (source volume deleted)',
-    head: ['Snapshot ID', 'Region', 'Source Volume', 'Size', 'Created'],
-    colWidths: [115, 72, 112, 48, 80, 68],
+    head: ['Snapshot ID', 'Name', 'Region', 'Source Volume', 'Size', 'Created'],
+    colWidths: [115, 90, 72, 112, 48, 80, 68],
     row: (snap) => [
       snap.id,
+      tagName(snap.tags),
       snap.region.code,
       snap.sourceVolumeId,
       `${snap.sizeGb} GB`,
@@ -98,26 +109,27 @@ export const presenters: PresenterMap = {
   },
   'nat-gateway': {
     title: 'NAT Gateways — Idle',
-    head: ['NAT Gateway ID', 'Region', 'VPC', 'Created'],
-    colWidths: [130, 70, 140, 80, 75],
-    row: (gw) => [gw.id, gw.region.code, gw.vpcId, day(gw.createTime)],
+    head: ['NAT Gateway ID', 'Name', 'Region', 'VPC', 'Created'],
+    colWidths: [130, 90, 70, 140, 80, 75],
+    row: (gw) => [gw.id, tagName(gw.tags), gw.region.code, gw.vpcId, day(gw.createTime)],
     recommend: (gw) =>
       `Delete idle NAT Gateway ${gw.id} in ${gw.region.code} — ${gw.wasteReason}`,
   },
   'ebs-gp2-upgrade': {
     title: 'EBS Volumes — gp2→gp3 upgrade (savings opportunity, not deletable waste)',
-    head: ['Volume ID', 'Region', 'Size', 'Created'],
-    colWidths: [170, 90, 60, 96, 80],
-    row: (v) => [v.id, v.region.code, `${v.sizeGb} GB`, day(v.createTime)],
+    head: ['Volume ID', 'Name', 'Region', 'Size', 'Created'],
+    colWidths: [170, 90, 90, 60, 96, 80],
+    row: (v) => [v.id, tagName(v.tags), v.region.code, `${v.sizeGb} GB`, day(v.createTime)],
     recommend: (v) =>
       `Modify EBS ${v.id} (${v.sizeGb} GB gp2) in ${v.region.code} to gp3 — saves ${v.costEstimate.format()}, no downtime`,
   },
   'ebs-idle': {
     title: 'EBS Volumes — Idle (attached, no I/O)',
-    head: ['Volume ID', 'Region', 'Size', 'Type', 'Attached to'],
-    colWidths: [130, 72, 56, 50, 130, 70],
+    head: ['Volume ID', 'Name', 'Region', 'Size', 'Type', 'Attached to'],
+    colWidths: [130, 90, 72, 56, 50, 130, 70],
     row: (v) => [
       v.id,
+      tagName(v.tags),
       v.region.code,
       `${v.sizeGb} GB`,
       v.volumeType,
@@ -128,10 +140,11 @@ export const presenters: PresenterMap = {
   },
   'ec2-underutilized': {
     title: 'EC2 Instances — Underutilized (rightsizing candidate, verify before acting)',
-    head: ['Instance ID', 'Region', 'Type', 'Avg CPU', 'Max CPU', 'Window'],
-    colWidths: [110, 72, 70, 70, 70, 60, 80],
+    head: ['Instance ID', 'Name', 'Region', 'Type', 'Avg CPU', 'Max CPU', 'Window'],
+    colWidths: [110, 90, 72, 70, 70, 70, 60, 80],
     row: (inst) => [
       inst.id,
+      tagName(inst.tags),
       inst.region.code,
       inst.instanceType,
       `${inst.avgCpuPercent.toFixed(1)}%`,
@@ -172,13 +185,13 @@ export const presenters: PresenterMap = {
   },
   'eni-orphaned': {
     title: 'Orphaned ENIs — Not attached (hygiene, no direct cost)',
-    head: ['Network Interface ID', 'Region', 'VPC', 'Subnet'],
+    head: ['Network Interface ID', 'Name', 'Region', 'VPC', 'Subnet'],
     // Subnet IDs ("subnet-...") are the longest of the four ID-like values
     // here (24 chars vs. 21 for eni-/vpc-), so they need the widest column —
     // it was previously tied with VPC while Network Interface ID (also 21
     // chars) was overallocated, clipping the subnet column.
-    colWidths: [115, 65, 110, 140, 65],
-    row: (eni) => [eni.id, eni.region.code, eni.vpcId, eni.subnetId],
+    colWidths: [115, 90, 65, 110, 140, 65],
+    row: (eni) => [eni.id, tagName(eni.tags), eni.region.code, eni.vpcId, eni.subnetId],
     recommend: (eni) =>
       `Delete orphaned ENI ${eni.id} in ${eni.region.code} — not attached to any instance`,
   },
@@ -211,10 +224,11 @@ export const presenters: PresenterMap = {
   },
   'efs-unused': {
     title: 'EFS File Systems — Unused (no mount targets or zero I/O)',
-    head: ['File System ID', 'Region', 'Size', 'Mount Targets'],
-    colWidths: [140, 80, 70, 100, 80],
+    head: ['File System ID', 'Name', 'Region', 'Size', 'Mount Targets'],
+    colWidths: [140, 90, 80, 70, 100, 80],
     row: (fs) => [
       fs.id,
+      tagName(fs.tags),
       fs.region.code,
       `${(fs.sizeBytes / 1024 ** 3).toFixed(1)} GB`,
       `${fs.numberOfMountTargets}`,
@@ -278,9 +292,16 @@ export const presenters: PresenterMap = {
   },
   'fsx-idle-filesystem': {
     title: 'FSx File Systems — Idle (zero I/O)',
-    head: ['File System ID', 'Region', 'Type', 'Size', 'Created'],
-    colWidths: [130, 70, 70, 60, 84, 80],
-    row: (fs) => [fs.id, fs.region.code, fs.fileSystemType, `${fs.storageCapacityGiB} GiB`, day(fs.creationTime)],
+    head: ['File System ID', 'Name', 'Region', 'Type', 'Size', 'Created'],
+    colWidths: [130, 90, 70, 70, 60, 84, 80],
+    row: (fs) => [
+      fs.id,
+      tagName(fs.tags),
+      fs.region.code,
+      fs.fileSystemType,
+      `${fs.storageCapacityGiB} GiB`,
+      day(fs.creationTime),
+    ],
     recommend: (fs) =>
       `Delete idle FSx file system ${fs.id} (${fs.fileSystemType}) in ${fs.region.code} — ${fs.wasteReason}`,
   },
@@ -310,10 +331,11 @@ export const presenters: PresenterMap = {
   },
   'workspaces-idle': {
     title: 'WorkSpaces — Idle (AlwaysOn, no recent user connection, requires --live-pricing)',
-    head: ['WorkSpace ID', 'Region', 'Compute Type', 'Last Connection'],
-    colWidths: [130, 70, 90, 100, 80],
+    head: ['WorkSpace ID', 'User', 'Region', 'Compute Type', 'Last Connection'],
+    colWidths: [130, 90, 70, 90, 100, 80],
     row: (w) => [
       w.id,
+      w.userName,
       w.region.code,
       w.computeTypeName,
       w.lastKnownUserConnectionTimestamp ? day(w.lastKnownUserConnectionTimestamp) : 'never',
@@ -323,17 +345,17 @@ export const presenters: PresenterMap = {
   },
   'vpn-connection-idle': {
     title: 'Site-to-Site VPN Connections — Idle (zero tunnel traffic)',
-    head: ['VPN Connection ID', 'Region', 'Gateway'],
-    colWidths: [140, 80, 160, 80],
-    row: (v) => [v.id, v.region.code, v.transitGatewayId ?? v.vpnGatewayId ?? 'unknown'],
+    head: ['VPN Connection ID', 'Name', 'Region', 'Gateway'],
+    colWidths: [140, 90, 80, 160, 80],
+    row: (v) => [v.id, tagName(v.tags), v.region.code, v.transitGatewayId ?? v.vpnGatewayId ?? 'unknown'],
     recommend: (v) =>
       `Delete idle VPN connection ${v.id} in ${v.region.code} — ${v.wasteReason}`,
   },
   'transit-gateway-idle-attachment': {
     title: 'Transit Gateway Attachments — Idle (zero traffic)',
-    head: ['Attachment ID', 'Region', 'Transit Gateway', 'Type'],
-    colWidths: [150, 80, 150, 70, 80],
-    row: (a) => [a.id, a.region.code, a.transitGatewayId, a.resourceType],
+    head: ['Attachment ID', 'Name', 'Region', 'Transit Gateway', 'Type'],
+    colWidths: [150, 90, 80, 150, 70, 80],
+    row: (a) => [a.id, tagName(a.tags), a.region.code, a.transitGatewayId, a.resourceType],
     recommend: (a) =>
       `Delete idle Transit Gateway attachment ${a.id} (${a.resourceType}) in ${a.region.code} — ${a.wasteReason}`,
   },

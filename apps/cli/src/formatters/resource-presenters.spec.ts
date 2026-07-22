@@ -36,6 +36,24 @@ describe('rowFor / recommendFor', () => {
     expect(recommendFor(elasticIp)).toContain('1.2.3.4');
   });
 
+  it('shows the Name tag alongside the ID when present, a dash when absent', () => {
+    expect(rowFor(ebsVolume)).toContain('—');
+
+    const named = new EbsVolume({
+      volumeId: 'vol-2',
+      region,
+      accountId: '123456789012',
+      sizeGb: 100,
+      volumeType: 'gp3',
+      state: 'available',
+      createTime: now,
+      detectedAt: now,
+      tags: { Name: 'app-server-data' },
+      monthlyCostUsd: 8,
+    });
+    expect(rowFor(named)).toContain('app-server-data');
+  });
+
   // There is no "mismatched kind" case to test here: rowFor/recommendFor take
   // a single finding and switch on its own `.kind` — there is no separate
   // (kind, finding) pair a caller could decouple. See docs/code-review-2026-07-10.md

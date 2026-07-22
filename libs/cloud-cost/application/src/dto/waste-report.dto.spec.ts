@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { toWasteReportDto } from './waste-report.dto';
 import { REPORT_CONTACT, REPORT_DISCLAIMER } from '../constants/report-disclaimer';
-import { AwsRegion, EbsVolume, ElasticIp, Gp2Volume } from 'cloud-cost-domain';
+import { AwsRegion, EbsVolume, ElasticIp, Gp2Volume, Workspace } from 'cloud-cost-domain';
 import type { WastedResourcesSummary } from 'cloud-cost-domain';
 
 const region = AwsRegion.create('us-east-1');
@@ -116,6 +116,28 @@ describe('toWasteReportDto', () => {
     expect(dto.optimizationCount).toBe(1);
     const gp2Dto = dto.findings.find((f) => f.id === 'vol-gp2');
     expect(gp2Dto?.category).toBe('optimization');
+  });
+
+  it('includes userName only for workspaces-idle findings', () => {
+    const workspace = new Workspace({
+      workspaceId: 'ws-1',
+      region,
+      accountId: '123456789012',
+      userName: 'jdoe',
+      computeTypeName: 'STANDARD',
+      runningMode: 'ALWAYS_ON',
+      lastKnownUserConnectionTimestamp: undefined,
+      detectedAt: new Date('2026-06-09T00:00:00Z'),
+      tags: {},
+      monthlyCostUsd: 35,
+    });
+    const dto = toWasteReportDto(
+      { findings: [volume, workspace], totalWasteMonthlyUsd: 43, totalOptimizationMonthlyUsd: 0, scanErrors: [] },
+      meta,
+    );
+
+    expect(dto.findings.find((f) => f.id === 'ws-1')?.userName).toBe('jdoe');
+    expect(dto.findings.find((f) => f.id === 'vol-1')?.userName).toBeUndefined();
   });
 
   it('maps scan errors to plain messages', () => {
