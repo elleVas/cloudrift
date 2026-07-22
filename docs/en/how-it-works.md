@@ -96,6 +96,8 @@ program
 
 `--pdf` and `--json` accept an optional filename and are file artifacts, independent of `--format`: by default the chosen `--format` (table) still prints to stdout *in addition to* writing the file. To get JSON only on stdout (composable: `cloudrift analyze --format json | jq '.totalWasteMonthlyUsd'`), pass `--format json` explicitly. To suppress stdout entirely and only write the file(s), add `--silent`.
 
+`main.ts` also registers two sibling commands, `cost` and `trend` (spend comparison/trend via AWS Cost Explorer — the only billed API in the CLI, see [architecture.md](./architecture.md#cost-analytics-cost--trend)), and one non-command branch: `process.argv.length === 2 && isInteractiveTty()` (no subcommand, real terminal) skips Commander entirely and hands off to `runEntryWizard()` instead, which gathers the same options interactively and calls `analyzeWasteCommand`/`costCommand`/`trendCommand` directly — see [ADR-0071](../adr/0071-unified-entry-wizard-bare-invocation.md). This file stays focused on the `analyze` flow below, since it's the original and still the largest; `cost`/`trend` follow the same command → composition → use-case → port shape at a fraction of the size (no scanners, one external call).
+
 ---
 
 ### `analyze-waste.command.ts` — Orchestration

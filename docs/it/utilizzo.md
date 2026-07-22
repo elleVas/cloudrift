@@ -2,7 +2,11 @@
 
 > 🇬🇧 [English version](../en/usage.md)
 
-Flag, esempi, report PDF, gestione errori parziali, e prezzi per regione per `cloudrift analyze`.
+Flag, esempi, report PDF, gestione errori parziali, e prezzi per regione per `cloudrift analyze`, più i comandi `cost`/`trend` e il wizard interattivo.
+
+**Wizard interattivo:** lanciando `cloudrift` senza **nessun sottocomando** in un vero terminale (fuori da CI) parte un wizard che ti fa scegliere cosa fare — "Trova risorse sprecate" / "Confronta la spesa col mese scorso" / "Vedi il trend mensile di spesa" — e poi pochi prompt (regioni, quali scanner, formato di output). Richiama esattamente lo stesso codice di `analyze`/`cost`/`trend` guidato dai flag qui sotto, quindi non va mai fuori sincrono con loro. Qualunque sottocomando esplicito, qualunque flag, CI, o stdout non interattivo saltano del tutto il wizard — script e pipeline non ne sono toccati. Vedi [ADR-0071](../adr/0071-unified-entry-wizard-bare-invocation.md).
+
+## `analyze` — trova risorse sprecate
 
 ```sh
 node apps/cli/dist/main.js analyze [opzioni]
@@ -111,3 +115,59 @@ Se la scansione di un tipo di risorsa fallisce (es. permessi mancanti su CloudWa
 **Prezzi per regione:**
 
 I prezzi sono per-regione (file `prices.json` nell'infrastruttura). Regioni supportate con prezzi specifici: `us-east-1`, `us-west-2`, `eu-west-1`, `eu-central-1`, `ap-southeast-1`, `ap-northeast-1`. Per le altre regioni viene usato il prezzo di default (us-east-1).
+
+---
+
+## `cost` / `trend` — confronto e trend di spesa
+
+> ⚠️ **Questi due comandi chiamano AWS Cost Explorer, che fattura $0.01 a richiesta** — gli unici comandi di cloudrift che possono generare un costo AWS (ogni scanner di `analyze` usa solo chiamate describe/list gratuite). Entrambi chiedono conferma interattiva prima della prima chiamata, a meno di passare `-y`/`--yes`, `--silent`, o di girare fuori da un TTY/in CI. I periodi di fatturazione chiusi vengono cachati su disco (`~/.cloudrift/cache/cost-explorer/`) così rilanciare lo stesso comando per le stesse date non fattura di nuovo — vedi [ADR-0069](../adr/0069-cost-explorer-integration-billed-api-confirmation.md) / [ADR-0070](../adr/0070-cost-explorer-disk-cache-decorator.md).
+
+Cost Explorer è un endpoint globale unico — a differenza di `analyze`, nessuno dei due comandi ha un flag `--regions`.
+
+```sh
+node apps/cli/dist/main.js cost [opzioni]
+node apps/cli/dist/main.js trend [opzioni]
+```
+
+**`cost`** — spesa corrente (dal 1° del mese a oggi) confrontata con lo stesso intervallo di giorni del mese scorso, per servizio.
+
+| Opzione | Descrizione | Default |
+| --- | --- | --- |
+| `--account-id <id>` | Override dell'account ID (auto-rilevato via STS se omesso) | auto-rilevato |
+| `--config <path>` | Percorso del file di config | auto-rilevato |
+| `--format <format>` | Formato di stdout: `table` o `json` | `table` |
+| `--fail-on-increase <pct>` | Esce con codice 2 se la spesa è aumentata più di questa percentuale rispetto al periodo precedente (ha precedenza su `config.costIncreaseAlertPercent`) | off |
+| `--refresh-cache` | Ignora la cache locale di Cost Explorer e rifà il fetch dei periodi chiusi da AWS | off |
+| `-y, --yes` | Salta la conferma "questo costa $0.01" | — |
+| `--pdf [filename]` | Scrive anche un report PDF (default `reports/cloudrift-cost-YYYY_MM_DD.pdf`) | — |
+| `--silent` | Sopprime tutto l'output su stdout | off |
+
+**`trend`** — spesa mensile negli ultimi N mesi solari (incluso quello corrente, parziale), mostrata come grafico a barre ANSI di default.
+
+| Opzione | Descrizione | Default |
+| --- | --- | --- |
+| `--account-id <id>` | Override dell'account ID | auto-rilevato |
+| `--config <path>` | Percorso del file di config | auto-rilevato |
+| `--months <n>` | Numero di mesi solari da mostrare (1–36) | `6` |
+| `--services <nomi...>` | Limita a questi servizi (scorciatoie tipo `ec2 s3 rds`, oppure il nome esatto usato da Cost Explorer) | tutti i servizi |
+| `--format <format>` | Formato di stdout: `table` (grafico a barre ANSI) o `json` | `table` |
+| `--refresh-cache` | Ignora la cache locale di Cost Explorer | off |
+| `-y, --yes` | Salta la conferma di fatturazione | — |
+| `--pdf [filename]` | Scrive anche un report PDF (default `reports/cloudrift-trend-YYYY_MM_DD.pdf`) | — |
+| `--silent` | Sopprime tutto l'output su stdout | off |
+
+**Esempi:**
+
+```sh
+# Confronta la spesa di questo mese (finora) con gli stessi giorni del mese scorso
+node apps/cli/dist/main.js cost
+
+# Fallisce in CI se la spesa è aumentata più del 20% rispetto al periodo precedente
+node apps/cli/dist/main.js cost --fail-on-increase 20 --format json
+
+# Ultimi 12 mesi, solo EC2 e S3, salta la conferma (già in uno script)
+node apps/cli/dist/main.js trend --months 12 --services ec2 s3 --yes
+
+# Rifà il fetch anche dei periodi già in cache
+node apps/cli/dist/main.js trend --refresh-cache
+```

@@ -2,11 +2,15 @@
 // SPDX-License-Identifier: Apache-2.0
 import { program } from 'commander';
 import { analyzeWasteCommand } from './commands/analyze-waste.command';
+import { costCommand } from './commands/cost.command';
+import { trendCommand } from './commands/trend.command';
+import { runEntryWizard } from './wizard/entry.wizard';
+import { isInteractiveTty } from './wizard/tty';
 
 program
   .name('cloudrift')
   .description('Detect and report wasted AWS cloud resources')
-  .version('0.5.1');
+  .version('0.6.0');
 
 program
   .command('analyze')
@@ -67,7 +71,59 @@ program
   )
   .action((options) => analyzeWasteCommand(options));
 
-program.parseAsync(process.argv).catch((err: Error) => {
-  console.error(err.message);
-  process.exit(1);
-});
+program
+  .command('cost')
+  .description('Compare current spend against the same period last month, broken down by service')
+  .option('--account-id <id>', 'AWS account ID override (auto-detected via STS when omitted)')
+  .option(
+    '--config <path>',
+    'path to a cloudrift config file (defaults to cloudrift.config.json / .cloudriftrc in the cwd)',
+  )
+  .option('--format <format>', 'stdout output format: table (default) or json', 'table')
+  .option(
+    '--fail-on-increase <pct>',
+    'exit with code 2 if spend increased more than this percent vs. the previous period (overrides config)',
+  )
+  .option('--refresh-cache', 'bypass the local Cost Explorer cache and re-fetch closed periods from AWS')
+  .option('-y, --yes', 'skip the interactive "this costs $0.01" confirmation')
+  // See the `analyze` command's --pdf option above for why [filename] needs
+  // to be written as --pdf=./path.pdf when combined with other flags.
+  .option('--pdf [filename]', 'Also write a PDF report to disk (optional filename, defaults to reports/cloudrift-cost-YYYY_MM_DD.pdf)')
+  .option('--silent', 'suppress all stdout output. Errors and the increase-gate alert still surface.')
+  .action((options) => costCommand(options));
+
+program
+  .command('trend')
+  .description('Monthly spend over the last N months, optionally filtered to specific services')
+  .option('--account-id <id>', 'AWS account ID override (auto-detected via STS when omitted)')
+  .option(
+    '--config <path>',
+    'path to a cloudrift config file (defaults to cloudrift.config.json / .cloudriftrc in the cwd)',
+  )
+  .option('--months <n>', 'number of calendar months to show, including the current partial one (default 6)')
+  .option(
+    '--services <names...>',
+    'restrict totals to these services (shorthand like ec2/s3/rds, or the exact Cost Explorer service name)',
+  )
+  .option('--format <format>', 'stdout output format: table (default, ANSI bar chart) or json', 'table')
+  .option('--refresh-cache', 'bypass the local Cost Explorer cache and re-fetch closed periods from AWS')
+  .option('-y, --yes', 'skip the interactive "this costs $0.01" confirmation')
+  .option('--pdf [filename]', 'Also write a PDF report to disk (optional filename, defaults to reports/cloudrift-trend-YYYY_MM_DD.pdf)')
+  .option('--silent', 'suppress all stdout output.')
+  .action((options) => trendCommand(options));
+
+// No subcommand at all, in a real terminal: hand off to the interactive
+// wizard instead of commander's default (print help, exit 1). Any flags or
+// an explicit subcommand — including `-h`/`--version` — fall through to
+// normal commander parsing below, unaffected.
+if (process.argv.length === 2 && isInteractiveTty()) {
+  runEntryWizard().catch((err: Error) => {
+    console.error(err.message);
+    process.exit(1);
+  });
+} else {
+  program.parseAsync(process.argv).catch((err: Error) => {
+    console.error(err.message);
+    process.exit(1);
+  });
+}

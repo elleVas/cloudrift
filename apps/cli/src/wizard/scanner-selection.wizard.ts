@@ -1,17 +1,15 @@
 // SPDX-License-Identifier: Apache-2.0
 import type { Option } from '@clack/prompts';
 import { RESOURCE_KINDS, RESOURCE_KIND_META, type ResourceKind } from 'cloud-cost-domain';
+import { isInteractiveTty } from './tty';
 
 /**
  * Whether the interactive scanner picker should run: only in a real terminal,
  * never in CI or when stdout is piped/redirected — those must keep scanning
- * everything without blocking on input. Same convention @clack/prompts uses
- * internally (`isCI`/`isTTY`), replicated here so this check has no import-time
- * dependency on the (ESM-only) package — it's loaded lazily below, only on the
- * interactive path.
+ * everything without blocking on input.
  */
 export function shouldPromptScannerSelection(): boolean {
-  return process.env.CI !== 'true' && process.stdout.isTTY === true;
+  return isInteractiveTty();
 }
 
 /**

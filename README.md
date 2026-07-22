@@ -5,34 +5,43 @@
 [![🇮🇹 Italiano](https://img.shields.io/badge/🇮🇹-Italiano-lightgrey.svg)](https://github.com/elleVas/cloudrift/blob/main/docs/it/leggimi.md)
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/elleVas/cloudrift/main/docs/assets/cli-banner.png" alt="cloudrift CLI banner" />
+  <img src="https://raw.githubusercontent.com/elleVas/cloudrift/main/docs/assets/banner-readme.png" alt="cloudrift's interactive wizard scanning an AWS account for wasted resources" width="850" />
 </p>
 
-**cloudrift** is a command-line tool that scans AWS accounts for wasted resources and estimates the monthly cost of that waste.
+<p align="center"><strong>Scans AWS accounts for wasted resources and estimates the monthly cost of that waste.</strong><br />Read-only. No telemetry. Never deletes, modifies, or stops anything — reports only.</p>
 
-> ⚠️ **Disclaimer:** cloudrift is a read-only analysis tool: it reports estimated waste and recommendations only — it never deletes, modifies, or stops any AWS resource. All findings should be validated by your infrastructure team before taking action. The maintainers assume no liability for actions taken based on this report.
->
+## Quick Start
+
+```sh
+npm install -g @cloudrift/cli
+cloudrift
+```
+
+That's it — no subcommand needed, the interactive wizard walks you through region and scanner selection. Requires **Node.js 20+** and AWS credentials with [read-only IAM permissions](https://github.com/elleVas/cloudrift/blob/main/docs/en/iam-permissions.md) (`aws configure`, or env vars — see [full setup](#full-setup-fresh-aws-credentials-from-source) below if you need that first).
+
+Prefer flags over the wizard (scripts, CI)? Same tool, same output:
+
+```sh
+cloudrift analyze -r us-east-1 eu-west-1 --pdf
+```
+
+See [docs/en/usage.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/usage.md) for every flag.
+
+> ⚠️ **Disclaimer:** cloudrift reports estimated waste and recommendations only — it never deletes, modifies, or stops any AWS resource. All findings should be validated by your infrastructure team before taking action. The maintainers assume no liability for actions taken based on this report.
 > **Contact:** [raffaelevasini@gmail.com](mailto:raffaelevasini@gmail.com) · <a href="https://github.com/elleVas" target="_blank" rel="noopener noreferrer">GitHub</a> · <a href="https://www.linkedin.com/in/raffaele-vasini-87937470/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
 
 **📑 Table of contents**
 
-- [Prerequisites](#prerequisites)
 - [Quick Start](#quick-start)
 - [What it detects](#what-it-detects)
+- [Spend comparison and trend](#spend-comparison-and-trend-cost--trend)
 - [Documentation](#documentation)
 - [License](#license)
 
-### Prerequisites
+<details>
+<summary><strong>Full setup</strong> — fresh AWS credentials, from source</summary>
 
-- **Node.js 20+** — check with `node --version`
-- **AWS credentials** with read-only permissions (see [Required IAM permissions](https://github.com/elleVas/cloudrift/blob/main/docs/en/iam-permissions.md))
-- **pnpm** — only needed if building from source (`npm install -g pnpm`)
-
----
-
-### Quick Start
-
-Follow these steps in order to go from zero to seeing output.
+#### Full setup (fresh AWS credentials, from source)
 
 #### Step 1 — Install
 
@@ -90,6 +99,7 @@ The AWS user/role must have the policy listed in [Required IAM permissions](http
 
 ```sh
 # npm install:
+cloudrift                                      # no subcommand, in a real terminal: interactive wizard
 cloudrift analyze                              # scan us-east-1 (default)
 cloudrift analyze -r us-east-1 eu-west-1       # scan multiple regions
 
@@ -99,6 +109,8 @@ node apps/cli/dist/main.js analyze -r us-east-1 eu-west-1
 ```
 
 The account ID is auto-detected via STS. If everything is configured correctly you'll see tables listing the wasted resources found and an estimated total cost. If the account has no wasted resources you'll see "No wasted resources found".
+
+</details>
 
 ---
 
@@ -167,6 +179,19 @@ Every finding is also tagged `waste` or `optimization`: `waste` is money being s
 - **AMI-bound snapshots** — orphan snapshots referenced by a registered AMI are not reported (they cannot be deleted anyway).
 
 > Prices vary by region. The tool uses region-specific pricing for: `us-east-1`, `us-west-2`, `eu-west-1`, `eu-central-1`, `ap-southeast-1`, `ap-northeast-1`. Every report states the date the price table was last verified (`prices as of`).
+
+---
+
+### Spend comparison and trend (`cost` / `trend`)
+
+Beyond waste detection, cloudrift can also compare and chart your actual AWS bill via Cost Explorer:
+
+```sh
+cloudrift cost                          # this month so far vs. the same days last month, by service
+cloudrift trend --months 12             # monthly spend over the last 12 months, ANSI bar chart
+```
+
+> ⚠️ Unlike every scanner above (free describe/list calls), `cost`/`trend` call **AWS Cost Explorer, which bills $0.01 per request** — the only commands in cloudrift that can incur an AWS charge. Both ask for confirmation before the first call (skip it with `-y`/`--yes`); closed billing periods are cached on disk so repeat runs for the same dates don't bill you again. See [docs/en/usage.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/usage.md#cost--trend--spend-comparison-and-monthly-trend) for the full flag reference.
 
 ---
 

@@ -6,11 +6,12 @@ import type { WasteReportMeta } from 'cloud-cost-application';
 import { formatWasteReportAsTable } from '../formatters/waste-report.table-formatter';
 import { formatWasteReportAsJson } from '../formatters/waste-report.json-formatter';
 import { formatWasteReportAsMarkdown } from '../formatters/waste-report.markdown-formatter';
-import { renderBanner } from '../ascii-banner';
+import { renderBrandMark } from '../brand-mark';
 import {
   promptScannerSelection,
   shouldPromptScannerSelection,
 } from '../wizard/scanner-selection.wizard';
+import { startScanSpinner } from '../wizard/scan-spinner';
 import {
   defaultAnalyzeDeps,
   type AnalyzeDeps,
@@ -92,7 +93,7 @@ export async function analyzeWasteCommand(
       : (msg: string) => console.log(msg);
 
   if (!quietStdout) {
-    console.log(`\n${renderBanner()}\n`);
+    console.log(`\n${renderBrandMark()}\n`);
   }
 
   if (!explicitScannerSelection && !silent && shouldPromptScannerSelection()) {
@@ -160,7 +161,9 @@ export async function analyzeWasteCommand(
     scannerKinds,
   });
 
+  const spinner = quietStdout ? undefined : await startScanSpinner('  Rolling through your account...');
   const result = await useCase.execute({ regions });
+  spinner?.stop(chalk.dim('  Scan complete.'));
   dispose?.();
   if (!result.ok) return fail(result.error.message);
 

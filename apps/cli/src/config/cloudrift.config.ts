@@ -36,6 +36,12 @@ export interface CloudriftConfig {
   /** Monthly cost threshold: if exceeded, the command exits with code 2 (useful in CI). */
   costAlertThresholdUsd?: number;
   /**
+   * `cost` command threshold: if the current-vs-previous-period spend
+   * increase exceeds this percentage, the command exits with code 2.
+   * Overridden by `--fail-on-increase`. Unset by default (no gate).
+   */
+  costIncreaseAlertPercent?: number;
+  /**
    * Price overrides per region (special/enterprise rates). Same shape as
    * `prices.json`: `region → key → USD`, with `default` as fallback.
    * These take precedence over the static price list and the AWS Pricing API.
@@ -114,6 +120,9 @@ async function tryRead(path: string): Promise<string | undefined> {
 
 const nonNegativeAmount = z.number().finite().nonnegative();
 const percent = z.number().finite().min(0).max(100);
+// Unlike `percent` (a utilization ratio, capped at 100), a spend-increase
+// threshold has no upper bound — a service's cost can more than double.
+const nonNegativePercent = z.number().finite().nonnegative();
 const priceTableSchema = z.record(z.string(), z.record(z.string(), nonNegativeAmount));
 
 const configSchema = z.object({
@@ -124,6 +133,7 @@ const configSchema = z.object({
   minAgeDays: z.number().int().nonnegative().optional(),
   ignoreTag: z.string().min(1).optional(),
   costAlertThresholdUsd: nonNegativeAmount.optional(),
+  costIncreaseAlertPercent: nonNegativePercent.optional(),
   prices: priceTableSchema.optional(),
   thresholds: z
     .object({
