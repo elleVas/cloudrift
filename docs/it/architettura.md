@@ -185,7 +185,7 @@ Ogni policy concreta aggiunge il criterio specifico del tipo:
 | `EbsIdlePolicy`           | volume attaccato (`in-use`), operazioni I/O totali ≤ `ebsIdleMaxOps` (default 0) nella finestra | grace su `createTime` (nessun I/O ancora ≠ idle) |
 | `Ec2UnderutilizedPolicy`  | istanza running, CPU massima ≤ `ec2CpuPercent` (default 5) nella finestra | grace su `launchTime`; registrata solo con `--live-pricing` attivo (serve un prezzo per instance type) |
 | `RdsUnderutilizedPolicy`  | istanza available, CPU massima ≤ `rdsCpuPercent` (default 5) nella finestra | grace su `instanceCreateTime`; registrata solo con `--live-pricing` attivo (serve un prezzo per instance class) |
-| `Gp2UpgradePolicy`        | volume gp2 in uso (risparmio, non spreco) | solo `status=in-use` (i gp2 staccati restano a `ebs-volume`); grace su `createTime` |
+| `EbsGp2UpgradePolicy`     | volume gp2 in uso (risparmio, non spreco) | solo `status=in-use` (i gp2 staccati restano a `ebs-volume`); grace su `createTime` |
 | `LogGroupWastePolicy`     | nessuna retention policy configurata      | grace su `creationTime`                                                          |
 | `OrphanedEniWastePolicy`  | `Status === 'available'` (non attaccata)  | — (le ENI non hanno data di creazione); costo $0 — igiene, non risparmio          |
 | `S3NoLifecyclePolicy`     | nessuna lifecycle configuration           | grace su `creationDate`; risparmio stimato (`estimated: true`)                   |

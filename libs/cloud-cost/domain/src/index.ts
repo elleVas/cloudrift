@@ -117,51 +117,49 @@ export {
   DEFAULT_IGNORE_TAG,
 } from './policies/waste-policy';
 export type { WasteVerdict, WastePolicyOptions } from './policies/waste-policy';
-export {
-  EbsVolumeWastePolicy,
-  ElasticIpWastePolicy,
-  RdsInstanceWastePolicy,
-  LoadBalancerWastePolicy,
-  Ec2InstanceWastePolicy,
-  EbsSnapshotWastePolicy,
-  NatGatewayWastePolicy,
-  Gp2UpgradePolicy,
-  EbsIdlePolicy,
-  Ec2UnderutilizedPolicy,
-  RdsUnderutilizedPolicy,
-  LogGroupWastePolicy,
-  OrphanedEniWastePolicy,
-  S3NoLifecyclePolicy,
-  LambdaUnderutilizedPolicy,
-  EfsUnusedPolicy,
-  DynamoDbOverprovisionedPolicy,
-  ElastiCacheIdlePolicy,
-  RedshiftIdleClusterPolicy,
-  OpenSearchIdleDomainPolicy,
-  MskIdleClusterPolicy,
-  FsxIdleFilesystemPolicy,
-  DocumentDbIdleInstancePolicy,
-  NeptuneIdleInstancePolicy,
-  MqIdleBrokerPolicy,
-  WorkspacesIdlePolicy,
-  VpnConnectionIdlePolicy,
-  TransitGatewayIdleAttachmentPolicy,
-  KinesisProvisionedIdleStreamPolicy,
-  SqsDlqAbandonedWastePolicy,
-  LambdaLogGroupOrphanedPolicy,
-  AuroraServerlessOverprovisionedPolicy,
-  SageMakerNotebookIdlePolicy,
-  SageMakerEndpointIdlePolicy,
-  SageMakerTrainingOrphanedPolicy,
-  EnvironmentGhostPolicy,
-  EksNodeOverprovisionedPolicy,
-  EksOrphanPvcPolicy,
-  AmiUnusedPolicy,
-  EcrImageUntaggedPolicy,
-  S3MultipartUploadAbandonedPolicy,
-  RdsManualSnapshotOldPolicy,
-  SecretsManagerUnusedPolicy,
-} from './policies/resource-waste-policies';
+export { EbsVolumeWastePolicy } from './policies/ebs-volume.policy';
+export { ElasticIpWastePolicy } from './policies/elastic-ip.policy';
+export { RdsInstanceWastePolicy } from './policies/rds-instance.policy';
+export { LoadBalancerWastePolicy } from './policies/load-balancer.policy';
+export { Ec2InstanceWastePolicy } from './policies/ec2-instance.policy';
+export { EbsSnapshotWastePolicy } from './policies/ebs-snapshot.policy';
+export { NatGatewayWastePolicy } from './policies/nat-gateway.policy';
+export { EbsGp2UpgradePolicy } from './policies/gp2-volume.policy';
+export { EbsIdlePolicy } from './policies/idle-ebs-volume.policy';
+export { Ec2UnderutilizedPolicy } from './policies/underutilized-ec2-instance.policy';
+export { RdsUnderutilizedPolicy } from './policies/rds-underutilized-instance.policy';
+export { LogGroupWastePolicy } from './policies/log-group.policy';
+export { OrphanedEniWastePolicy } from './policies/orphaned-eni.policy';
+export { S3NoLifecyclePolicy } from './policies/s3-bucket.policy';
+export { LambdaUnderutilizedPolicy } from './policies/underutilized-lambda-function.policy';
+export { EfsUnusedPolicy } from './policies/efs-file-system.policy';
+export { DynamoDbOverprovisionedPolicy } from './policies/overprovisioned-dynamodb-table.policy';
+export { ElastiCacheIdlePolicy } from './policies/idle-elasticache-cluster.policy';
+export { RedshiftIdleClusterPolicy } from './policies/redshift-cluster.policy';
+export { OpenSearchIdleDomainPolicy } from './policies/opensearch-domain.policy';
+export { MskIdleClusterPolicy } from './policies/msk-cluster.policy';
+export { FsxIdleFilesystemPolicy } from './policies/fsx-file-system.policy';
+export { DocumentDbIdleInstancePolicy } from './policies/documentdb-instance.policy';
+export { NeptuneIdleInstancePolicy } from './policies/neptune-instance.policy';
+export { MqIdleBrokerPolicy } from './policies/mq-broker.policy';
+export { WorkspacesIdlePolicy } from './policies/workspace.policy';
+export { VpnConnectionIdlePolicy } from './policies/vpn-connection.policy';
+export { TransitGatewayIdleAttachmentPolicy } from './policies/transit-gateway-attachment.policy';
+export { KinesisProvisionedIdleStreamPolicy } from './policies/kinesis-stream.policy';
+export { SqsDlqAbandonedWastePolicy } from './policies/sqs-dlq-abandoned.policy';
+export { LambdaLogGroupOrphanedPolicy } from './policies/lambda-loggroup-orphaned.policy';
+export { AuroraServerlessOverprovisionedPolicy } from './policies/aurora-serverless-overprovisioned.policy';
+export { SageMakerNotebookIdlePolicy } from './policies/sagemaker-notebook-idle.policy';
+export { SageMakerEndpointIdlePolicy } from './policies/sagemaker-endpoint-idle.policy';
+export { SageMakerTrainingOrphanedPolicy } from './policies/sagemaker-training-orphaned.policy';
+export { EnvironmentGhostPolicy } from './policies/environment-ghost.policy';
+export { EksNodeOverprovisionedPolicy } from './policies/eks-node-overprovisioned.policy';
+export { EksOrphanPvcPolicy } from './policies/eks-orphan-pvc.policy';
+export { AmiUnusedPolicy } from './policies/ami-unused.policy';
+export { EcrImageUntaggedPolicy } from './policies/ecr-image-untagged.policy';
+export { S3MultipartUploadAbandonedPolicy } from './policies/s3-multipart-upload-abandoned.policy';
+export { RdsManualSnapshotOldPolicy } from './policies/rds-manual-snapshot-old.policy';
+export { SecretsManagerUnusedPolicy } from './policies/secretsmanager-unused.policy';
 
 // Outbound Ports
 export type { PricingPort } from './ports/outbound/pricing.port';

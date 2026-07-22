@@ -119,7 +119,7 @@ export class LogGroup extends Entity<string> implements WastedResource {
 
 ## Step 3 — Waste policy
 
-`libs/cloud-cost/domain/src/policies/resource-waste-policies.ts`:
+`libs/cloud-cost/domain/src/policies/log-group.policy.ts` (one file per policy, named after the entity it judges):
 
 ```typescript
 export class LogGroupWastePolicy extends WastePolicy<LogGroup> {
@@ -133,7 +133,7 @@ export class LogGroupWastePolicy extends WastePolicy<LogGroup> {
 }
 ```
 
-Exclusion tag and grace period come for free from the base class. Add the tests in `resource-waste-policies.spec.ts` (waste case, grace-period case, tag case) and export the policy from the domain's `index.ts`.
+Exclusion tag and grace period come for free from the base class. Add the tests in `waste-policies.spec.ts` (waste case, grace-period case, tag case) and export the policy from the domain's `index.ts`.
 
 ---
 
@@ -275,7 +275,7 @@ Console table, PDF and JSON DTO update themselves: they consume the registry and
 
 ## Tests
 
-- `domain`: entity spec + policy cases in `resource-waste-policies.spec.ts`
+- `domain`: entity spec + policy cases in `waste-policies.spec.ts`
 - `aws-adapter`: scanner spec (mocked SDK) — mapping, pagination, policy applied, errors, `destroy()`
 - The coordinator needs **no** new tests: it is generic
 

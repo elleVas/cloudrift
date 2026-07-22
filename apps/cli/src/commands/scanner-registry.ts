@@ -7,7 +7,7 @@ import {
   Ec2InstanceWastePolicy,
   EbsSnapshotWastePolicy,
   NatGatewayWastePolicy,
-  Gp2UpgradePolicy,
+  EbsGp2UpgradePolicy,
   EbsIdlePolicy,
   Ec2UnderutilizedPolicy,
   RdsUnderutilizedPolicy,
@@ -164,7 +164,7 @@ export const ALWAYS_ON_SCANNERS: ScannerRegistration<ScannerBuildContext>[] = [
   },
   {
     kind: 'ebs-gp2-upgrade',
-    create: (ctx) => new AwsGp2UpgradeScanner(ctx.pricing, ctx.accountId, new Gp2UpgradePolicy(ctx.policyOptions)),
+    create: (ctx) => new AwsGp2UpgradeScanner(ctx.pricing, ctx.accountId, new EbsGp2UpgradePolicy(ctx.policyOptions)),
   },
   {
     kind: 'ebs-idle',
