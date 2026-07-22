@@ -1,29 +1,27 @@
 // SPDX-License-Identifier: Apache-2.0
-import {
-  EbsVolumeWastePolicy,
-  ElasticIpWastePolicy,
-  RdsInstanceWastePolicy,
-  LoadBalancerWastePolicy,
-  Ec2InstanceWastePolicy,
-  EbsSnapshotWastePolicy,
-  NatGatewayWastePolicy,
-  Gp2UpgradePolicy,
-  EbsIdlePolicy,
-  Ec2UnderutilizedPolicy,
-  RdsUnderutilizedPolicy,
-  LogGroupWastePolicy,
-  OrphanedEniWastePolicy,
-  S3NoLifecyclePolicy,
-  LambdaUnderutilizedPolicy,
-  EfsUnusedPolicy,
-  DynamoDbOverprovisionedPolicy,
-  ElastiCacheIdlePolicy,
-  AmiUnusedPolicy,
-  EcrImageUntaggedPolicy,
-  S3MultipartUploadAbandonedPolicy,
-  RdsManualSnapshotOldPolicy,
-  SecretsManagerUnusedPolicy,
-} from './resource-waste-policies';
+import { EbsVolumeWastePolicy } from './ebs-volume.policy';
+import { ElasticIpWastePolicy } from './elastic-ip.policy';
+import { RdsInstanceWastePolicy } from './rds-instance.policy';
+import { LoadBalancerWastePolicy } from './load-balancer.policy';
+import { Ec2InstanceWastePolicy } from './ec2-instance.policy';
+import { EbsSnapshotWastePolicy } from './ebs-snapshot.policy';
+import { NatGatewayWastePolicy } from './nat-gateway.policy';
+import { EbsGp2UpgradePolicy } from './gp2-volume.policy';
+import { EbsIdlePolicy } from './idle-ebs-volume.policy';
+import { Ec2UnderutilizedPolicy } from './underutilized-ec2-instance.policy';
+import { RdsUnderutilizedPolicy } from './rds-underutilized-instance.policy';
+import { LogGroupWastePolicy } from './log-group.policy';
+import { OrphanedEniWastePolicy } from './orphaned-eni.policy';
+import { S3NoLifecyclePolicy } from './s3-bucket.policy';
+import { LambdaUnderutilizedPolicy } from './underutilized-lambda-function.policy';
+import { EfsUnusedPolicy } from './efs-file-system.policy';
+import { DynamoDbOverprovisionedPolicy } from './overprovisioned-dynamodb-table.policy';
+import { ElastiCacheIdlePolicy } from './idle-elasticache-cluster.policy';
+import { AmiUnusedPolicy } from './ami-unused.policy';
+import { EcrImageUntaggedPolicy } from './ecr-image-untagged.policy';
+import { S3MultipartUploadAbandonedPolicy } from './s3-multipart-upload-abandoned.policy';
+import { RdsManualSnapshotOldPolicy } from './rds-manual-snapshot-old.policy';
+import { SecretsManagerUnusedPolicy } from './secretsmanager-unused.policy';
 import { DEFAULT_IGNORE_TAG, DEFAULT_MIN_AGE_DAYS } from './waste-policy';
 import { EbsVolume } from '../entities/ebs-volume.entity';
 import { ElasticIp } from '../entities/elastic-ip.entity';
@@ -350,8 +348,8 @@ describe('NatGatewayWastePolicy', () => {
   });
 });
 
-describe('Gp2UpgradePolicy', () => {
-  const policy = new Gp2UpgradePolicy();
+describe('EbsGp2UpgradePolicy', () => {
+  const policy = new EbsGp2UpgradePolicy();
 
   function makeGp2Volume(
     overrides: { createTime?: Date; tags?: Record<string, string> } = {},

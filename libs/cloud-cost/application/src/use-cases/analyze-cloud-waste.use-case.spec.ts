@@ -52,7 +52,7 @@ function makeGp2Volume(id: string): Gp2Volume {
   });
 }
 
-/** Scanner fittizio: una risposta per regione, in ordine di chiamata. */
+/** Fake scanner: one response per region, in call order. */
 function makeScanner(
   kind: ResourceKind,
   responses: Array<Result<WastedResource[]>>,
@@ -201,8 +201,8 @@ describe('AnalyzeCloudWasteUseCase', () => {
   });
 
   it('scans regions of the same scanner concurrently when a worker is free', async () => {
-    // us-east-1 si sblocca solo quando parte eu-west-1: con il vecchio
-    // loop sequenziale per regione questo test andrebbe in timeout.
+    // us-east-1 only unblocks once eu-west-1 starts: with the old
+    // sequential per-region loop this test would time out.
     let releaseFirst!: () => void;
     const firstBlocked = new Promise<void>((resolve) => (releaseFirst = resolve));
     const scanner: WasteScannerPort = {

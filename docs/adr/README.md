@@ -64,6 +64,7 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 | [0060](0060-entity-deep-freeze.md) | `Entity` deep-freezes props recursively | Accepted |
 | [0062](0062-scan-concurrency-lowered-for-localstack-reliability.md) | Scan concurrency lowered from 12 to 3; CI e2e job retries | Superseded by [ADR-0063](0063-scan-concurrency-env-configurable-default-restored-to-12.md) |
 | [0063](0063-scan-concurrency-env-configurable-default-restored-to-12.md) | Scan concurrency default restored to 12, overridable via `CLOUDRIFT_SCAN_CONCURRENCY`; LocalStack e2e forces 1 | Accepted |
+| [0074](0074-waste-policies-one-file-per-policy.md) | Waste policies split into one file per policy | Accepted |
 
 ## Stack
 

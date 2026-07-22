@@ -35,7 +35,7 @@ export class InvalidAwsRegionError extends DomainError {
 }
 
 export class AwsRegion extends ValueObject<AwsRegionProps> {
-  /** Factory Result-based: da usare per input esterni (CLI, API). */
+  /** Result-based factory: use for external input (CLI, API). */
   static parse(code: string): Result<AwsRegion, InvalidAwsRegionError> {
     if (!VALID_AWS_REGIONS.has(code)) {
       return Result.fail(new InvalidAwsRegionError(code));
@@ -43,7 +43,7 @@ export class AwsRegion extends ValueObject<AwsRegionProps> {
     return Result.ok(new AwsRegion({ code }));
   }
 
-  /** Factory throwing: da usare solo per codici noti a compile time (test, fixture). */
+  /** Throwing factory: use only for codes known at compile time (tests, fixtures). */
   static create(code: string): AwsRegion {
     const result = AwsRegion.parse(code);
     if (!result.ok) throw result.error;

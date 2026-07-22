@@ -11,7 +11,7 @@ import type {
   WasteScannerPort,
   WastedResource,
 } from 'cloud-cost-domain';
-import { Gp2Volume, Gp2UpgradePolicy } from 'cloud-cost-domain';
+import { Gp2Volume, EbsGp2UpgradePolicy } from 'cloud-cost-domain';
 import { AwsAdapterError } from '../errors/aws-adapter.error';
 import { paginate } from '../utils/paginate';
 import { createAwsClientConfig } from '../utils/client-config';
@@ -35,7 +35,7 @@ export class AwsGp2UpgradeScanner implements WasteScannerPort {
   constructor(
     private readonly pricing: PricingPort,
     private readonly accountId = 'unknown',
-    private readonly policy = new Gp2UpgradePolicy(),
+    private readonly policy = new EbsGp2UpgradePolicy(),
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
