@@ -1,0 +1,21 @@
+{
+  "kind": "ec2-security-group-unused",
+  "source": "hand-transcribed from the AWS API reference, 2026-07-23",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "DescribeSecurityGroupsCommand": [
+      {
+        "SecurityGroups": [{ "GroupId": "sg-0123456789abcdef0", "GroupName": "legacy-app-sg", "Tags": [] }],
+        "$metadata": { "httpStatusCode": 200, "requestId": "req-1", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ],
+    "DescribeNetworkInterfacesCommand": [
+      {
+        "NetworkInterfaces": [],
+        "$metadata": { "httpStatusCode": 200, "requestId": "req-2", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ]
+  },
+  "expected": { "findings": [{ "id": "sg-0123456789abcdef0", "severity": "info" }] }
+}

@@ -1,0 +1,22 @@
+{
+  "kind": "iam-access-key-stale",
+  "source": "hand-transcribed from the AWS API reference, 2026-07-23",
+  "region": "global",
+  "accountId": "000000000000",
+  "pages": {
+    "ListUsersCommand": [
+      {
+        "Users": [{ "UserId": "AIDACKCEVSQ6C2EXAMPLE", "UserName": "ci-deploy", "Arn": "arn:aws:iam::000000000000:user/ci-deploy", "CreateDate": "2023-01-01T00:00:00.000Z" }],
+        "IsTruncated": false,
+        "$metadata": { "httpStatusCode": 200, "requestId": "req-1", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ],
+    "ListAccessKeysCommand": [
+      {
+        "AccessKeyMetadata": [{ "AccessKeyId": "AKIAIOSFODNN7EXAMPLE", "UserName": "ci-deploy", "Status": "Active", "CreateDate": "2023-01-01T00:00:00.000Z" }],
+        "$metadata": { "httpStatusCode": 200, "requestId": "req-2", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ]
+  },
+  "expected": { "findings": [{ "id": "AKIAIOSFODNN7EXAMPLE", "severity": "warning" }] }
+}

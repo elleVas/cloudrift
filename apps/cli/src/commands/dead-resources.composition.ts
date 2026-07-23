@@ -6,13 +6,36 @@ import type {
   DeadResourceScannerPort,
   FindDeadResourcesUseCasePort,
 } from 'dead-resources-domain';
-import { Ec2KeyPairUnusedPolicy, Ec2RiExpiringSoonPolicy, IamUserInactivePolicy, IamPolicyUnattachedPolicy } from 'dead-resources-domain';
+import {
+  Ec2KeyPairUnusedPolicy,
+  Ec2RiExpiringSoonPolicy,
+  IamUserInactivePolicy,
+  IamPolicyUnattachedPolicy,
+  IamRoleUnusedPolicy,
+  IamAccessKeyStalePolicy,
+  Ec2SecurityGroupUnusedPolicy,
+  LogsLogGroupEmptyPolicy,
+  AcmCertificateUnusedPolicy,
+  Route53HostedZoneEmptyPolicy,
+  CloudformationStackStuckPolicy,
+  S3BucketEmptyPolicy,
+  CloudwatchAlarmOrphanedPolicy,
+} from 'dead-resources-domain';
 import { FindDeadResourcesUseCase } from 'dead-resources-application';
 import {
   AwsEc2KeyPairUnusedScanner,
   AwsEc2RiExpiringSoonScanner,
   AwsIamUserInactiveScanner,
   AwsIamPolicyUnattachedScanner,
+  AwsIamRoleUnusedScanner,
+  AwsIamAccessKeyStaleScanner,
+  AwsEc2SecurityGroupUnusedScanner,
+  AwsLogsLogGroupEmptyScanner,
+  AwsAcmCertificateUnusedScanner,
+  AwsRoute53HostedZoneEmptyScanner,
+  AwsCloudformationStackStuckScanner,
+  AwsS3BucketEmptyScanner,
+  AwsCloudwatchAlarmOrphanedScanner,
 } from 'dead-resources-infrastructure-aws-adapter';
 import { resolveAwsAccountId } from 'cloud-cost-infrastructure-aws-adapter';
 
@@ -47,8 +70,8 @@ export interface DeadResourcesDeps {
 
 /**
  * One entry per dead-resource kind — same shape as `ALWAYS_ON_SCANNERS`
- * (`scanner-registry.ts`), just not yet split into its own file: at 4
- * entries this has nothing to earn a split against (see ADR-0077's
+ * (`scanner-registry.ts`), just not yet split into its own file: at 13
+ * entries this still has nothing to earn a split against (see ADR-0077's
  * reasoning for why the cost-waste registry was split where it was, not
  * preemptively — that was 43 entries).
  */
@@ -58,6 +81,15 @@ function buildScanners(ctx: DeadResourceScanContext): DeadResourceScannerPort[] 
     new AwsEc2RiExpiringSoonScanner(ctx.accountId, new Ec2RiExpiringSoonPolicy(ctx.policyOptions)),
     new AwsIamUserInactiveScanner(ctx.accountId, new IamUserInactivePolicy(ctx.policyOptions)),
     new AwsIamPolicyUnattachedScanner(ctx.accountId, new IamPolicyUnattachedPolicy(ctx.policyOptions)),
+    new AwsIamRoleUnusedScanner(ctx.accountId, new IamRoleUnusedPolicy(ctx.policyOptions)),
+    new AwsIamAccessKeyStaleScanner(ctx.accountId, new IamAccessKeyStalePolicy(ctx.policyOptions)),
+    new AwsEc2SecurityGroupUnusedScanner(ctx.accountId, new Ec2SecurityGroupUnusedPolicy(ctx.policyOptions)),
+    new AwsLogsLogGroupEmptyScanner(ctx.accountId, new LogsLogGroupEmptyPolicy(ctx.policyOptions)),
+    new AwsAcmCertificateUnusedScanner(ctx.accountId, new AcmCertificateUnusedPolicy(ctx.policyOptions)),
+    new AwsRoute53HostedZoneEmptyScanner(ctx.accountId, new Route53HostedZoneEmptyPolicy(ctx.policyOptions)),
+    new AwsCloudformationStackStuckScanner(ctx.accountId, new CloudformationStackStuckPolicy(ctx.policyOptions)),
+    new AwsS3BucketEmptyScanner(ctx.accountId, new S3BucketEmptyPolicy(ctx.policyOptions)),
+    new AwsCloudwatchAlarmOrphanedScanner(ctx.accountId, new CloudwatchAlarmOrphanedPolicy(ctx.policyOptions)),
   ];
 }
 

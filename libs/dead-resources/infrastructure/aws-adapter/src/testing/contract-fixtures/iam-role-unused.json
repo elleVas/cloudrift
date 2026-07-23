@@ -1,0 +1,25 @@
+{
+  "kind": "iam-role-unused",
+  "source": "hand-transcribed from the AWS API reference, 2026-07-23",
+  "region": "global",
+  "accountId": "000000000000",
+  "pages": {
+    "ListRolesCommand": [
+      {
+        "Roles": [
+          {
+            "RoleId": "AROACKCEVSQ6C2EXAMPLE",
+            "RoleName": "legacy-deploy-role",
+            "Arn": "arn:aws:iam::000000000000:role/legacy-deploy-role",
+            "Path": "/",
+            "CreateDate": "2023-01-01T00:00:00.000Z",
+            "Tags": []
+          }
+        ],
+        "IsTruncated": false,
+        "$metadata": { "httpStatusCode": 200, "requestId": "req-1", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ]
+  },
+  "expected": { "findings": [{ "id": "AROACKCEVSQ6C2EXAMPLE", "severity": "warning" }] }
+}
