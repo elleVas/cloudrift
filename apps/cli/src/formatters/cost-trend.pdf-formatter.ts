@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 import { createWriteStream } from 'fs';
-import type { CostTrendSummary } from 'cloud-cost-domain';
-import type { CostAnalyticsMeta } from 'cloud-cost-application';
-import { COST_REPORT_DISCLAIMER } from 'cloud-cost-application';
+import type { CostTrendSummary } from 'cost-analytics-domain';
+import type { CostAnalyticsMeta } from 'cost-analytics-application';
+import { COST_REPORT_DISCLAIMER } from 'cost-analytics-application';
 import {
   C,
   PAGE_H,

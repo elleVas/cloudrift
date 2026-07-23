@@ -16,11 +16,15 @@
     }
   },
   "nx": {
-    "tags": ["scope:application"],
+    "tags": [
+      "scope:application"
+    ],
     "targets": {
       "test": {
         "executor": "@nx/jest:jest",
-        "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+        "outputs": [
+          "{workspaceRoot}/coverage/{projectRoot}"
+        ],
         "options": {
           "jestConfig": "libs/dead-resources/application/jest.config.cjs",
           "passWithNoTests": true
@@ -31,6 +35,6 @@
   "dependencies": {
     "dead-resources-domain": "workspace:*",
     "shared-kernel": "workspace:*",
-    "tslib": "^2.3.0"
+    "tslib": "^2.8.1"
   }
 }

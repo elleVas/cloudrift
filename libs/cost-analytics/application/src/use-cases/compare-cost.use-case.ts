@@ -7,7 +7,7 @@ import type {
   CostExplorerPort,
   CostPeriodBucket,
   CostServiceDelta,
-} from 'cloud-cost-domain';
+} from 'cost-analytics-domain';
 import { addDaysUTC, round2, startOfDayUTC, startOfMonthUTC, toYmd } from '../utils/date-window';
 
 /**

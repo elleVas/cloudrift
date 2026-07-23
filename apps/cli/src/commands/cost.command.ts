@@ -2,8 +2,8 @@
 import chalk from 'chalk';
 import { dirname, resolve } from 'path';
 import { mkdir } from 'fs/promises';
-import { CompareCostUseCase } from 'cloud-cost-application';
-import type { CostAnalyticsMeta } from 'cloud-cost-application';
+import { CompareCostUseCase } from 'cost-analytics-application';
+import type { CostAnalyticsMeta } from 'cost-analytics-application';
 import { formatCostComparisonAsTable } from '../formatters/cost-comparison.table-formatter';
 import { formatCostComparisonAsJson } from '../formatters/cost-comparison.json-formatter';
 import { generateCostComparisonPdf } from '../formatters/cost-comparison.pdf-formatter';

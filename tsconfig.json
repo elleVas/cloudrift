@@ -19,6 +19,15 @@
       "path": "./libs/cloud-cost/infrastructure/aws-adapter"
     },
     {
+      "path": "./libs/cost-analytics/domain"
+    },
+    {
+      "path": "./libs/cost-analytics/application"
+    },
+    {
+      "path": "./libs/cost-analytics/infrastructure/aws-adapter"
+    },
+    {
       "path": "./libs/dead-resources/domain"
     },
     {

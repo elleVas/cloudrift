@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { CostExplorerClient, GetCostAndUsageCommand, type ResultByTime } from '@aws-sdk/client-cost-explorer';
 import { Result } from 'shared-kernel';
-import type { CostByService, CostExplorerPort, CostPeriodBucket } from 'cloud-cost-domain';
+import type { CostByService, CostExplorerPort, CostPeriodBucket } from 'cost-analytics-domain';
 import { AwsAdapterError } from '../errors/aws-adapter.error';
 import { createAwsClientConfig } from '../utils/client-config';
 

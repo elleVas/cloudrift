@@ -72,8 +72,3 @@ export {
   extractOnDemandUsd,
 } from './pricing/aws-pricing-api.adapter';
 export { resolveAwsAccountId } from './account/aws-account-id.resolver';
-export { AwsCostExplorerAdapter } from './cost-explorer/aws-cost-explorer.adapter';
-export {
-  CachedCostExplorerAdapter,
-  defaultCostExplorerCacheDir,
-} from './cost-explorer/cost-explorer-cache.adapter';

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-import type { CostComparisonSummary } from 'cloud-cost-domain';
+import type { CostComparisonSummary } from 'cost-analytics-domain';
 import { applyCostTrendGate } from './post-analysis';
 
 function summaryWith(changeUsd: number, changePercent: number | null): CostComparisonSummary {

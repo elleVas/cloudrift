@@ -2,8 +2,8 @@
 import { mkdtemp, rm, readFile } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import type { CostTrendSummary } from 'cloud-cost-domain';
-import type { CostAnalyticsMeta } from 'cloud-cost-application';
+import type { CostTrendSummary } from 'cost-analytics-domain';
+import type { CostAnalyticsMeta } from 'cost-analytics-application';
 import { generateCostTrendPdf } from './cost-trend.pdf-formatter';
 
 const meta: CostAnalyticsMeta = { accountId: '123456789012', generatedAt: new Date('2026-07-22T12:00:00Z') };

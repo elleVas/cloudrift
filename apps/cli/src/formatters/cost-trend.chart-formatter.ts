@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import chalk from 'chalk';
-import type { CostTrendSummary } from 'cloud-cost-domain';
+import type { CostTrendSummary } from 'cost-analytics-domain';
 
 const BAR_WIDTH = 40;
 const BAR_CHAR = '█';

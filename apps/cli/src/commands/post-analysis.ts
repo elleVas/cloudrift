@@ -2,8 +2,9 @@
 import chalk from 'chalk';
 import { dirname, resolve } from 'path';
 import { mkdir, writeFile } from 'fs/promises';
-import type { CostComparisonSummary, WastedResourcesSummary } from 'cloud-cost-domain';
+import type { WastedResourcesSummary } from 'cloud-cost-domain';
 import type { WasteReportMeta } from 'cloud-cost-application';
+import type { CostComparisonSummary } from 'cost-analytics-domain';
 import type { CloudriftConfig } from '../config/cloudrift.config';
 import { formatWasteReportAsJson } from '../formatters/waste-report.json-formatter';
 import { generateWasteReportPdf } from '../formatters/waste-report.pdf-formatter';

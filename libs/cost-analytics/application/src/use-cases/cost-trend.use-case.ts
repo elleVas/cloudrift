@@ -6,7 +6,7 @@ import type {
   CostTrendRequest,
   CostTrendSummary,
   CostTrendUseCasePort,
-} from 'cloud-cost-domain';
+} from 'cost-analytics-domain';
 import { addDaysUTC, round2, startOfDayUTC, toYmd } from '../utils/date-window';
 
 const DEFAULT_MONTHS = 6;
