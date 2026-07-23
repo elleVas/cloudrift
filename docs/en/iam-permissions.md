@@ -102,3 +102,25 @@ The `dead-resources` command (dead/unused resource hygiene checks, see [ADR-0078
 ```
 
 `ec2:DescribeInstances`/`ec2:DescribeNetworkInterfaces` (already in the main policy above) are reused to cross-reference key pairs against running/stopped instances and security groups against network interfaces, respectively. None of these actions are needed for `analyze` — only for `dead-resources`. `s3:ListBucket` (a bucket-level, not account-level, action) is what backs each `s3-bucket-empty` check's `ListObjectsV2` call — a bucket policy that denies it to this principal makes that one bucket unreadable, not the whole scan (see `aws-s3-bucket-empty.scanner.ts`'s per-bucket skip-on-error behavior). `ec2:DescribeRegions` and the reused `ec2:DescribeInstances` are what back `iam-instance-profile-unattached`'s account-wide, all-region cross-reference (see `aws-iam-instance-profile-unattached.scanner.ts`'s doc comment for why this one check deliberately ignores `--regions`) — a region this principal can't `DescribeInstances` in is skipped for that check, not treated as a scan failure.
+
+The `resource-security` command (security-posture checks — IAM/account hygiene, network exposure, public storage, encryption at rest, visibility/audit; see [ADR-0081](../adr/0081-resource-security-parallel-domain.md), full flag reference in [usage.md](usage.md#resource-security--security-posture-scan)) additionally requires:
+
+```json
+{
+  "Effect": "Allow",
+  "Action": [
+    "iam:GetAccountSummary",
+    "iam:ListMFADevices",
+    "iam:GetAccountPasswordPolicy",
+    "s3:GetBucketAcl",
+    "s3:GetBucketPolicyStatus",
+    "s3:GetPublicAccessBlock",
+    "s3:GetBucketEncryption",
+    "ec2:DescribeSnapshotAttribute",
+    "cloudtrail:DescribeTrails"
+  ],
+  "Resource": "*"
+}
+```
+
+`iam:ListUsers`, `iam:ListAccessKeys`, `ec2:DescribeSecurityGroups`, `ec2:DescribeVolumes`, `ec2:DescribeSnapshots`, `s3:ListAllMyBuckets`, and `rds:DescribeDBInstances` (all already in the main policy or the `dead-resources` block above) are reused — this command adds no new hygiene/inventory calls, only the read-only checks (`Get*`/`DescribeSnapshotAttribute`/`DescribeTrails`) needed to evaluate each resource's security configuration. `cloudtrail:DescribeTrails` is the one action from a service not otherwise used by cloudrift. None of these actions are needed for `analyze` or `dead-resources` — only for `resource-security`.

@@ -44,6 +44,7 @@
   "dependencies": {
     "@aws-sdk/client-acm": "^3.1093.0",
     "@aws-sdk/client-cloudformation": "^3.1093.0",
+    "@aws-sdk/client-cloudtrail": "^3.1093.0",
     "@aws-sdk/client-cloudwatch": "^3.1093.0",
     "@aws-sdk/client-cloudwatch-logs": "^3.1093.0",
     "@aws-sdk/client-codepipeline": "^3.1093.0",

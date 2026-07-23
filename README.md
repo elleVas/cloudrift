@@ -231,6 +231,37 @@ cloudrift dead-resources --scanners iam-user-inactive  # only one check
 
 ---
 
+### Security posture (`resource-security`)
+
+A third, separate domain: risky **configuration** on resources that are actively in use (unlike `dead-resources` above, which finds abandoned ones) — IAM/account hygiene, network exposure, public storage, encryption at rest, and visibility/audit. All 14 checks are read-only (`Describe*`/`Get*`/`List*` only). See [ADR-0081](https://github.com/elleVas/cloudrift/blob/main/docs/adr/0081-resource-security-parallel-domain.md).
+
+```sh
+cloudrift resource-security                                    # every check, us-east-1
+cloudrift resource-security -r us-east-1 eu-west-1              # multiple regions (regional checks only — see below)
+cloudrift resource-security --scanners iam-root-mfa-disabled    # only one check
+```
+
+| Check                       | Flags                              | Severity |
+| ---------------------------- | ----------------------------------- | -------- |
+| **Root Account (MFA disabled)** | `iam:GetAccountSummary` → `AccountMFAEnabled` | critical |
+| **IAM Users (MFA disabled)** | No MFA device registered | warning |
+| **IAM Access Keys (rotation overdue)** | Active key older than 90 days (CIS 1.14) | warning |
+| **Root Account (active access key)** | `AccountAccessKeysPresent` | critical |
+| **Account Password Policy (weak or missing)** | Short of the CIS baseline, or absent | warning |
+| **EC2 Security Groups (open ingress on sensitive ports)** | `0.0.0.0/0`/`::/0` on SSH/RDP/database ports | critical |
+| **EC2 Default Security Groups (permissive)** | Default VPC security group still has rules | warning |
+| **S3 Buckets (public)** | Public via ACL and/or bucket policy | critical |
+| **EC2 Snapshots (public)** | `createVolumePermission` granted to `all` | critical |
+| **EBS Volumes (unencrypted)** | Not encrypted at rest | warning |
+| **RDS Instances (unencrypted)** | Storage not encrypted at rest | warning |
+| **S3 Buckets (default encryption missing)** | No default server-side encryption | warning |
+| **RDS Instances (publicly accessible)** | Reachable from outside its VPC | critical |
+| **CloudTrail (no multi-region trail)** | No trail with multi-region logging | warning |
+
+**IAM, S3 (bucket listing), and CloudTrail are global for this command**: those eight checks run once per scan regardless of how many `--regions` you pass, never once per region — the other six checks are genuinely regional. `--format json`/`--pdf` for machine-readable/shareable output, no `--min-age-days` (a security misconfiguration is a risk from the moment it exists). See [docs/en/usage.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/usage.md#resource-security--security-posture-scan) for the full flag reference.
+
+---
+
 ## Documentation
 
 The full reference — flags, config file, pricing sources, CI/CD, IAM permissions, contributing, architecture — lives in [`docs/`](https://github.com/elleVas/cloudrift/tree/main/docs/): English in [`docs/en/`](https://github.com/elleVas/cloudrift/tree/main/docs/en/), Italian in [`docs/it/`](https://github.com/elleVas/cloudrift/tree/main/docs/it/).
