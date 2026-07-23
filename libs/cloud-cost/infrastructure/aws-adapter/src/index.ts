@@ -55,6 +55,7 @@ export { AwsEcrImageUntaggedScanner } from './scanners/aws-ecr-image-untagged.sc
 export { AwsS3MultipartUploadAbandonedScanner } from './scanners/aws-s3-multipart-upload-abandoned.scanner';
 export { AwsRdsManualSnapshotOldScanner } from './scanners/aws-rds-manual-snapshot-old.scanner';
 export { AwsSecretsManagerUnusedScanner } from './scanners/aws-secretsmanager-unused.scanner';
+export { AwsCodepipelinePipelineStaleScanner } from './scanners/aws-codepipeline-pipeline-stale.scanner';
 export { AwsAdapterError } from './errors/aws-adapter.error';
 export {
   StaticPriceTableAdapter,

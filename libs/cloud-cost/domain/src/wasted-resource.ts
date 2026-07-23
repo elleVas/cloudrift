@@ -46,6 +46,7 @@ export const RESOURCE_KINDS = [
   's3-multipart-upload-abandoned',
   'rds-manual-snapshot-old',
   'secretsmanager-unused',
+  'codepipeline-pipeline-stale',
 ] as const;
 
 export type ResourceKind = (typeof RESOURCE_KINDS)[number];
@@ -175,6 +176,11 @@ export const RESOURCE_KIND_META: Record<ResourceKind, ResourceKindMeta> = {
   },
   'rds-manual-snapshot-old': { label: 'RDS Manual Snapshots (old)', category: 'waste', estimated: false },
   'secretsmanager-unused': { label: 'Secrets Manager Secrets (unused)', category: 'waste', estimated: false },
+  // Added 2026-07-23: moved here from the dead-resources candidate list —
+  // CodePipeline's flat $1/mo-per-pipeline fee is a real fixed at-rest cost
+  // (ADR-0037 criteria), not a $0 hygiene flag, so it belongs with the rest
+  // of the WastedResource scanners, always-on like ebs-snapshot.
+  'codepipeline-pipeline-stale': { label: 'CodePipeline Pipelines (stale)', category: 'waste', estimated: false },
 };
 
 /** Human-readable labels, derived from RESOURCE_KIND_META (single source). */

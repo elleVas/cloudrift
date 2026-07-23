@@ -1,0 +1,29 @@
+{
+  "kind": "codepipeline-pipeline-stale",
+  "source": "hand-transcribed from the AWS API reference, 2026-07-23 (CodePipeline not seeded in the LocalStack capture script)",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "ListPipelinesCommand": [
+      {
+        "pipelines": [
+          {
+            "name": "legacy-deploy-pipeline",
+            "version": 1,
+            "pipelineType": "V1",
+            "created": "2024-01-15T00:00:00.000Z",
+            "updated": "2024-01-15T00:00:00.000Z"
+          }
+        ],
+        "$metadata": { "httpStatusCode": 200, "requestId": "req-1", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ],
+    "ListPipelineExecutionsCommand": [
+      {
+        "pipelineExecutionSummaries": [],
+        "$metadata": { "httpStatusCode": 200, "requestId": "req-2", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ]
+  },
+  "expected": { "findings": [{ "id": "legacy-deploy-pipeline", "monthlyCostUsd": 1 }] }
+}

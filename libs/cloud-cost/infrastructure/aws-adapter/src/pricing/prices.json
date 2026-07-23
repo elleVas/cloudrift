@@ -33,7 +33,8 @@
     "aurora-acu": 87.600,
     "ecr-storage": 0.100,
     "rds-manual-snapshot": 0.095,
-    "secretsmanager-secret": 0.400
+    "secretsmanager-secret": 0.400,
+    "codepipeline-pipeline": 1.000
   },
   "us-east-1": {
     "ebs-gp2":       0.100,

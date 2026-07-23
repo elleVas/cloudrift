@@ -59,6 +59,7 @@ import {
   S3MultipartUploadAbandonedPolicy,
   RdsManualSnapshotOldPolicy,
   SecretsManagerUnusedPolicy,
+  CodepipelinePipelineStalePolicy,
 } from 'cloud-cost-domain';
 import type { ResourceKind, WasteScannerPort } from 'cloud-cost-domain';
 import { AwsEbsVolumeScanner } from './aws-ebs-volume.scanner';
@@ -104,6 +105,7 @@ import { AwsEcrImageUntaggedScanner } from './aws-ecr-image-untagged.scanner';
 import { AwsS3MultipartUploadAbandonedScanner } from './aws-s3-multipart-upload-abandoned.scanner';
 import { AwsRdsManualSnapshotOldScanner } from './aws-rds-manual-snapshot-old.scanner';
 import { AwsSecretsManagerUnusedScanner } from './aws-secretsmanager-unused.scanner';
+import { AwsCodepipelinePipelineStaleScanner } from './aws-codepipeline-pipeline-stale.scanner';
 import { StaticPriceTableAdapter } from '../pricing/static-price-table.adapter';
 
 interface ContractFixture {
@@ -256,6 +258,8 @@ const scannerFactories: Record<ResourceKind, () => WasteScannerPort> = {
     new AwsRdsManualSnapshotOldScanner(pricing, ACCOUNT, new RdsManualSnapshotOldPolicy(po)),
   'secretsmanager-unused': () =>
     new AwsSecretsManagerUnusedScanner(pricing, ACCOUNT, new SecretsManagerUnusedPolicy(po)),
+  'codepipeline-pipeline-stale': () =>
+    new AwsCodepipelinePipelineStaleScanner(pricing, ACCOUNT, new CodepipelinePipelineStalePolicy(po)),
 };
 
 const byId = (a: { id: string }, b: { id: string }) => a.id.localeCompare(b.id);

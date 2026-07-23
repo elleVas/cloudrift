@@ -31,6 +31,8 @@ Il principal AWS deve avere le seguenti permission in sola lettura:
     "s3:ListBucketMultipartUploads",
     "ecr:DescribeRepositories",
     "ecr:DescribeImages",
+    "codepipeline:ListPipelines",
+    "codepipeline:ListPipelineExecutions",
     "secretsmanager:ListSecrets",
     "lambda:ListFunctions",
     "elasticfilesystem:DescribeFileSystems",
