@@ -1,0 +1,21 @@
+{
+  "kind": "s3-bucket-empty",
+  "source": "hand-transcribed from the AWS API reference, 2026-07-23",
+  "region": "global",
+  "accountId": "000000000000",
+  "pages": {
+    "ListBucketsCommand": [
+      {
+        "Buckets": [{ "Name": "old-project-artifacts", "CreationDate": "2023-01-01T00:00:00.000Z" }],
+        "$metadata": { "httpStatusCode": 200, "requestId": "req-1", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ],
+    "ListObjectsV2Command": [
+      {
+        "KeyCount": 0,
+        "$metadata": { "httpStatusCode": 200, "requestId": "req-2", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ]
+  },
+  "expected": { "findings": [{ "id": "old-project-artifacts", "severity": "info" }] }
+}

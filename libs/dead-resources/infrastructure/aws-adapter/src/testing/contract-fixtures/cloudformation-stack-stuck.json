@@ -1,0 +1,23 @@
+{
+  "kind": "cloudformation-stack-stuck",
+  "source": "hand-transcribed from the AWS API reference, 2026-07-23",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "DescribeStacksCommand": [
+      {
+        "Stacks": [
+          {
+            "StackId": "arn:aws:cloudformation:us-east-1:000000000000:stack/broken-stack/12345678-1234-1234-1234-123456789012",
+            "StackName": "broken-stack",
+            "StackStatus": "DELETE_FAILED",
+            "CreationTime": "2023-01-01T00:00:00.000Z",
+            "Tags": []
+          }
+        ],
+        "$metadata": { "httpStatusCode": 200, "requestId": "req-1", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ]
+  },
+  "expected": { "findings": [{ "id": "arn:aws:cloudformation:us-east-1:000000000000:stack/broken-stack/12345678-1234-1234-1234-123456789012", "severity": "critical" }] }
+}

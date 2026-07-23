@@ -42,6 +42,8 @@
     "typescript-eslint": "^8.61.0"
   },
   "dependencies": {
+    "@aws-sdk/client-acm": "^3.1093.0",
+    "@aws-sdk/client-cloudformation": "^3.1093.0",
     "@aws-sdk/client-cloudwatch": "^3.741.0",
     "@aws-sdk/client-cloudwatch-logs": "^3.1073.0",
     "@aws-sdk/client-cost-explorer": "^3.1092.0",
@@ -65,6 +67,7 @@
     "@aws-sdk/client-rds": "^3.741.0",
     "@aws-sdk/client-redshift": "^3.1075.0",
     "@aws-sdk/client-resource-groups-tagging-api": "^3.1075.0",
+    "@aws-sdk/client-route-53": "^3.1093.0",
     "@aws-sdk/client-s3": "^3.1073.0",
     "@aws-sdk/client-sagemaker": "^3.1075.0",
     "@aws-sdk/client-secrets-manager": "^3.1092.0",

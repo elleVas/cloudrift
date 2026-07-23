@@ -1,0 +1,22 @@
+{
+  "kind": "logs-loggroup-empty",
+  "source": "hand-transcribed from the AWS API reference, 2026-07-23",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "DescribeLogGroupsCommand": [
+      {
+        "logGroups": [
+          {
+            "logGroupName": "/lambda/old-function",
+            "arn": "arn:aws:logs:us-east-1:000000000000:log-group:/lambda/old-function",
+            "creationTime": 1672531200000,
+            "storedBytes": 0
+          }
+        ],
+        "$metadata": { "httpStatusCode": 200, "requestId": "req-1", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ]
+  },
+  "expected": { "findings": [{ "id": "arn:aws:logs:us-east-1:000000000000:log-group:/lambda/old-function", "severity": "info" }] }
+}

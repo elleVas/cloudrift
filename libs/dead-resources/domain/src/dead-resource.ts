@@ -14,6 +14,15 @@ export const DEAD_RESOURCE_KINDS = [
   'ec2-ri-expiring-soon',
   'iam-user-inactive',
   'iam-policy-unattached',
+  'iam-role-unused',
+  'iam-access-key-stale',
+  'ec2-security-group-unused',
+  'logs-loggroup-empty',
+  'acm-certificate-unused',
+  'route53-hostedzone-empty',
+  'cloudformation-stack-stuck',
+  's3-bucket-empty',
+  'cloudwatch-alarm-orphaned',
 ] as const;
 export type DeadResourceKind = (typeof DEAD_RESOURCE_KINDS)[number];
 
@@ -33,6 +42,15 @@ export const DEAD_RESOURCE_KIND_META: Record<DeadResourceKind, DeadResourceKindM
   'ec2-ri-expiring-soon': { label: 'EC2 Reserved Instances (expiring soon)', scope: 'regional' },
   'iam-user-inactive': { label: 'IAM Users (inactive)', scope: 'global' },
   'iam-policy-unattached': { label: 'IAM Policies (unattached)', scope: 'global' },
+  'iam-role-unused': { label: 'IAM Roles (unused)', scope: 'global' },
+  'iam-access-key-stale': { label: 'IAM Access Keys (stale)', scope: 'global' },
+  'ec2-security-group-unused': { label: 'EC2 Security Groups (unused)', scope: 'regional' },
+  'logs-loggroup-empty': { label: 'CloudWatch Log Groups (empty)', scope: 'regional' },
+  'acm-certificate-unused': { label: 'ACM Certificates (unused)', scope: 'regional' },
+  'route53-hostedzone-empty': { label: 'Route53 Hosted Zones (empty)', scope: 'global' },
+  'cloudformation-stack-stuck': { label: 'CloudFormation Stacks (stuck)', scope: 'regional' },
+  's3-bucket-empty': { label: 'S3 Buckets (empty)', scope: 'global' },
+  'cloudwatch-alarm-orphaned': { label: 'CloudWatch Alarms (orphaned)', scope: 'regional' },
 };
 
 /**

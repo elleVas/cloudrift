@@ -39,8 +39,8 @@ export const presenters: PresenterMap = {
     recommend: (ri) =>
       `Decide whether to renew Reserved Instance ${ri.id} (${ri.instanceType} × ${ri.instanceCount}) in ${ri.region.code} — ${ri.hygieneReason}`,
   },
-  // No Region column for the two IAM kinds below — IAM is a global AWS
-  // service, `region` is unset on these entities (see ADR-0078).
+  // No Region column for the IAM/Route53/S3 kinds below — those AWS
+  // services are global, `region` is unset on these entities (ADR-0078).
   'iam-user-inactive': {
     title: 'IAM Users — Inactive',
     head: ['User Name', 'ARN', 'Created'],
@@ -52,6 +52,60 @@ export const presenters: PresenterMap = {
     head: ['Policy Name', 'ARN', 'Created'],
     row: (p) => [p.policyName, p.arn, day(p.createdAt)],
     recommend: (p) => `Delete unattached IAM policy "${p.policyName}" (${p.arn})`,
+  },
+  'iam-role-unused': {
+    title: 'IAM Roles — Unused',
+    head: ['Role Name', 'ARN', 'Created'],
+    row: (r) => [r.roleName, r.arn, day(r.createdAt)],
+    recommend: (r) => `Review/delete unused IAM role "${r.roleName}" (${r.arn}) — ${r.hygieneReason}`,
+  },
+  'iam-access-key-stale': {
+    title: 'IAM Access Keys — Stale',
+    head: ['Access Key ID', 'User Name', 'Created'],
+    row: (k) => [k.id, k.userName, day(k.createdAt)],
+    recommend: (k) => `Rotate or delete stale access key ${k.id} for IAM user "${k.userName}" — ${k.hygieneReason}`,
+  },
+  'ec2-security-group-unused': {
+    title: 'EC2 Security Groups — Unused',
+    head: ['Group ID', 'Group Name', 'Region'],
+    row: (sg) => [sg.id, sg.groupName, sg.region.code],
+    recommend: (sg) => `Delete unused security group "${sg.groupName}" (${sg.id}) in ${sg.region.code}`,
+  },
+  'logs-loggroup-empty': {
+    title: 'CloudWatch Log Groups — Empty',
+    head: ['Log Group', 'Region', 'Created'],
+    row: (lg) => [lg.logGroupName, lg.region.code, day(lg.createdAt)],
+    recommend: (lg) => `Delete empty CloudWatch log group "${lg.logGroupName}" in ${lg.region.code}`,
+  },
+  'acm-certificate-unused': {
+    title: 'ACM Certificates — Unused',
+    head: ['Domain Name', 'Region', 'Created'],
+    row: (c) => [c.domainName, c.region.code, day(c.createdAt)],
+    recommend: (c) => `Delete unused ACM certificate for "${c.domainName}" in ${c.region.code}`,
+  },
+  'route53-hostedzone-empty': {
+    title: 'Route53 Hosted Zones — Empty',
+    head: ['Zone Name', 'Zone ID'],
+    row: (z) => [z.name, z.id],
+    recommend: (z) => `Delete empty Route53 hosted zone "${z.name}" (${z.id}) — ${z.hygieneReason}`,
+  },
+  'cloudformation-stack-stuck': {
+    title: 'CloudFormation Stacks — Stuck',
+    head: ['Stack Name', 'Status', 'Region', 'Created'],
+    row: (s) => [s.stackName, s.status, s.region.code, day(s.createdAt)],
+    recommend: (s) => `Resolve stuck CloudFormation stack "${s.stackName}" (${s.status}) in ${s.region.code}`,
+  },
+  's3-bucket-empty': {
+    title: 'S3 Buckets — Empty',
+    head: ['Bucket Name', 'Created'],
+    row: (b) => [b.bucketName, day(b.createdAt)],
+    recommend: (b) => `Delete empty S3 bucket "${b.bucketName}"`,
+  },
+  'cloudwatch-alarm-orphaned': {
+    title: 'CloudWatch Alarms — Orphaned',
+    head: ['Alarm Name', 'Region', 'Last Config Update'],
+    row: (a) => [a.alarmName, a.region.code, day(a.createdAt)],
+    recommend: (a) => `Review/delete orphaned CloudWatch alarm "${a.alarmName}" in ${a.region.code} — ${a.hygieneReason}`,
   },
 };
 
@@ -70,6 +124,24 @@ export function rowFor(finding: DeadResourceKindMap[DeadResourceKind]): string[]
       return presenters['iam-user-inactive'].row(finding);
     case 'iam-policy-unattached':
       return presenters['iam-policy-unattached'].row(finding);
+    case 'iam-role-unused':
+      return presenters['iam-role-unused'].row(finding);
+    case 'iam-access-key-stale':
+      return presenters['iam-access-key-stale'].row(finding);
+    case 'ec2-security-group-unused':
+      return presenters['ec2-security-group-unused'].row(finding);
+    case 'logs-loggroup-empty':
+      return presenters['logs-loggroup-empty'].row(finding);
+    case 'acm-certificate-unused':
+      return presenters['acm-certificate-unused'].row(finding);
+    case 'route53-hostedzone-empty':
+      return presenters['route53-hostedzone-empty'].row(finding);
+    case 'cloudformation-stack-stuck':
+      return presenters['cloudformation-stack-stuck'].row(finding);
+    case 's3-bucket-empty':
+      return presenters['s3-bucket-empty'].row(finding);
+    case 'cloudwatch-alarm-orphaned':
+      return presenters['cloudwatch-alarm-orphaned'].row(finding);
   }
 }
 
@@ -83,5 +155,23 @@ export function recommendFor(finding: DeadResourceKindMap[DeadResourceKind]): st
       return presenters['iam-user-inactive'].recommend(finding);
     case 'iam-policy-unattached':
       return presenters['iam-policy-unattached'].recommend(finding);
+    case 'iam-role-unused':
+      return presenters['iam-role-unused'].recommend(finding);
+    case 'iam-access-key-stale':
+      return presenters['iam-access-key-stale'].recommend(finding);
+    case 'ec2-security-group-unused':
+      return presenters['ec2-security-group-unused'].recommend(finding);
+    case 'logs-loggroup-empty':
+      return presenters['logs-loggroup-empty'].recommend(finding);
+    case 'acm-certificate-unused':
+      return presenters['acm-certificate-unused'].recommend(finding);
+    case 'route53-hostedzone-empty':
+      return presenters['route53-hostedzone-empty'].recommend(finding);
+    case 'cloudformation-stack-stuck':
+      return presenters['cloudformation-stack-stuck'].recommend(finding);
+    case 's3-bucket-empty':
+      return presenters['s3-bucket-empty'].recommend(finding);
+    case 'cloudwatch-alarm-orphaned':
+      return presenters['cloudwatch-alarm-orphaned'].recommend(finding);
   }
 }

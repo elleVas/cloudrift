@@ -209,10 +209,19 @@ cloudrift dead-resources --scanners iam-user-inactive  # only one check
 | ---------------------------- | ----------------------------------- | -------- | ---------------------------------------------------- |
 | **EC2 Key Pairs (unused)**   | Not referenced by any running/stopped instance | info     | 7-day grace period (`--min-age-days`)                |
 | **EC2 Reserved Instances (expiring soon)** | Active, term ends within the threshold | warning  | 30 days                                              |
+| **EC2 Security Groups (unused)** | Not referenced by any network interface (`default` group excluded) | info | none — no creation date exposed by the API |
+| **CloudWatch Log Groups (empty)** | Never stored any events | info | 7-day grace period (`--min-age-days`) |
+| **ACM Certificates (unused)** | Not attached to any AWS resource | info | 7-day grace period (`--min-age-days`) |
+| **CloudFormation Stacks (stuck)** | `CREATE_FAILED`/`ROLLBACK_FAILED`/`DELETE_FAILED`/`UPDATE_ROLLBACK_FAILED` | critical | 7-day grace period (`--min-age-days`) |
+| **CloudWatch Alarms (orphaned)** | Stuck in `INSUFFICIENT_DATA` | warning | 7-day grace period (`--min-age-days`) |
 | **IAM Users (inactive)**     | No console login or access-key use  | warning  | 90 days (or never, past the 7-day creation grace period) |
 | **IAM Policies (unattached)**| Customer-managed, zero attachments (AWS-managed policies excluded — you can't delete those anyway) | info | 7-day grace period (`--min-age-days`) |
+| **IAM Roles (unused)** | Never assumed, or not within the threshold (service-linked roles excluded) | warning | 90 days (or never, past the 7-day creation grace period) |
+| **IAM Access Keys (stale)** | Active key not rotated within the threshold | warning | 90 days |
+| **Route53 Hosted Zones (empty)** | No records beyond the default NS/SOA pair | info | none — no creation date exposed by the API |
+| **S3 Buckets (empty)** | Zero objects | info | 7-day grace period (`--min-age-days`) |
 
-**IAM is a global AWS service**: the two IAM checks run once per scan regardless of how many `--regions` you pass, never once per region. See [ADR-0078](https://github.com/elleVas/cloudrift/blob/main/docs/adr/0078-dead-resources-parallel-domain.md)/[ADR-0079](https://github.com/elleVas/cloudrift/blob/main/docs/adr/0079-dead-resources-global-scope-scanners.md) for the design behind this split, `--format json`/`--pdf` for machine-readable/shareable output. See [docs/en/usage.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/usage.md#dead-resources--deadunused-resource-hygiene) for the full flag reference.
+**IAM, Route53, and (for this command) S3 are global AWS services**: those six checks run once per scan regardless of how many `--regions` you pass, never once per region — the other seven checks are genuinely regional. See [ADR-0078](https://github.com/elleVas/cloudrift/blob/main/docs/adr/0078-dead-resources-parallel-domain.md)/[ADR-0079](https://github.com/elleVas/cloudrift/blob/main/docs/adr/0079-dead-resources-global-scope-scanners.md) for the design behind this split, `--format json`/`--pdf` for machine-readable/shareable output. See [docs/en/usage.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/usage.md#dead-resources--deadunused-resource-hygiene) for the full flag reference.
 
 ---
 

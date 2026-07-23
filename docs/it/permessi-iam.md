@@ -71,13 +71,22 @@ Il comando `dead-resources` (check di hygiene per risorse morte/inutilizzate, ve
   "Action": [
     "ec2:DescribeKeyPairs",
     "ec2:DescribeReservedInstances",
+    "ec2:DescribeSecurityGroups",
     "iam:ListUsers",
     "iam:ListAccessKeys",
     "iam:GetAccessKeyLastUsed",
-    "iam:ListPolicies"
+    "iam:ListPolicies",
+    "iam:ListRoles",
+    "logs:DescribeLogGroups",
+    "acm:ListCertificates",
+    "route53:ListHostedZones",
+    "cloudformation:DescribeStacks",
+    "s3:ListAllMyBuckets",
+    "s3:ListBucket",
+    "cloudwatch:DescribeAlarms"
   ],
   "Resource": "*"
 }
 ```
 
-`ec2:DescribeInstances` (già nella policy principale sopra) viene riusata per incrociare le key pair con le istanze in esecuzione/ferme. Nessuna delle action `iam:*` serve per `analyze` — solo per `dead-resources`.
+`ec2:DescribeInstances`/`ec2:DescribeNetworkInterfaces` (già nella policy principale sopra) vengono riusate rispettivamente per incrociare le key pair con le istanze in esecuzione/ferme e i security group con le network interface. Nessuna di queste action serve per `analyze` — solo per `dead-resources`. `s3:ListBucket` (action a livello di singolo bucket, non a livello account) è quella dietro la chiamata `ListObjectsV2` di ogni check `s3-bucket-empty` — una bucket policy che la nega a questo principal rende illeggibile solo quel bucket, non l'intera scansione (vedi il comportamento di skip-per-errore in `aws-s3-bucket-empty.scanner.ts`).

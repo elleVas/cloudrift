@@ -8,6 +8,12 @@ importers:
 
   .:
     dependencies:
+      '@aws-sdk/client-acm':
+        specifier: ^3.1093.0
+        version: 3.1093.0
+      '@aws-sdk/client-cloudformation':
+        specifier: ^3.1093.0
+        version: 3.1093.0
       '@aws-sdk/client-cloudwatch':
         specifier: ^3.741.0
         version: 3.1064.0
@@ -77,6 +83,9 @@ importers:
       '@aws-sdk/client-resource-groups-tagging-api':
         specifier: ^3.1075.0
         version: 3.1087.0
+      '@aws-sdk/client-route-53':
+        specifier: ^3.1093.0
+        version: 3.1093.0
       '@aws-sdk/client-s3':
         specifier: ^3.1073.0
         version: 3.1073.0
@@ -327,6 +336,14 @@ packages:
     resolution: {integrity: sha512-qh0fG/RtrFztst4+vn1HZehAvAhr5Jlq/WMP7e5KvvfF16oNVBc9CDNVdxdm19vzOY2x0qiDMFCRjhxQAusGWQ==}
     engines: {node: '>=20.0.0'}
 
+  '@aws-sdk/client-acm@3.1093.0':
+    resolution: {integrity: sha512-ecRqhsdj2k3CEul4NOTd3MU2gf/geF6VFNQ6Rbn1+ec4XRpiiPD25IxK/pClm5WpuL/6ABzM13FgccHcYMfYPw==}
+    engines: {node: '>=20.0.0'}
+
+  '@aws-sdk/client-cloudformation@3.1093.0':
+    resolution: {integrity: sha512-Vgou0Jucnacw7sTabHQAI98vdlC0/vbs05LsGb4QdHxg4lf7MNCxiJqXonP9Ry0fQPEZMSO+3hkB80KVbaSRpg==}
+    engines: {node: '>=20.0.0'}
+
   '@aws-sdk/client-cloudwatch-logs@3.1073.0':
     resolution: {integrity: sha512-gkBSjPtr45W14QM+uYWsG7Wn8AqtqwxHaZo5zTTA7r6bIbB1tqYRFGEwOlBkGFQboCl0Xp/doCoHZRnaxNHn3A==}
     engines: {node: '>=20.0.0'}
@@ -417,6 +434,10 @@ packages:
 
   '@aws-sdk/client-resource-groups-tagging-api@3.1087.0':
     resolution: {integrity: sha512-KQwboQijsmvTRDtTKyMHZfBiFHmHnGzPS3IaFqkWDmTRD/t0UlKwz55srAjbaUeLJYjDk/4lcXbcyuDNDouTmA==}
+    engines: {node: '>=20.0.0'}
+
+  '@aws-sdk/client-route-53@3.1093.0':
+    resolution: {integrity: sha512-i2BP5WVS7REGiODAqMEzuFon7PX7Z6QzTkob2geqly8fRrWx73NzqFMRK22J3GXmJmwAOZfoSgsm3y7dKpNUug==}
     engines: {node: '>=20.0.0'}
 
   '@aws-sdk/client-s3@3.1073.0':
@@ -573,6 +594,10 @@ packages:
 
   '@aws-sdk/middleware-sdk-rds@3.972.37':
     resolution: {integrity: sha512-VuUIRnbkchafWIKb0nqvX+RlKYc8cq0a6tE/mtdF1J4cf44/R/wsKZgq5BHsHeLSuLjCoj5BHtSbLe+CF5OhOg==}
+    engines: {node: '>=20.0.0'}
+
+  '@aws-sdk/middleware-sdk-route53@3.972.23':
+    resolution: {integrity: sha512-p2mbkuh45ZLjaDPiQVHP679Rpj7hcK7zUAy4SBe91xur8jG43OZOyX0M9ScLP5BcqWksX87V+ucyvq8YJ/gIHQ==}
     engines: {node: '>=20.0.0'}
 
   '@aws-sdk/middleware-sdk-s3@3.972.53':
@@ -4632,6 +4657,28 @@ snapshots:
       '@smithy/types': 4.16.1
       tslib: 2.8.1
 
+  '@aws-sdk/client-acm@3.1093.0':
+    dependencies:
+      '@aws-sdk/core': 3.976.0
+      '@aws-sdk/credential-provider-node': 3.972.71
+      '@aws-sdk/types': 3.974.2
+      '@smithy/core': 3.29.7
+      '@smithy/fetch-http-handler': 5.6.9
+      '@smithy/node-http-handler': 4.9.9
+      '@smithy/types': 4.16.1
+      tslib: 2.8.1
+
+  '@aws-sdk/client-cloudformation@3.1093.0':
+    dependencies:
+      '@aws-sdk/core': 3.976.0
+      '@aws-sdk/credential-provider-node': 3.972.71
+      '@aws-sdk/types': 3.974.2
+      '@smithy/core': 3.29.7
+      '@smithy/fetch-http-handler': 5.6.9
+      '@smithy/node-http-handler': 4.9.9
+      '@smithy/types': 4.16.1
+      tslib: 2.8.1
+
   '@aws-sdk/client-cloudwatch-logs@3.1073.0':
     dependencies:
       '@aws-crypto/sha256-browser': 5.2.0
@@ -4925,6 +4972,18 @@ snapshots:
       '@smithy/core': 3.29.3
       '@smithy/fetch-http-handler': 5.6.5
       '@smithy/node-http-handler': 4.9.5
+      '@smithy/types': 4.16.1
+      tslib: 2.8.1
+
+  '@aws-sdk/client-route-53@3.1093.0':
+    dependencies:
+      '@aws-sdk/core': 3.976.0
+      '@aws-sdk/credential-provider-node': 3.972.71
+      '@aws-sdk/middleware-sdk-route53': 3.972.23
+      '@aws-sdk/types': 3.974.2
+      '@smithy/core': 3.29.7
+      '@smithy/fetch-http-handler': 5.6.9
+      '@smithy/node-http-handler': 4.9.9
       '@smithy/types': 4.16.1
       tslib: 2.8.1
 
@@ -5333,6 +5392,12 @@ snapshots:
       '@aws-sdk/types': 3.974.2
       '@smithy/core': 3.29.7
       '@smithy/signature-v4': 5.6.8
+      '@smithy/types': 4.16.1
+      tslib: 2.8.1
+
+  '@aws-sdk/middleware-sdk-route53@3.972.23':
+    dependencies:
+      '@aws-sdk/types': 3.974.2
       '@smithy/types': 4.16.1
       tslib: 2.8.1
 

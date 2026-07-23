@@ -25,6 +25,24 @@ export { IamUserInactive } from './entities/iam-user-inactive.entity';
 export type { IamUserInactiveProps } from './entities/iam-user-inactive.entity';
 export { IamPolicyUnattached } from './entities/iam-policy-unattached.entity';
 export type { IamPolicyUnattachedProps } from './entities/iam-policy-unattached.entity';
+export { IamRoleUnused } from './entities/iam-role-unused.entity';
+export type { IamRoleUnusedProps } from './entities/iam-role-unused.entity';
+export { IamAccessKeyStale } from './entities/iam-access-key-stale.entity';
+export type { IamAccessKeyStaleProps } from './entities/iam-access-key-stale.entity';
+export { Ec2SecurityGroupUnused } from './entities/ec2-security-group-unused.entity';
+export type { Ec2SecurityGroupUnusedProps } from './entities/ec2-security-group-unused.entity';
+export { LogsLogGroupEmpty } from './entities/logs-loggroup-empty.entity';
+export type { LogsLogGroupEmptyProps } from './entities/logs-loggroup-empty.entity';
+export { AcmCertificateUnused } from './entities/acm-certificate-unused.entity';
+export type { AcmCertificateUnusedProps } from './entities/acm-certificate-unused.entity';
+export { Route53HostedZoneEmpty } from './entities/route53-hostedzone-empty.entity';
+export type { Route53HostedZoneEmptyProps } from './entities/route53-hostedzone-empty.entity';
+export { CloudformationStackStuck } from './entities/cloudformation-stack-stuck.entity';
+export type { CloudformationStackStuckProps } from './entities/cloudformation-stack-stuck.entity';
+export { S3BucketEmpty } from './entities/s3-bucket-empty.entity';
+export type { S3BucketEmptyProps } from './entities/s3-bucket-empty.entity';
+export { CloudwatchAlarmOrphaned } from './entities/cloudwatch-alarm-orphaned.entity';
+export type { CloudwatchAlarmOrphanedProps } from './entities/cloudwatch-alarm-orphaned.entity';
 
 // Policies
 export {
@@ -39,6 +57,15 @@ export { Ec2KeyPairUnusedPolicy } from './policies/ec2-keypair-unused.policy';
 export { Ec2RiExpiringSoonPolicy, DEFAULT_EXPIRING_WITHIN_DAYS } from './policies/ec2-ri-expiring-soon.policy';
 export { IamUserInactivePolicy, DEFAULT_INACTIVITY_DAYS } from './policies/iam-user-inactive.policy';
 export { IamPolicyUnattachedPolicy } from './policies/iam-policy-unattached.policy';
+export { IamRoleUnusedPolicy, DEFAULT_ROLE_INACTIVITY_DAYS } from './policies/iam-role-unused.policy';
+export { IamAccessKeyStalePolicy, DEFAULT_ACCESS_KEY_MAX_AGE_DAYS } from './policies/iam-access-key-stale.policy';
+export { Ec2SecurityGroupUnusedPolicy } from './policies/ec2-security-group-unused.policy';
+export { LogsLogGroupEmptyPolicy } from './policies/logs-loggroup-empty.policy';
+export { AcmCertificateUnusedPolicy } from './policies/acm-certificate-unused.policy';
+export { Route53HostedZoneEmptyPolicy } from './policies/route53-hostedzone-empty.policy';
+export { CloudformationStackStuckPolicy } from './policies/cloudformation-stack-stuck.policy';
+export { S3BucketEmptyPolicy } from './policies/s3-bucket-empty.policy';
+export { CloudwatchAlarmOrphanedPolicy } from './policies/cloudwatch-alarm-orphaned.policy';
 
 // Ports
 export type { DeadResourceScannerPort } from './ports/outbound/dead-resource-scanner.port';

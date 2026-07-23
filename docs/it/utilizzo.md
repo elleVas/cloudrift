@@ -176,7 +176,7 @@ node apps/cli/dist/main.js trend --refresh-cache
 
 ## `dead-resources` — hygiene per risorse morte/inutilizzate
 
-Un dominio di hygiene separato dal modello cost-waste di `analyze`, deliberatamente — vedi [ADR-0078](../adr/0078-dead-resources-parallel-domain.md). Trova cose lasciate morte o inutilizzate nell'account con **costo AWS diretto pari a $0** (quindi invisibili ai criteri cost-based di `analyze`): key pair EC2 inutilizzate, Reserved Instance EC2 in scadenza, utenti IAM inattivi, policy IAM non collegate. I finding portano una `severity` (`info` / `warning` / `critical`) invece di una stima `$/mese`.
+Un dominio di hygiene separato dal modello cost-waste di `analyze`, deliberatamente — vedi [ADR-0078](../adr/0078-dead-resources-parallel-domain.md)/[ADR-0079](../adr/0079-dead-resources-global-scope-scanners.md). Trova cose lasciate morte o inutilizzate nell'account con **costo AWS diretto pari a $0** (quindi invisibili ai criteri cost-based di `analyze`): key pair EC2 e security group inutilizzati, Reserved Instance in scadenza, utenti/ruoli IAM inattivi, access key non ruotate, policy IAM non collegate, log group CloudWatch vuoti, certificati ACM inutilizzati, hosted zone Route53 vuote, stack CloudFormation bloccati, bucket S3 vuoti, e alarm CloudWatch orfani — 13 check in totale. I finding portano una `severity` (`info` / `warning` / `critical`) invece di una stima `$/mese`.
 
 ```sh
 node apps/cli/dist/main.js dead-resources [opzioni]
@@ -184,7 +184,7 @@ node apps/cli/dist/main.js dead-resources [opzioni]
 
 | Opzione                       | Descrizione                                                                                                    | Default            |
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
-| `-r, --regions <regioni...>` | Regioni AWS da scansionare (ignorato dai due check IAM — vedi sotto)                                           | `us-east-1`        |
+| `-r, --regions <regioni...>` | Regioni AWS da scansionare (ignorato dai check a scope globale — vedi sotto)                                    | `us-east-1`        |
 | `--account-id <id>`          | Override dell'account ID (rilevato automaticamente via `sts:GetCallerIdentity` se omesso)                      | auto-rilevato      |
 | `--min-age-days <giorni>`    | Periodo di grazia: le risorse più giovani di N giorni non vengono segnalate (`ec2-ri-expiring-soon` non lo usa — vedi sotto) | `7` |
 | `--ignore-tag <tag>`         | Le risorse con questo tag vengono escluse dal report                                                            | `cloudrift:ignore` |
@@ -196,14 +196,23 @@ node apps/cli/dist/main.js dead-resources [opzioni]
 
 **Check:**
 
-| Kind | Cosa viene segnalato | Severity | Soglia |
-| --- | --- | --- | --- |
-| `ec2-keypair-unused` | Key pair EC2 non referenziata dal `KeyName` di nessuna istanza in esecuzione/ferma | `info` | Periodo di grazia di 7 giorni (`--min-age-days`) dalla data di creazione della key pair |
-| `ec2-ri-expiring-soon` | Reserved Instance attiva il cui termine scade entro la soglia | `warning` | 30 giorni (non configurabile via flag oggi — vedi [ADR-0079](../adr/0079-dead-resources-global-scope-scanners.md) per il perché non riusa `--min-age-days`) |
-| `iam-user-inactive` | Nessun login console e nessun uso di access key entro la soglia (o mai) | `warning` | 90 giorni (la stessa cifra del CIS AWS Foundations Benchmark), periodo di grazia di 7 giorni dalla creazione |
-| `iam-policy-unattached` | Policy IAM customer-managed con zero attachment (le policy AWS-managed sono escluse server-side — tanto non si possono eliminare) | `info` | Periodo di grazia di 7 giorni (`--min-age-days`) |
+| Kind | Scope | Cosa viene segnalato | Severity | Soglia |
+| --- | --- | --- | --- | --- |
+| `ec2-keypair-unused` | regionale | Key pair EC2 non referenziata dal `KeyName` di nessuna istanza in esecuzione/ferma | `info` | Periodo di grazia di 7 giorni (`--min-age-days`) dalla data di creazione della key pair |
+| `ec2-ri-expiring-soon` | regionale | Reserved Instance attiva il cui termine scade entro la soglia | `warning` | 30 giorni (non configurabile via flag oggi — vedi [ADR-0079](../adr/0079-dead-resources-global-scope-scanners.md) per il perché non riusa `--min-age-days`) |
+| `ec2-security-group-unused` | regionale | Security group non referenziato da nessuna network interface (il gruppo `default` dell'account/VPC è sempre escluso) | `info` | nessuna — l'API non espone una data di creazione su cui basare un periodo di grazia |
+| `logs-loggroup-empty` | regionale | Log group CloudWatch che non ha mai memorizzato eventi (`storedBytes === 0`) | `info` | Periodo di grazia di 7 giorni (`--min-age-days`) |
+| `acm-certificate-unused` | regionale | Certificato ACM non attaccato a nessuna risorsa AWS (`InUse` calcolato da AWS stessa) | `info` | Periodo di grazia di 7 giorni (`--min-age-days`) |
+| `cloudformation-stack-stuck` | regionale | Stack bloccato in `CREATE_FAILED` / `ROLLBACK_FAILED` / `DELETE_FAILED` / `UPDATE_ROLLBACK_FAILED` | `critical` | Periodo di grazia di 7 giorni (`--min-age-days`) |
+| `cloudwatch-alarm-orphaned` | regionale | Alarm bloccato in `INSUFFICIENT_DATA` — di solito la risorsa sottostante alla metrica è stata eliminata | `warning` | Periodo di grazia di 7 giorni (`--min-age-days`), misurato dall'ultimo aggiornamento di configurazione dell'alarm |
+| `iam-user-inactive` | globale | Nessun login console e nessun uso di access key entro la soglia (o mai) | `warning` | 90 giorni (la stessa cifra del CIS AWS Foundations Benchmark), periodo di grazia di 7 giorni dalla creazione |
+| `iam-policy-unattached` | globale | Policy IAM customer-managed con zero attachment (le policy AWS-managed sono escluse server-side — tanto non si possono eliminare) | `info` | Periodo di grazia di 7 giorni (`--min-age-days`) |
+| `iam-role-unused` | globale | Nessuna assunzione del ruolo entro la soglia (o mai); i ruoli service-linked AWS sono esclusi | `warning` | 90 giorni, periodo di grazia di 7 giorni dalla creazione |
+| `iam-access-key-stale` | globale | Access key attiva non ruotata entro la soglia — il controllo di rotazione del CIS AWS Foundations Benchmark | `warning` | 90 giorni |
+| `route53-hostedzone-empty` | globale | Hosted zone senza record oltre alla coppia NS/SOA di default (`ResourceRecordSetCount <= 2`) | `info` | nessuna — l'API non espone una data di creazione su cui basare un periodo di grazia |
+| `s3-bucket-empty` | globale | Bucket con zero oggetti | `info` | Periodo di grazia di 7 giorni (`--min-age-days`) |
 
-> **IAM è un servizio AWS globale.** `iam-user-inactive` e `iam-policy-unattached` girano **una sola volta per scansione**, mai una volta per regione richiesta — a differenza di ogni altro scanner in cloudrift (inclusi gli altri due check qui, che sono genuinamente regionali). Vedi [ADR-0079](../adr/0079-dead-resources-global-scope-scanners.md).
+> **IAM, Route53 e (per questo comando) S3 sono servizi AWS globali.** I sei check `globale` sopra girano **una sola volta per scansione**, mai una volta per regione richiesta — a differenza dei sette check `regionale`. Vedi [ADR-0079](../adr/0079-dead-resources-global-scope-scanners.md).
 
 **Esempi:**
 
@@ -211,7 +220,7 @@ node apps/cli/dist/main.js dead-resources [opzioni]
 # Tutti i check, regione di default
 node apps/cli/dist/main.js dead-resources
 
-# Più regioni — influisce solo sui due check regionali (key pair, RI)
+# Più regioni — influisce solo sui check regionali, non su quelli globali
 node apps/cli/dist/main.js dead-resources -r us-east-1 eu-west-1
 
 # Solo i check IAM
@@ -224,4 +233,4 @@ node apps/cli/dist/main.js dead-resources --format json | jq '.findings[] | sele
 node apps/cli/dist/main.js dead-resources --pdf ./hygiene.pdf --silent
 ```
 
-**Permessi IAM:** questo comando richiede `ec2:DescribeKeyPairs`, `ec2:DescribeReservedInstances`, `iam:ListUsers`, `iam:ListAccessKeys`, `iam:GetAccessKeyLastUsed`, `iam:ListPolicies` in aggiunta alla policy di `analyze` — vedi [docs/it/permessi-iam.md](permessi-iam.md).
+**Permessi IAM:** questo comando richiede `ec2:DescribeKeyPairs`, `ec2:DescribeReservedInstances`, `ec2:DescribeSecurityGroups`, `iam:ListUsers`, `iam:ListAccessKeys`, `iam:GetAccessKeyLastUsed`, `iam:ListPolicies`, `iam:ListRoles`, `logs:DescribeLogGroups`, `acm:ListCertificates`, `route53:ListHostedZones`, `cloudformation:DescribeStacks`, `s3:ListAllMyBuckets`, `s3:ListBucket`, `cloudwatch:DescribeAlarms` in aggiunta alla policy di `analyze` — vedi [docs/it/permessi-iam.md](permessi-iam.md).

@@ -1,0 +1,22 @@
+{
+  "kind": "acm-certificate-unused",
+  "source": "hand-transcribed from the AWS API reference, 2026-07-23",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "ListCertificatesCommand": [
+      {
+        "CertificateSummaryList": [
+          {
+            "CertificateArn": "arn:aws:acm:us-east-1:000000000000:certificate/12345678-1234-1234-1234-123456789012",
+            "DomainName": "old.example.com",
+            "CreatedAt": "2023-01-01T00:00:00.000Z",
+            "InUse": false
+          }
+        ],
+        "$metadata": { "httpStatusCode": 200, "requestId": "req-1", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ]
+  },
+  "expected": { "findings": [{ "id": "arn:aws:acm:us-east-1:000000000000:certificate/12345678-1234-1234-1234-123456789012", "severity": "info" }] }
+}

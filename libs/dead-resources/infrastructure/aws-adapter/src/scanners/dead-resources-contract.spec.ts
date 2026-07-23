@@ -16,6 +16,12 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { EC2Client } from '@aws-sdk/client-ec2';
 import { IAMClient } from '@aws-sdk/client-iam';
+import { CloudWatchLogsClient } from '@aws-sdk/client-cloudwatch-logs';
+import { ACMClient } from '@aws-sdk/client-acm';
+import { Route53Client } from '@aws-sdk/client-route-53';
+import { CloudFormationClient } from '@aws-sdk/client-cloudformation';
+import { S3Client } from '@aws-sdk/client-s3';
+import { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
 import {
   AwsRegion,
   DEAD_RESOURCE_KINDS,
@@ -23,12 +29,30 @@ import {
   Ec2RiExpiringSoonPolicy,
   IamUserInactivePolicy,
   IamPolicyUnattachedPolicy,
+  IamRoleUnusedPolicy,
+  IamAccessKeyStalePolicy,
+  Ec2SecurityGroupUnusedPolicy,
+  LogsLogGroupEmptyPolicy,
+  AcmCertificateUnusedPolicy,
+  Route53HostedZoneEmptyPolicy,
+  CloudformationStackStuckPolicy,
+  S3BucketEmptyPolicy,
+  CloudwatchAlarmOrphanedPolicy,
 } from 'dead-resources-domain';
 import type { DeadResourceKind, DeadResourceScannerPort } from 'dead-resources-domain';
 import { AwsEc2KeyPairUnusedScanner } from './aws-ec2-keypair-unused.scanner';
 import { AwsEc2RiExpiringSoonScanner } from './aws-ec2-ri-expiring-soon.scanner';
 import { AwsIamUserInactiveScanner } from './aws-iam-user-inactive.scanner';
 import { AwsIamPolicyUnattachedScanner } from './aws-iam-policy-unattached.scanner';
+import { AwsIamRoleUnusedScanner } from './aws-iam-role-unused.scanner';
+import { AwsIamAccessKeyStaleScanner } from './aws-iam-access-key-stale.scanner';
+import { AwsEc2SecurityGroupUnusedScanner } from './aws-ec2-security-group-unused.scanner';
+import { AwsLogsLogGroupEmptyScanner } from './aws-logs-loggroup-empty.scanner';
+import { AwsAcmCertificateUnusedScanner } from './aws-acm-certificate-unused.scanner';
+import { AwsRoute53HostedZoneEmptyScanner } from './aws-route53-hostedzone-empty.scanner';
+import { AwsCloudformationStackStuckScanner } from './aws-cloudformation-stack-stuck.scanner';
+import { AwsS3BucketEmptyScanner } from './aws-s3-bucket-empty.scanner';
+import { AwsCloudwatchAlarmOrphanedScanner } from './aws-cloudwatch-alarm-orphaned.scanner';
 
 interface ContractFixture {
   kind: DeadResourceKind;
@@ -53,12 +77,22 @@ const fixtures = readdirSync(FIXTURES_DIR)
   .sort()
   .map(loadFixture);
 
-// EC2Client and IAMClient resolve different @smithy/core Client base objects
-// (verified empirically, same phenomenon cloud-cost-infrastructure-aws-adapter's
-// contract test already documents for EC2 vs ECR/Secrets Manager) — two
-// clusters to patch, not one.
+// Different AWS SDK v3 clients can resolve different @smithy/core Client
+// base objects (verified empirically, same phenomenon
+// cloud-cost-infrastructure-aws-adapter's contract test already documents
+// for EC2 vs ECR/Secrets Manager) — every client used by a scanner in this
+// domain gets its own entry here rather than assuming they share one base.
 type ClientBase = { prototype: { send: (...args: unknown[]) => Promise<unknown> } };
-const clientBases = [Object.getPrototypeOf(EC2Client), Object.getPrototypeOf(IAMClient)] as ClientBase[];
+const clientBases = [
+  Object.getPrototypeOf(EC2Client),
+  Object.getPrototypeOf(IAMClient),
+  Object.getPrototypeOf(CloudWatchLogsClient),
+  Object.getPrototypeOf(ACMClient),
+  Object.getPrototypeOf(Route53Client),
+  Object.getPrototypeOf(CloudFormationClient),
+  Object.getPrototypeOf(S3Client),
+  Object.getPrototypeOf(CloudWatchClient),
+] as ClientBase[];
 const realSends = clientBases.map((base) => base.prototype.send);
 afterAll(() => {
   clientBases.forEach((base, i) => {
@@ -101,6 +135,15 @@ const scannerFactories: Record<DeadResourceKind, () => DeadResourceScannerPort> 
   'ec2-ri-expiring-soon': () => new AwsEc2RiExpiringSoonScanner(ACCOUNT, new Ec2RiExpiringSoonPolicy(po, 999_999)),
   'iam-user-inactive': () => new AwsIamUserInactiveScanner(ACCOUNT, new IamUserInactivePolicy(po, 0)),
   'iam-policy-unattached': () => new AwsIamPolicyUnattachedScanner(ACCOUNT, new IamPolicyUnattachedPolicy(po)),
+  'iam-role-unused': () => new AwsIamRoleUnusedScanner(ACCOUNT, new IamRoleUnusedPolicy(po, 0)),
+  'iam-access-key-stale': () => new AwsIamAccessKeyStaleScanner(ACCOUNT, new IamAccessKeyStalePolicy(po)),
+  'ec2-security-group-unused': () => new AwsEc2SecurityGroupUnusedScanner(ACCOUNT, new Ec2SecurityGroupUnusedPolicy(po)),
+  'logs-loggroup-empty': () => new AwsLogsLogGroupEmptyScanner(ACCOUNT, new LogsLogGroupEmptyPolicy(po)),
+  'acm-certificate-unused': () => new AwsAcmCertificateUnusedScanner(ACCOUNT, new AcmCertificateUnusedPolicy(po)),
+  'route53-hostedzone-empty': () => new AwsRoute53HostedZoneEmptyScanner(ACCOUNT, new Route53HostedZoneEmptyPolicy(po)),
+  'cloudformation-stack-stuck': () => new AwsCloudformationStackStuckScanner(ACCOUNT, new CloudformationStackStuckPolicy(po)),
+  's3-bucket-empty': () => new AwsS3BucketEmptyScanner(ACCOUNT, new S3BucketEmptyPolicy(po)),
+  'cloudwatch-alarm-orphaned': () => new AwsCloudwatchAlarmOrphanedScanner(ACCOUNT, new CloudwatchAlarmOrphanedPolicy(po)),
 };
 
 const byId = (a: { id: string }, b: { id: string }) => a.id.localeCompare(b.id);

@@ -1,0 +1,16 @@
+{
+  "kind": "route53-hostedzone-empty",
+  "source": "hand-transcribed from the AWS API reference, 2026-07-23",
+  "region": "global",
+  "accountId": "000000000000",
+  "pages": {
+    "ListHostedZonesCommand": [
+      {
+        "HostedZones": [{ "Id": "/hostedzone/Z1D633PJN98FT9", "Name": "old-project.example.com.", "ResourceRecordSetCount": 2 }],
+        "IsTruncated": false,
+        "$metadata": { "httpStatusCode": 200, "requestId": "req-1", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ]
+  },
+  "expected": { "findings": [{ "id": "Z1D633PJN98FT9", "severity": "info" }] }
+}
