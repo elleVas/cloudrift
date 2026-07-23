@@ -1,0 +1,29 @@
+{
+  "kind": "ec2-keypair-unused",
+  "source": "hand-transcribed from the AWS API reference, 2026-07-23",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "DescribeKeyPairsCommand": [
+      {
+        "KeyPairs": [
+          {
+            "KeyPairId": "key-0d427f787390ec3de",
+            "KeyName": "old-deploy-key",
+            "KeyType": "rsa",
+            "CreateTime": "2023-09-13T00:00:00.000Z",
+            "Tags": []
+          }
+        ],
+        "$metadata": { "httpStatusCode": 200, "requestId": "req-1", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ],
+    "DescribeInstancesCommand": [
+      {
+        "Reservations": [],
+        "$metadata": { "httpStatusCode": 200, "requestId": "req-2", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ]
+  },
+  "expected": { "findings": [{ "id": "key-0d427f787390ec3de", "severity": "info" }] }
+}

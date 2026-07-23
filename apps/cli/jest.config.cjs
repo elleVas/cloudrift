@@ -20,6 +20,12 @@ module.exports = {
     '^cloud-cost-application/(.*)$': '<rootDir>/../../libs/cloud-cost/application/src/$1',
     '^cloud-cost-infrastructure-aws-adapter$': '<rootDir>/../../libs/cloud-cost/infrastructure/aws-adapter/src/index.ts',
     '^cloud-cost-infrastructure-aws-adapter/(.*)$': '<rootDir>/../../libs/cloud-cost/infrastructure/aws-adapter/src/$1',
+    '^dead-resources-domain$': '<rootDir>/../../libs/dead-resources/domain/src/index.ts',
+    '^dead-resources-domain/(.*)$': '<rootDir>/../../libs/dead-resources/domain/src/$1',
+    '^dead-resources-application$': '<rootDir>/../../libs/dead-resources/application/src/index.ts',
+    '^dead-resources-application/(.*)$': '<rootDir>/../../libs/dead-resources/application/src/$1',
+    '^dead-resources-infrastructure-aws-adapter$': '<rootDir>/../../libs/dead-resources/infrastructure/aws-adapter/src/index.ts',
+    '^dead-resources-infrastructure-aws-adapter/(.*)$': '<rootDir>/../../libs/dead-resources/infrastructure/aws-adapter/src/$1',
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
 };

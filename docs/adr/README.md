@@ -20,6 +20,8 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 | [0008](0008-commit-and-pr-owned-by-user.md) | Commit and PR always owned by the user | Accepted |
 | [0038](0038-eleven-fixed-cost-scanners-phase-5-5.md) | 11 new fixed-cost scanners in v0.5.0 Phase 5.5 | Accepted |
 | [0065](0065-vertical-premium-scanners-phase-6-strategy.md) | Vertical premium scanners — Phase 6 strategy | Accepted |
+| [0078](0078-dead-resources-parallel-domain.md) | `dead-resources` as a new parallel domain, not a `WastedResource` extension | Accepted, kind list extended by [ADR-0079](0079-dead-resources-global-scope-scanners.md) |
+| [0079](0079-dead-resources-global-scope-scanners.md) | Global-scope scanners (IAM) in the `dead-resources` coordinator | Accepted |
 
 ## Cost analytics (`cost` / `trend`)
 

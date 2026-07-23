@@ -30,6 +30,31 @@ export async function promptWasteOutput(): Promise<WasteOutputChoice | undefined
   return { format, savePdf, saveJson };
 }
 
+export interface DeadResourcesOutputChoice {
+  format: 'table' | 'json';
+  savePdf: boolean;
+}
+
+/** Output format + optional PDF for the dead-resources wizard flow — table/json only, no markdown (see dead-resources.command.ts). */
+export async function promptDeadResourcesOutput(): Promise<DeadResourcesOutputChoice | undefined> {
+  const { select, confirm, cancel, isCancel } = await import('@clack/prompts');
+
+  const format = await select<DeadResourcesOutputChoice['format']>({
+    message: 'How should the report be shown on screen?',
+    options: [
+      { value: 'table', label: 'Table (default)' },
+      { value: 'json', label: 'JSON' },
+    ],
+    initialValue: 'table',
+  });
+  if (isCancel(format)) return bail(cancel);
+
+  const savePdf = await confirm({ message: 'Also save a PDF report to disk?', initialValue: false });
+  if (isCancel(savePdf)) return bail(cancel);
+
+  return { format, savePdf };
+}
+
 /** Output format for the cost/trend wizard flow — no file artifacts yet, see PDF backlog item. */
 export async function promptSimpleOutput(): Promise<'table' | 'json' | undefined> {
   const { select, cancel, isCancel } = await import('@clack/prompts');

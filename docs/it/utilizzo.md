@@ -2,9 +2,9 @@
 
 > 🇬🇧 [English version](../en/usage.md)
 
-Flag, esempi, report PDF, gestione errori parziali, e prezzi per regione per `cloudrift analyze`, più i comandi `cost`/`trend` e il wizard interattivo.
+Flag, esempi, report PDF, gestione errori parziali, e prezzi per regione per `cloudrift analyze`, più i comandi `cost`/`trend`/`dead-resources` e il wizard interattivo.
 
-**Wizard interattivo:** lanciando `cloudrift` senza **nessun sottocomando** in un vero terminale (fuori da CI) parte un wizard che ti fa scegliere cosa fare — "Trova risorse sprecate" / "Confronta la spesa col mese scorso" / "Vedi il trend mensile di spesa" — e poi pochi prompt (regioni, quali scanner, formato di output). Richiama esattamente lo stesso codice di `analyze`/`cost`/`trend` guidato dai flag qui sotto, quindi non va mai fuori sincrono con loro. Qualunque sottocomando esplicito, qualunque flag, CI, o stdout non interattivo saltano del tutto il wizard — script e pipeline non ne sono toccati. Vedi [ADR-0071](../adr/0071-unified-entry-wizard-bare-invocation.md).
+**Wizard interattivo:** lanciando `cloudrift` senza **nessun sottocomando** in un vero terminale (fuori da CI) parte un wizard che ti fa scegliere cosa fare — "Trova risorse sprecate" / "Confronta la spesa col mese scorso" / "Vedi il trend mensile di spesa" / "Trova risorse morte/inutilizzate" — e poi pochi prompt (regioni, quali scanner, formato di output). Richiama esattamente lo stesso codice di `analyze`/`cost`/`trend`/`dead-resources` guidato dai flag qui sotto, quindi non va mai fuori sincrono con loro. Qualunque sottocomando esplicito, qualunque flag, CI, o stdout non interattivo saltano del tutto il wizard — script e pipeline non ne sono toccati. Vedi [ADR-0071](../adr/0071-unified-entry-wizard-bare-invocation.md).
 
 ## `analyze` — trova risorse sprecate
 
@@ -171,3 +171,57 @@ node apps/cli/dist/main.js trend --months 12 --services ec2 s3 --yes
 # Rifà il fetch anche dei periodi già in cache
 node apps/cli/dist/main.js trend --refresh-cache
 ```
+
+---
+
+## `dead-resources` — hygiene per risorse morte/inutilizzate
+
+Un dominio di hygiene separato dal modello cost-waste di `analyze`, deliberatamente — vedi [ADR-0078](../adr/0078-dead-resources-parallel-domain.md). Trova cose lasciate morte o inutilizzate nell'account con **costo AWS diretto pari a $0** (quindi invisibili ai criteri cost-based di `analyze`): key pair EC2 inutilizzate, Reserved Instance EC2 in scadenza, utenti IAM inattivi, policy IAM non collegate. I finding portano una `severity` (`info` / `warning` / `critical`) invece di una stima `$/mese`.
+
+```sh
+node apps/cli/dist/main.js dead-resources [opzioni]
+```
+
+| Opzione                       | Descrizione                                                                                                    | Default            |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| `-r, --regions <regioni...>` | Regioni AWS da scansionare (ignorato dai due check IAM — vedi sotto)                                           | `us-east-1`        |
+| `--account-id <id>`          | Override dell'account ID (rilevato automaticamente via `sts:GetCallerIdentity` se omesso)                      | auto-rilevato      |
+| `--min-age-days <giorni>`    | Periodo di grazia: le risorse più giovani di N giorni non vengono segnalate (`ec2-ri-expiring-soon` non lo usa — vedi sotto) | `7` |
+| `--ignore-tag <tag>`         | Le risorse con questo tag vengono escluse dal report                                                            | `cloudrift:ignore` |
+| `--scanners <kinds...>`      | Esegue solo questi check (separati da spazio, es. `ec2-keypair-unused iam-user-inactive`)                       | tutti i check       |
+| `--format <format>`          | Formato di stdout: `table` o `json`                                                                             | `table`            |
+| `--pdf [filename]`           | Scrive anche un report PDF su disco (default `reports/cloudrift-dead-resources-YYYY_MM_DD.pdf`)                | —                  |
+| `--silent`                   | Sopprime tutto l'output su stdout (banner, report). Gli errori restano visibili.                                | off                |
+| `-h, --help`                 | Mostra l'help                                                                                                    | —                  |
+
+**Check:**
+
+| Kind | Cosa viene segnalato | Severity | Soglia |
+| --- | --- | --- | --- |
+| `ec2-keypair-unused` | Key pair EC2 non referenziata dal `KeyName` di nessuna istanza in esecuzione/ferma | `info` | Periodo di grazia di 7 giorni (`--min-age-days`) dalla data di creazione della key pair |
+| `ec2-ri-expiring-soon` | Reserved Instance attiva il cui termine scade entro la soglia | `warning` | 30 giorni (non configurabile via flag oggi — vedi [ADR-0079](../adr/0079-dead-resources-global-scope-scanners.md) per il perché non riusa `--min-age-days`) |
+| `iam-user-inactive` | Nessun login console e nessun uso di access key entro la soglia (o mai) | `warning` | 90 giorni (la stessa cifra del CIS AWS Foundations Benchmark), periodo di grazia di 7 giorni dalla creazione |
+| `iam-policy-unattached` | Policy IAM customer-managed con zero attachment (le policy AWS-managed sono escluse server-side — tanto non si possono eliminare) | `info` | Periodo di grazia di 7 giorni (`--min-age-days`) |
+
+> **IAM è un servizio AWS globale.** `iam-user-inactive` e `iam-policy-unattached` girano **una sola volta per scansione**, mai una volta per regione richiesta — a differenza di ogni altro scanner in cloudrift (inclusi gli altri due check qui, che sono genuinamente regionali). Vedi [ADR-0079](../adr/0079-dead-resources-global-scope-scanners.md).
+
+**Esempi:**
+
+```sh
+# Tutti i check, regione di default
+node apps/cli/dist/main.js dead-resources
+
+# Più regioni — influisce solo sui due check regionali (key pair, RI)
+node apps/cli/dist/main.js dead-resources -r us-east-1 eu-west-1
+
+# Solo i check IAM
+node apps/cli/dist/main.js dead-resources --scanners iam-user-inactive iam-policy-unattached
+
+# Output machine-readable
+node apps/cli/dist/main.js dead-resources --format json | jq '.findings[] | select(.severity=="warning")'
+
+# Report PDF, nulla stampato a terminale
+node apps/cli/dist/main.js dead-resources --pdf ./hygiene.pdf --silent
+```
+
+**Permessi IAM:** questo comando richiede `ec2:DescribeKeyPairs`, `ec2:DescribeReservedInstances`, `iam:ListUsers`, `iam:ListAccessKeys`, `iam:GetAccessKeyLastUsed`, `iam:ListPolicies` in aggiunta alla policy di `analyze` — vedi [docs/it/permessi-iam.md](permessi-iam.md).
