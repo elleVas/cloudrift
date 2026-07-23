@@ -2,9 +2,9 @@
 
 > 🇮🇹 [Versione italiana](../it/utilizzo.md)
 
-Flags, examples, the PDF report, partial-failure handling, and per-region pricing for `cloudrift analyze`, plus the `cost`/`trend`/`dead-resources` commands and the interactive wizard.
+Flags, examples, the PDF report, partial-failure handling, and per-region pricing for `cloudrift analyze`, plus the `cost`/`trend`/`dead-resources`/`resource-security` commands and the interactive wizard.
 
-**Interactive wizard:** running `cloudrift` with **no subcommand** in a real terminal (outside CI) launches a mode-picker wizard — choose "Find wasted resources" / "Compare spend vs. last month" / "View monthly spend trend" / "Find dead/unused resources", then answer a few prompts (regions, which scanners, output format). It calls the exact same `analyze`/`cost`/`trend`/`dead-resources` code the flags below drive, so it's never out of sync with them. Any explicit subcommand, any flag, CI, or non-interactive stdout skips the wizard entirely — scripts and pipelines are unaffected. See [ADR-0071](../adr/0071-unified-entry-wizard-bare-invocation.md).
+**Interactive wizard:** running `cloudrift` with **no subcommand** in a real terminal (outside CI) launches a mode-picker wizard — choose "Find wasted resources" / "Compare spend vs. last month" / "View monthly spend trend" / "Find dead/unused resources" / "Scan for security-posture risks", then answer a few prompts (regions, which scanners, output format). It calls the exact same `analyze`/`cost`/`trend`/`dead-resources`/`resource-security` code the flags below drive, so it's never out of sync with them. Any explicit subcommand, any flag, CI, or non-interactive stdout skips the wizard entirely — scripts and pipelines are unaffected. See [ADR-0071](../adr/0071-unified-entry-wizard-bare-invocation.md).
 
 ## `analyze` — find wasted resources
 
@@ -219,3 +219,66 @@ node apps/cli/dist/main.js dead-resources --pdf ./hygiene.pdf --silent
 ```
 
 **IAM permissions:** this command needs `ec2:DescribeKeyPairs`, `ec2:DescribeReservedInstances`, `ec2:DescribeSecurityGroups`, `iam:ListUsers`, `iam:ListAccessKeys`, `iam:GetAccessKeyLastUsed`, `iam:ListPolicies`, `iam:ListRoles`, `logs:DescribeLogGroups`, `acm:ListCertificates`, `route53:ListHostedZones`, `cloudformation:DescribeStacks`, `s3:ListAllMyBuckets`, `s3:ListBucket`, `cloudwatch:DescribeAlarms` in addition to `analyze`'s policy — see [docs/en/iam-permissions.md](iam-permissions.md).
+
+---
+
+## `resource-security` — security-posture scan
+
+A separate domain from both `analyze`'s cost-waste model and `dead-resources`' hygiene model — see [ADR-0081](../adr/0081-resource-security-parallel-domain.md). Finds risky **configuration** on resources that are actively in use (unlike `dead-resources`, which finds abandoned ones): disabled root/user MFA, overdue access-key rotation, active root access keys, a weak or missing account password policy, security groups with ingress open to the internet on sensitive ports, permissive default security groups, public S3 buckets and EBS snapshots, unencrypted EBS volumes and RDS instances, S3 buckets with no default encryption, publicly accessible RDS instances, and accounts with no multi-region CloudTrail trail — 14 checks in total, all backed by read-only `Describe*`/`Get*`/`List*` API calls. Findings carry a `severity` (`info` / `warning` / `critical`), same shape as `dead-resources`; there is no `--min-age-days` grace period — a security misconfiguration is a risk from the moment it exists, not after it ages.
+
+```sh
+node apps/cli/dist/main.js resource-security [options]
+```
+
+| Option                       | Description                                                                                                    | Default            |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| `-r, --regions <regions...>` | AWS regions to scan (ignored by the global-scope checks — see below)                                           | `us-east-1`        |
+| `--account-id <id>`          | AWS account ID override (auto-detected via `sts:GetCallerIdentity` when omitted)                               | auto-detected      |
+| `--ignore-tag <tag>`         | Resources carrying this tag are excluded from the report                                                       | `cloudrift:ignore` |
+| `--scanners <kinds...>`      | Only run these checks (space-separated, e.g. `iam-root-mfa-disabled s3-bucket-public`)                         | all checks          |
+| `--format <format>`          | stdout output format: `table` or `json`                                                                        | `table`            |
+| `--pdf [filename]`           | Also write a PDF report to disk (defaults to `reports/cloudrift-resource-security-YYYY_MM_DD.pdf`)             | —                  |
+| `--silent`                   | Suppress all stdout output (banner, report). Errors still surface.                                              | off                |
+| `-h, --help`                 | Show help                                                                                                       | —                  |
+
+**Checks:**
+
+| Kind | Scope | What's flagged | Severity |
+| --- | --- | --- | --- |
+| `iam-root-mfa-disabled` | global | Root account has no MFA device enabled | `critical` |
+| `iam-user-mfa-disabled` | global | IAM user with no MFA device registered | `warning` |
+| `iam-access-key-rotation-overdue` | global | Active access key older than 90 days (CIS AWS Foundations 1.14) | `warning` |
+| `iam-root-access-key-active` | global | Root account has at least one active access key | `critical` |
+| `iam-password-policy-weak` | global | Account password policy missing, or short of the CIS baseline (14-char minimum, all character classes, ≤90-day max age, 24-password reuse prevention) | `warning` |
+| `ec2-security-group-open-ingress` | regional | Security group with ingress open to `0.0.0.0/0`/`::/0` on a sensitive port (SSH, RDP, common database ports) | `critical` |
+| `ec2-default-security-group-permissive` | regional | A VPC's `default` security group still carries ingress and/or egress rules | `warning` |
+| `s3-bucket-public` | global | Bucket reachable by the internet via its ACL and/or bucket policy | `critical` |
+| `ec2-snapshot-public` | regional | EBS snapshot with `createVolumePermission` granted to the `all` group | `critical` |
+| `ec2-volume-unencrypted` | regional | EBS volume not encrypted at rest | `warning` |
+| `rds-instance-unencrypted` | regional | RDS instance storage not encrypted at rest | `warning` |
+| `s3-bucket-encryption-missing` | global | Bucket with no default server-side encryption configured | `warning` |
+| `rds-instance-publicly-accessible` | regional | RDS instance reachable from outside its VPC | `critical` |
+| `cloudtrail-not-multiregion` | global | No CloudTrail trail configured with multi-region logging | `warning` |
+
+> **IAM, S3 (bucket listing), and CloudTrail are treated as global for this command.** The eight `global` checks above run **once per scan**, never once per requested region — unlike the six `regional` checks. See [ADR-0081](../adr/0081-resource-security-parallel-domain.md).
+
+**Examples:**
+
+```sh
+# Every check, default region
+node apps/cli/dist/main.js resource-security
+
+# Multiple regions — only affects the regional checks, not the global ones
+node apps/cli/dist/main.js resource-security -r us-east-1 eu-west-1
+
+# Only the IAM checks
+node apps/cli/dist/main.js resource-security --scanners iam-root-mfa-disabled iam-user-mfa-disabled
+
+# Machine-readable output
+node apps/cli/dist/main.js resource-security --format json | jq '.findings[] | select(.severity=="critical")'
+
+# PDF report, nothing printed to the terminal
+node apps/cli/dist/main.js resource-security --pdf ./security.pdf --silent
+```
+
+**IAM permissions:** this command needs `iam:GetAccountSummary`, `iam:ListMFADevices`, `iam:GetAccountPasswordPolicy`, `s3:GetBucketAcl`, `s3:GetBucketPolicyStatus`, `s3:GetPublicAccessBlock`, `s3:GetBucketEncryption`, `ec2:DescribeSnapshotAttribute`, `cloudtrail:DescribeTrails` in addition to `analyze`'s policy (several other checks reuse actions already granted for `analyze`/`dead-resources`) — see [docs/en/iam-permissions.md](iam-permissions.md).

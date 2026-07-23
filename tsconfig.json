@@ -35,6 +35,15 @@
     },
     {
       "path": "./libs/dead-resources/infrastructure/aws-adapter"
+    },
+    {
+      "path": "./libs/resource-security/domain"
+    },
+    {
+      "path": "./libs/resource-security/application"
+    },
+    {
+      "path": "./libs/resource-security/infrastructure/aws-adapter"
     }
   ]
 }

@@ -55,6 +55,13 @@ export async function promptDeadResourcesOutput(): Promise<DeadResourcesOutputCh
   return { format, savePdf };
 }
 
+export type ResourceSecurityOutputChoice = DeadResourcesOutputChoice;
+
+/** Output format + optional PDF for the resource-security wizard flow — table/json only, no markdown, same shape as dead-resources. */
+export async function promptResourceSecurityOutput(): Promise<ResourceSecurityOutputChoice | undefined> {
+  return promptDeadResourcesOutput();
+}
+
 /** Output format for the cost/trend wizard flow — no file artifacts yet, see PDF backlog item. */
 export async function promptSimpleOutput(): Promise<'table' | 'json' | undefined> {
   const { select, cancel, isCancel } = await import('@clack/prompts');

@@ -22,6 +22,7 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 | [0065](0065-vertical-premium-scanners-phase-6-strategy.md) | Vertical premium scanners — Phase 6 strategy | Accepted |
 | [0078](0078-dead-resources-parallel-domain.md) | `dead-resources` as a new parallel domain, not a `WastedResource` extension | Accepted, kind list extended by [ADR-0079](0079-dead-resources-global-scope-scanners.md) |
 | [0079](0079-dead-resources-global-scope-scanners.md) | Global-scope scanners (IAM) in the `dead-resources` coordinator | Accepted |
+| [0081](0081-resource-security-parallel-domain.md) | `resource-security` as a new parallel domain (14 security-posture checks) | Accepted |
 
 ## Cost analytics (`cost` / `trend`)
 

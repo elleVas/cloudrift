@@ -38,6 +38,15 @@
     },
     {
       "path": "../../libs/cost-analytics/application/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/resource-security/infrastructure/aws-adapter/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/resource-security/domain/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/resource-security/application/tsconfig.lib.json"
     }
   ]
 }

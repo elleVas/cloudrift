@@ -32,6 +32,12 @@ module.exports = {
     '^dead-resources-application/(.*)$': '<rootDir>/../../libs/dead-resources/application/src/$1',
     '^dead-resources-infrastructure-aws-adapter$': '<rootDir>/../../libs/dead-resources/infrastructure/aws-adapter/src/index.ts',
     '^dead-resources-infrastructure-aws-adapter/(.*)$': '<rootDir>/../../libs/dead-resources/infrastructure/aws-adapter/src/$1',
+    '^resource-security-domain$': '<rootDir>/../../libs/resource-security/domain/src/index.ts',
+    '^resource-security-domain/(.*)$': '<rootDir>/../../libs/resource-security/domain/src/$1',
+    '^resource-security-application$': '<rootDir>/../../libs/resource-security/application/src/index.ts',
+    '^resource-security-application/(.*)$': '<rootDir>/../../libs/resource-security/application/src/$1',
+    '^resource-security-infrastructure-aws-adapter$': '<rootDir>/../../libs/resource-security/infrastructure/aws-adapter/src/index.ts',
+    '^resource-security-infrastructure-aws-adapter/(.*)$': '<rootDir>/../../libs/resource-security/infrastructure/aws-adapter/src/$1',
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
 };

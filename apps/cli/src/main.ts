@@ -5,6 +5,7 @@ import { analyzeWasteCommand } from './commands/analyze-waste.command';
 import { costCommand } from './commands/cost.command';
 import { trendCommand } from './commands/trend.command';
 import { deadResourcesCommand } from './commands/dead-resources.command';
+import { resourceSecurityCommand } from './commands/resource-security.command';
 import { runEntryWizard } from './wizard/entry.wizard';
 import { isInteractiveTty } from './wizard/tty';
 
@@ -143,6 +144,31 @@ program
   )
   .option('--silent', 'suppress all stdout output (banner, report). Errors still surface.')
   .action((options) => deadResourcesCommand(options));
+
+program
+  .command('resource-security')
+  .description('Scan AWS account for security-posture risks (IAM/account hygiene, network exposure, public storage, encryption, audit)')
+  .option(
+    '-r, --regions <regions...>',
+    'AWS regions to scan',
+    ['us-east-1'],
+  )
+  .option('--account-id <id>', 'AWS account ID override (auto-detected via STS when omitted)')
+  .option(
+    '--ignore-tag <tag>',
+    'resources carrying this tag are excluded from the report (default cloudrift:ignore)',
+  )
+  .option(
+    '--scanners <kinds...>',
+    'only run these checks (space-separated, e.g. iam-root-mfa-disabled s3-bucket-public)',
+  )
+  .option('--format <format>', 'stdout output format: table (default) or json', 'table')
+  .option(
+    '--pdf [filename]',
+    'Also write a PDF report to disk (optional filename, defaults to reports/cloudrift-resource-security-YYYY_MM_DD.pdf)',
+  )
+  .option('--silent', 'suppress all stdout output (banner, report). Errors still surface.')
+  .action((options) => resourceSecurityCommand(options));
 
 // No subcommand at all, in a real terminal: hand off to the interactive
 // wizard instead of commander's default (print help, exit 1). Any flags or

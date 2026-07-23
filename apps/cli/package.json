@@ -158,6 +158,9 @@
     "dead-resources-domain": "workspace:*",
     "dead-resources-infrastructure-aws-adapter": "workspace:*",
     "pdfkit": "^0.15.2",
+    "resource-security-application": "workspace:*",
+    "resource-security-domain": "workspace:*",
+    "resource-security-infrastructure-aws-adapter": "workspace:*",
     "shared-kernel": "workspace:*",
     "zod": "^4.4.3"
   }

@@ -3,12 +3,14 @@ import { analyzeWasteCommand } from '../commands/analyze-waste.command';
 import { costCommand } from '../commands/cost.command';
 import { trendCommand } from '../commands/trend.command';
 import { deadResourcesCommand } from '../commands/dead-resources.command';
+import { resourceSecurityCommand } from '../commands/resource-security.command';
 import { renderBrandMark } from '../brand-mark';
 import { promptMode } from './mode-picker.wizard';
 import { promptRegions } from './region-input.wizard';
 import { promptScannerSelection } from './scanner-selection.wizard';
 import { promptDeadResourceSelection } from './dead-resource-selection.wizard';
-import { promptWasteOutput, promptDeadResourcesOutput, promptSimpleOutput } from './output-format.wizard';
+import { promptResourceSecuritySelection } from './resource-security-selection.wizard';
+import { promptWasteOutput, promptDeadResourcesOutput, promptResourceSecurityOutput, promptSimpleOutput } from './output-format.wizard';
 
 /**
  * The interactive entry point: shown when `cloudrift` is run with no
@@ -60,6 +62,26 @@ export async function runEntryWizard(): Promise<void> {
 
     outro('Starting scan...');
     await deadResourcesCommand({
+      regions,
+      scannerKinds,
+      format: output.format,
+      pdf: output.savePdf ? true : undefined,
+    });
+    return;
+  }
+
+  if (mode === 'resource-security') {
+    const regions = await promptRegions();
+    if (regions === undefined) return;
+
+    const scannerKinds = await promptResourceSecuritySelection();
+    if (scannerKinds === undefined) return;
+
+    const output = await promptResourceSecurityOutput();
+    if (output === undefined) return;
+
+    outro('Starting scan...');
+    await resourceSecurityCommand({
       regions,
       scannerKinds,
       format: output.format,
