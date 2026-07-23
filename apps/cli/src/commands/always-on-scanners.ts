@@ -30,6 +30,7 @@ import {
   S3MultipartUploadAbandonedPolicy,
   RdsManualSnapshotOldPolicy,
   SecretsManagerUnusedPolicy,
+  CodepipelinePipelineStalePolicy,
 } from 'cloud-cost-domain';
 import {
   AwsEbsVolumeScanner,
@@ -62,6 +63,7 @@ import {
   AwsS3MultipartUploadAbandonedScanner,
   AwsRdsManualSnapshotOldScanner,
   AwsSecretsManagerUnusedScanner,
+  AwsCodepipelinePipelineStaleScanner,
 } from 'cloud-cost-infrastructure-aws-adapter';
 import type { ScannerBuildContext, ScannerRegistration } from './scanner-registry';
 
@@ -291,5 +293,16 @@ export const ALWAYS_ON_SCANNERS: ScannerRegistration<ScannerBuildContext>[] = [
     kind: 'secretsmanager-unused',
     create: (ctx) =>
       new AwsSecretsManagerUnusedScanner(ctx.pricing, ctx.accountId, new SecretsManagerUnusedPolicy(ctx.policyOptions)),
+  },
+  // Added 2026-07-23: flat $1/mo-per-pipeline fixed cost (ADR-0037 criteria),
+  // moved here from the dead-resources candidate list — see wasted-resource.ts.
+  {
+    kind: 'codepipeline-pipeline-stale',
+    create: (ctx) =>
+      new AwsCodepipelinePipelineStaleScanner(
+        ctx.pricing,
+        ctx.accountId,
+        new CodepipelinePipelineStalePolicy(ctx.policyOptions),
+      ),
   },
 ];

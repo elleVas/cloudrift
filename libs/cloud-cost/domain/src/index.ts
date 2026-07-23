@@ -103,6 +103,8 @@ export { RdsManualSnapshotOld } from './entities/rds-manual-snapshot-old.entity'
 export type { RdsManualSnapshotOldProps } from './entities/rds-manual-snapshot-old.entity';
 export { SecretsManagerUnused } from './entities/secretsmanager-unused.entity';
 export type { SecretsManagerUnusedProps } from './entities/secretsmanager-unused.entity';
+export { CodepipelinePipelineStale } from './entities/codepipeline-pipeline-stale.entity';
+export type { CodepipelinePipelineStaleProps } from './entities/codepipeline-pipeline-stale.entity';
 
 // Value Objects
 export { AwsRegion, InvalidAwsRegionError, AWS_REGION_CODES } from './value-objects/aws-region.value-object';
@@ -160,6 +162,7 @@ export { EcrImageUntaggedPolicy } from './policies/ecr-image-untagged.policy';
 export { S3MultipartUploadAbandonedPolicy } from './policies/s3-multipart-upload-abandoned.policy';
 export { RdsManualSnapshotOldPolicy } from './policies/rds-manual-snapshot-old.policy';
 export { SecretsManagerUnusedPolicy } from './policies/secretsmanager-unused.policy';
+export { CodepipelinePipelineStalePolicy } from './policies/codepipeline-pipeline-stale.policy';
 
 // Outbound Ports
 export type { PricingPort } from './ports/outbound/pricing.port';

@@ -23,6 +23,7 @@ const PRICES_BY_KEY: Record<string, number> = {
   'ecr-storage': 0.1,
   'rds-manual-snapshot': 0.095,
   'secretsmanager-secret': 0.4,
+  'codepipeline-pipeline': 1,
 };
 
 export const mockPricing: PricingPort = {

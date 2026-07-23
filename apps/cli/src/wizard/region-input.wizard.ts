@@ -17,7 +17,7 @@ export async function promptRegions(): Promise<string[] | undefined> {
   const selected = await autocompleteMultiselect<string>({
     message: 'Which AWS regions do you want to scan? (type to search, space to toggle, enter to confirm)',
     options,
-    initialValues: ['us-east-1'],
+    initialValues: [],
     placeholder: 'Type to search, e.g. "eu-w"...',
     required: true,
   });

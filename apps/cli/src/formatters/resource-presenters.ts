@@ -527,6 +527,19 @@ export const presenters: PresenterMap = {
     recommend: (s) =>
       `Delete unused Secrets Manager secret "${s.name}" in ${s.region.code} — ${s.wasteReason}`,
   },
+  'codepipeline-pipeline-stale': {
+    title: 'CodePipeline Pipelines — Stale',
+    head: ['Pipeline', 'Region', 'Created', 'Last Execution'],
+    colWidths: [180, 80, 90, 84, 85],
+    row: (p) => [
+      p.pipelineName,
+      p.region.code,
+      day(p.createdAt),
+      p.lastExecutionAt ? day(p.lastExecutionAt) : 'never',
+    ],
+    recommend: (p) =>
+      `Delete or trigger stale CodePipeline pipeline "${p.pipelineName}" in ${p.region.code} — ${p.wasteReason}`,
+  },
 };
 
 /**
@@ -609,6 +622,7 @@ export function rowFor(finding: AnyResourceEntity): string[] {
     case 's3-multipart-upload-abandoned': return presenters['s3-multipart-upload-abandoned'].row(finding);
     case 'rds-manual-snapshot-old': return presenters['rds-manual-snapshot-old'].row(finding);
     case 'secretsmanager-unused': return presenters['secretsmanager-unused'].row(finding);
+    case 'codepipeline-pipeline-stale': return presenters['codepipeline-pipeline-stale'].row(finding);
   }
 }
 
@@ -658,5 +672,6 @@ export function recommendFor(finding: AnyResourceEntity): string {
     case 's3-multipart-upload-abandoned': return presenters['s3-multipart-upload-abandoned'].recommend(finding);
     case 'rds-manual-snapshot-old': return presenters['rds-manual-snapshot-old'].recommend(finding);
     case 'secretsmanager-unused': return presenters['secretsmanager-unused'].recommend(finding);
+    case 'codepipeline-pipeline-stale': return presenters['codepipeline-pipeline-stale'].recommend(finding);
   }
 }

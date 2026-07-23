@@ -31,6 +31,8 @@ The AWS principal needs the following read-only permissions:
     "s3:ListBucketMultipartUploads",
     "ecr:DescribeRepositories",
     "ecr:DescribeImages",
+    "codepipeline:ListPipelines",
+    "codepipeline:ListPipelineExecutions",
     "secretsmanager:ListSecrets",
     "lambda:ListFunctions",
     "elasticfilesystem:DescribeFileSystems",

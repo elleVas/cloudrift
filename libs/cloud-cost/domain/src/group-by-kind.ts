@@ -43,6 +43,7 @@ import type { EcrImageUntagged } from './entities/ecr-image-untagged.entity';
 import type { S3MultipartUploadAbandoned } from './entities/s3-multipart-upload-abandoned.entity';
 import type { RdsManualSnapshotOld } from './entities/rds-manual-snapshot-old.entity';
 import type { SecretsManagerUnused } from './entities/secretsmanager-unused.entity';
+import type { CodepipelinePipelineStale } from './entities/codepipeline-pipeline-stale.entity';
 
 /**
  * Map kind → concrete entity. Allows consumers (formatters, frontend)
@@ -92,6 +93,7 @@ export interface ResourceKindMap {
   's3-multipart-upload-abandoned': S3MultipartUploadAbandoned;
   'rds-manual-snapshot-old': RdsManualSnapshotOld;
   'secretsmanager-unused': SecretsManagerUnused;
+  'codepipeline-pipeline-stale': CodepipelinePipelineStale;
 }
 
 export type FindingsByKind = {
