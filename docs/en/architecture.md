@@ -13,7 +13,7 @@ This choice buys two things, and it is worth being explicit about which:
 
 What it does **not** buy on its own is multi-cloud: see [Towards multi-cloud](#towards-multi-cloud) for the honest path.
 
-The sections below describe the waste-detection path in depth, since it's the larger and older of the two; the CLI's second capability, comparing/trending actual spend via Cost Explorer (`cost`/`trend`), is built the same hexagonal way and described separately in [Cost analytics](#cost-analytics-cost--trend).
+The sections below describe the waste-detection path in depth, since it's the largest and oldest of the three; the CLI's other two capabilities are built the same hexagonal way and described separately: comparing/trending actual spend via Cost Explorer (`cost`/`trend`) in [Cost analytics](#cost-analytics-cost--trend), and $0 hygiene findings (unused key pairs, inactive IAM users, ...) in [Dead resources](#dead-resources-dead-resources).
 
 ---
 
@@ -278,6 +278,31 @@ CachedCostExplorerAdapter                  (infrastructure/aws-adapter)
 
 ---
 
+## Dead resources: `dead-resources`
+
+The CLI's third capability, and the first one that isn't cost-shaped at all: hygiene findings — things left dead or unused in the account with **no direct AWS cost** — unused EC2 key pairs, EC2 Reserved Instances expiring soon, inactive IAM users, unattached IAM policies ([ADR-0078](../adr/0078-dead-resources-parallel-domain.md)/[ADR-0079](../adr/0079-dead-resources-global-scope-scanners.md)). `WastedResource.costEstimate` is non-optional, so forcing a $0-only domain through it would mean every finding fakes a dollar figure and every report prints a misleading `$0.00/mo` — this domain instead has its own inbound-boundary type, `DeadResource`, with `severity` (`info`/`warning`/`critical`) where `WastedResource` has `costEstimate`.
+
+```
+DeadResource                             (dead-resources/domain)
+        ▲ implemented by
+Ec2KeyPairUnused / Ec2RiExpiringSoon /
+IamUserInactive / IamPolicyUnattached    (dead-resources/domain, entities)
+        ▲ produced by
+DeadResourceScannerPort                  (dead-resources/domain, outbound)
+        ▲ implemented by
+AwsEc2KeyPairUnusedScanner / ...         (infrastructure/aws-adapter)
+        ▲ orchestrated by
+FindDeadResourcesUseCase                 (dead-resources/application)
+```
+
+- **A genuinely separate bounded context**, not a submodule of `cloud-cost` — see [Bounded Context](#bounded-context) below. `dead-resources-domain`'s only dependency on `cloud-cost-domain` is re-exporting `AwsRegion` (a generic, cost-agnostic AWS value object) to avoid two region-code lists drifting apart — a documented, deliberate exception, not a general coupling.
+- **`DeadResourceScannerPort`** mirrors `WasteScannerPort`'s single-method minimalism (`kind`, `scan(region)`), plus an optional `scope?: 'regional' | 'global'` (default `'regional'`) that `WasteScannerPort` doesn't need — see the global-scope note below.
+- **`DeadResourcePolicy<T>`** mirrors `WastePolicy<T>`'s `ignoreTag`/`excludeTagValues`/grace-period machinery, but as its own class hierarchy (ADR-0078) — not a shared base, to keep the two domains decoupled. Two of the four policies (`Ec2RiExpiringSoonPolicy`, and effectively the threshold shape of `IamUserInactivePolicy`) take their own kind-specific threshold beyond the shared options, same pattern as e.g. `EbsIdlePolicy`'s extra `maxOps` param in the cost-waste domain.
+- **Global-scope scanners.** IAM is a global AWS service; unlike every cost-waste scanner (and the two regional kinds here), `AwsIamUserInactiveScanner`/`AwsIamPolicyUnattachedScanner` set `scope: 'global'`. `FindDeadResourcesUseCase` gives a `'global'` scanner exactly one job regardless of how many regions were requested — calling it once per region would return the same IAM users/policies N times and multiply billed-nothing-but-still-wasteful API calls. See [ADR-0079](../adr/0079-dead-resources-global-scope-scanners.md) for the alternatives considered.
+- **`dead-resources.composition.ts`** mirrors `analyze-waste.composition.ts`'s shape at a fraction of the size: `buildScanners()` is a plain 4-entry array (not split into files the way [ADR-0077](../adr/0077-scanner-registry-split-on-pricing-seam.md) split the 43-entry cost-waste registry — 4 doesn't warrant it yet), and `scannerKinds` filtering (from `--scanners` or the wizard's multiselect) works the same way `AnalysisContext.scannerKinds` does.
+
+---
+
 ## Error handling
 
 The project uses `Result<T, E>` for expected errors, **with no exceptions across layer boundaries** — including user input: `AwsRegion.parse()` returns `Result<AwsRegion, InvalidAwsRegionError>` and the CLI handles it by printing a clean message and exiting with code 1 (a throwing `AwsRegion.create()` also exists, reserved for codes known at compile time, e.g. test fixtures).
@@ -351,4 +376,4 @@ Concrete steps when needed: create `apps/api` (new Nx project) with an endpoint 
 
 ## Bounded Context
 
-There is currently a single bounded context: **cloud-cost**. The `libs/<context>/{domain,application,infrastructure}` structure allows adding more (e.g. `gcp-cost`, or non-cost contexts such as `security-posture`) sharing only `shared/kernel`.
+There are two bounded contexts today: **cloud-cost** (waste detection + cost analytics) and **dead-resources** (hygiene findings, [ADR-0078](../adr/0078-dead-resources-parallel-domain.md)) — the `libs/<context>/{domain,application,infrastructure}` structure this repo already used for the first context extended cleanly to the second, no changes needed to the pattern itself. They share only `shared/kernel`, with one documented exception: `dead-resources-domain` re-exports `cloud-cost-domain`'s `AwsRegion` rather than duplicating the region-code list. Nx's `depConstraints` ([ADR-0075](../adr/0075-nx-dep-constraints-layer-enforcement.md)) enforce *layer* isolation (domain/application/infrastructure) but not *context* isolation — nothing stops a future context from importing another context's internals beyond this one deliberate case; it holds by convention and code review, not by a lint rule. Adding a third context (e.g. `gcp-cost`, or `security-posture`) follows the same shape.

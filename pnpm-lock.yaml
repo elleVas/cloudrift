@@ -44,6 +44,9 @@ importers:
       '@aws-sdk/client-fsx':
         specifier: ^3.1075.0
         version: 3.1075.0
+      '@aws-sdk/client-iam':
+        specifier: ^3.1093.0
+        version: 3.1093.0
       '@aws-sdk/client-kafka':
         specifier: ^3.1075.0
         version: 3.1075.0
@@ -201,6 +204,15 @@ importers:
       cloud-cost-infrastructure-aws-adapter:
         specifier: workspace:*
         version: link:../../libs/cloud-cost/infrastructure/aws-adapter
+      dead-resources-application:
+        specifier: workspace:*
+        version: link:../../libs/dead-resources/application
+      dead-resources-domain:
+        specifier: workspace:*
+        version: link:../../libs/dead-resources/domain
+      dead-resources-infrastructure-aws-adapter:
+        specifier: workspace:*
+        version: link:../../libs/dead-resources/infrastructure/aws-adapter
       pdfkit:
         specifier: ^0.15.1
         version: 0.15.2
@@ -235,6 +247,42 @@ importers:
   libs/cloud-cost/infrastructure/aws-adapter:
     dependencies:
       cloud-cost-domain:
+        specifier: workspace:*
+        version: link:../../domain
+      shared-kernel:
+        specifier: workspace:*
+        version: link:../../../shared/kernel
+      tslib:
+        specifier: ^2.3.0
+        version: 2.8.1
+
+  libs/dead-resources/application:
+    dependencies:
+      dead-resources-domain:
+        specifier: workspace:*
+        version: link:../domain
+      shared-kernel:
+        specifier: workspace:*
+        version: link:../../shared/kernel
+      tslib:
+        specifier: ^2.3.0
+        version: 2.8.1
+
+  libs/dead-resources/domain:
+    dependencies:
+      cloud-cost-domain:
+        specifier: workspace:*
+        version: link:../../cloud-cost/domain
+      shared-kernel:
+        specifier: workspace:*
+        version: link:../../shared/kernel
+      tslib:
+        specifier: ^2.3.0
+        version: 2.8.1
+
+  libs/dead-resources/infrastructure/aws-adapter:
+    dependencies:
+      dead-resources-domain:
         specifier: workspace:*
         version: link:../../domain
       shared-kernel:
@@ -325,6 +373,10 @@ packages:
 
   '@aws-sdk/client-fsx@3.1075.0':
     resolution: {integrity: sha512-WCsHiNSQkDfFWCUW2xhUMK3KPfl0OvJ7v6jVWsnzSZiK6ji/7QQrdgwWb5KyS8YAmOiBaV9/zJzVAXlTtZs9ig==}
+    engines: {node: '>=20.0.0'}
+
+  '@aws-sdk/client-iam@3.1093.0':
+    resolution: {integrity: sha512-mFNVC+d6CikyfwQcoWMkdBnjSKEj+YieCn/w8GmgH6VjHcrPFokdctqsiqFnqEPLmOybZ3Z/hVH9hJl4ssKkMQ==}
     engines: {node: '>=20.0.0'}
 
   '@aws-sdk/client-kafka@3.1075.0':
@@ -4732,6 +4784,17 @@ snapshots:
       '@smithy/core': 3.29.3
       '@smithy/fetch-http-handler': 5.6.5
       '@smithy/node-http-handler': 4.9.5
+      '@smithy/types': 4.16.1
+      tslib: 2.8.1
+
+  '@aws-sdk/client-iam@3.1093.0':
+    dependencies:
+      '@aws-sdk/core': 3.976.0
+      '@aws-sdk/credential-provider-node': 3.972.71
+      '@aws-sdk/types': 3.974.2
+      '@smithy/core': 3.29.7
+      '@smithy/fetch-http-handler': 5.6.9
+      '@smithy/node-http-handler': 4.9.9
       '@smithy/types': 4.16.1
       tslib: 2.8.1
 

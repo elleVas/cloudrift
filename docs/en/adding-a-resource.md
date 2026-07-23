@@ -6,6 +6,8 @@ This guide describes how to extend cloudrift to detect a new type of wasted reso
 
 As an example we will use the hypothetical case of **CloudWatch Log Groups without a retention policy** (logs growing forever because `retentionInDays` was never configured).
 
+> This guide is specifically about the `WastedResource`/cost-waste domain. The separate `dead-resources` domain (hygiene findings with no direct AWS cost — [ADR-0078](../adr/0078-dead-resources-parallel-domain.md)) follows the same shape one layer down (`DeadResource`, `DeadResourceScannerPort`, `DeadResourcePolicy`, one entity/policy/scanner file per kind), just in `libs/dead-resources/{domain,application,infrastructure/aws-adapter}` instead of `libs/cloud-cost/*` — no dedicated step-by-step guide exists for it yet, the pattern below is the closest reference.
+
 ## Glossary
 
 - **kind** — the discriminant string identifying a resource type (e.g. `'nat-gateway'`); drives the `ResourceKind` union and every registry derived from it (`RESOURCE_KIND_META`, `ResourceKindMap`, presenters).

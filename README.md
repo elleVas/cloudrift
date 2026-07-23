@@ -195,6 +195,27 @@ cloudrift trend --months 12             # monthly spend over the last 12 months,
 
 ---
 
+### Dead/unused resources (`dead-resources`)
+
+A separate hygiene scan, deliberately outside the cost-waste model above: things left dead or unused in the account that cost **$0** (so they're invisible to `analyze`'s cost-based criteria) but are still worth cleaning up or reviewing.
+
+```sh
+cloudrift dead-resources                              # every check, us-east-1
+cloudrift dead-resources -r us-east-1 eu-west-1        # multiple regions (regional checks only — see below)
+cloudrift dead-resources --scanners iam-user-inactive  # only one check
+```
+
+| Check                       | Flags                              | Severity | Default threshold                                  |
+| ---------------------------- | ----------------------------------- | -------- | ---------------------------------------------------- |
+| **EC2 Key Pairs (unused)**   | Not referenced by any running/stopped instance | info     | 7-day grace period (`--min-age-days`)                |
+| **EC2 Reserved Instances (expiring soon)** | Active, term ends within the threshold | warning  | 30 days                                              |
+| **IAM Users (inactive)**     | No console login or access-key use  | warning  | 90 days (or never, past the 7-day creation grace period) |
+| **IAM Policies (unattached)**| Customer-managed, zero attachments (AWS-managed policies excluded — you can't delete those anyway) | info | 7-day grace period (`--min-age-days`) |
+
+**IAM is a global AWS service**: the two IAM checks run once per scan regardless of how many `--regions` you pass, never once per region. See [ADR-0078](https://github.com/elleVas/cloudrift/blob/main/docs/adr/0078-dead-resources-parallel-domain.md)/[ADR-0079](https://github.com/elleVas/cloudrift/blob/main/docs/adr/0079-dead-resources-global-scope-scanners.md) for the design behind this split, `--format json`/`--pdf` for machine-readable/shareable output. See [docs/en/usage.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/usage.md#dead-resources--deadunused-resource-hygiene) for the full flag reference.
+
+---
+
 ## Documentation
 
 The full reference — flags, config file, pricing sources, CI/CD, IAM permissions, contributing, architecture — lives in [`docs/`](https://github.com/elleVas/cloudrift/tree/main/docs/): English in [`docs/en/`](https://github.com/elleVas/cloudrift/tree/main/docs/en/), Italian in [`docs/it/`](https://github.com/elleVas/cloudrift/tree/main/docs/it/).

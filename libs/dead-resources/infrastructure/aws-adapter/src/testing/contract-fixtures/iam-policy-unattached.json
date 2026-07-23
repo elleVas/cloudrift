@@ -1,0 +1,29 @@
+{
+  "kind": "iam-policy-unattached",
+  "source": "hand-transcribed from the AWS API reference, 2026-07-23",
+  "region": "global",
+  "accountId": "000000000000",
+  "pages": {
+    "ListPoliciesCommand": [
+      {
+        "Policies": [
+          {
+            "PolicyId": "ANPACKCEVSQ6C2EXAMPLE",
+            "PolicyName": "old-deploy-policy",
+            "Arn": "arn:aws:iam::000000000000:policy/old-deploy-policy",
+            "Path": "/",
+            "DefaultVersionId": "v1",
+            "AttachmentCount": 0,
+            "IsAttachable": true,
+            "CreateDate": "2023-01-01T00:00:00.000Z",
+            "UpdateDate": "2023-01-01T00:00:00.000Z",
+            "Tags": []
+          }
+        ],
+        "IsTruncated": false,
+        "$metadata": { "httpStatusCode": 200, "requestId": "req-1", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ]
+  },
+  "expected": { "findings": [{ "id": "ANPACKCEVSQ6C2EXAMPLE", "severity": "info" }] }
+}

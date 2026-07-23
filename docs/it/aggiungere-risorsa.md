@@ -6,6 +6,8 @@ Questa guida descrive come estendere cloudrift per rilevare un nuovo tipo di ris
 
 Come esempio useremo il caso ipotetico di **CloudWatch Log Groups senza retention policy** (log che crescono all'infinito perché `retentionInDays` non è mai stato configurato).
 
+> Questa guida riguarda specificamente il dominio `WastedResource`/cost-waste. Il dominio separato `dead-resources` (finding di hygiene senza costo AWS diretto — [ADR-0078](../adr/0078-dead-resources-parallel-domain.md)) segue la stessa forma un livello sotto (`DeadResource`, `DeadResourceScannerPort`, `DeadResourcePolicy`, un file entità/policy/scanner per kind), solo in `libs/dead-resources/{domain,application,infrastructure/aws-adapter}` invece di `libs/cloud-cost/*` — non esiste ancora una guida passo-passo dedicata, il pattern qui sotto è il riferimento più vicino.
+
 ## Glossario
 
 - **kind** — la stringa discriminante che identifica un tipo di risorsa (es. `'nat-gateway'`); guida la union `ResourceKind` e ogni registry che ne deriva (`RESOURCE_KIND_META`, `ResourceKindMap`, presenter).

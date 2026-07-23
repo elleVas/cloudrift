@@ -4,6 +4,7 @@ import { program } from 'commander';
 import { analyzeWasteCommand } from './commands/analyze-waste.command';
 import { costCommand } from './commands/cost.command';
 import { trendCommand } from './commands/trend.command';
+import { deadResourcesCommand } from './commands/dead-resources.command';
 import { runEntryWizard } from './wizard/entry.wizard';
 import { isInteractiveTty } from './wizard/tty';
 
@@ -111,6 +112,37 @@ program
   .option('--pdf [filename]', 'Also write a PDF report to disk (optional filename, defaults to reports/cloudrift-trend-YYYY_MM_DD.pdf)')
   .option('--silent', 'suppress all stdout output.')
   .action((options) => trendCommand(options));
+
+program
+  .command('dead-resources')
+  .description('Scan AWS account for dead/unused resources with no direct cost (hygiene, not $/month)')
+  .option(
+    '-r, --regions <regions...>',
+    'AWS regions to scan',
+    ['us-east-1'],
+  )
+  .option('--account-id <id>', 'AWS account ID override (auto-detected via STS when omitted)')
+  .option(
+    '--min-age-days <days>',
+    'grace period: resources younger than this many days are not reported (default 7)',
+  )
+  .option(
+    '--ignore-tag <tag>',
+    'resources carrying this tag are excluded from the report (default cloudrift:ignore)',
+  )
+  .option(
+    '--scanners <kinds...>',
+    'only run these checks (space-separated, e.g. ec2-keypair-unused iam-user-inactive)',
+  )
+  .option('--format <format>', 'stdout output format: table (default) or json', 'table')
+  // See the `analyze` command's --pdf option above for why [filename] needs
+  // to be written as --pdf=./path.pdf when combined with other flags.
+  .option(
+    '--pdf [filename]',
+    'Also write a PDF report to disk (optional filename, defaults to reports/cloudrift-dead-resources-YYYY_MM_DD.pdf)',
+  )
+  .option('--silent', 'suppress all stdout output (banner, report). Errors still surface.')
+  .action((options) => deadResourcesCommand(options));
 
 // No subcommand at all, in a real terminal: hand off to the interactive
 // wizard instead of commander's default (print help, exit 1). Any flags or

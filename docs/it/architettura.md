@@ -13,7 +13,7 @@ Questa scelta compra due cose, e vale la pena essere espliciti su quali:
 
 Ciò che **non** compra da sola è il multi-cloud: vedi la sezione [Verso il multi-cloud](#verso-il-multi-cloud) per il percorso onesto.
 
-Le sezioni sotto descrivono in dettaglio il percorso di waste-detection, essendo il più grande e il più vecchio dei due; la seconda capability della CLI, confrontare/tracciare la spesa reale via Cost Explorer (`cost`/`trend`), è costruita nello stesso modo esagonale ed è descritta a parte in [Cost analytics](#cost-analytics-cost--trend).
+Le sezioni sotto descrivono in dettaglio il percorso di waste-detection, essendo il più grande e il più vecchio dei tre; le altre due capability della CLI sono costruite nello stesso modo esagonale e descritte a parte: confrontare/tracciare la spesa reale via Cost Explorer (`cost`/`trend`) in [Cost analytics](#cost-analytics-cost--trend), e i finding di hygiene a costo $0 (key pair inutilizzate, utenti IAM inattivi, ...) in [Dead resources](#dead-resources-dead-resources).
 
 ---
 
@@ -279,6 +279,31 @@ CachedCostExplorerAdapter                  (infrastructure/aws-adapter)
 
 ---
 
+## Dead resources: `dead-resources`
+
+La terza capability della CLI, e la prima che non ha proprio la forma di un costo: finding di hygiene — cose lasciate morte o inutilizzate nell'account con **costo AWS diretto pari a $0** — key pair EC2 inutilizzate, Reserved Instance EC2 in scadenza, utenti IAM inattivi, policy IAM non collegate ([ADR-0078](../adr/0078-dead-resources-parallel-domain.md)/[ADR-0079](../adr/0079-dead-resources-global-scope-scanners.md)). `WastedResource.costEstimate` non è opzionale, quindi forzare un dominio interamente a $0 dentro quel modello vorrebbe dire ogni finding con una cifra finta e ogni report che stampa un fuorviante `$0.00/mo` — questo dominio ha invece il proprio inbound-boundary type, `DeadResource`, con `severity` (`info`/`warning`/`critical`) al posto di `costEstimate`.
+
+```
+DeadResource                             (dead-resources/domain)
+        ▲ implementato da
+Ec2KeyPairUnused / Ec2RiExpiringSoon /
+IamUserInactive / IamPolicyUnattached    (dead-resources/domain, entità)
+        ▲ prodotto da
+DeadResourceScannerPort                  (dead-resources/domain, outbound)
+        ▲ implementato da
+AwsEc2KeyPairUnusedScanner / ...         (infrastructure/aws-adapter)
+        ▲ orchestrato da
+FindDeadResourcesUseCase                 (dead-resources/application)
+```
+
+- **Un bounded context genuinamente separato**, non un sotto-modulo di `cloud-cost` — vedi [Bounded Context](#bounded-context) sotto. L'unica dipendenza di `dead-resources-domain` da `cloud-cost-domain` è il re-export di `AwsRegion` (un value object AWS generico, agnostico rispetto al costo) per evitare che due liste di region-code finiscano fuori sincrono — un'eccezione documentata e deliberata, non un accoppiamento generale.
+- **`DeadResourceScannerPort`** rispecchia il minimalismo a singolo metodo di `WasteScannerPort` (`kind`, `scan(region)`), più uno `scope?: 'regional' | 'global'` opzionale (default `'regional'`) che `WasteScannerPort` non ha bisogno di avere — vedi la nota sugli scanner globali sotto.
+- **`DeadResourcePolicy<T>`** rispecchia la macchina `ignoreTag`/`excludeTagValues`/grace-period di `WastePolicy<T>`, ma come propria gerarchia di classi (ADR-0078) — non una base condivisa, per tenere i due domini disaccoppiati. Due delle quattro policy (`Ec2RiExpiringSoonPolicy`, e di fatto la forma della soglia di `IamUserInactivePolicy`) prendono una propria soglia specifica per kind oltre alle opzioni condivise, stesso pattern del parametro extra `maxOps` di `EbsIdlePolicy` nel dominio cost-waste.
+- **Scanner a scope globale.** IAM è un servizio AWS globale; a differenza di ogni scanner cost-waste (e dei due kind regionali qui), `AwsIamUserInactiveScanner`/`AwsIamPolicyUnattachedScanner` impostano `scope: 'global'`. `FindDeadResourcesUseCase` dà a uno scanner `'global'` esattamente un job indipendentemente da quante regioni sono state richieste — chiamarlo una volta per regione restituirebbe gli stessi utenti/policy IAM N volte, moltiplicando chiamate API sprecate (anche se non fatturate). Vedi [ADR-0079](../adr/0079-dead-resources-global-scope-scanners.md) per le alternative valutate.
+- **`dead-resources.composition.ts`** rispecchia la forma di `analyze-waste.composition.ts` a una frazione della dimensione: `buildScanners()` è un semplice array di 4 entry (non spezzato in file come [ADR-0077](../adr/0077-scanner-registry-split-on-pricing-seam.md) ha fatto per il registry cost-waste da 43 entry — 4 non lo giustifica ancora), e il filtro `scannerKinds` (da `--scanners` o dal multiselect del wizard) funziona come `AnalysisContext.scannerKinds`.
+
+---
+
 ## Gestione degli errori
 
 Il progetto usa `Result<T, E>` per gli errori attesi, **senza eccezioni attraverso i confini dei layer** — incluso l'input utente: `AwsRegion.parse()` restituisce `Result<AwsRegion, InvalidAwsRegionError>` e la CLI lo gestisce stampando un messaggio pulito ed uscendo con codice 1 (esiste anche `AwsRegion.create()` throwing, riservato a codici noti a compile time, es. fixture di test).
@@ -352,4 +377,4 @@ Passi concreti quando servirà: creare `apps/api` (nuovo progetto Nx) con un end
 
 ## Bounded Context
 
-Al momento esiste un solo bounded context: **cloud-cost**. La struttura `libs/<context>/{domain,application,infrastructure}` consente di aggiungerne altri (es. `gcp-cost`, o contesti non di costo come `security-posture`) condividendo solo `shared/kernel`.
+Oggi esistono due bounded context: **cloud-cost** (waste detection + cost analytics) e **dead-resources** (finding di hygiene, [ADR-0078](../adr/0078-dead-resources-parallel-domain.md)) — la struttura `libs/<context>/{domain,application,infrastructure}` già usata da questo repo per il primo contesto si è estesa senza attriti al secondo, nessuna modifica necessaria al pattern in sé. Condividono solo `shared/kernel`, con un'eccezione documentata: `dead-resources-domain` fa il re-export di `AwsRegion` da `cloud-cost-domain` invece di duplicare la lista dei region-code. I `depConstraints` di Nx ([ADR-0075](../adr/0075-nx-dep-constraints-layer-enforcement.md)) impongono l'isolamento di *layer* (domain/application/infrastructure) ma non l'isolamento di *contesto* — nulla impedisce a un futuro contesto di importare gli interni di un altro oltre questo unico caso deliberato; regge per convenzione e code review, non per una regola di lint. Aggiungere un terzo contesto (es. `gcp-cost`, o `security-posture`) segue la stessa forma.
