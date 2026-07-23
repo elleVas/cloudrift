@@ -3,7 +3,7 @@ import { mkdir, readFile, writeFile } from 'fs/promises';
 import { dirname, join } from 'path';
 import { homedir } from 'os';
 import { Result } from 'shared-kernel';
-import type { CostExplorerPort, CostPeriodBucket } from 'cloud-cost-domain';
+import type { CostExplorerPort, CostPeriodBucket } from 'cost-analytics-domain';
 
 export function defaultCostExplorerCacheDir(): string {
   return join(homedir(), '.cloudrift', 'cache', 'cost-explorer');

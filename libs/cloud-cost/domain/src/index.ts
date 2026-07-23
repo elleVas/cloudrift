@@ -167,11 +167,6 @@ export { CodepipelinePipelineStalePolicy } from './policies/codepipeline-pipelin
 // Outbound Ports
 export type { PricingPort } from './ports/outbound/pricing.port';
 export type { WasteScannerPort } from './ports/outbound/waste-scanner.port';
-export type {
-  CostExplorerPort,
-  CostByService,
-  CostPeriodBucket,
-} from './ports/outbound/cost-explorer.port';
 
 // Inbound Ports
 export type {
@@ -180,19 +175,3 @@ export type {
   WastedResourcesSummary,
   ResourceScanError,
 } from './ports/inbound/find-wasted-resources.use-case.port';
-export type {
-  CompareCostRequest,
-  CompareCostUseCasePort,
-} from './ports/inbound/compare-cost.use-case.port';
-export type {
-  CostTrendRequest,
-  CostTrendUseCasePort,
-} from './ports/inbound/cost-trend.use-case.port';
-
-// Cost Analytics
-export type {
-  CostComparisonSummary,
-  CostServiceDelta,
-  CostPeriodTotal,
-} from './cost-comparison';
-export type { CostTrendSummary, CostTrendMonth } from './cost-trend';

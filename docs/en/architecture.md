@@ -255,18 +255,18 @@ Back in `analyze-waste.command.ts`, the result is handed to the formatters. The 
 
 ## Cost analytics: `cost` / `trend`
 
-Alongside waste detection, the CLI has a second, sibling capability built the same hexagonal way: comparing and trending actual AWS spend via Cost Explorer ([ADR-0069](../adr/0069-cost-explorer-integration-billed-api-confirmation.md)). It shares `shared/kernel` but is not an extension of `WastedResource` — a spend comparison has no entity, no waste policy, just aggregate numbers from one external API, so forcing it through the waste model would mean fake entities with no basis in the ubiquitous language.
+Alongside waste detection, the CLI has a second, sibling capability built the same hexagonal way but living in its own domain, `cost-analytics` ([ADR-0080](../adr/0080-cost-analytics-extracted-from-cloud-cost.md)): comparing and trending actual AWS spend via Cost Explorer ([ADR-0069](../adr/0069-cost-explorer-integration-billed-api-confirmation.md)). It shares `shared/kernel` but is not an extension of `WastedResource` — a spend comparison has no entity, no waste policy, just aggregate numbers from one external API, so forcing it through the waste model would mean fake entities with no basis in the ubiquitous language. Unlike `dead-resources-domain`, `cost-analytics-domain` doesn't even share `AwsRegion` with `cloud-cost-domain` — Cost Explorer is a single global endpoint, so there is no region value object to share.
 
 ```
-CostComparisonSummary / CostTrendSummary   (cloud-cost/domain)
+CostComparisonSummary / CostTrendSummary   (cost-analytics/domain)
         ▲ produced by
-CompareCostUseCase / CostTrendUseCase      (cloud-cost/application)
+CompareCostUseCase / CostTrendUseCase      (cost-analytics/application)
         │ depends on
-CostExplorerPort                           (cloud-cost/domain, outbound)
+CostExplorerPort                           (cost-analytics/domain, outbound)
         ▲ implemented by
-AwsCostExplorerAdapter                     (infrastructure/aws-adapter)
+AwsCostExplorerAdapter                     (cost-analytics/infrastructure/aws-adapter)
         ▲ wrapped by (decorator)
-CachedCostExplorerAdapter                  (infrastructure/aws-adapter)
+CachedCostExplorerAdapter                  (cost-analytics/infrastructure/aws-adapter)
 ```
 
 - **`CostExplorerPort`** — a single `getCostAndUsage({ startDate, endDate, granularity })` outbound port, mirroring `WasteScannerPort`'s minimalism. `AwsCostExplorerAdapter` implements it against `@aws-sdk/client-cost-explorer`; unlike every other adapter, it is never parameterized by region — Cost Explorer is a single global endpoint (`us-east-1` fixed).
@@ -376,4 +376,4 @@ Concrete steps when needed: create `apps/api` (new Nx project) with an endpoint 
 
 ## Bounded Context
 
-There are two bounded contexts today: **cloud-cost** (waste detection + cost analytics) and **dead-resources** (hygiene findings, [ADR-0078](../adr/0078-dead-resources-parallel-domain.md)) — the `libs/<context>/{domain,application,infrastructure}` structure this repo already used for the first context extended cleanly to the second, no changes needed to the pattern itself. They share only `shared/kernel`, with one documented exception: `dead-resources-domain` re-exports `cloud-cost-domain`'s `AwsRegion` rather than duplicating the region-code list. Nx's `depConstraints` ([ADR-0075](../adr/0075-nx-dep-constraints-layer-enforcement.md)) enforce *layer* isolation (domain/application/infrastructure) but not *context* isolation — nothing stops a future context from importing another context's internals beyond this one deliberate case; it holds by convention and code review, not by a lint rule. Adding a third context (e.g. `gcp-cost`, or `security-posture`) follows the same shape.
+There are three bounded contexts today: **cloud-cost** (waste detection), **cost-analytics** (Cost Explorer spend comparison/trend, split out of `cloud-cost` in [ADR-0080](../adr/0080-cost-analytics-extracted-from-cloud-cost.md) once the two turned out to share no domain model beyond "money"), and **dead-resources** (hygiene findings, [ADR-0078](../adr/0078-dead-resources-parallel-domain.md)) — the `libs/<context>/{domain,application,infrastructure}` structure this repo already used for the first context extended cleanly to the second and third, no changes needed to the pattern itself. They share only `shared/kernel`, with one documented exception: `dead-resources-domain` re-exports `cloud-cost-domain`'s `AwsRegion` rather than duplicating the region-code list (`cost-analytics-domain` doesn't even need this — Cost Explorer has no region concept at all). Nx's `depConstraints` ([ADR-0075](../adr/0075-nx-dep-constraints-layer-enforcement.md)) enforce *layer* isolation (domain/application/infrastructure) but not *context* isolation — nothing stops a future context from importing another context's internals beyond this one deliberate case; it holds by convention and code review, not by a lint rule. Adding a fourth context (e.g. `gcp-cost`, or `resource-security`) follows the same shape.

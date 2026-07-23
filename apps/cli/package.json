@@ -40,7 +40,9 @@
     "access": "public"
   },
   "nx": {
-    "tags": ["scope:app"],
+    "tags": [
+      "scope:app"
+    ],
     "targets": {
       "test": {
         "executor": "@nx/jest:jest",
@@ -149,10 +151,13 @@
     "cloud-cost-application": "workspace:*",
     "cloud-cost-domain": "workspace:*",
     "cloud-cost-infrastructure-aws-adapter": "workspace:*",
+    "cost-analytics-application": "workspace:*",
+    "cost-analytics-domain": "workspace:*",
+    "cost-analytics-infrastructure-aws-adapter": "workspace:*",
     "dead-resources-application": "workspace:*",
     "dead-resources-domain": "workspace:*",
     "dead-resources-infrastructure-aws-adapter": "workspace:*",
-    "pdfkit": "^0.15.1",
+    "pdfkit": "^0.15.2",
     "shared-kernel": "workspace:*",
     "zod": "^4.4.3"
   }

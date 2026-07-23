@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { Result } from 'shared-kernel';
-import type { CostExplorerPort, CostPeriodBucket } from 'cloud-cost-domain';
+import type { CostExplorerPort, CostPeriodBucket } from 'cost-analytics-domain';
 import type { CloudriftConfig } from '../config/cloudrift.config';
 import { trendCommand, type TrendCommandOptions } from './trend.command';
 import type { CostAnalyticsDeps } from './cost-analytics.composition';

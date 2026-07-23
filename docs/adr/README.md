@@ -29,6 +29,7 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 |---|---|---|
 | [0069](0069-cost-explorer-integration-billed-api-confirmation.md) | AWS Cost Explorer integration for `cost`/`trend`, gated by an explicit billing confirmation | Accepted |
 | [0070](0070-cost-explorer-disk-cache-decorator.md) | Cost Explorer responses cached on disk via a decorator, only once a period is safely closed | Accepted |
+| [0080](0080-cost-analytics-extracted-from-cloud-cost.md) | Cost Explorer (`cost`/`trend`) extracted from `cloud-cost` into its own `cost-analytics` domain | Accepted |
 
 ## Pricing
 

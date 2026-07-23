@@ -1,11 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 import type { Result } from 'shared-kernel';
-import type { CostExplorerPort } from 'cloud-cost-domain';
-import {
-  AwsCostExplorerAdapter,
-  CachedCostExplorerAdapter,
-  resolveAwsAccountId,
-} from 'cloud-cost-infrastructure-aws-adapter';
+import type { CostExplorerPort } from 'cost-analytics-domain';
+import { resolveAwsAccountId } from 'cloud-cost-infrastructure-aws-adapter';
+import { AwsCostExplorerAdapter, CachedCostExplorerAdapter } from 'cost-analytics-infrastructure-aws-adapter';
 import { loadConfig, type CloudriftConfig, type ConfigError } from '../config/cloudrift.config';
 
 /**

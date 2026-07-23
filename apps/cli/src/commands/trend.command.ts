@@ -2,8 +2,8 @@
 import chalk from 'chalk';
 import { dirname, resolve } from 'path';
 import { mkdir } from 'fs/promises';
-import { CostTrendUseCase } from 'cloud-cost-application';
-import type { CostAnalyticsMeta } from 'cloud-cost-application';
+import { CostTrendUseCase } from 'cost-analytics-application';
+import type { CostAnalyticsMeta } from 'cost-analytics-application';
 import { formatCostTrendAsChart } from '../formatters/cost-trend.chart-formatter';
 import { formatCostTrendAsJson } from '../formatters/cost-trend.json-formatter';
 import { generateCostTrendPdf } from '../formatters/cost-trend.pdf-formatter';

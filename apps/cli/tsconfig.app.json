@@ -29,6 +29,15 @@
     },
     {
       "path": "../../libs/cloud-cost/application/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/cost-analytics/infrastructure/aws-adapter/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/cost-analytics/domain/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/cost-analytics/application/tsconfig.lib.json"
     }
   ]
 }

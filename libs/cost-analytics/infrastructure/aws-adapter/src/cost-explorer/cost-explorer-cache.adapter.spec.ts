@@ -3,7 +3,7 @@ import { mkdtemp, rm } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { Result } from 'shared-kernel';
-import type { CostExplorerPort, CostPeriodBucket } from 'cloud-cost-domain';
+import type { CostExplorerPort, CostPeriodBucket } from 'cost-analytics-domain';
 import { CachedCostExplorerAdapter } from './cost-explorer-cache.adapter';
 
 const BUCKET: CostPeriodBucket[] = [

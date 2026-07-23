@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { Result } from 'shared-kernel';
-import type { CostExplorerPort, CostPeriodBucket } from 'cloud-cost-domain';
+import type { CostExplorerPort, CostPeriodBucket } from 'cost-analytics-domain';
 import { CostTrendUseCase } from './cost-trend.use-case';
 
 function monthBucket(start: string, ec2Usd: number, s3Usd: number, final: boolean): CostPeriodBucket {

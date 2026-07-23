@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { Result } from 'shared-kernel';
-import type { CostExplorerPort, CostPeriodBucket } from 'cloud-cost-domain';
+import type { CostExplorerPort, CostPeriodBucket } from 'cost-analytics-domain';
 import { CompareCostUseCase } from './compare-cost.use-case';
 
 function addOneDay(ymd: string): string {

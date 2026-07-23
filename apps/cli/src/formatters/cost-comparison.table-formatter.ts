@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import Table from 'cli-table3';
 import chalk from 'chalk';
-import type { CostComparisonSummary } from 'cloud-cost-domain';
+import type { CostComparisonSummary } from 'cost-analytics-domain';
 
 function formatChange(changeUsd: number, changePercent: number | null): string {
   const sign = changeUsd > 0 ? '+' : '';

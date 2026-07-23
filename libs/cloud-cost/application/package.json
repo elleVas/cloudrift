@@ -16,7 +16,9 @@
     }
   },
   "nx": {
-    "tags": ["scope:application"],
+    "tags": [
+      "scope:application"
+    ],
     "targets": {
       "test": {
         "executor": "@nx/jest:jest",
@@ -33,6 +35,6 @@
   "dependencies": {
     "cloud-cost-domain": "workspace:*",
     "shared-kernel": "workspace:*",
-    "tslib": "^2.3.0"
+    "tslib": "^2.8.1"
   }
 }
