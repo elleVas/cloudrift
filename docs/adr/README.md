@@ -66,6 +66,7 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 | [0063](0063-scan-concurrency-env-configurable-default-restored-to-12.md) | Scan concurrency default restored to 12, overridable via `CLOUDRIFT_SCAN_CONCURRENCY`; LocalStack e2e forces 1 | Accepted |
 | [0074](0074-waste-policies-one-file-per-policy.md) | Waste policies split into one file per policy | Accepted |
 | [0075](0075-nx-dep-constraints-layer-enforcement.md) | Nx `depConstraints` enforce the hexagonal layering at lint time | Accepted |
+| [0077](0077-scanner-registry-split-on-pricing-seam.md) | Scanner registry split on the always-on/live-pricing seam | Accepted |
 
 ## Stack
 

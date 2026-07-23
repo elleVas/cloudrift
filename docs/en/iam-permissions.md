@@ -60,3 +60,5 @@ The AWS principal needs the following read-only permissions:
 ```
 
 > `--live-pricing` additionally requires `pricing:GetProducts` (the AWS Pricing API). It is **not** needed for the default static pricing.
+
+> The `cost`/`trend` commands (spend comparison and monthly trend via AWS Cost Explorer) additionally require `ce:GetCostAndUsage`. It is **not** needed for `analyze`. Unlike everything else in this policy, this is a **billed** API call ($0.01/request) — see the [`cost`/`trend` docs](usage.md#cost--trend--spend-comparison-and-monthly-trend).

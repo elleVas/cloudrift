@@ -260,7 +260,7 @@ export class AwsLogGroupScanner implements WasteScannerPort {
 
 Console table, PDF and JSON DTO update themselves: they consume the registry and `RESOURCE_KIND_LABELS`. The interactive scanner picker (see [how-it-works.md](./how-it-works.md#scanner-selection-the-wizard-and-its-escape-hatches)) also updates itself: it lists every `RESOURCE_KINDS` entry with its `RESOURCE_KIND_META` label, so a new kind appears in the checkbox list with no wizard-specific code to touch.
 
-**b)** Registration in `analyze-waste.composition.ts`: one entry in `ALWAYS_ON_SCANNERS` (or `LIVE_PRICING_SCANNERS` if the resource type needs `--live-pricing`) — not a loose `new Scanner(...)` call:
+**b)** Registration in `apps/cli/src/commands/always-on-scanners.ts` (or `live-pricing-scanners.ts` if the resource type needs `--live-pricing`, [ADR-0077](../adr/0077-scanner-registry-split-on-pricing-seam.md)): one entry in `ALWAYS_ON_SCANNERS`/`LIVE_PRICING_SCANNERS` — not a loose `new Scanner(...)` call:
 
 ```typescript
 {
@@ -305,7 +305,7 @@ Add the permission the new scanner requires to the README. For log groups:
 - [ ] Scanner in `aws-adapter/src/scanners/` (extends `CloudWatchIdleScanner` if it needs a metric) with required fields filtered via type-narrowing (not `!`), the policy applied, + tests
 - [ ] `aws-adapter/src/index.ts` updated; SDK dependency in the root `package.json`
 - [ ] Presenter in `resource-presenters.ts`
-- [ ] Scanner registered in `analyze-waste.composition.ts` (`ALWAYS_ON_SCANNERS` or `LIVE_PRICING_SCANNERS`)
+- [ ] Scanner registered in `always-on-scanners.ts` or `live-pricing-scanners.ts` (`ALWAYS_ON_SCANNERS` or `LIVE_PRICING_SCANNERS`)
 - [ ] README updated (resource table + IAM permissions)
 
 **What must NOT be touched** (if you find yourself modifying these, something went wrong): `AnalyzeCloudWasteUseCase`, `WastedResourcesSummary`, `WasteReportDto`, the three formatters.
