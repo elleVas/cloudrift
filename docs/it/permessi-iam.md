@@ -72,21 +72,31 @@ Il comando `dead-resources` (check di hygiene per risorse morte/inutilizzate, ve
     "ec2:DescribeKeyPairs",
     "ec2:DescribeReservedInstances",
     "ec2:DescribeSecurityGroups",
+    "ec2:DescribeRegions",
     "iam:ListUsers",
     "iam:ListAccessKeys",
     "iam:GetAccessKeyLastUsed",
     "iam:ListPolicies",
     "iam:ListRoles",
+    "iam:ListInstanceProfiles",
     "logs:DescribeLogGroups",
     "acm:ListCertificates",
     "route53:ListHostedZones",
     "cloudformation:DescribeStacks",
     "s3:ListAllMyBuckets",
     "s3:ListBucket",
-    "cloudwatch:DescribeAlarms"
+    "cloudwatch:DescribeAlarms",
+    "sns:ListTopics",
+    "sns:ListSubscriptionsByTopic",
+    "events:ListRules",
+    "events:ListTargetsByRule",
+    "ecr:DescribeRepositories",
+    "ecr:DescribeImages",
+    "states:ListStateMachines",
+    "states:ListExecutions"
   ],
   "Resource": "*"
 }
 ```
 
-`ec2:DescribeInstances`/`ec2:DescribeNetworkInterfaces` (già nella policy principale sopra) vengono riusate rispettivamente per incrociare le key pair con le istanze in esecuzione/ferme e i security group con le network interface. Nessuna di queste action serve per `analyze` — solo per `dead-resources`. `s3:ListBucket` (action a livello di singolo bucket, non a livello account) è quella dietro la chiamata `ListObjectsV2` di ogni check `s3-bucket-empty` — una bucket policy che la nega a questo principal rende illeggibile solo quel bucket, non l'intera scansione (vedi il comportamento di skip-per-errore in `aws-s3-bucket-empty.scanner.ts`).
+`ec2:DescribeInstances`/`ec2:DescribeNetworkInterfaces` (già nella policy principale sopra) vengono riusate rispettivamente per incrociare le key pair con le istanze in esecuzione/ferme e i security group con le network interface. Nessuna di queste action serve per `analyze` — solo per `dead-resources`. `s3:ListBucket` (action a livello di singolo bucket, non a livello account) è quella dietro la chiamata `ListObjectsV2` di ogni check `s3-bucket-empty` — una bucket policy che la nega a questo principal rende illeggibile solo quel bucket, non l'intera scansione (vedi il comportamento di skip-per-errore in `aws-s3-bucket-empty.scanner.ts`). `ec2:DescribeRegions` e la riusata `ec2:DescribeInstances` sono ciò che sta dietro l'incrocio account-wide, su tutte le regioni, di `iam-instance-profile-unattached` (vedi il commento in `aws-iam-instance-profile-unattached.scanner.ts` sul perché questo check ignora deliberatamente `--regions`) — una regione in cui questo principal non può fare `DescribeInstances` viene saltata per quel check, non trattata come un fallimento della scansione.

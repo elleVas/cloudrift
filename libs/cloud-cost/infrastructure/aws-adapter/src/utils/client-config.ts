@@ -73,7 +73,17 @@ export function createAwsClientConfig() {
   return {
     maxAttempts: 3,
     requestHandler: new NodeHttpHandler({
-      connectionTimeout: 5_000,
+      // 10s, not the SDK's tighter defaults: bumped 2026-07-23 after
+      // real-AWS testing on a home network hit `connectionTimeout` failures
+      // from `dead-resources`' `iam-instance-profile-unattached` scanner,
+      // which bursts fresh DNS+TCP+TLS handshakes to ~15-20 distinct
+      // regional endpoints at once (see that scanner's own doc comment) —
+      // a heavier burst than any other scanner in this codebase produces.
+      // 5s was tight enough to fail intermittently under that burst on a
+      // consumer connection; most cloudrift users run this from home, not
+      // from an AWS-adjacent network, so the more forgiving value is the
+      // right default everywhere, not just for that one scanner.
+      connectionTimeout: 10_000,
       requestTimeout: 30_000,
       logger: smithyLogger,
       httpsAgent: { keepAlive },

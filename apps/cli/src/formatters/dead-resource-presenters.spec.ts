@@ -14,6 +14,11 @@ import {
   CloudformationStackStuck,
   S3BucketEmpty,
   CloudwatchAlarmOrphaned,
+  SnsTopicUnsubscribed,
+  IamInstanceProfileUnattached,
+  EventbridgeRuleNoTargets,
+  EcrRepositoryEmpty,
+  StepfunctionsStatemachineUnused,
 } from 'dead-resources-domain';
 import { rowFor, recommendFor, presenterFor } from './dead-resource-presenters';
 
@@ -149,6 +154,54 @@ const alarm = new CloudwatchAlarmOrphaned({
   tags: {},
 });
 
+const topic = new SnsTopicUnsubscribed({
+  topicArn: 'arn:aws:sns:us-east-1:123456789012:t1',
+  topicName: 't1',
+  region,
+  accountId: '123456789012',
+  detectedAt: now,
+  tags: {},
+});
+
+const instanceProfile = new IamInstanceProfileUnattached({
+  instanceProfileId: 'AIPA1',
+  instanceProfileName: 'old-profile',
+  arn: 'arn:aws:iam::123456789012:instance-profile/old-profile',
+  accountId: '123456789012',
+  createdAt: now,
+  detectedAt: now,
+  tags: {},
+});
+
+const rule = new EventbridgeRuleNoTargets({
+  ruleArn: 'arn:aws:events:us-east-1:123456789012:rule/r1',
+  ruleName: 'r1',
+  region,
+  accountId: '123456789012',
+  detectedAt: now,
+  tags: {},
+});
+
+const repository = new EcrRepositoryEmpty({
+  repositoryArn: 'arn:aws:ecr:us-east-1:123456789012:repository/repo-1',
+  repositoryName: 'repo-1',
+  region,
+  accountId: '123456789012',
+  createdAt: now,
+  detectedAt: now,
+  tags: {},
+});
+
+const stateMachine = new StepfunctionsStatemachineUnused({
+  stateMachineArn: 'arn:aws:states:us-east-1:123456789012:stateMachine:m1',
+  name: 'm1',
+  region,
+  accountId: '123456789012',
+  createdAt: now,
+  detectedAt: now,
+  tags: {},
+});
+
 describe('rowFor / recommendFor', () => {
   it('dispatches an ec2-keypair-unused finding to the matching presenter', () => {
     expect(rowFor(keyPair)).toEqual(['key-1', 'old-deploy-key', 'us-east-1', '2026-07-10']);
@@ -214,6 +267,31 @@ describe('rowFor / recommendFor', () => {
   it('dispatches a cloudwatch-alarm-orphaned finding to the matching presenter', () => {
     expect(rowFor(alarm)).toEqual(['a1', 'us-east-1', '2026-07-10']);
     expect(recommendFor(alarm)).toContain('a1');
+  });
+
+  it('dispatches a sns-topic-unsubscribed finding to the matching presenter', () => {
+    expect(rowFor(topic)).toEqual(['t1', 'us-east-1']);
+    expect(recommendFor(topic)).toContain('t1');
+  });
+
+  it('dispatches an iam-instance-profile-unattached finding to the matching presenter (no Region column)', () => {
+    expect(rowFor(instanceProfile)).toEqual(['old-profile', instanceProfile.arn, '2026-07-10']);
+    expect(recommendFor(instanceProfile)).toContain('old-profile');
+  });
+
+  it('dispatches an eventbridge-rule-no-targets finding to the matching presenter', () => {
+    expect(rowFor(rule)).toEqual(['r1', 'us-east-1']);
+    expect(recommendFor(rule)).toContain('r1');
+  });
+
+  it('dispatches an ecr-repository-empty finding to the matching presenter', () => {
+    expect(rowFor(repository)).toEqual(['repo-1', 'us-east-1', '2026-07-10']);
+    expect(recommendFor(repository)).toContain('repo-1');
+  });
+
+  it('dispatches a stepfunctions-statemachine-unused finding to the matching presenter', () => {
+    expect(rowFor(stateMachine)).toEqual(['m1', 'us-east-1', '2026-07-10']);
+    expect(recommendFor(stateMachine)).toContain('m1');
   });
 
   it('presenterFor exposes title and head without row/recommend', () => {

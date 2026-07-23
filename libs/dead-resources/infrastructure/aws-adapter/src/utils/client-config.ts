@@ -33,7 +33,11 @@ export function createAwsClientConfig() {
   return {
     maxAttempts: 3,
     requestHandler: new NodeHttpHandler({
-      connectionTimeout: 5_000,
+      // 10s — see the identical comment in
+      // cloud-cost-infrastructure-aws-adapter's copy of this function for
+      // why (bumped from 5s, 2026-07-23, after `iam-instance-profile-unattached`'s
+      // all-region burst hit connection timeouts on a home network).
+      connectionTimeout: 10_000,
       requestTimeout: 30_000,
       logger: smithyLogger,
       httpsAgent: { keepAlive },

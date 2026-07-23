@@ -72,21 +72,31 @@ The `dead-resources` command (dead/unused resource hygiene checks, see [ADR-0078
     "ec2:DescribeKeyPairs",
     "ec2:DescribeReservedInstances",
     "ec2:DescribeSecurityGroups",
+    "ec2:DescribeRegions",
     "iam:ListUsers",
     "iam:ListAccessKeys",
     "iam:GetAccessKeyLastUsed",
     "iam:ListPolicies",
     "iam:ListRoles",
+    "iam:ListInstanceProfiles",
     "logs:DescribeLogGroups",
     "acm:ListCertificates",
     "route53:ListHostedZones",
     "cloudformation:DescribeStacks",
     "s3:ListAllMyBuckets",
     "s3:ListBucket",
-    "cloudwatch:DescribeAlarms"
+    "cloudwatch:DescribeAlarms",
+    "sns:ListTopics",
+    "sns:ListSubscriptionsByTopic",
+    "events:ListRules",
+    "events:ListTargetsByRule",
+    "ecr:DescribeRepositories",
+    "ecr:DescribeImages",
+    "states:ListStateMachines",
+    "states:ListExecutions"
   ],
   "Resource": "*"
 }
 ```
 
-`ec2:DescribeInstances`/`ec2:DescribeNetworkInterfaces` (already in the main policy above) are reused to cross-reference key pairs against running/stopped instances and security groups against network interfaces, respectively. None of these actions are needed for `analyze` — only for `dead-resources`. `s3:ListBucket` (a bucket-level, not account-level, action) is what backs each `s3-bucket-empty` check's `ListObjectsV2` call — a bucket policy that denies it to this principal makes that one bucket unreadable, not the whole scan (see `aws-s3-bucket-empty.scanner.ts`'s per-bucket skip-on-error behavior).
+`ec2:DescribeInstances`/`ec2:DescribeNetworkInterfaces` (already in the main policy above) are reused to cross-reference key pairs against running/stopped instances and security groups against network interfaces, respectively. None of these actions are needed for `analyze` — only for `dead-resources`. `s3:ListBucket` (a bucket-level, not account-level, action) is what backs each `s3-bucket-empty` check's `ListObjectsV2` call — a bucket policy that denies it to this principal makes that one bucket unreadable, not the whole scan (see `aws-s3-bucket-empty.scanner.ts`'s per-bucket skip-on-error behavior). `ec2:DescribeRegions` and the reused `ec2:DescribeInstances` are what back `iam-instance-profile-unattached`'s account-wide, all-region cross-reference (see `aws-iam-instance-profile-unattached.scanner.ts`'s doc comment for why this one check deliberately ignores `--regions`) — a region this principal can't `DescribeInstances` in is skipped for that check, not treated as a scan failure.

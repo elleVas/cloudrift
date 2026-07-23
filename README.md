@@ -220,8 +220,13 @@ cloudrift dead-resources --scanners iam-user-inactive  # only one check
 | **IAM Access Keys (stale)** | Active key not rotated within the threshold | warning | 90 days |
 | **Route53 Hosted Zones (empty)** | No records beyond the default NS/SOA pair | info | none — no creation date exposed by the API |
 | **S3 Buckets (empty)** | Zero objects | info | 7-day grace period (`--min-age-days`) |
+| **IAM Instance Profiles (unattached)** | Not attached to any EC2 instance in any AWS region | info | 7-day grace period (`--min-age-days`) |
+| **SNS Topics (no subscriptions)** | Zero subscriptions | info | none — no creation date exposed by the API |
+| **EventBridge Rules (no targets)** | No targets configured (default event bus only) | info | none — no creation date exposed by the API |
+| **ECR Repositories (empty)** | Zero images | info | 7-day grace period (`--min-age-days`) |
+| **Step Functions State Machines (never executed)** | STANDARD-type, zero executions (EXPRESS excluded) | info | 7-day grace period (`--min-age-days`) |
 
-**IAM, Route53, and (for this command) S3 are global AWS services**: those six checks run once per scan regardless of how many `--regions` you pass, never once per region — the other seven checks are genuinely regional. See [ADR-0078](https://github.com/elleVas/cloudrift/blob/main/docs/adr/0078-dead-resources-parallel-domain.md)/[ADR-0079](https://github.com/elleVas/cloudrift/blob/main/docs/adr/0079-dead-resources-global-scope-scanners.md) for the design behind this split, `--format json`/`--pdf` for machine-readable/shareable output. See [docs/en/usage.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/usage.md#dead-resources--deadunused-resource-hygiene) for the full flag reference.
+**IAM, Route53, and (for this command) S3 are global AWS services**: those seven checks run once per scan regardless of how many `--regions` you pass, never once per region — the other eleven checks are genuinely regional. See [ADR-0078](https://github.com/elleVas/cloudrift/blob/main/docs/adr/0078-dead-resources-parallel-domain.md)/[ADR-0079](https://github.com/elleVas/cloudrift/blob/main/docs/adr/0079-dead-resources-global-scope-scanners.md) for the design behind this split, `--format json`/`--pdf` for machine-readable/shareable output. See [docs/en/usage.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/usage.md#dead-resources--deadunused-resource-hygiene) for the full flag reference.
 
 ---
 

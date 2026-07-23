@@ -107,6 +107,37 @@ export const presenters: PresenterMap = {
     row: (a) => [a.alarmName, a.region.code, day(a.createdAt)],
     recommend: (a) => `Review/delete orphaned CloudWatch alarm "${a.alarmName}" in ${a.region.code} — ${a.hygieneReason}`,
   },
+  'sns-topic-unsubscribed': {
+    title: 'SNS Topics — No Subscriptions',
+    head: ['Topic Name', 'Region'],
+    row: (t) => [t.topicName, t.region.code],
+    recommend: (t) => `Delete unsubscribed SNS topic "${t.topicName}" in ${t.region.code}`,
+  },
+  // No Region column — IAM instance profiles are global (ADR-0078).
+  'iam-instance-profile-unattached': {
+    title: 'IAM Instance Profiles — Unattached',
+    head: ['Profile Name', 'ARN', 'Created'],
+    row: (p) => [p.instanceProfileName, p.arn, day(p.createdAt)],
+    recommend: (p) => `Delete unattached IAM instance profile "${p.instanceProfileName}" (${p.arn})`,
+  },
+  'eventbridge-rule-no-targets': {
+    title: 'EventBridge Rules — No Targets',
+    head: ['Rule Name', 'Region'],
+    row: (r) => [r.ruleName, r.region.code],
+    recommend: (r) => `Delete or attach a target to EventBridge rule "${r.ruleName}" in ${r.region.code} — ${r.hygieneReason}`,
+  },
+  'ecr-repository-empty': {
+    title: 'ECR Repositories — Empty',
+    head: ['Repository Name', 'Region', 'Created'],
+    row: (r) => [r.repositoryName, r.region.code, day(r.createdAt)],
+    recommend: (r) => `Delete empty ECR repository "${r.repositoryName}" in ${r.region.code}`,
+  },
+  'stepfunctions-statemachine-unused': {
+    title: 'Step Functions State Machines — Never Executed',
+    head: ['State Machine Name', 'Region', 'Created'],
+    row: (m) => [m.name, m.region.code, day(m.createdAt)],
+    recommend: (m) => `Review/delete unused Step Functions state machine "${m.name}" in ${m.region.code} — ${m.hygieneReason}`,
+  },
 };
 
 export function presenterFor(kind: DeadResourceKind): Omit<DeadResourcePresenter, 'row' | 'recommend'> {
@@ -142,6 +173,16 @@ export function rowFor(finding: DeadResourceKindMap[DeadResourceKind]): string[]
       return presenters['s3-bucket-empty'].row(finding);
     case 'cloudwatch-alarm-orphaned':
       return presenters['cloudwatch-alarm-orphaned'].row(finding);
+    case 'sns-topic-unsubscribed':
+      return presenters['sns-topic-unsubscribed'].row(finding);
+    case 'iam-instance-profile-unattached':
+      return presenters['iam-instance-profile-unattached'].row(finding);
+    case 'eventbridge-rule-no-targets':
+      return presenters['eventbridge-rule-no-targets'].row(finding);
+    case 'ecr-repository-empty':
+      return presenters['ecr-repository-empty'].row(finding);
+    case 'stepfunctions-statemachine-unused':
+      return presenters['stepfunctions-statemachine-unused'].row(finding);
   }
 }
 
@@ -173,5 +214,15 @@ export function recommendFor(finding: DeadResourceKindMap[DeadResourceKind]): st
       return presenters['s3-bucket-empty'].recommend(finding);
     case 'cloudwatch-alarm-orphaned':
       return presenters['cloudwatch-alarm-orphaned'].recommend(finding);
+    case 'sns-topic-unsubscribed':
+      return presenters['sns-topic-unsubscribed'].recommend(finding);
+    case 'iam-instance-profile-unattached':
+      return presenters['iam-instance-profile-unattached'].recommend(finding);
+    case 'eventbridge-rule-no-targets':
+      return presenters['eventbridge-rule-no-targets'].recommend(finding);
+    case 'ecr-repository-empty':
+      return presenters['ecr-repository-empty'].recommend(finding);
+    case 'stepfunctions-statemachine-unused':
+      return presenters['stepfunctions-statemachine-unused'].recommend(finding);
   }
 }

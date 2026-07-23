@@ -1,0 +1,21 @@
+{
+  "kind": "sns-topic-unsubscribed",
+  "source": "hand-transcribed from the AWS API reference, 2026-07-23",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "ListTopicsCommand": [
+      {
+        "Topics": [{ "TopicArn": "arn:aws:sns:us-east-1:000000000000:legacy-alerts" }],
+        "$metadata": { "httpStatusCode": 200, "requestId": "req-1", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ],
+    "ListSubscriptionsByTopicCommand": [
+      {
+        "Subscriptions": [],
+        "$metadata": { "httpStatusCode": 200, "requestId": "req-2", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ]
+  },
+  "expected": { "findings": [{ "id": "arn:aws:sns:us-east-1:000000000000:legacy-alerts", "severity": "info" }] }
+}

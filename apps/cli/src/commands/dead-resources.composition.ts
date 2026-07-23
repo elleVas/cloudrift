@@ -20,6 +20,11 @@ import {
   CloudformationStackStuckPolicy,
   S3BucketEmptyPolicy,
   CloudwatchAlarmOrphanedPolicy,
+  SnsTopicUnsubscribedPolicy,
+  IamInstanceProfileUnattachedPolicy,
+  EventbridgeRuleNoTargetsPolicy,
+  EcrRepositoryEmptyPolicy,
+  StepfunctionsStatemachineUnusedPolicy,
 } from 'dead-resources-domain';
 import { FindDeadResourcesUseCase } from 'dead-resources-application';
 import {
@@ -36,6 +41,11 @@ import {
   AwsCloudformationStackStuckScanner,
   AwsS3BucketEmptyScanner,
   AwsCloudwatchAlarmOrphanedScanner,
+  AwsSnsTopicUnsubscribedScanner,
+  AwsIamInstanceProfileUnattachedScanner,
+  AwsEventbridgeRuleNoTargetsScanner,
+  AwsEcrRepositoryEmptyScanner,
+  AwsStepfunctionsStatemachineUnusedScanner,
 } from 'dead-resources-infrastructure-aws-adapter';
 import { resolveAwsAccountId } from 'cloud-cost-infrastructure-aws-adapter';
 
@@ -70,7 +80,7 @@ export interface DeadResourcesDeps {
 
 /**
  * One entry per dead-resource kind — same shape as `ALWAYS_ON_SCANNERS`
- * (`scanner-registry.ts`), just not yet split into its own file: at 13
+ * (`scanner-registry.ts`), just not yet split into its own file: at 18
  * entries this still has nothing to earn a split against (see ADR-0077's
  * reasoning for why the cost-waste registry was split where it was, not
  * preemptively — that was 43 entries).
@@ -90,6 +100,11 @@ function buildScanners(ctx: DeadResourceScanContext): DeadResourceScannerPort[] 
     new AwsCloudformationStackStuckScanner(ctx.accountId, new CloudformationStackStuckPolicy(ctx.policyOptions)),
     new AwsS3BucketEmptyScanner(ctx.accountId, new S3BucketEmptyPolicy(ctx.policyOptions)),
     new AwsCloudwatchAlarmOrphanedScanner(ctx.accountId, new CloudwatchAlarmOrphanedPolicy(ctx.policyOptions)),
+    new AwsSnsTopicUnsubscribedScanner(ctx.accountId, new SnsTopicUnsubscribedPolicy(ctx.policyOptions)),
+    new AwsIamInstanceProfileUnattachedScanner(ctx.accountId, new IamInstanceProfileUnattachedPolicy(ctx.policyOptions)),
+    new AwsEventbridgeRuleNoTargetsScanner(ctx.accountId, new EventbridgeRuleNoTargetsPolicy(ctx.policyOptions)),
+    new AwsEcrRepositoryEmptyScanner(ctx.accountId, new EcrRepositoryEmptyPolicy(ctx.policyOptions)),
+    new AwsStepfunctionsStatemachineUnusedScanner(ctx.accountId, new StepfunctionsStatemachineUnusedPolicy(ctx.policyOptions)),
   ];
 }
 

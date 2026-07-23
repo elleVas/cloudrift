@@ -43,6 +43,16 @@ export { S3BucketEmpty } from './entities/s3-bucket-empty.entity';
 export type { S3BucketEmptyProps } from './entities/s3-bucket-empty.entity';
 export { CloudwatchAlarmOrphaned } from './entities/cloudwatch-alarm-orphaned.entity';
 export type { CloudwatchAlarmOrphanedProps } from './entities/cloudwatch-alarm-orphaned.entity';
+export { SnsTopicUnsubscribed } from './entities/sns-topic-unsubscribed.entity';
+export type { SnsTopicUnsubscribedProps } from './entities/sns-topic-unsubscribed.entity';
+export { IamInstanceProfileUnattached } from './entities/iam-instance-profile-unattached.entity';
+export type { IamInstanceProfileUnattachedProps } from './entities/iam-instance-profile-unattached.entity';
+export { EventbridgeRuleNoTargets } from './entities/eventbridge-rule-no-targets.entity';
+export type { EventbridgeRuleNoTargetsProps } from './entities/eventbridge-rule-no-targets.entity';
+export { EcrRepositoryEmpty } from './entities/ecr-repository-empty.entity';
+export type { EcrRepositoryEmptyProps } from './entities/ecr-repository-empty.entity';
+export { StepfunctionsStatemachineUnused } from './entities/stepfunctions-statemachine-unused.entity';
+export type { StepfunctionsStatemachineUnusedProps } from './entities/stepfunctions-statemachine-unused.entity';
 
 // Policies
 export {
@@ -66,6 +76,11 @@ export { Route53HostedZoneEmptyPolicy } from './policies/route53-hostedzone-empt
 export { CloudformationStackStuckPolicy } from './policies/cloudformation-stack-stuck.policy';
 export { S3BucketEmptyPolicy } from './policies/s3-bucket-empty.policy';
 export { CloudwatchAlarmOrphanedPolicy } from './policies/cloudwatch-alarm-orphaned.policy';
+export { SnsTopicUnsubscribedPolicy } from './policies/sns-topic-unsubscribed.policy';
+export { IamInstanceProfileUnattachedPolicy } from './policies/iam-instance-profile-unattached.policy';
+export { EventbridgeRuleNoTargetsPolicy } from './policies/eventbridge-rule-no-targets.policy';
+export { EcrRepositoryEmptyPolicy } from './policies/ecr-repository-empty.policy';
+export { StepfunctionsStatemachineUnusedPolicy } from './policies/stepfunctions-statemachine-unused.policy';
 
 // Ports
 export type { DeadResourceScannerPort } from './ports/outbound/dead-resource-scanner.port';

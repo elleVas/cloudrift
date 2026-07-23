@@ -1,0 +1,21 @@
+{
+  "kind": "eventbridge-rule-no-targets",
+  "source": "hand-transcribed from the AWS API reference, 2026-07-23",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "ListRulesCommand": [
+      {
+        "Rules": [{ "Name": "nightly-cleanup", "Arn": "arn:aws:events:us-east-1:000000000000:rule/nightly-cleanup", "State": "ENABLED" }],
+        "$metadata": { "httpStatusCode": 200, "requestId": "req-1", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ],
+    "ListTargetsByRuleCommand": [
+      {
+        "Targets": [],
+        "$metadata": { "httpStatusCode": 200, "requestId": "req-2", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ]
+  },
+  "expected": { "findings": [{ "id": "arn:aws:events:us-east-1:000000000000:rule/nightly-cleanup", "severity": "info" }] }
+}

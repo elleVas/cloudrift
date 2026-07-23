@@ -4,7 +4,7 @@
 // `scanner-contract.spec.ts` (ADR-0053) for this domain: replays realistic
 // raw AWS responses through each scanner's full pipeline (list → map →
 // toEntity → policy) and asserts the exact findings the shape produces.
-// All 4 fixtures here are hand-transcribed (not LocalStack-captured) — see
+// All fixtures here are hand-transcribed (not LocalStack-captured) — see
 // ADR-0079 for why `dead-resources` has no LocalStack e2e coverage yet.
 //
 // Every kind-specific threshold is nulled out in the scanner factories below
@@ -22,6 +22,10 @@ import { Route53Client } from '@aws-sdk/client-route-53';
 import { CloudFormationClient } from '@aws-sdk/client-cloudformation';
 import { S3Client } from '@aws-sdk/client-s3';
 import { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
+import { SNSClient } from '@aws-sdk/client-sns';
+import { EventBridgeClient } from '@aws-sdk/client-eventbridge';
+import { ECRClient } from '@aws-sdk/client-ecr';
+import { SFNClient } from '@aws-sdk/client-sfn';
 import {
   AwsRegion,
   DEAD_RESOURCE_KINDS,
@@ -38,6 +42,11 @@ import {
   CloudformationStackStuckPolicy,
   S3BucketEmptyPolicy,
   CloudwatchAlarmOrphanedPolicy,
+  SnsTopicUnsubscribedPolicy,
+  IamInstanceProfileUnattachedPolicy,
+  EventbridgeRuleNoTargetsPolicy,
+  EcrRepositoryEmptyPolicy,
+  StepfunctionsStatemachineUnusedPolicy,
 } from 'dead-resources-domain';
 import type { DeadResourceKind, DeadResourceScannerPort } from 'dead-resources-domain';
 import { AwsEc2KeyPairUnusedScanner } from './aws-ec2-keypair-unused.scanner';
@@ -53,6 +62,11 @@ import { AwsRoute53HostedZoneEmptyScanner } from './aws-route53-hostedzone-empty
 import { AwsCloudformationStackStuckScanner } from './aws-cloudformation-stack-stuck.scanner';
 import { AwsS3BucketEmptyScanner } from './aws-s3-bucket-empty.scanner';
 import { AwsCloudwatchAlarmOrphanedScanner } from './aws-cloudwatch-alarm-orphaned.scanner';
+import { AwsSnsTopicUnsubscribedScanner } from './aws-sns-topic-unsubscribed.scanner';
+import { AwsIamInstanceProfileUnattachedScanner } from './aws-iam-instance-profile-unattached.scanner';
+import { AwsEventbridgeRuleNoTargetsScanner } from './aws-eventbridge-rule-no-targets.scanner';
+import { AwsEcrRepositoryEmptyScanner } from './aws-ecr-repository-empty.scanner';
+import { AwsStepfunctionsStatemachineUnusedScanner } from './aws-stepfunctions-statemachine-unused.scanner';
 
 interface ContractFixture {
   kind: DeadResourceKind;
@@ -92,6 +106,10 @@ const clientBases = [
   Object.getPrototypeOf(CloudFormationClient),
   Object.getPrototypeOf(S3Client),
   Object.getPrototypeOf(CloudWatchClient),
+  Object.getPrototypeOf(SNSClient),
+  Object.getPrototypeOf(EventBridgeClient),
+  Object.getPrototypeOf(ECRClient),
+  Object.getPrototypeOf(SFNClient),
 ] as ClientBase[];
 const realSends = clientBases.map((base) => base.prototype.send);
 afterAll(() => {
@@ -144,6 +162,11 @@ const scannerFactories: Record<DeadResourceKind, () => DeadResourceScannerPort> 
   'cloudformation-stack-stuck': () => new AwsCloudformationStackStuckScanner(ACCOUNT, new CloudformationStackStuckPolicy(po)),
   's3-bucket-empty': () => new AwsS3BucketEmptyScanner(ACCOUNT, new S3BucketEmptyPolicy(po)),
   'cloudwatch-alarm-orphaned': () => new AwsCloudwatchAlarmOrphanedScanner(ACCOUNT, new CloudwatchAlarmOrphanedPolicy(po)),
+  'sns-topic-unsubscribed': () => new AwsSnsTopicUnsubscribedScanner(ACCOUNT, new SnsTopicUnsubscribedPolicy(po)),
+  'iam-instance-profile-unattached': () => new AwsIamInstanceProfileUnattachedScanner(ACCOUNT, new IamInstanceProfileUnattachedPolicy(po)),
+  'eventbridge-rule-no-targets': () => new AwsEventbridgeRuleNoTargetsScanner(ACCOUNT, new EventbridgeRuleNoTargetsPolicy(po)),
+  'ecr-repository-empty': () => new AwsEcrRepositoryEmptyScanner(ACCOUNT, new EcrRepositoryEmptyPolicy(po)),
+  'stepfunctions-statemachine-unused': () => new AwsStepfunctionsStatemachineUnusedScanner(ACCOUNT, new StepfunctionsStatemachineUnusedPolicy(po)),
 };
 
 const byId = (a: { id: string }, b: { id: string }) => a.id.localeCompare(b.id);

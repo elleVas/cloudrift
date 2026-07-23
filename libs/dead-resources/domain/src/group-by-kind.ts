@@ -13,6 +13,11 @@ import type { Route53HostedZoneEmpty } from './entities/route53-hostedzone-empty
 import type { CloudformationStackStuck } from './entities/cloudformation-stack-stuck.entity';
 import type { S3BucketEmpty } from './entities/s3-bucket-empty.entity';
 import type { CloudwatchAlarmOrphaned } from './entities/cloudwatch-alarm-orphaned.entity';
+import type { SnsTopicUnsubscribed } from './entities/sns-topic-unsubscribed.entity';
+import type { IamInstanceProfileUnattached } from './entities/iam-instance-profile-unattached.entity';
+import type { EventbridgeRuleNoTargets } from './entities/eventbridge-rule-no-targets.entity';
+import type { EcrRepositoryEmpty } from './entities/ecr-repository-empty.entity';
+import type { StepfunctionsStatemachineUnused } from './entities/stepfunctions-statemachine-unused.entity';
 
 /**
  * Map kind → concrete entity. Allows consumers (formatters) to retrieve the
@@ -32,6 +37,11 @@ export interface DeadResourceKindMap {
   'cloudformation-stack-stuck': CloudformationStackStuck;
   's3-bucket-empty': S3BucketEmpty;
   'cloudwatch-alarm-orphaned': CloudwatchAlarmOrphaned;
+  'sns-topic-unsubscribed': SnsTopicUnsubscribed;
+  'iam-instance-profile-unattached': IamInstanceProfileUnattached;
+  'eventbridge-rule-no-targets': EventbridgeRuleNoTargets;
+  'ecr-repository-empty': EcrRepositoryEmpty;
+  'stepfunctions-statemachine-unused': StepfunctionsStatemachineUnused;
 }
 
 export type DeadFindingsByKind = {

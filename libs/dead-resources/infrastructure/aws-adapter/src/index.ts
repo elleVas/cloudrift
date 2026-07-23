@@ -12,4 +12,9 @@ export { AwsRoute53HostedZoneEmptyScanner } from './scanners/aws-route53-hostedz
 export { AwsCloudformationStackStuckScanner } from './scanners/aws-cloudformation-stack-stuck.scanner';
 export { AwsS3BucketEmptyScanner } from './scanners/aws-s3-bucket-empty.scanner';
 export { AwsCloudwatchAlarmOrphanedScanner } from './scanners/aws-cloudwatch-alarm-orphaned.scanner';
+export { AwsSnsTopicUnsubscribedScanner } from './scanners/aws-sns-topic-unsubscribed.scanner';
+export { AwsIamInstanceProfileUnattachedScanner } from './scanners/aws-iam-instance-profile-unattached.scanner';
+export { AwsEventbridgeRuleNoTargetsScanner } from './scanners/aws-eventbridge-rule-no-targets.scanner';
+export { AwsEcrRepositoryEmptyScanner } from './scanners/aws-ecr-repository-empty.scanner';
+export { AwsStepfunctionsStatemachineUnusedScanner } from './scanners/aws-stepfunctions-statemachine-unused.scanner';
 export { AwsAdapterError } from './errors/aws-adapter.error';

@@ -23,6 +23,11 @@ export const DEAD_RESOURCE_KINDS = [
   'cloudformation-stack-stuck',
   's3-bucket-empty',
   'cloudwatch-alarm-orphaned',
+  'sns-topic-unsubscribed',
+  'iam-instance-profile-unattached',
+  'eventbridge-rule-no-targets',
+  'ecr-repository-empty',
+  'stepfunctions-statemachine-unused',
 ] as const;
 export type DeadResourceKind = (typeof DEAD_RESOURCE_KINDS)[number];
 
@@ -51,6 +56,11 @@ export const DEAD_RESOURCE_KIND_META: Record<DeadResourceKind, DeadResourceKindM
   'cloudformation-stack-stuck': { label: 'CloudFormation Stacks (stuck)', scope: 'regional' },
   's3-bucket-empty': { label: 'S3 Buckets (empty)', scope: 'global' },
   'cloudwatch-alarm-orphaned': { label: 'CloudWatch Alarms (orphaned)', scope: 'regional' },
+  'sns-topic-unsubscribed': { label: 'SNS Topics (no subscriptions)', scope: 'regional' },
+  'iam-instance-profile-unattached': { label: 'IAM Instance Profiles (unattached)', scope: 'global' },
+  'eventbridge-rule-no-targets': { label: 'EventBridge Rules (no targets)', scope: 'regional' },
+  'ecr-repository-empty': { label: 'ECR Repositories (empty)', scope: 'regional' },
+  'stepfunctions-statemachine-unused': { label: 'Step Functions State Machines (never executed)', scope: 'regional' },
 };
 
 /**

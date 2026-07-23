@@ -1,0 +1,27 @@
+{
+  "kind": "ecr-repository-empty",
+  "source": "hand-transcribed from the AWS API reference, 2026-07-23",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "DescribeRepositoriesCommand": [
+      {
+        "repositories": [
+          {
+            "repositoryArn": "arn:aws:ecr:us-east-1:000000000000:repository/old-service",
+            "repositoryName": "old-service",
+            "createdAt": "2023-01-01T00:00:00.000Z"
+          }
+        ],
+        "$metadata": { "httpStatusCode": 200, "requestId": "req-1", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ],
+    "DescribeImagesCommand": [
+      {
+        "imageDetails": [],
+        "$metadata": { "httpStatusCode": 200, "requestId": "req-2", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ]
+  },
+  "expected": { "findings": [{ "id": "arn:aws:ecr:us-east-1:000000000000:repository/old-service", "severity": "info" }] }
+}

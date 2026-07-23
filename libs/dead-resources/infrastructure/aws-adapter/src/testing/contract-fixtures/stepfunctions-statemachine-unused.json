@@ -1,0 +1,28 @@
+{
+  "kind": "stepfunctions-statemachine-unused",
+  "source": "hand-transcribed from the AWS API reference, 2026-07-23",
+  "region": "us-east-1",
+  "accountId": "000000000000",
+  "pages": {
+    "ListStateMachinesCommand": [
+      {
+        "stateMachines": [
+          {
+            "stateMachineArn": "arn:aws:states:us-east-1:000000000000:stateMachine:old-workflow",
+            "name": "old-workflow",
+            "type": "STANDARD",
+            "creationDate": "2023-01-01T00:00:00.000Z"
+          }
+        ],
+        "$metadata": { "httpStatusCode": 200, "requestId": "req-1", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ],
+    "ListExecutionsCommand": [
+      {
+        "executions": [],
+        "$metadata": { "httpStatusCode": 200, "requestId": "req-2", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ]
+  },
+  "expected": { "findings": [{ "id": "arn:aws:states:us-east-1:000000000000:stateMachine:old-workflow", "severity": "info" }] }
+}

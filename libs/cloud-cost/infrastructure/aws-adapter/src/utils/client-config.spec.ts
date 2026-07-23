@@ -12,7 +12,7 @@ describe('createAwsClientConfig', () => {
   it('bounds every HTTP call so a hung connection cannot stall a scan forever', () => {
     createAwsClientConfig();
     const call = (NodeHttpHandler as jest.Mock).mock.calls.at(-1)[0];
-    expect(call.connectionTimeout).toBe(5_000);
+    expect(call.connectionTimeout).toBe(10_000);
     expect(call.requestTimeout).toBe(30_000);
   });
 

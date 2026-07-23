@@ -1,0 +1,38 @@
+{
+  "kind": "iam-instance-profile-unattached",
+  "source": "hand-transcribed from the AWS API reference, 2026-07-23",
+  "region": "global",
+  "accountId": "000000000000",
+  "pages": {
+    "ListInstanceProfilesCommand": [
+      {
+        "InstanceProfiles": [
+          {
+            "InstanceProfileId": "AIPACKCEVSQ6C2EXAMPLE",
+            "InstanceProfileName": "legacy-ec2-profile",
+            "Arn": "arn:aws:iam::000000000000:instance-profile/legacy-ec2-profile",
+            "Path": "/",
+            "CreateDate": "2023-01-01T00:00:00.000Z",
+            "Roles": [],
+            "Tags": []
+          }
+        ],
+        "IsTruncated": false,
+        "$metadata": { "httpStatusCode": 200, "requestId": "req-1", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ],
+    "DescribeRegionsCommand": [
+      {
+        "Regions": [{ "RegionName": "us-east-1", "Endpoint": "ec2.us-east-1.amazonaws.com", "OptInStatus": "opt-in-not-required" }],
+        "$metadata": { "httpStatusCode": 200, "requestId": "req-2", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ],
+    "DescribeInstancesCommand": [
+      {
+        "Reservations": [],
+        "$metadata": { "httpStatusCode": 200, "requestId": "req-3", "attempts": 1, "totalRetryDelay": 0 }
+      }
+    ]
+  },
+  "expected": { "findings": [{ "id": "AIPACKCEVSQ6C2EXAMPLE", "severity": "info" }] }
+}
