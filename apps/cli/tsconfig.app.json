@@ -47,6 +47,9 @@
     },
     {
       "path": "../../libs/resource-security/application/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/mcp-server/application/tsconfig.lib.json"
     }
   ]
 }

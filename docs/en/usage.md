@@ -282,3 +282,25 @@ node apps/cli/dist/main.js resource-security --pdf ./security.pdf --silent
 ```
 
 **IAM permissions:** this command needs `iam:GetAccountSummary`, `iam:ListMFADevices`, `iam:GetAccountPasswordPolicy`, `s3:GetBucketAcl`, `s3:GetBucketPolicyStatus`, `s3:GetPublicAccessBlock`, `s3:GetBucketEncryption`, `ec2:DescribeSnapshotAttribute`, `cloudtrail:DescribeTrails` in addition to `analyze`'s policy (several other checks reuse actions already granted for `analyze`/`dead-resources`) — see [docs/en/iam-permissions.md](iam-permissions.md).
+
+## `mcp` — run cloudrift as a local MCP server
+
+Exposes cloudrift over stdio as an [MCP](https://modelcontextprotocol.io) server, so any MCP-compatible AI agent (Claude Desktop/Code, Kiro, VS Code Copilot Chat in Agent mode, ...) can call `analyze_cloudrift`, `get_resource_types`, and `get_required_iam_permissions` directly instead of you running the CLI by hand. It inherits the **same AWS credentials** as every other command — an agent with access to this server can see everything those credentials can see, not just waste/dead-resource/security findings.
+
+```sh
+node apps/cli/dist/main.js mcp
+```
+
+This is meant to be launched by an MCP client's config (it talks newline-delimited JSON-RPC over stdin/stdout, not something you interact with directly in a terminal).
+
+**Disabling it:** if you don't want this machine to ever start the MCP server — even by accident, even outside any project — set `CLOUDRIFT_DISABLE_MCP=1` in your environment (shell profile, container image, or an org-wide policy). `cloudrift mcp` then refuses to start, before touching AWS credentials or reading any config file:
+
+```sh
+export CLOUDRIFT_DISABLE_MCP=1   # e.g. in ~/.zshrc or ~/.bashrc
+```
+
+This is independent of `cloudrift.config.json` on purpose: `cloudrift mcp` works from any directory, with or without a project underneath it, so a per-project config flag wouldn't cover the case of "never run this on this machine at all."
+
+### Connecting an MCP client
+
+See [docs/en/mcp-server.md](mcp-server.md) for the tools this server exposes and how to connect Kiro, VS Code (GitHub Copilot Chat), and Claude Code — each uses a different config format, so a file copied 1:1 from one to another will not work.

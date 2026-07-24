@@ -44,6 +44,9 @@
     },
     {
       "path": "./libs/resource-security/infrastructure/aws-adapter"
+    },
+    {
+      "path": "./libs/mcp-server/application"
     }
   ]
 }

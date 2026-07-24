@@ -38,6 +38,8 @@ module.exports = {
     '^resource-security-application/(.*)$': '<rootDir>/../../libs/resource-security/application/src/$1',
     '^resource-security-infrastructure-aws-adapter$': '<rootDir>/../../libs/resource-security/infrastructure/aws-adapter/src/index.ts',
     '^resource-security-infrastructure-aws-adapter/(.*)$': '<rootDir>/../../libs/resource-security/infrastructure/aws-adapter/src/$1',
+    '^mcp-server-application$': '<rootDir>/../../libs/mcp-server/application/src/index.ts',
+    '^mcp-server-application/(.*)$': '<rootDir>/../../libs/mcp-server/application/src/$1',
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
 };

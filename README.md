@@ -262,6 +262,18 @@ cloudrift resource-security --scanners iam-root-mfa-disabled    # only one check
 
 ---
 
+### Use it as an MCP server (`mcp`)
+
+Run cloudrift as a local [MCP](https://modelcontextprotocol.io) server over stdio, so an AI agent — Claude Code, Kiro, VS Code Copilot Chat (Agent mode) — can call `analyze_cloudrift`, `get_resource_types`, and `get_required_iam_permissions` directly instead of you running the CLI by hand. It inherits the same AWS credentials as every other command; see [ADR-0082](https://github.com/elleVas/cloudrift/blob/main/docs/adr/0082-mcp-server-second-input-adapter.md).
+
+```sh
+cloudrift mcp
+```
+
+See [docs/en/mcp-server.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/mcp-server.md) for client configuration (Kiro, VS Code, Claude Code) and [docs/en/usage.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/usage.md#mcp---run-cloudrift-as-a-local-mcp-server) for the `CLOUDRIFT_DISABLE_MCP` kill switch.
+
+---
+
 ## Documentation
 
 The full reference — flags, config file, pricing sources, CI/CD, IAM permissions, contributing, architecture — lives in [`docs/`](https://github.com/elleVas/cloudrift/tree/main/docs/): English in [`docs/en/`](https://github.com/elleVas/cloudrift/tree/main/docs/en/), Italian in [`docs/it/`](https://github.com/elleVas/cloudrift/tree/main/docs/it/).
@@ -281,6 +293,7 @@ The full reference — flags, config file, pricing sources, CI/CD, IAM permissio
 | [docs/en/testing.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/testing.md)                     | Test pyramid, real-AWS verification status              |
 | [docs/en/vertical-scanners.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/vertical-scanners.md) | The Phase 6 vertical scanners (Serverless, Aurora, SageMaker, Dev/PR, EKS) |
 | [docs/en/adding-a-resource.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/adding-a-resource.md) | Step-by-step guide to adding a new resource type        |
+| [docs/en/mcp-server.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/mcp-server.md)               | Connecting Kiro, VS Code Copilot Chat, and Claude Code to `cloudrift mcp` |
 
 ## License
 

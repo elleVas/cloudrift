@@ -76,6 +76,15 @@
           "command": "node scripts/e2e-localstack.mjs"
         }
       },
+      "e2e-localstack-mcp": {
+        "dependsOn": [
+          "build"
+        ],
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "node scripts/e2e-localstack-mcp.mjs"
+        }
+      },
       "build": {
         "executor": "@nx/esbuild:esbuild",
         "outputs": [
@@ -148,6 +157,7 @@
   },
   "dependencies": {
     "@clack/prompts": "^1.7.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "cloud-cost-application": "workspace:*",
     "cloud-cost-domain": "workspace:*",
     "cloud-cost-infrastructure-aws-adapter": "workspace:*",
@@ -157,6 +167,7 @@
     "dead-resources-application": "workspace:*",
     "dead-resources-domain": "workspace:*",
     "dead-resources-infrastructure-aws-adapter": "workspace:*",
+    "mcp-server-application": "workspace:*",
     "pdfkit": "^0.15.2",
     "resource-security-application": "workspace:*",
     "resource-security-domain": "workspace:*",

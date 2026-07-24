@@ -297,3 +297,25 @@ node apps/cli/dist/main.js resource-security --pdf ./sicurezza.pdf --silent
 ```
 
 **Permessi IAM:** questo comando richiede `iam:GetAccountSummary`, `iam:ListMFADevices`, `iam:GetAccountPasswordPolicy`, `s3:GetBucketAcl`, `s3:GetBucketPolicyStatus`, `s3:GetPublicAccessBlock`, `s3:GetBucketEncryption`, `ec2:DescribeSnapshotAttribute`, `cloudtrail:DescribeTrails` in aggiunta alla policy di `analyze` (altri check riusano action già concesse per `analyze`/`dead-resources`) — vedi [docs/it/permessi-iam.md](permessi-iam.md).
+
+## `mcp` — esegui cloudrift come server MCP locale
+
+Espone cloudrift via stdio come server [MCP](https://modelcontextprotocol.io), così un agente AI compatibile con MCP (Claude Desktop/Code, Kiro, VS Code Copilot Chat in Agent mode, ...) può chiamare direttamente `analyze_cloudrift`, `get_resource_types` e `get_required_iam_permissions` invece che tu lanci la CLI a mano. Eredita le **stesse credenziali AWS** di ogni altro comando — un agente con accesso a questo server vede tutto ciò che quelle credenziali possono vedere, non solo i finding di spreco/risorse morte/sicurezza.
+
+```sh
+node apps/cli/dist/main.js mcp
+```
+
+È pensato per essere lanciato dalla configurazione di un client MCP (parla JSON-RPC newline-delimited su stdin/stdout, non è qualcosa con cui interagire direttamente da terminale).
+
+**Disabilitarlo:** se non vuoi che questa macchina avvii mai il server MCP — nemmeno per errore, nemmeno fuori da un progetto — imposta `CLOUDRIFT_DISABLE_MCP=1` nel tuo ambiente (profilo della shell, immagine container, o una policy aziendale). `cloudrift mcp` si rifiuta allora di partire, prima ancora di toccare le credenziali AWS o leggere un config file:
+
+```sh
+export CLOUDRIFT_DISABLE_MCP=1   # es. in ~/.zshrc o ~/.bashrc
+```
+
+Questo è indipendente da `cloudrift.config.json` di proposito: `cloudrift mcp` funziona da qualsiasi cartella, con o senza un progetto sotto — un flag di config per-progetto non coprirebbe il caso "non farlo mai partire su questa macchina".
+
+### Collegare un client MCP
+
+Vedi [docs/it/server-mcp.md](server-mcp.md) per i tool esposti da questo server e come collegare Kiro, VS Code (GitHub Copilot Chat) e Claude Code — ognuno usa un formato di configurazione diverso, un file copiato 1:1 dall'uno all'altro non funzionerà.

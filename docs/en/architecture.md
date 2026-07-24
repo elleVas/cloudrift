@@ -303,6 +303,36 @@ FindDeadResourcesUseCase                 (dead-resources/application)
 
 ---
 
+## MCP server: `mcp`
+
+Not a fifth bounded context — no new entities, no new policies, no new domain concept. It is the second **input adapter**, alongside Commander: the [Frontend-readiness](#frontend-readiness) section above predicted exactly this ("a new entry point is just another composition root that instantiates the same [use cases] and calls the same `execute()`") — `mcp` is that prediction realized for an MCP client instead of an HTTP frontend.
+
+```
+AggregateAnalysisUseCase                 (mcp-server/application)
+    ├─ depends on FindWastedResourcesUseCasePort          (cloud-cost/domain)
+    ├─ depends on FindDeadResourcesUseCasePort            (dead-resources/domain)
+    ├─ depends on FindResourceSecurityFindingsUseCasePort (resource-security/domain)
+    └─ depends on CostTrendUseCasePort                    (cost-analytics/domain)
+        ▲ wired together by
+mcp.composition.ts                       (apps/cli — reuses the same
+                                           defaultAnalyzeDeps/defaultDeadResourcesDeps/
+                                           defaultResourceSecurityDeps/defaultCostAnalyticsDeps
+                                           the analyze/dead-resources/resource-security/trend
+                                           commands already use)
+        ▲ exposed over stdio by
+mcp.command.ts                           (apps/cli — McpServer, Zod tool
+                                           schemas, StdioServerTransport)
+```
+
+- **`mcp-server-application` depends on domain ports only**, never on the four `*-application` packages, AWS, or the MCP SDK — `AggregateAnalysisUseCase`'s constructor takes the four inbound ports (`FindWastedResourcesUseCasePort`, ...), the same types `AnalysisContext.useCase` etc. already use elsewhere. This is allowed by `@nx/enforce-module-boundaries`'s `scope:application → scope:application` constraint (any application-layer package may depend on any other), but the use case only reaches for `scope:domain` — the narrower dependency is a choice, not a requirement forced by the tooling.
+- **The MCP protocol itself lives in `apps/cli`** (`scope:app`), the one project allowed to see every layer — same reason Commander's option-parsing lives there and not in an application package. `mcp.composition.ts` builds the four concrete, AWS-wired use cases (reusing the existing composition roots verbatim); `mcp.command.ts` is pure protocol glue: three tools (`analyze_cloudrift`, `get_resource_types`, `get_required_iam_permissions`) registered on an `McpServer` with Zod input schemas.
+- **Partial-failure handling mirrors `scanErrors`.** `AggregateAnalysisUseCase.execute()` runs the four domains in parallel and always returns `Result.ok(report)`; a domain whose use case itself returned `Result.fail` lands in `report.domainErrors` (JSON-safe: `{ domain, message }`, not a raw `Error` — `JSON.stringify` on an `Error` instance produces `{}`, no enumerable own properties) instead of failing the whole tool call. Same principle as per-`(scanner, region)` `scanErrors`, one level up.
+- **Credentials, not a new attack surface, but a new blast radius.** `cloudrift mcp` inherits the exact same AWS credentials as every other command — there is no separate, narrower IAM role for it. An MCP client with access to this server can request anything those credentials can see, not just waste/dead-resource/security findings. `CLOUDRIFT_DISABLE_MCP=1` is the documented kill switch for anyone who wants to be sure this machine never starts it (see [usage.md](usage.md#mcp---run-cloudrift-as-a-local-mcp-server)) — deliberately an environment variable, not a `cloudrift.config.json` flag, since `cloudrift mcp` works from any directory, with or without a project underneath it.
+
+See [ADR-0082](../adr/0082-mcp-server-second-input-adapter.md) for this section's decision, and [mcp-server.md](mcp-server.md) for how to connect Kiro, VS Code, and Claude Code to it.
+
+---
+
 ## Error handling
 
 The project uses `Result<T, E>` for expected errors, **with no exceptions across layer boundaries** — including user input: `AwsRegion.parse()` returns `Result<AwsRegion, InvalidAwsRegionError>` and the CLI handles it by printing a clean message and exiting with code 1 (a throwing `AwsRegion.create()` also exists, reserved for codes known at compile time, e.g. test fixtures).
