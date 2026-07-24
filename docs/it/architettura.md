@@ -304,6 +304,36 @@ FindDeadResourcesUseCase                 (dead-resources/application)
 
 ---
 
+## Server MCP: `mcp`
+
+Non è un quinto bounded context — nessuna nuova entità, nessuna nuova policy, nessun nuovo concetto di dominio. È il secondo **adapter di input**, insieme a Commander: la sezione [Frontend-readiness](#frontend-readiness) qui sopra prediceva esattamente questo ("un nuovo entry point è solo un altro composition root che istanzia gli stessi [use case] e chiama lo stesso `execute()`") — `mcp` è quella previsione realizzata per un client MCP invece che per un frontend HTTP.
+
+```
+AggregateAnalysisUseCase                 (mcp-server/application)
+    ├─ dipende da FindWastedResourcesUseCasePort          (cloud-cost/domain)
+    ├─ dipende da FindDeadResourcesUseCasePort            (dead-resources/domain)
+    ├─ dipende da FindResourceSecurityFindingsUseCasePort (resource-security/domain)
+    └─ dipende da CostTrendUseCasePort                    (cost-analytics/domain)
+        ▲ composti insieme da
+mcp.composition.ts                       (apps/cli — riusa gli stessi
+                                           defaultAnalyzeDeps/defaultDeadResourcesDeps/
+                                           defaultResourceSecurityDeps/defaultCostAnalyticsDeps
+                                           già usati dai comandi analyze/dead-resources/
+                                           resource-security/trend)
+        ▲ esposti via stdio da
+mcp.command.ts                           (apps/cli — McpServer, schema Zod
+                                           dei tool, StdioServerTransport)
+```
+
+- **`mcp-server-application` dipende solo dai domain port**, mai dai quattro package `*-application`, da AWS o dall'SDK MCP — il costruttore di `AggregateAnalysisUseCase` prende i quattro inbound port (`FindWastedResourcesUseCasePort`, ...), gli stessi tipi già usati altrove (es. `AnalysisContext.useCase`). Questo è permesso dal vincolo `scope:application → scope:application` di `@nx/enforce-module-boundaries` (qualsiasi package application può dipendere da un altro), ma lo use case si limita a `scope:domain` — la dipendenza più ristretta è una scelta, non un obbligo imposto dal tooling.
+- **Il protocollo MCP vive in `apps/cli`** (`scope:app`), l'unico progetto autorizzato a vedere tutti i layer — stesso motivo per cui il parsing delle opzioni di Commander vive lì e non in un package application. `mcp.composition.ts` costruisce i quattro use case concreti, già collegati ad AWS (riusando le composition root esistenti tali e quali); `mcp.command.ts` è puro collante di protocollo: tre tool (`analyze_cloudrift`, `get_resource_types`, `get_required_iam_permissions`) registrati su un `McpServer` con schema Zod.
+- **La gestione dei fallimenti parziali rispecchia `scanErrors`.** `AggregateAnalysisUseCase.execute()` esegue i quattro domini in parallelo e ritorna sempre `Result.ok(report)`; un dominio il cui use case ha ritornato `Result.fail` finisce in `report.domainErrors` (JSON-safe: `{ domain, message }`, non un `Error` grezzo — `JSON.stringify` su un'istanza `Error` produce `{}`, nessuna proprietà propria enumerabile) invece di far fallire l'intera chiamata del tool. Stesso principio degli `scanErrors` per-`(scanner, region)`, un livello più in alto.
+- **Le credenziali non sono una nuova superficie d'attacco, ma un nuovo raggio d'impatto.** `cloudrift mcp` eredita le stesse identiche credenziali AWS di ogni altro comando — non esiste un ruolo IAM separato e più ristretto per esso. Un client MCP con accesso a questo server può richiedere tutto ciò che quelle credenziali possono vedere, non solo i finding di spreco/risorse morte/sicurezza. `CLOUDRIFT_DISABLE_MCP=1` è l'interruttore documentato per chi vuole essere certo che questa macchina non avvii mai il server (vedi [utilizzo.md](utilizzo.md#mcp---esegui-cloudrift-come-server-mcp-locale)) — deliberatamente una variabile d'ambiente, non un flag in `cloudrift.config.json`, perché `cloudrift mcp` funziona da qualsiasi cartella, con o senza un progetto sotto.
+
+Vedi [ADR-0082](../adr/0082-mcp-server-second-input-adapter.md) per la decisione dietro questa sezione, e [server-mcp.md](server-mcp.md) per come collegare Kiro, VS Code e Claude Code.
+
+---
+
 ## Gestione degli errori
 
 Il progetto usa `Result<T, E>` per gli errori attesi, **senza eccezioni attraverso i confini dei layer** — incluso l'input utente: `AwsRegion.parse()` restituisce `Result<AwsRegion, InvalidAwsRegionError>` e la CLI lo gestisce stampando un messaggio pulito ed uscendo con codice 1 (esiste anche `AwsRegion.create()` throwing, riservato a codici noti a compile time, es. fixture di test).

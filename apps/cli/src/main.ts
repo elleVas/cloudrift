@@ -6,6 +6,7 @@ import { costCommand } from './commands/cost.command';
 import { trendCommand } from './commands/trend.command';
 import { deadResourcesCommand } from './commands/dead-resources.command';
 import { resourceSecurityCommand } from './commands/resource-security.command';
+import { mcpCommand } from './commands/mcp.command';
 import { runEntryWizard } from './wizard/entry.wizard';
 import { isInteractiveTty } from './wizard/tty';
 
@@ -169,6 +170,13 @@ program
   )
   .option('--silent', 'suppress all stdout output (banner, report). Errors still surface.')
   .action((options) => resourceSecurityCommand(options));
+
+program
+  .command('mcp')
+  .description(
+    'Run cloudrift as a local MCP server over stdio, for MCP clients (Claude Desktop/Code, Kiro, VS Code Copilot Chat) to call',
+  )
+  .action(() => mcpCommand());
 
 // No subcommand at all, in a real terminal: hand off to the interactive
 // wizard instead of commander's default (print help, exit 1). Any flags or

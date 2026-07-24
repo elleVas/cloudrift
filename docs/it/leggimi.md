@@ -571,6 +571,18 @@ Il principal AWS deve avere le seguenti permission in sola lettura:
 <details>
 <summary><strong>Sviluppo</strong> — modalità watch, test per libreria, lint, typecheck</summary>
 
+### Usalo come server MCP (`mcp`)
+
+Esegui cloudrift come server [MCP](https://modelcontextprotocol.io) locale via stdio, così un agente AI — Claude Code, Kiro, VS Code Copilot Chat (Agent mode) — può chiamare direttamente `analyze_cloudrift`, `get_resource_types` e `get_required_iam_permissions` invece che tu lanci la CLI a mano. Eredita le stesse credenziali AWS di ogni altro comando; vedi [ADR-0082](../adr/0082-mcp-server-second-input-adapter.md).
+
+```sh
+cloudrift mcp
+```
+
+Vedi [server-mcp.md](server-mcp.md) per la configurazione dei client (Kiro, VS Code, Claude Code) e [utilizzo.md](utilizzo.md#mcp---esegui-cloudrift-come-server-mcp-locale) per l'interruttore `CLOUDRIFT_DISABLE_MCP`.
+
+---
+
 ### Sviluppo
 
 ```sh
@@ -619,6 +631,7 @@ Tutta la documentazione è nella cartella [`docs/`](../) — italiano in [`docs/
 | [policy-as-code.md](policy-as-code.md)                     | Guida OPA da zero per le policy di esempio in `policy/`           |
 | [rilascio.md](rilascio.md)                                 | Come `@cloudrift/cli` viene buildato e pubblicato su npm           |
 | [scanner-verticali-guida.md](scanner-verticali-guida.md)   | Gli scanner verticali di Phase 6 (Serverless, Aurora, SageMaker, Dev/PR, EKS) — cosa rilevano, i loro limiti, come configurarli |
+| [server-mcp.md](server-mcp.md)                             | Collegare Kiro, VS Code Copilot Chat e Claude Code a `cloudrift mcp` |
 
 ## Licenza
 

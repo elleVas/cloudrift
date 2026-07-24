@@ -12,7 +12,8 @@
     "lint": "nx run-many -t lint",
     "typecheck": "nx run-many -t typecheck",
     "verify:aws": "node scripts/verify-against-aws.mjs",
-    "e2e:localstack": "nx run cli:e2e-localstack"
+    "e2e:localstack": "nx run cli:e2e-localstack",
+    "e2e:localstack:mcp": "nx run cli:e2e-localstack-mcp"
   },
   "devDependencies": {
     "@eslint/compat": "^1.4.1",
@@ -79,6 +80,7 @@
     "@aws-sdk/client-sqs": "~3.1075.0",
     "@aws-sdk/client-sts": "^3.1093.0",
     "@aws-sdk/client-workspaces": "^3.1093.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@smithy/node-http-handler": "^4.9.9",
     "chalk": "^4.1.2",
     "cli-table3": "^0.6.5",

@@ -1,0 +1,30 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "tsBuildInfoFile": "dist/tsconfig.lib.tsbuildinfo",
+    "emitDeclarationOnly": false,
+    "forceConsistentCasingInFileNames": true,
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.spec.ts", "src/**/*.test.ts"],
+  "references": [
+    {
+      "path": "../../cloud-cost/domain/tsconfig.lib.json"
+    },
+    {
+      "path": "../../cost-analytics/domain/tsconfig.lib.json"
+    },
+    {
+      "path": "../../dead-resources/domain/tsconfig.lib.json"
+    },
+    {
+      "path": "../../resource-security/domain/tsconfig.lib.json"
+    },
+    {
+      "path": "../../shared/kernel/tsconfig.lib.json"
+    }
+  ]
+}

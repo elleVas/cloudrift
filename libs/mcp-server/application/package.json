@@ -1,0 +1,43 @@
+{
+  "name": "mcp-server-application",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@cloudrift/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "nx": {
+    "tags": [
+      "scope:application"
+    ],
+    "targets": {
+      "test": {
+        "executor": "@nx/jest:jest",
+        "outputs": [
+          "{workspaceRoot}/coverage/{projectRoot}"
+        ],
+        "options": {
+          "jestConfig": "libs/mcp-server/application/jest.config.cjs",
+          "passWithNoTests": true
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "cloud-cost-domain": "workspace:*",
+    "cost-analytics-domain": "workspace:*",
+    "dead-resources-domain": "workspace:*",
+    "resource-security-domain": "workspace:*",
+    "shared-kernel": "workspace:*",
+    "tslib": "^2.8.1"
+  }
+}

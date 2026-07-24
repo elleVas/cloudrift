@@ -31,12 +31,14 @@ const workspaceRoot = resolve(scriptDir, '..');
 const composeFile = resolve(workspaceRoot, 'docker-compose.localstack.yml');
 const cliEntry = resolve(workspaceRoot, 'apps/cli/dist/main.js');
 
-const REGION = 'us-east-1';
+export const REGION = 'us-east-1';
 // Resources are created "now" by definition — without this, the default
 // 7-day grace period in every WastePolicy would suppress every finding.
 const MIN_AGE_DAYS = '0';
 
-const EXPECTED_KINDS = [
+// Exported so scripts/e2e-localstack-mcp.mjs can assert the same coverage
+// through `analyze_cloudrift` without a second, drifting copy of this list.
+export const EXPECTED_KINDS = [
   'ebs-volume',
   'elastic-ip',
   'load-balancer',
@@ -65,7 +67,7 @@ const EXPECTED_KINDS = [
 ];
 // Historically partial LocalStack Community support — a missed finding here
 // is a warning, not a hard failure (see docs/adr/0002-localstack-e2e-scope.md).
-const SOFT_KINDS = new Set(['load-balancer', 'nat-gateway']);
+export const SOFT_KINDS = new Set(['load-balancer', 'nat-gateway']);
 
 function dockerCompose(...args) {
   const r = spawnSync('docker', ['compose', '-f', composeFile, ...args], {
@@ -184,7 +186,15 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  console.error(`\n${err.message}`);
-  process.exit(1);
-});
+// Guarded: scripts/e2e-localstack-mcp.mjs imports this module's REGION/
+// EXPECTED_KINDS/SOFT_KINDS constants — without this check, that import
+// alone would trigger a second, concurrent full run of this file's own
+// main() as a side effect, racing the importer on the same Docker Compose
+// project (this is exactly what happened before the guard was added).
+const isMain = process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1]);
+if (isMain) {
+  main().catch((err) => {
+    console.error(`\n${err.message}`);
+    process.exit(1);
+  });
+}

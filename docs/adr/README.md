@@ -23,6 +23,8 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 | [0078](0078-dead-resources-parallel-domain.md) | `dead-resources` as a new parallel domain, not a `WastedResource` extension | Accepted, kind list extended by [ADR-0079](0079-dead-resources-global-scope-scanners.md) |
 | [0079](0079-dead-resources-global-scope-scanners.md) | Global-scope scanners (IAM) in the `dead-resources` coordinator | Accepted |
 | [0081](0081-resource-security-parallel-domain.md) | `resource-security` as a new parallel domain (14 security-posture checks) | Accepted |
+| [0082](0082-mcp-server-second-input-adapter.md) | MCP server as a second input adapter, not a fifth bounded context | Accepted |
+| [0083](0083-dedicated-mcp-client-config-doc.md) | Dedicated MCP client-configuration doc, with Claude Code added | Accepted |
 
 ## Cost analytics (`cost` / `trend`)
 
