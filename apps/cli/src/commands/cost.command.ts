@@ -8,6 +8,7 @@ import { formatCostComparisonAsTable } from '../formatters/cost-comparison.table
 import { formatCostComparisonAsJson } from '../formatters/cost-comparison.json-formatter';
 import { generateCostComparisonPdf } from '../formatters/cost-comparison.pdf-formatter';
 import { confirmCostExplorerCharge } from '../wizard/cost-confirmation.wizard';
+import { startScanSpinner } from '../wizard/scan-spinner';
 import { defaultCostAnalyticsDeps, type CostAnalyticsDeps } from './cost-analytics.composition';
 import { applyCostTrendGate } from './post-analysis';
 
@@ -75,7 +76,9 @@ export async function costCommand(
   }
 
   const costExplorer = deps.createCostExplorer(accountId, options.refreshCache === true);
+  const spinner = quietStdout ? undefined : await startScanSpinner('  Fetching from Cost Explorer...');
   const result = await new CompareCostUseCase(costExplorer).execute({});
+  spinner?.stop(chalk.dim('  Done.'));
   if (!result.ok) return fail(result.error.message);
 
   const meta: CostAnalyticsMeta = { accountId, generatedAt: new Date() };

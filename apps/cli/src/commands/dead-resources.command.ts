@@ -8,6 +8,7 @@ import { renderBrandMark } from '../brand-mark';
 import { formatDeadResourcesReportAsTable } from '../formatters/dead-resources-report.table-formatter';
 import { formatDeadResourcesReportAsJson } from '../formatters/dead-resources-report.json-formatter';
 import { generateDeadResourcesReportPdf } from '../formatters/dead-resources-report.pdf-formatter';
+import { startScanSpinner } from '../wizard/scan-spinner';
 import { defaultDeadResourcesDeps, type DeadResourcesDeps } from './dead-resources.composition';
 
 export type { DeadResourcesDeps };
@@ -110,7 +111,9 @@ export async function deadResourcesCommand(
 
   const { useCase } = await deps.createAnalysis({ regions, accountId, policyOptions, scannerKinds });
 
+  const spinner = quietStdout ? undefined : await startScanSpinner('  Rolling through your account...');
   const result = await useCase.execute({ regions });
+  spinner?.stop(chalk.dim('  Scan complete.'));
   if (!result.ok) return fail(result.error.message);
 
   const meta = { accountId, regions: regions.map((r) => r.code), generatedAt: new Date() };

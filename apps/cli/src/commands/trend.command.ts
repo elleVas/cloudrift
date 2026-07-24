@@ -9,6 +9,7 @@ import { formatCostTrendAsJson } from '../formatters/cost-trend.json-formatter';
 import { generateCostTrendPdf } from '../formatters/cost-trend.pdf-formatter';
 import { resolveServiceNames } from '../config/cost-explorer-service-names';
 import { confirmCostExplorerCharge } from '../wizard/cost-confirmation.wizard';
+import { startScanSpinner } from '../wizard/scan-spinner';
 import { defaultCostAnalyticsDeps, type CostAnalyticsDeps } from './cost-analytics.composition';
 
 const OUTPUT_FORMATS = ['table', 'json'] as const;
@@ -78,7 +79,9 @@ export async function trendCommand(
   }
 
   const costExplorer = deps.createCostExplorer(accountId, options.refreshCache === true);
+  const spinner = quietStdout ? undefined : await startScanSpinner('  Fetching from Cost Explorer...');
   const result = await new CostTrendUseCase(costExplorer).execute({ months, services });
+  spinner?.stop(chalk.dim('  Done.'));
   if (!result.ok) return fail(result.error.message);
 
   const meta: CostAnalyticsMeta = { accountId, generatedAt: new Date() };
