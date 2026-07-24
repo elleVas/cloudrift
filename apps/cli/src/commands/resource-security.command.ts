@@ -8,6 +8,7 @@ import { renderBrandMark } from '../brand-mark';
 import { formatResourceSecurityReportAsTable } from '../formatters/resource-security-report.table-formatter';
 import { formatResourceSecurityReportAsJson } from '../formatters/resource-security-report.json-formatter';
 import { generateResourceSecurityReportPdf } from '../formatters/resource-security-report.pdf-formatter';
+import { startScanSpinner } from '../wizard/scan-spinner';
 import { defaultResourceSecurityDeps, type ResourceSecurityDeps } from './resource-security.composition';
 
 export type { ResourceSecurityDeps };
@@ -98,7 +99,9 @@ export async function resourceSecurityCommand(
 
   const { useCase } = await deps.createAnalysis({ regions, accountId, policyOptions, scannerKinds });
 
+  const spinner = quietStdout ? undefined : await startScanSpinner('  Rolling through your account...');
   const result = await useCase.execute({ regions });
+  spinner?.stop(chalk.dim('  Scan complete.'));
   if (!result.ok) return fail(result.error.message);
 
   const meta = { accountId, regions: regions.map((r) => r.code), generatedAt: new Date() };

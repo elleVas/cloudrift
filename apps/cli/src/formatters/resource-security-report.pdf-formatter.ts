@@ -167,9 +167,14 @@ function buildTopFindings(summary: ResourceSecuritySummary): TopFinding[] {
   return findings.sort((a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity]).slice(0, 8);
 }
 
+// Fixed overhead around the label column: 22 (index area) + 4 (gap) + 64
+// (severity badge width) + 8 (right padding, so the badge doesn't sit flush
+// against the table border) = 98. labelW must leave exactly this much room.
+const RECOMMENDATION_FIXED_W = 98;
+
 function measureRecommendationsHeight(doc: PDFKit.PDFDocument, findings: TopFinding[]): number {
   doc.font('Helvetica').fontSize(8.5);
-  const labelW = CONTENT_W - 90;
+  const labelW = CONTENT_W - RECOMMENDATION_FIXED_W;
   return findings.reduce(
     (total, { label }) => total + rowHeightForLines(wrapToLines(doc, label, labelW).length),
     0,
@@ -185,7 +190,7 @@ function drawRecommendations(
   let y = startY;
   let segmentStartY = startY;
   let segmentH = 0;
-  const labelW = CONTENT_W - 90;
+  const labelW = CONTENT_W - RECOMMENDATION_FIXED_W;
 
   const strokeSegmentBorder = () => {
     if (segmentH === 0) return;

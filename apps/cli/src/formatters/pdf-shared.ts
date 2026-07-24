@@ -234,8 +234,11 @@ const MIN_COL_W = 50;
  * needed more lines than the guessed width allowed.
  *
  * Columns whose content fits get exactly what they need (never more);
- * any width left over after that goes to the widest column (almost always
- * the free-text one) so the table still fills `totalWidth`.
+ * any width left over after that is split across every column in
+ * proportion to its natural width, so the table still fills `totalWidth`
+ * and short structured columns (a date, "us-east-1", a severity badge)
+ * get some breathing room too instead of sitting at their bare minimum
+ * while the widest column absorbs 100% of the slack.
  *
  * If the natural widths don't all fit, shrink starts from the *widest*
  * column instead of squeezing every column proportionally: the widest
@@ -266,8 +269,7 @@ export function computeColumnWidths(
 
   if (naturalSum <= totalWidth) {
     const extra = totalWidth - naturalSum;
-    const widestIndex = natural.indexOf(Math.max(...natural));
-    return natural.map((w, i) => (i === widestIndex ? w + extra : w));
+    return natural.map((w) => w + extra * (w / naturalSum));
   }
 
   return shrinkWidestFirst(natural, totalWidth);
