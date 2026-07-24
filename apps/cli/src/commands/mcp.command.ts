@@ -10,7 +10,7 @@ import { RESOURCE_SECURITY_KINDS, RESOURCE_SECURITY_KIND_META } from 'resource-s
 import { PDF_LOGO_PNG_BASE64 } from '../pdf-logo-data';
 import { defaultMcpDeps, type McpDeps } from './mcp.composition';
 
-const SERVER_VERSION = '0.6.0';
+const SERVER_VERSION = '0.7.0';
 
 /**
  * Global kill switch, independent of any project/`cloudrift.config.json`
