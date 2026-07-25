@@ -16,7 +16,15 @@
     "e2e:localstack:mcp": "nx run cli:e2e-localstack-mcp"
   },
   "devDependencies": {
+    "@aws-sdk/client-cloudwatch-logs": "^3.1093.0",
+    "@aws-sdk/client-dynamodb": "^3.1093.0",
+    "@aws-sdk/client-ec2": "^3.1093.0",
+    "@aws-sdk/client-elastic-load-balancing-v2": "^3.1093.0",
+    "@aws-sdk/client-kinesis": "^3.1093.0",
+    "@aws-sdk/client-lambda": "^3.1093.0",
+    "@aws-sdk/client-s3": "^3.1093.0",
     "@eslint/compat": "^1.4.1",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@nx/esbuild": "22.7.5",
     "@nx/eslint": "22.7.5",
     "@nx/eslint-plugin": "22.7.5",

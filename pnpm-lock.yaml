@@ -8,9 +8,33 @@ importers:
 
   .:
     devDependencies:
+      '@aws-sdk/client-cloudwatch-logs':
+        specifier: ^3.1093.0
+        version: 3.1093.0
+      '@aws-sdk/client-dynamodb':
+        specifier: ^3.1093.0
+        version: 3.1093.0
+      '@aws-sdk/client-ec2':
+        specifier: ^3.1093.0
+        version: 3.1093.0
+      '@aws-sdk/client-elastic-load-balancing-v2':
+        specifier: ^3.1093.0
+        version: 3.1093.0
+      '@aws-sdk/client-kinesis':
+        specifier: ^3.1093.0
+        version: 3.1093.0
+      '@aws-sdk/client-lambda':
+        specifier: ^3.1093.0
+        version: 3.1093.0
+      '@aws-sdk/client-s3':
+        specifier: ^3.1093.0
+        version: 3.1093.0
       '@eslint/compat':
         specifier: ^1.4.1
         version: 1.4.1(eslint@9.39.5)
+      '@modelcontextprotocol/sdk':
+        specifier: ^1.29.0
+        version: 1.29.0(zod@4.4.3)
       '@nx/esbuild':
         specifier: 22.7.5
         version: 22.7.5(@babel/traverse@7.29.7)(@swc-node/register@1.11.1(@swc/core@1.15.8(@swc/helpers@0.5.18))(@swc/types@0.1.27)(typescript@5.9.3))(@swc/core@1.15.8(@swc/helpers@0.5.18))(esbuild@0.27.7)(nx@22.7.5(@swc-node/register@1.11.1(@swc/core@1.15.8(@swc/helpers@0.5.18))(@swc/types@0.1.27)(typescript@5.9.3))(@swc/core@1.15.8(@swc/helpers@0.5.18)))
