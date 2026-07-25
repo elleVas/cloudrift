@@ -40,7 +40,7 @@ export class AwsCostExplorerAdapter implements CostExplorerPort {
 
       return Result.ok(results.map(toBucket));
     } catch (err) {
-      return Result.fail(new AwsAdapterError('CostExplorer', err as Error));
+      return Result.fail(new AwsAdapterError('CostExplorer', err));
     } finally {
       client.destroy();
     }

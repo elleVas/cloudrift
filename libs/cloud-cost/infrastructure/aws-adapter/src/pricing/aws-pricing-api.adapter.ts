@@ -200,7 +200,7 @@ export class AwsPricingApiAdapter {
       }
       return Result.ok(table);
     } catch (err) {
-      return Result.fail(new AwsAdapterError('Pricing', err as Error));
+      return Result.fail(new AwsAdapterError('Pricing', err));
     }
   }
 

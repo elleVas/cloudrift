@@ -60,7 +60,7 @@ export class AwsRoute53HostedZoneEmptyScanner implements DeadResourceScannerPort
 
       return Result.ok(results);
     } catch (err) {
-      return Result.fail(new AwsAdapterError('Route53', err as Error));
+      return Result.fail(new AwsAdapterError('Route53', err));
     } finally {
       client.destroy();
     }

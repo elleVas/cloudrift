@@ -45,7 +45,7 @@ export class AwsEc2VolumeUnencryptedScanner implements ResourceSecurityScannerPo
 
       return Result.ok(results);
     } catch (err) {
-      return Result.fail(new AwsAdapterError('EC2', err as Error));
+      return Result.fail(new AwsAdapterError('EC2', err));
     } finally {
       client.destroy();
     }

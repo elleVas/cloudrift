@@ -61,7 +61,7 @@ export class AwsCodepipelinePipelineStaleScanner implements WasteScannerPort {
 
       return Result.ok(results);
     } catch (err) {
-      return Result.fail(new AwsAdapterError('CodePipeline', err as Error));
+      return Result.fail(new AwsAdapterError('CodePipeline', err));
     } finally {
       client.destroy();
     }

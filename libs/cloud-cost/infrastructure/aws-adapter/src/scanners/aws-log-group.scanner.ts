@@ -67,7 +67,7 @@ export class AwsLogGroupScanner implements WasteScannerPort {
 
       return Result.ok(groups);
     } catch (err) {
-      return Result.fail(new AwsAdapterError('CloudWatchLogs', err as Error));
+      return Result.fail(new AwsAdapterError('CloudWatchLogs', err));
     } finally {
       client.destroy();
     }

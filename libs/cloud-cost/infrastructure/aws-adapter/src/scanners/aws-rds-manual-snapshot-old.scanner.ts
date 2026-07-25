@@ -65,7 +65,7 @@ export class AwsRdsManualSnapshotOldScanner implements WasteScannerPort {
 
       return Result.ok(snapshots);
     } catch (err) {
-      return Result.fail(new AwsAdapterError('RDS', err as Error));
+      return Result.fail(new AwsAdapterError('RDS', err));
     } finally {
       client.destroy();
     }

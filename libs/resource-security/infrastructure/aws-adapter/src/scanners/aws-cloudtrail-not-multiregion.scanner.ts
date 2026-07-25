@@ -33,7 +33,7 @@ export class AwsCloudtrailNotMultiregionScanner implements ResourceSecurityScann
 
       return Result.ok(this.policy.evaluate(finding, now).flagged ? [finding] : []);
     } catch (err) {
-      return Result.fail(new AwsAdapterError('CloudTrail', err as Error));
+      return Result.fail(new AwsAdapterError('CloudTrail', err));
     } finally {
       client.destroy();
     }

@@ -45,7 +45,7 @@ export class AwsRdsInstancePubliclyAccessibleScanner implements ResourceSecurity
 
       return Result.ok(results);
     } catch (err) {
-      return Result.fail(new AwsAdapterError('RDS', err as Error));
+      return Result.fail(new AwsAdapterError('RDS', err));
     } finally {
       client.destroy();
     }

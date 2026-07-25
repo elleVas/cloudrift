@@ -61,7 +61,7 @@ export class AwsEventbridgeRuleNoTargetsScanner implements DeadResourceScannerPo
 
       return Result.ok(results);
     } catch (err) {
-      return Result.fail(new AwsAdapterError('EventBridge', err as Error));
+      return Result.fail(new AwsAdapterError('EventBridge', err));
     } finally {
       client.destroy();
     }

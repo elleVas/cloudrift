@@ -7,6 +7,10 @@ export abstract class ValueObject<T extends object> {
   }
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
 /**
  * Structural equality, independent of key insertion order (unlike
  * `JSON.stringify` comparison). Handles the shapes VO props actually take:
@@ -14,7 +18,7 @@ export abstract class ValueObject<T extends object> {
  */
 function deepEqual(a: unknown, b: unknown): boolean {
   if (Object.is(a, b)) return true;
-  if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) return false;
+  if (!isRecord(a) || !isRecord(b)) return false;
   if (a instanceof Date || b instanceof Date) {
     return a instanceof Date && b instanceof Date && a.getTime() === b.getTime();
   }
@@ -23,12 +27,10 @@ function deepEqual(a: unknown, b: unknown): boolean {
       Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((item, i) => deepEqual(item, b[i]))
     );
   }
-  const aObj = a as Record<string, unknown>;
-  const bObj = b as Record<string, unknown>;
-  const aKeys = Object.keys(aObj);
-  const bKeys = Object.keys(bObj);
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
   return (
     aKeys.length === bKeys.length &&
-    aKeys.every((key) => Object.prototype.hasOwnProperty.call(bObj, key) && deepEqual(aObj[key], bObj[key]))
+    aKeys.every((key) => Object.prototype.hasOwnProperty.call(b, key) && deepEqual(a[key], b[key]))
   );
 }

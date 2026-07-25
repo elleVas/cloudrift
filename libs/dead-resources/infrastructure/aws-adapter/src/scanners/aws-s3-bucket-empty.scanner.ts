@@ -61,7 +61,7 @@ export class AwsS3BucketEmptyScanner implements DeadResourceScannerPort {
             tags: {},
           });
         } catch (err) {
-          logger.debug(`s3-bucket-empty: skipped ${bucket.Name}, could not list objects`, { error: (err as Error).message });
+          logger.debug(`s3-bucket-empty: skipped ${bucket.Name}, could not list objects`, { error: err instanceof Error ? err.message : String(err) });
           return undefined;
         }
       });
@@ -72,7 +72,7 @@ export class AwsS3BucketEmptyScanner implements DeadResourceScannerPort {
 
       return Result.ok(results);
     } catch (err) {
-      return Result.fail(new AwsAdapterError('S3', err as Error));
+      return Result.fail(new AwsAdapterError('S3', err));
     } finally {
       client.destroy();
     }

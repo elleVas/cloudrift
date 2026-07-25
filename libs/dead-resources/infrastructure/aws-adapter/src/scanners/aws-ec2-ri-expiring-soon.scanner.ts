@@ -58,7 +58,7 @@ export class AwsEc2RiExpiringSoonScanner implements DeadResourceScannerPort {
 
       return Result.ok(results);
     } catch (err) {
-      return Result.fail(new AwsAdapterError('EC2', err as Error));
+      return Result.fail(new AwsAdapterError('EC2', err));
     } finally {
       client.destroy();
     }

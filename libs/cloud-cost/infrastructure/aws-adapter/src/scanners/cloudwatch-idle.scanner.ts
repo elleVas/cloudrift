@@ -55,7 +55,7 @@ export abstract class CloudWatchIdleScanner<TPrimaryClient, TRaw, TMetric, TEnti
 
       return Result.ok(entities);
     } catch (err) {
-      return Result.fail(new AwsAdapterError(this.serviceLabel, err as Error));
+      return Result.fail(new AwsAdapterError(this.serviceLabel, err));
     } finally {
       this.destroyPrimaryClient(primary);
       cw.destroy();

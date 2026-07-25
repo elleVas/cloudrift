@@ -91,7 +91,7 @@ export class AwsS3MultipartUploadAbandonedScanner implements WasteScannerPort {
 
       return Result.ok(results);
     } catch (err) {
-      return Result.fail(new AwsAdapterError('S3', err as Error));
+      return Result.fail(new AwsAdapterError('S3', err));
     } finally {
       s3.destroy();
     }

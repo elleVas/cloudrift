@@ -13,6 +13,10 @@ import { AWS_REGION_CODES } from 'cloud-cost-domain';
 export async function promptRegions(): Promise<string[] | undefined> {
   const { autocompleteMultiselect, cancel, isCancel } = await import('@clack/prompts');
 
+  // Cast, not narrowed: `Option<Value>` distributes over its type parameter —
+  // even here with `Value = string` (not a union of literals), TS can't
+  // correlate a per-entry `.map()` result with the conditional type's
+  // resolved shape (same reasoning as `scanner-selection.wizard.ts`).
   const options = AWS_REGION_CODES.map((code) => ({ value: code, label: code })) as Option<string>[];
   const selected = await autocompleteMultiselect<string>({
     message: 'Which AWS regions do you want to scan? (type to search, space to toggle, enter to confirm)',

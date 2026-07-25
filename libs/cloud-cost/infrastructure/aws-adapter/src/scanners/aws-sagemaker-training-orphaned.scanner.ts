@@ -104,7 +104,7 @@ export class AwsSageMakerTrainingOrphanedScanner implements WasteScannerPort {
 
       return Result.ok(entities.filter((model) => this.policy.evaluate(model, now).isWaste));
     } catch (err) {
-      return Result.fail(new AwsAdapterError('SageMaker', err as Error));
+      return Result.fail(new AwsAdapterError('SageMaker', err));
     } finally {
       client.destroy();
     }

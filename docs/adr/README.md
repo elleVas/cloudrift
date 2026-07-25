@@ -73,6 +73,7 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 | [0074](0074-waste-policies-one-file-per-policy.md) | Waste policies split into one file per policy | Accepted |
 | [0075](0075-nx-dep-constraints-layer-enforcement.md) | Nx `depConstraints` enforce the hexagonal layering at lint time | Accepted |
 | [0077](0077-scanner-registry-split-on-pricing-seam.md) | Scanner registry split on the always-on/live-pricing seam | Accepted |
+| [0084](0084-typescript-as-cast-cleanup.md) | TypeScript `as` cast cleanup: mechanical fixes, deferred fallback decisions, legitimate exceptions | Accepted |
 
 ## Stack
 

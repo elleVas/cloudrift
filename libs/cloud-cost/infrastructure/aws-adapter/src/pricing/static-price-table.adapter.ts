@@ -6,16 +6,24 @@ import {
   type RegionPrices,
 } from './table-pricing.adapter';
 
+function isRegionPricesEntry(entry: [string, unknown]): entry is [string, RegionPrices] {
+  return typeof entry[1] === 'object' && entry[1] !== null;
+}
+
 /**
  * The built-in price table, extracted from `prices.json` by discarding the
  * metadata fields (`_comment`, `pricesAsOf`) and keeping only the per-region
  * tables. Exported so it can be composed with other sources (live API, user
  * overrides).
  */
+// Cast, not narrowed: the JSON module's inferred type has fixed, heterogeneous
+// keys (`_comment`/`pricesAsOf` are strings, each region is an object) rather
+// than a string index signature, so `Object.entries` can't iterate it
+// generically without first widening it to a `Record`. The actual filtering
+// (which entries are real per-region tables) is a real type predicate below,
+// not folded into this cast.
 export const BUILTIN_PRICE_TABLE: PriceTable = Object.fromEntries(
-  Object.entries(priceTable as Record<string, unknown>).filter(
-    ([, value]) => typeof value === 'object' && value !== null,
-  ) as Array<[string, RegionPrices]>,
+  Object.entries(priceTable as Record<string, unknown>).filter(isRegionPricesEntry),
 );
 
 /** Date (YYYY-MM) the built-in price list was last verified. */

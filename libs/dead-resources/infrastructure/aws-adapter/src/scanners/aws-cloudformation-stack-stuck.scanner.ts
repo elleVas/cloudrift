@@ -58,7 +58,7 @@ export class AwsCloudformationStackStuckScanner implements DeadResourceScannerPo
 
       return Result.ok(results);
     } catch (err) {
-      return Result.fail(new AwsAdapterError('CloudFormation', err as Error));
+      return Result.fail(new AwsAdapterError('CloudFormation', err));
     } finally {
       client.destroy();
     }

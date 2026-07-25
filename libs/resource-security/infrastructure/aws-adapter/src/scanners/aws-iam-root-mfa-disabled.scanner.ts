@@ -37,7 +37,7 @@ export class AwsIamRootMfaDisabledScanner implements ResourceSecurityScannerPort
 
       return Result.ok(this.policy.evaluate(finding, now).flagged ? [finding] : []);
     } catch (err) {
-      return Result.fail(new AwsAdapterError('IAM', err as Error));
+      return Result.fail(new AwsAdapterError('IAM', err));
     } finally {
       client.destroy();
     }

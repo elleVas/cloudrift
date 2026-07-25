@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-import { IAMClient, ListUsersCommand, ListAccessKeysCommand, type User } from '@aws-sdk/client-iam';
+import { IAMClient, ListUsersCommand, ListAccessKeysCommand, type User, type AccessKeyMetadata } from '@aws-sdk/client-iam';
 import { Result } from 'shared-kernel';
 import type { AwsRegion, DeadResourceScannerPort, DeadResource } from 'dead-resources-domain';
 import { IamAccessKeyStale, IamAccessKeyStalePolicy } from 'dead-resources-domain';
@@ -15,6 +15,7 @@ const IAM_ENDPOINT_REGION = 'us-east-1';
 const ACCESS_KEY_LOOKUP_CONCURRENCY = 5;
 
 type UserWithName = User & { UserName: string };
+type ActiveAccessKey = AccessKeyMetadata & { AccessKeyId: string; CreateDate: Date };
 
 /**
  * Detects **active** IAM access keys not rotated within the policy's age
@@ -46,15 +47,15 @@ export class AwsIamAccessKeyStaleScanner implements DeadResourceScannerPort {
         // AWS caps a user at 2 access keys — one unpaginated call always returns the complete list.
         const r = await client.send(new ListAccessKeysCommand({ UserName: user.UserName }));
         return (r.AccessKeyMetadata ?? [])
-          .filter((k) => !!k.AccessKeyId && !!k.CreateDate && k.Status === 'Active')
+          .filter((k): k is ActiveAccessKey => !!k.AccessKeyId && !!k.CreateDate && k.Status === 'Active')
           .map(
             (k) =>
               new IamAccessKeyStale({
-                accessKeyId: k.AccessKeyId as string,
+                accessKeyId: k.AccessKeyId,
                 userName: user.UserName,
                 status: 'Active',
                 accountId: this.accountId,
-                createdAt: k.CreateDate as Date,
+                createdAt: k.CreateDate,
                 detectedAt: now,
                 tags: {},
               }),
@@ -65,7 +66,7 @@ export class AwsIamAccessKeyStaleScanner implements DeadResourceScannerPort {
 
       return Result.ok(results);
     } catch (err) {
-      return Result.fail(new AwsAdapterError('IAM', err as Error));
+      return Result.fail(new AwsAdapterError('IAM', err));
     } finally {
       client.destroy();
     }

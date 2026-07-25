@@ -27,7 +27,7 @@ async function findPublicVia(client: S3Client, bucketName: string): Promise<stri
     const { PublicAccessBlockConfiguration: cfg } = await client.send(new GetPublicAccessBlockCommand({ Bucket: bucketName }));
     fullyBlocked = !!(cfg?.BlockPublicAcls && cfg?.IgnorePublicAcls && cfg?.BlockPublicPolicy && cfg?.RestrictPublicBuckets);
   } catch (err) {
-    if ((err as Error).name !== 'NoSuchPublicAccessBlockConfiguration') throw err;
+    if (!(err instanceof Error) || err.name !== 'NoSuchPublicAccessBlockConfiguration') throw err;
   }
   // S3 Block Public Access, when fully enabled, overrides both ACLs and bucket policies account/bucket-wide.
   if (fullyBlocked) return [];
@@ -38,7 +38,7 @@ async function findPublicVia(client: S3Client, bucketName: string): Promise<stri
     const { PolicyStatus } = await client.send(new GetBucketPolicyStatusCommand({ Bucket: bucketName }));
     if (PolicyStatus?.IsPublic) reasons.push('bucket policy allows public access');
   } catch (err) {
-    if ((err as Error).name !== 'NoSuchBucketPolicy') throw err;
+    if (!(err instanceof Error) || err.name !== 'NoSuchBucketPolicy') throw err;
   }
 
   const { Grants } = await client.send(new GetBucketAclCommand({ Bucket: bucketName }));
@@ -76,7 +76,7 @@ export class AwsS3BucketPublicScanner implements ResourceSecurityScannerPort {
           return new S3BucketPublic({ bucketName, accountId: this.accountId, publicVia, detectedAt: now, tags: {} });
         } catch (err) {
           // A single unreadable bucket (e.g. a bucket policy denying this principal) shouldn't fail the whole scan.
-          logger.debug('s3-bucket-public: skipping bucket after error', { bucketName, error: (err as Error).message });
+          logger.debug('s3-bucket-public: skipping bucket after error', { bucketName, error: err instanceof Error ? err.message : String(err) });
           return undefined;
         }
       });
@@ -87,7 +87,7 @@ export class AwsS3BucketPublicScanner implements ResourceSecurityScannerPort {
 
       return Result.ok(results);
     } catch (err) {
-      return Result.fail(new AwsAdapterError('S3', err as Error));
+      return Result.fail(new AwsAdapterError('S3', err));
     } finally {
       client.destroy();
     }

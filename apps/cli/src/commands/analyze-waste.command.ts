@@ -26,6 +26,10 @@ const DEFAULT_UTILIZATION_WINDOW_HOURS = 168;
 const OUTPUT_FORMATS = ['table', 'json', 'markdown'] as const;
 type OutputFormat = (typeof OUTPUT_FORMATS)[number];
 
+function isOutputFormat(format: string): format is OutputFormat {
+  return (OUTPUT_FORMATS as readonly string[]).includes(format);
+}
+
 export interface AnalyzeWasteOptions {
   regions: string[];
   accountId?: string;
@@ -58,8 +62,8 @@ export async function analyzeWasteCommand(
   options: AnalyzeWasteOptions,
   deps: AnalyzeDeps = defaultAnalyzeDeps,
 ): Promise<void> {
-  const format = (options.format ?? 'table') as OutputFormat;
-  if (!OUTPUT_FORMATS.includes(format)) {
+  const format = options.format ?? 'table';
+  if (!isOutputFormat(format)) {
     return fail(
       `--format must be one of: ${OUTPUT_FORMATS.join(', ')}. Got "${options.format}".`,
     );

@@ -75,6 +75,12 @@ export function toWasteReportDto(
 ): WasteReportDto {
   const grouped = groupByKind(summary.findings);
 
+  // Cast, not narrowed: `Object.keys` always returns plain `string[]`, even
+  // when called on a value typed as `Record<ResourceKind, ...>` — TS
+  // deliberately doesn't trust that a structurally-typed object has exactly
+  // (and only) that key set at runtime. Here it does, because `grouped` was
+  // just built by `groupByKind` from the full `RESOURCE_KINDS` list, one
+  // entry per kind — same reasoning as the casts inside `groupByKind` itself.
   const breakdown = (Object.keys(grouped) as ResourceKind[])
     .filter((kind) => grouped[kind].length > 0)
     .map((kind) => ({

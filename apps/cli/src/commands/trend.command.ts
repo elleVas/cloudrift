@@ -14,6 +14,10 @@ import { defaultCostAnalyticsDeps, type CostAnalyticsDeps } from './cost-analyti
 
 const OUTPUT_FORMATS = ['table', 'json'] as const;
 type OutputFormat = (typeof OUTPUT_FORMATS)[number];
+
+function isOutputFormat(format: string): format is OutputFormat {
+  return (OUTPUT_FORMATS as readonly string[]).includes(format);
+}
 const DEFAULT_MONTHS = 6;
 const MAX_MONTHS = 36;
 
@@ -43,8 +47,8 @@ export async function trendCommand(
   options: TrendCommandOptions,
   deps: CostAnalyticsDeps = defaultCostAnalyticsDeps,
 ): Promise<void> {
-  const format = (options.format ?? 'table') as OutputFormat;
-  if (!OUTPUT_FORMATS.includes(format)) {
+  const format = options.format ?? 'table';
+  if (!isOutputFormat(format)) {
     return fail(`--format must be one of: ${OUTPUT_FORMATS.join(', ')}. Got "${options.format}".`);
   }
 

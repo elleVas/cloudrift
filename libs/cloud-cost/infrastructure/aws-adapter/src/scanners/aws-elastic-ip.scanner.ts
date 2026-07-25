@@ -69,7 +69,7 @@ export class AwsElasticIpScanner implements WasteScannerPort {
 
       return Result.ok(unassociated);
     } catch (err) {
-      return Result.fail(new AwsAdapterError('ElasticIP', err as Error));
+      return Result.fail(new AwsAdapterError('ElasticIP', err));
     } finally {
       client.destroy();
     }

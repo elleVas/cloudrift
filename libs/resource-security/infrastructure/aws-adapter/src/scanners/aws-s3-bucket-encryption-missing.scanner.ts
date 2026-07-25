@@ -38,8 +38,8 @@ export class AwsS3BucketEncryptionMissingScanner implements ResourceSecurityScan
           await client.send(new GetBucketEncryptionCommand({ Bucket: bucketName }));
           return undefined; // encryption configuration exists
         } catch (err) {
-          if ((err as Error).name !== NO_ENCRYPTION_ERROR_NAME) {
-            logger.debug('s3-bucket-encryption-missing: skipping bucket after error', { bucketName, error: (err as Error).message });
+          if (!(err instanceof Error) || err.name !== NO_ENCRYPTION_ERROR_NAME) {
+            logger.debug('s3-bucket-encryption-missing: skipping bucket after error', { bucketName, error: err instanceof Error ? err.message : String(err) });
             return undefined;
           }
           return new S3BucketEncryptionMissing({ bucketName, accountId: this.accountId, detectedAt: now, tags: {} });
@@ -52,7 +52,7 @@ export class AwsS3BucketEncryptionMissingScanner implements ResourceSecurityScan
 
       return Result.ok(results);
     } catch (err) {
-      return Result.fail(new AwsAdapterError('S3', err as Error));
+      return Result.fail(new AwsAdapterError('S3', err));
     } finally {
       client.destroy();
     }

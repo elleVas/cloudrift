@@ -55,7 +55,7 @@ export class AwsEc2DefaultSecurityGroupPermissiveScanner implements ResourceSecu
 
       return Result.ok(results);
     } catch (err) {
-      return Result.fail(new AwsAdapterError('EC2', err as Error));
+      return Result.fail(new AwsAdapterError('EC2', err));
     } finally {
       client.destroy();
     }

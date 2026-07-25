@@ -5,14 +5,21 @@ const logger = createLogger('cloudrift:scanner');
 
 /** Deliberate copy of `cloud-cost-infrastructure-aws-adapter`'s own `AwsAdapterError` (ADR-0078). */
 export class AwsAdapterError extends InfrastructureError {
+  override readonly cause: Error;
+
   constructor(
     readonly service: string,
-    override readonly cause: Error,
+    cause: unknown,
   ) {
-    super('AWS_ADAPTER_ERROR', `AWS ${service} adapter failed: ${cause.message}`);
-    const meta = cause as Error & { $metadata?: { attempts?: number }; code?: string };
+    const normalizedCause = cause instanceof Error ? cause : new Error(String(cause));
+    super('AWS_ADAPTER_ERROR', `AWS ${service} adapter failed: ${normalizedCause.message}`);
+    this.cause = normalizedCause;
+    // Cast, not narrowed: the AWS SDK attaches `$metadata`/`code` to thrown
+    // errors only at runtime — its public `Error` type doesn't declare them,
+    // so there's no structural information to check for.
+    const meta = normalizedCause as Error & { $metadata?: { attempts?: number }; code?: string };
     logger.debug(`${service} adapter error`, {
-      name: cause.name,
+      name: normalizedCause.name,
       code: meta.code,
       attempts: meta.$metadata?.attempts,
     });

@@ -106,7 +106,7 @@ export class AwsWorkspacesIdleScanner implements WasteScannerPort {
 
       return Result.ok(idle);
     } catch (err) {
-      return Result.fail(new AwsAdapterError('WorkSpaces', err as Error));
+      return Result.fail(new AwsAdapterError('WorkSpaces', err));
     } finally {
       workspaces.destroy();
     }

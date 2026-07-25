@@ -62,6 +62,12 @@ export class AwsLoadBalancerScanner implements WasteScannerPort {
             name: lb.LoadBalancerName,
             region,
             accountId: this.accountId,
+            // Cast, not narrowed: same shape as `aws-ebs-volume`'s `state`
+            // cast — the SDK's `LoadBalancerTypeEnum` union exactly matches
+            // `LoadBalancerType`'s member set, but the field is optional in
+            // the SDK type with no safe fallback value for "AWS omitted the
+            // type of a load balancer that unambiguously exists" — picking
+            // one needs a product decision (deferred: see cast-cleanup ADR).
             type: lb.Type as LoadBalancerType,
             createdTime: lb.CreatedTime ?? new Date(),
             detectedAt: now,
@@ -74,7 +80,7 @@ export class AwsLoadBalancerScanner implements WasteScannerPort {
 
       return Result.ok(entities.filter((lb) => this.policy.evaluate(lb, now).isWaste));
     } catch (err) {
-      return Result.fail(new AwsAdapterError('ELB', err as Error));
+      return Result.fail(new AwsAdapterError('ELB', err));
     } finally {
       client.destroy();
     }

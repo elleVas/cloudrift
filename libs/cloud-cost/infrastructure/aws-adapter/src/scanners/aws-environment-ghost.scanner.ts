@@ -162,7 +162,7 @@ export class AwsEnvironmentGhostScanner implements WasteScannerPort {
 
       return Result.ok(entities.filter((e) => this.policy.evaluate(e, now).isWaste));
     } catch (err) {
-      return Result.fail(new AwsAdapterError('ResourceGroupsTaggingAPI', err as Error));
+      return Result.fail(new AwsAdapterError('ResourceGroupsTaggingAPI', err));
     } finally {
       taggingClient.destroy();
       ec2Client.destroy();

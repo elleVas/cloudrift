@@ -98,7 +98,7 @@ export class AwsEksOrphanPvcScanner implements WasteScannerPort {
 
       return Result.ok(volumes);
     } catch (err) {
-      return Result.fail(new AwsAdapterError('EBS', err as Error));
+      return Result.fail(new AwsAdapterError('EBS', err));
     } finally {
       ec2.destroy();
       eks.destroy();

@@ -82,7 +82,7 @@ export class AwsIamInstanceProfileUnattachedScanner implements DeadResourceScann
           }
         } catch (err) {
           // A single unreachable/opted-out region shouldn't fail the whole account-wide check.
-          logger.debug(`iam-instance-profile-unattached: skipped region ${regionCode}`, { error: (err as Error).message });
+          logger.debug(`iam-instance-profile-unattached: skipped region ${regionCode}`, { error: err instanceof Error ? err.message : String(err) });
         } finally {
           client.destroy();
         }
@@ -111,7 +111,7 @@ export class AwsIamInstanceProfileUnattachedScanner implements DeadResourceScann
 
       return Result.ok(results);
     } catch (err) {
-      return Result.fail(new AwsAdapterError('IAM', err as Error));
+      return Result.fail(new AwsAdapterError('IAM', err));
     } finally {
       iamClient.destroy();
       regionDiscoveryClient.destroy();

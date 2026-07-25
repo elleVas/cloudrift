@@ -83,7 +83,7 @@ export class AwsLambdaLogGroupOrphanedScanner implements WasteScannerPort {
 
       return Result.ok(entities.filter((group) => this.policy.evaluate(group, now).isWaste));
     } catch (err) {
-      return Result.fail(new AwsAdapterError('CloudWatchLogs', err as Error));
+      return Result.fail(new AwsAdapterError('CloudWatchLogs', err));
     } finally {
       logsClient.destroy();
       lambdaClient.destroy();

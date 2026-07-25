@@ -65,6 +65,15 @@ export class AwsRdsInstanceScanner implements WasteScannerPort {
             accountId: this.accountId,
             dbInstanceClass: db.DBInstanceClass ?? 'unknown',
             engine: db.Engine ?? 'unknown',
+            // Cast, not narrowed: unlike EC2/EBS/ELB, RDS's `DBInstanceStatus`
+            // is typed by the SDK as a plain open-ended `string`, not a
+            // closed union — AWS documents RDS statuses as free-form rather
+            // than a fixed enum. A real type guard would need to (a) list
+            // every status RdsInstanceStatus actually covers and (b) decide
+            // what happens to a real but unmapped status (currently:
+            // silently mislabeled as whatever `?? 'stopped'` picks) — a
+            // product decision, not a mechanical fix (deferred: see
+            // cast-cleanup ADR).
             dbInstanceStatus: (db.DBInstanceStatus ?? 'stopped') as RdsInstanceStatus,
             allocatedStorageGb,
             storageType,
@@ -80,7 +89,7 @@ export class AwsRdsInstanceScanner implements WasteScannerPort {
 
       return Result.ok(instances);
     } catch (err) {
-      return Result.fail(new AwsAdapterError('RDS', err as Error));
+      return Result.fail(new AwsAdapterError('RDS', err));
     } finally {
       client.destroy();
     }
