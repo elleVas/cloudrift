@@ -84,7 +84,7 @@ export class AwsGp2UpgradeScanner implements WasteScannerPort {
 
       return Result.ok(volumes);
     } catch (err) {
-      return Result.fail(new AwsAdapterError('EBS', err as Error));
+      return Result.fail(new AwsAdapterError('EBS', err));
     } finally {
       client.destroy();
     }

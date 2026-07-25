@@ -24,18 +24,21 @@ export function resolveMinAgeDays(
   return Result.ok(minAgeDays);
 }
 
+function isResourceKind(kind: string): kind is ResourceKind {
+  return (RESOURCE_KINDS as readonly string[]).includes(kind);
+}
+
 /** --scanners: Result-based validation against the known RESOURCE_KINDS (no throw on bad input). */
 export function resolveExplicitScanners(scanners: string[]): Result<ResourceKind[], Error> {
-  const valid = new Set<string>(RESOURCE_KINDS);
-  const unknown = scanners.filter((kind) => !valid.has(kind));
-  if (unknown.length > 0) {
+  if (!scanners.every(isResourceKind)) {
+    const unknown = scanners.filter((kind) => !isResourceKind(kind));
     return Result.fail(
       new Error(
         `--scanners: unknown service(s) "${unknown.join(', ')}". Valid values: ${RESOURCE_KINDS.join(', ')}.`,
       ),
     );
   }
-  return Result.ok(scanners as ResourceKind[]);
+  return Result.ok(scanners);
 }
 
 /** Requested regions: Result-based parse (no throw on input), then exclusion from config. */

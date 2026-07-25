@@ -58,7 +58,7 @@ export class AwsSecretsManagerUnusedScanner implements WasteScannerPort {
 
       return Result.ok(secrets);
     } catch (err) {
-      return Result.fail(new AwsAdapterError('SecretsManager', err as Error));
+      return Result.fail(new AwsAdapterError('SecretsManager', err));
     } finally {
       client.destroy();
     }

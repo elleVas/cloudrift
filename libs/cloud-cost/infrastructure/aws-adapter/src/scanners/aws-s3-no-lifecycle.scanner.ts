@@ -90,7 +90,7 @@ export class AwsS3NoLifecycleScanner implements WasteScannerPort {
 
       return Result.ok(buckets);
     } catch (err) {
-      return Result.fail(new AwsAdapterError('S3', err as Error));
+      return Result.fail(new AwsAdapterError('S3', err));
     } finally {
       s3.destroy();
       cw.destroy();
@@ -102,7 +102,7 @@ export class AwsS3NoLifecycleScanner implements WasteScannerPort {
       await client.send(new GetBucketLifecycleConfigurationCommand({ Bucket: bucket }));
       return true;
     } catch (err) {
-      if ((err as Error).name === 'NoSuchLifecycleConfiguration') return false;
+      if (err instanceof Error && err.name === 'NoSuchLifecycleConfiguration') return false;
       throw err;
     }
   }

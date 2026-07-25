@@ -65,7 +65,7 @@ export class AwsEniOrphanedScanner implements WasteScannerPort {
 
       return Result.ok(enis);
     } catch (err) {
-      return Result.fail(new AwsAdapterError('EC2', err as Error));
+      return Result.fail(new AwsAdapterError('EC2', err));
     } finally {
       client.destroy();
     }

@@ -16,6 +16,10 @@ export type { DeadResourcesDeps };
 const OUTPUT_FORMATS = ['table', 'json'] as const;
 type OutputFormat = (typeof OUTPUT_FORMATS)[number];
 
+function isOutputFormat(format: string): format is OutputFormat {
+  return (OUTPUT_FORMATS as readonly string[]).includes(format);
+}
+
 export interface DeadResourcesCommandOptions {
   regions: string[];
   accountId?: string;
@@ -35,14 +39,17 @@ function fail(message: string): void {
   process.exitCode = 1;
 }
 
+function isDeadResourceKind(kind: string): kind is DeadResourceKind {
+  return (DEAD_RESOURCE_KINDS as readonly string[]).includes(kind);
+}
+
 /** `--scanners`: Result-free validation against the known DEAD_RESOURCE_KINDS (mirrors `resolveExplicitScanners` for `analyze`). */
 function resolveExplicitScannerKinds(scanners: string[]): DeadResourceKind[] | { error: string } {
-  const valid = new Set<string>(DEAD_RESOURCE_KINDS);
-  const unknown = scanners.filter((kind) => !valid.has(kind));
-  if (unknown.length > 0) {
+  if (!scanners.every(isDeadResourceKind)) {
+    const unknown = scanners.filter((kind) => !isDeadResourceKind(kind));
     return { error: `--scanners: unknown check(s) "${unknown.join(', ')}". Valid values: ${DEAD_RESOURCE_KINDS.join(', ')}.` };
   }
-  return scanners as DeadResourceKind[];
+  return scanners;
 }
 
 /**
@@ -55,8 +62,8 @@ export async function deadResourcesCommand(
   options: DeadResourcesCommandOptions,
   deps: DeadResourcesDeps = defaultDeadResourcesDeps,
 ): Promise<void> {
-  const format = (options.format ?? 'table') as OutputFormat;
-  if (!OUTPUT_FORMATS.includes(format)) {
+  const format = options.format ?? 'table';
+  if (!isOutputFormat(format)) {
     return fail(`--format must be one of: ${OUTPUT_FORMATS.join(', ')}. Got "${options.format}".`);
   }
 

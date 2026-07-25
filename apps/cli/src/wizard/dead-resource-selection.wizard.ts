@@ -12,6 +12,10 @@ import { DEAD_RESOURCE_KINDS, DEAD_RESOURCE_KIND_META, type DeadResourceKind } f
 export async function promptDeadResourceSelection(): Promise<DeadResourceKind[] | undefined> {
   const { cancel, intro, isCancel, multiselect } = await import('@clack/prompts');
   intro('Select the dead/unused resource checks to run (space to toggle, enter to confirm)');
+  // Cast, not narrowed: `Option<Value>` distributes over the `DeadResourceKind`
+  // union into one variant per literal — TS can't see that a per-entry
+  // literal built by `.map()` always matches its own variant (same reasoning
+  // as `scanner-selection.wizard.ts`).
   const options = DEAD_RESOURCE_KINDS.map((kind) => ({
     value: kind,
     label: DEAD_RESOURCE_KIND_META[kind].label,

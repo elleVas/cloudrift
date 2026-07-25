@@ -11,7 +11,6 @@ import { Result, createLogger } from 'shared-kernel';
 import type {
   AttachedVolume,
   AwsRegion,
-  Ec2InstanceState,
   PricingPort,
   WasteScannerPort,
   WastedResource,
@@ -92,7 +91,7 @@ export class AwsEc2InstanceScanner implements WasteScannerPort {
             region,
             accountId: this.accountId,
             instanceType: inst.InstanceType ?? 'unknown',
-            state: (inst.State?.Name ?? 'stopped') as Ec2InstanceState,
+            state: inst.State?.Name ?? 'stopped',
             launchTime: inst.LaunchTime ?? new Date(0),
             detectedAt: now,
             stoppedSince: parseStoppedSince(inst.StateTransitionReason),
@@ -107,7 +106,7 @@ export class AwsEc2InstanceScanner implements WasteScannerPort {
 
       return Result.ok(instances);
     } catch (err) {
-      return Result.fail(new AwsAdapterError('EC2', err as Error));
+      return Result.fail(new AwsAdapterError('EC2', err));
     } finally {
       client.destroy();
     }

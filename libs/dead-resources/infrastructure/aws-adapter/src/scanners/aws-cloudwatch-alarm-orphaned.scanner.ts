@@ -56,7 +56,7 @@ export class AwsCloudwatchAlarmOrphanedScanner implements DeadResourceScannerPor
 
       return Result.ok(results);
     } catch (err) {
-      return Result.fail(new AwsAdapterError('CloudWatch', err as Error));
+      return Result.fail(new AwsAdapterError('CloudWatch', err));
     } finally {
       client.destroy();
     }

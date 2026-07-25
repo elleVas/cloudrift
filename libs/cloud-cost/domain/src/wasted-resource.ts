@@ -183,6 +183,10 @@ export const RESOURCE_KIND_META: Record<ResourceKind, ResourceKindMeta> = {
   'codepipeline-pipeline-stale': { label: 'CodePipeline Pipelines (stale)', category: 'waste', estimated: false },
 };
 
+// Cast, not narrowed: `Object.fromEntries` always returns a plain
+// `{[k: string]: T}`, discarding the fact that the entries were built from
+// the exhaustive `RESOURCE_KINDS` list — same reasoning as `groupByKind`'s
+// casts in `group-by-kind.ts`.
 /** Human-readable labels, derived from RESOURCE_KIND_META (single source). */
 export const RESOURCE_KIND_LABELS: Record<ResourceKind, string> = Object.fromEntries(
   RESOURCE_KINDS.map((kind) => [kind, RESOURCE_KIND_META[kind].label]),

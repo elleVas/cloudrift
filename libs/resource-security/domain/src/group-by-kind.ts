@@ -41,6 +41,12 @@ export type SecurityFindingsByKind = {
 };
 
 export function groupByKind(findings: readonly SecurityFinding[]): SecurityFindingsByKind {
+  // Casts, not narrowed: same shape as `cloud-cost-domain`'s `groupByKind`
+  // (ADR-0078 deliberate copy) — `Object.fromEntries` discards the per-key
+  // literal types `SecurityFindingsByKind` encodes, and `finding.kind` only
+  // proves which union member it is, not that `grouped[finding.kind]` is
+  // that member's array type. Already isolated in this one function; moving
+  // either cast to a caller would just multiply it, not remove it.
   const grouped = Object.fromEntries(
     RESOURCE_SECURITY_KINDS.map((kind) => [kind, []]),
   ) as unknown as SecurityFindingsByKind;

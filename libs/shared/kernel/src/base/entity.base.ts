@@ -24,8 +24,8 @@ export abstract class Entity<TId> {
       return value;
     }
     Object.freeze(value);
-    for (const key of Object.keys(value as object)) {
-      this.deepFreeze((value as Record<string, unknown>)[key]);
+    for (const nested of Object.values(value)) {
+      this.deepFreeze(nested);
     }
     return value;
   }

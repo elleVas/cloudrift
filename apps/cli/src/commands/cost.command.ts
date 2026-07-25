@@ -15,6 +15,10 @@ import { applyCostTrendGate } from './post-analysis';
 const OUTPUT_FORMATS = ['table', 'json'] as const;
 type OutputFormat = (typeof OUTPUT_FORMATS)[number];
 
+function isOutputFormat(format: string): format is OutputFormat {
+  return (OUTPUT_FORMATS as readonly string[]).includes(format);
+}
+
 export interface CostCommandOptions {
   accountId?: string;
   config?: string;
@@ -39,8 +43,8 @@ export async function costCommand(
   options: CostCommandOptions,
   deps: CostAnalyticsDeps = defaultCostAnalyticsDeps,
 ): Promise<void> {
-  const format = (options.format ?? 'table') as OutputFormat;
-  if (!OUTPUT_FORMATS.includes(format)) {
+  const format = options.format ?? 'table';
+  if (!isOutputFormat(format)) {
     return fail(`--format must be one of: ${OUTPUT_FORMATS.join(', ')}. Got "${options.format}".`);
   }
 

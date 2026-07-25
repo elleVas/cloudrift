@@ -61,7 +61,7 @@ export class AwsSnsTopicUnsubscribedScanner implements DeadResourceScannerPort {
 
       return Result.ok(results);
     } catch (err) {
-      return Result.fail(new AwsAdapterError('SNS', err as Error));
+      return Result.fail(new AwsAdapterError('SNS', err));
     } finally {
       client.destroy();
     }

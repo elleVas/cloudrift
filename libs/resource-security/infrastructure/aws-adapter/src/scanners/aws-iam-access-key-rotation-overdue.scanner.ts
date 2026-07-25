@@ -59,7 +59,7 @@ export class AwsIamAccessKeyRotationOverdueScanner implements ResourceSecuritySc
 
       return Result.ok(results);
     } catch (err) {
-      return Result.fail(new AwsAdapterError('IAM', err as Error));
+      return Result.fail(new AwsAdapterError('IAM', err));
     } finally {
       client.destroy();
     }

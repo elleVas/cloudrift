@@ -16,6 +16,10 @@ export type { ResourceSecurityDeps };
 const OUTPUT_FORMATS = ['table', 'json'] as const;
 type OutputFormat = (typeof OUTPUT_FORMATS)[number];
 
+function isOutputFormat(format: string): format is OutputFormat {
+  return (OUTPUT_FORMATS as readonly string[]).includes(format);
+}
+
 export interface ResourceSecurityCommandOptions {
   regions: string[];
   accountId?: string;
@@ -34,14 +38,17 @@ function fail(message: string): void {
   process.exitCode = 1;
 }
 
+function isResourceSecurityKind(kind: string): kind is ResourceSecurityKind {
+  return (RESOURCE_SECURITY_KINDS as readonly string[]).includes(kind);
+}
+
 /** `--scanners`: Result-free validation against the known RESOURCE_SECURITY_KINDS. */
 function resolveExplicitScannerKinds(scanners: string[]): ResourceSecurityKind[] | { error: string } {
-  const valid = new Set<string>(RESOURCE_SECURITY_KINDS);
-  const unknown = scanners.filter((kind) => !valid.has(kind));
-  if (unknown.length > 0) {
+  if (!scanners.every(isResourceSecurityKind)) {
+    const unknown = scanners.filter((kind) => !isResourceSecurityKind(kind));
     return { error: `--scanners: unknown check(s) "${unknown.join(', ')}". Valid values: ${RESOURCE_SECURITY_KINDS.join(', ')}.` };
   }
-  return scanners as ResourceSecurityKind[];
+  return scanners;
 }
 
 /**
@@ -55,8 +62,8 @@ export async function resourceSecurityCommand(
   options: ResourceSecurityCommandOptions,
   deps: ResourceSecurityDeps = defaultResourceSecurityDeps,
 ): Promise<void> {
-  const format = (options.format ?? 'table') as OutputFormat;
-  if (!OUTPUT_FORMATS.includes(format)) {
+  const format = options.format ?? 'table';
+  if (!isOutputFormat(format)) {
     return fail(`--format must be one of: ${OUTPUT_FORMATS.join(', ')}. Got "${options.format}".`);
   }
 

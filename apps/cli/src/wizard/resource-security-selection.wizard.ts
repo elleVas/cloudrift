@@ -12,6 +12,10 @@ import { RESOURCE_SECURITY_KINDS, RESOURCE_SECURITY_KIND_META, type ResourceSecu
 export async function promptResourceSecuritySelection(): Promise<ResourceSecurityKind[] | undefined> {
   const { cancel, intro, isCancel, multiselect } = await import('@clack/prompts');
   intro('Select the security-posture checks to run (space to toggle, enter to confirm)');
+  // Cast, not narrowed: `Option<Value>` distributes over the
+  // `ResourceSecurityKind` union into one variant per literal — TS can't see
+  // that a per-entry literal built by `.map()` always matches its own variant
+  // (same reasoning as `scanner-selection.wizard.ts`).
   const options = RESOURCE_SECURITY_KINDS.map((kind) => ({
     value: kind,
     label: RESOURCE_SECURITY_KIND_META[kind].label,

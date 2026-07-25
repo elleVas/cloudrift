@@ -101,6 +101,15 @@ export type FindingsByKind = {
 };
 
 export function groupByKind(findings: readonly WastedResource[]): FindingsByKind {
+  // Casts, not narrowed: `Object.fromEntries` always returns a plain
+  // `{[k: string]: T}`, discarding the per-key literal types `FindingsByKind`
+  // encodes (one concrete entity array per `ResourceKind`) — TS has no way to
+  // recover that from a runtime `.map()` over `RESOURCE_KINDS`. Same for the
+  // per-finding push below: `finding.kind` only proves *which* union member
+  // it is, not that `grouped[finding.kind]` is that member's specific array
+  // type. Both encode the same invariant ("kind discriminates the concrete
+  // type"), already isolated in this one function — moving either cast to a
+  // caller would just multiply it across every consumer instead of removing it.
   const grouped = Object.fromEntries(
     RESOURCE_KINDS.map((kind) => [kind, []]),
   ) as unknown as FindingsByKind;

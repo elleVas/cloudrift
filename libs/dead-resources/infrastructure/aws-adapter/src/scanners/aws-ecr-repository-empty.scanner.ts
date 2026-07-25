@@ -57,7 +57,7 @@ export class AwsEcrRepositoryEmptyScanner implements DeadResourceScannerPort {
             tags: {},
           });
         } catch (err) {
-          logger.debug(`ecr-repository-empty: skipped ${repo.repositoryName}, could not describe images`, { error: (err as Error).message });
+          logger.debug(`ecr-repository-empty: skipped ${repo.repositoryName}, could not describe images`, { error: err instanceof Error ? err.message : String(err) });
           return undefined;
         }
       });
@@ -68,7 +68,7 @@ export class AwsEcrRepositoryEmptyScanner implements DeadResourceScannerPort {
 
       return Result.ok(results);
     } catch (err) {
-      return Result.fail(new AwsAdapterError('ECR', err as Error));
+      return Result.fail(new AwsAdapterError('ECR', err));
     } finally {
       client.destroy();
     }

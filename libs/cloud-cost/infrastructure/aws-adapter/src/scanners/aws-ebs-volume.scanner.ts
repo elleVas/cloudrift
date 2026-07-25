@@ -64,6 +64,14 @@ export class AwsEbsVolumeScanner implements WasteScannerPort {
             accountId: this.accountId,
             sizeGb: v.Size,
             volumeType,
+            // Cast, not narrowed: the SDK's `VolumeState` union is exactly
+            // `EbsVolumeState`'s member set, but the field is optional in the
+            // SDK type (defensive codegen — AWS always returns it for a real
+            // volume). There's no fallback here unlike `aws-ec2-instance`'s
+            // `?? 'stopped'`/`aws-rds-instance`'s `?? 'stopped'`, because no
+            // `EbsVolumeState` value is a safe stand-in for "AWS omitted the
+            // state of a volume that unambiguously exists" — picking one
+            // needs a product decision (deferred: see cast-cleanup ADR).
             state: v.State as EbsVolumeState,
             createTime: v.CreateTime ?? new Date(),
             detectedAt: now,
@@ -77,7 +85,7 @@ export class AwsEbsVolumeScanner implements WasteScannerPort {
 
       return Result.ok(volumes);
     } catch (err) {
-      return Result.fail(new AwsAdapterError('EBS', err as Error));
+      return Result.fail(new AwsAdapterError('EBS', err));
     } finally {
       client.destroy();
     }

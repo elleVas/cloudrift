@@ -68,7 +68,7 @@ export class CachedCostExplorerAdapter implements CostExplorerPort {
   private async readCache(path: string): Promise<CostPeriodBucket[] | undefined> {
     try {
       const raw = await readFile(path, 'utf8');
-      return JSON.parse(raw) as CostPeriodBucket[];
+      return JSON.parse(raw);
     } catch {
       return undefined;
     }

@@ -83,7 +83,7 @@ export class AwsEcrImageUntaggedScanner implements WasteScannerPort {
 
       return Result.ok(untagged);
     } catch (err) {
-      return Result.fail(new AwsAdapterError('ECR', err as Error));
+      return Result.fail(new AwsAdapterError('ECR', err));
     } finally {
       client.destroy();
     }

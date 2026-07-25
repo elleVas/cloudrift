@@ -26,10 +26,10 @@ import type { PixelArtCell } from './pixel-art-cell';
  * actually is show through instead.
  */
 function renderCell({ top, bottom }: PixelArtCell): string {
-  if (top === null && bottom === null) return ' ';
-  if (top === null) return chalk.hex(bottom as string)('▄');
-  if (bottom === null) return chalk.hex(top)('▀');
-  return chalk.hex(top).bgHex(bottom)('▀');
+  if (top !== null && bottom !== null) return chalk.hex(top).bgHex(bottom)('▀');
+  if (top !== null) return chalk.hex(top)('▀');
+  if (bottom !== null) return chalk.hex(bottom)('▄');
+  return ' ';
 }
 
 // Pulled from the logo's own wave palette instead of an unrelated bright
@@ -72,7 +72,7 @@ export function renderBrandMark(): string {
 
   const mid = Math.floor(iconRows.length / 2) - 1;
   const blankText = ' '.repeat(TEXT_WIDTH);
-  const textByRow = new Array(iconRows.length).fill(blankText) as string[];
+  const textByRow = new Array<string>(iconRows.length).fill(blankText);
   textByRow[mid] = textCell(tracked('cloudrift'), (s) => chalk.bold.hex(TITLE_ACCENT)(s));
   textByRow[mid + 1] = textCell('─'.repeat(9), (s) => chalk.hex(TITLE_ACCENT)(s));
   textByRow[mid + 2] = textCell('AWS waste & cost intelligence', (s) => chalk.hex(SUBTITLE)(s));

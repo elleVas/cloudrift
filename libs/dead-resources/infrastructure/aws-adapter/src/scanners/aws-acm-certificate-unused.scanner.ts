@@ -55,7 +55,7 @@ export class AwsAcmCertificateUnusedScanner implements DeadResourceScannerPort {
 
       return Result.ok(results);
     } catch (err) {
-      return Result.fail(new AwsAdapterError('ACM', err as Error));
+      return Result.fail(new AwsAdapterError('ACM', err));
     } finally {
       client.destroy();
     }

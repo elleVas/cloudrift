@@ -61,7 +61,7 @@ export class AwsStepfunctionsStatemachineUnusedScanner implements DeadResourceSc
 
       return Result.ok(results);
     } catch (err) {
-      return Result.fail(new AwsAdapterError('SFN', err as Error));
+      return Result.fail(new AwsAdapterError('SFN', err));
     } finally {
       client.destroy();
     }

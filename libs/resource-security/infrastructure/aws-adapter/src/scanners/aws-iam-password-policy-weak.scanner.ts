@@ -42,13 +42,13 @@ export class AwsIamPasswordPolicyWeakScanner implements ResourceSecurityScannerP
           tags: {},
         });
       } catch (err) {
-        if ((err as Error).name !== NO_POLICY_ERROR_NAME) throw err;
+        if (!(err instanceof Error) || err.name !== NO_POLICY_ERROR_NAME) throw err;
         finding = new IamPasswordPolicyWeak({ accountId: this.accountId, exists: false, detectedAt: now, tags: {} });
       }
 
       return Result.ok(this.policy.evaluate(finding, now).flagged ? [finding] : []);
     } catch (err) {
-      return Result.fail(new AwsAdapterError('IAM', err as Error));
+      return Result.fail(new AwsAdapterError('IAM', err));
     } finally {
       client.destroy();
     }
