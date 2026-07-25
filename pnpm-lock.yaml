@@ -300,6 +300,9 @@ importers:
       cloud-cost-domain:
         specifier: workspace:*
         version: link:../../domain
+      shared-aws-infra-utils:
+        specifier: workspace:*
+        version: link:../../../shared/aws-infra-utils
       shared-kernel:
         specifier: workspace:*
         version: link:../../../shared/kernel
@@ -333,6 +336,9 @@ importers:
       cost-analytics-domain:
         specifier: workspace:*
         version: link:../../domain
+      shared-aws-infra-utils:
+        specifier: workspace:*
+        version: link:../../../shared/aws-infra-utils
       shared-kernel:
         specifier: workspace:*
         version: link:../../../shared/kernel
@@ -369,6 +375,9 @@ importers:
       dead-resources-domain:
         specifier: workspace:*
         version: link:../../domain
+      shared-aws-infra-utils:
+        specifier: workspace:*
+        version: link:../../../shared/aws-infra-utils
       shared-kernel:
         specifier: workspace:*
         version: link:../../../shared/kernel
@@ -426,9 +435,24 @@ importers:
       resource-security-domain:
         specifier: workspace:*
         version: link:../../domain
+      shared-aws-infra-utils:
+        specifier: workspace:*
+        version: link:../../../shared/aws-infra-utils
       shared-kernel:
         specifier: workspace:*
         version: link:../../../shared/kernel
+      tslib:
+        specifier: ^2.8.1
+        version: 2.8.1
+
+  libs/shared/aws-infra-utils:
+    dependencies:
+      '@smithy/node-http-handler':
+        specifier: ^4.9.9
+        version: 4.9.9
+      shared-kernel:
+        specifier: workspace:*
+        version: link:../kernel
       tslib:
         specifier: ^2.8.1
         version: 2.8.1

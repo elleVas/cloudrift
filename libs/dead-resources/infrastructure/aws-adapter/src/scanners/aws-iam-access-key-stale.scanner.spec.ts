@@ -2,7 +2,7 @@
 import { IAMClient, ListUsersCommand } from '@aws-sdk/client-iam';
 import { AwsIamAccessKeyStaleScanner } from './aws-iam-access-key-stale.scanner';
 import { AwsRegion } from 'dead-resources-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AwsAdapterError } from 'shared-aws-infra-utils';
 
 jest.mock('@aws-sdk/client-iam');
 

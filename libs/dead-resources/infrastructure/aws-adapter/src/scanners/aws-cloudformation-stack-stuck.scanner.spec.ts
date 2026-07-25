@@ -2,7 +2,7 @@
 import { CloudFormationClient, DescribeStacksCommand } from '@aws-sdk/client-cloudformation';
 import { AwsCloudformationStackStuckScanner } from './aws-cloudformation-stack-stuck.scanner';
 import { AwsRegion } from 'dead-resources-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AwsAdapterError } from 'shared-aws-infra-utils';
 
 jest.mock('@aws-sdk/client-cloudformation');
 

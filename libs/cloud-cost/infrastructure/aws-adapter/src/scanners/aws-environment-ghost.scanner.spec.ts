@@ -7,7 +7,7 @@ import { ElasticLoadBalancingV2Client } from '@aws-sdk/client-elastic-load-balan
 import { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
 import { AwsEnvironmentGhostScanner } from './aws-environment-ghost.scanner';
 import { AwsRegion, EnvironmentGhostPolicy } from 'cloud-cost-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AwsAdapterError } from 'shared-aws-infra-utils';
 
 jest.mock('@aws-sdk/client-resource-groups-tagging-api');
 jest.mock('@aws-sdk/client-ec2');

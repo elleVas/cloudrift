@@ -56,7 +56,7 @@ export { AwsS3MultipartUploadAbandonedScanner } from './scanners/aws-s3-multipar
 export { AwsRdsManualSnapshotOldScanner } from './scanners/aws-rds-manual-snapshot-old.scanner';
 export { AwsSecretsManagerUnusedScanner } from './scanners/aws-secretsmanager-unused.scanner';
 export { AwsCodepipelinePipelineStaleScanner } from './scanners/aws-codepipeline-pipeline-stale.scanner';
-export { AwsAdapterError } from './errors/aws-adapter.error';
+export { AwsAdapterError } from 'shared-aws-infra-utils';
 export {
   StaticPriceTableAdapter,
   BUILTIN_PRICE_TABLE,

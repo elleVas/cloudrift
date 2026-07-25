@@ -9,9 +9,7 @@ import {
 import type { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
 import type { AwsRegion } from 'cloud-cost-domain';
 import { SqsDlqAbandoned, SqsDlqAbandonedWastePolicy, type WastePolicy } from 'cloud-cost-domain';
-import { paginate } from '../utils/paginate';
-import { mapWithConcurrency } from '../utils/map-with-concurrency';
-import { createAwsClientConfig } from '../utils/client-config';
+import { paginate, mapWithConcurrency, createAwsClientConfig } from 'shared-aws-infra-utils';
 import { maxMetric, type MetricWindow } from '../utils/cloudwatch-metrics';
 import { CloudWatchIdleScanner } from './cloudwatch-idle.scanner';
 

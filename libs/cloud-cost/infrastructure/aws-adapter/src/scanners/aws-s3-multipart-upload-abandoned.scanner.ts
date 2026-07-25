@@ -11,10 +11,7 @@ import {
 import { Result, createLogger } from 'shared-kernel';
 import type { AwsRegion, PricingPort, WasteScannerPort, WastedResource } from 'cloud-cost-domain';
 import { S3MultipartUploadAbandoned, S3MultipartUploadAbandonedPolicy } from 'cloud-cost-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
-import { paginate } from '../utils/paginate';
-import { mapWithConcurrency } from '../utils/map-with-concurrency';
-import { createAwsClientConfig } from '../utils/client-config';
+import { AwsAdapterError, paginate, mapWithConcurrency, createAwsClientConfig } from 'shared-aws-infra-utils';
 
 const logger = createLogger('cloudrift:scanner');
 const BUCKET_CONCURRENCY = 5;

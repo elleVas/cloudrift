@@ -2,7 +2,7 @@
 import { EC2Client } from '@aws-sdk/client-ec2';
 import { AwsEc2DefaultSecurityGroupPermissiveScanner } from './aws-ec2-default-security-group-permissive.scanner';
 import { AwsRegion } from 'resource-security-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AwsAdapterError } from 'shared-aws-infra-utils';
 
 jest.mock('@aws-sdk/client-ec2');
 

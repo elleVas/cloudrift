@@ -4,8 +4,7 @@ import type { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
 import { createLogger } from 'shared-kernel';
 import type { AwsRegion, PricingPort, WastePolicy } from 'cloud-cost-domain';
 import { AuroraServerlessOverprovisioned, AuroraServerlessOverprovisionedPolicy } from 'cloud-cost-domain';
-import { createAwsClientConfig } from '../utils/client-config';
-import { paginate } from '../utils/paginate';
+import { createAwsClientConfig, paginate } from 'shared-aws-infra-utils';
 import { getMetricDatapoint, type MetricWindow } from '../utils/cloudwatch-metrics';
 import { CloudWatchIdleScanner } from './cloudwatch-idle.scanner';
 

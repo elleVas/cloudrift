@@ -3,9 +3,7 @@ import { CloudFormationClient, DescribeStacksCommand, type Stack } from '@aws-sd
 import { Result } from 'shared-kernel';
 import type { AwsRegion, DeadResourceScannerPort, DeadResource } from 'dead-resources-domain';
 import { CloudformationStackStuck, CloudformationStackStuckPolicy } from 'dead-resources-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
-import { paginate } from '../utils/paginate';
-import { createAwsClientConfig } from '../utils/client-config';
+import { AwsAdapterError, paginate, createAwsClientConfig } from 'shared-aws-infra-utils';
 
 /** Permanent failure states a stack can't recover from without manual intervention. */
 const STUCK_STATUSES = new Set(['CREATE_FAILED', 'ROLLBACK_FAILED', 'DELETE_FAILED', 'UPDATE_ROLLBACK_FAILED']);

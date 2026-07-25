@@ -3,9 +3,7 @@ import { EC2Client, DescribeVolumesCommand, type Volume } from '@aws-sdk/client-
 import { Result } from 'shared-kernel';
 import type { AwsRegion, ResourceSecurityScannerPort, SecurityFinding } from 'resource-security-domain';
 import { Ec2VolumeUnencrypted, Ec2VolumeUnencryptedPolicy } from 'resource-security-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
-import { paginate } from '../utils/paginate';
-import { createAwsClientConfig } from '../utils/client-config';
+import { AwsAdapterError, paginate, createAwsClientConfig } from 'shared-aws-infra-utils';
 
 type VolumeWithId = Volume & { VolumeId: string };
 

@@ -3,7 +3,7 @@ import { EC2Client, DescribeVpnConnectionsCommand } from '@aws-sdk/client-ec2';
 import { CloudWatchClient, GetMetricStatisticsCommand } from '@aws-sdk/client-cloudwatch';
 import { AwsVpnConnectionIdleScanner } from './aws-vpn-connection-idle.scanner';
 import { AwsRegion } from 'cloud-cost-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AwsAdapterError } from 'shared-aws-infra-utils';
 import { mockPricing } from '../testing/mock-pricing';
 
 jest.mock('@aws-sdk/client-ec2');

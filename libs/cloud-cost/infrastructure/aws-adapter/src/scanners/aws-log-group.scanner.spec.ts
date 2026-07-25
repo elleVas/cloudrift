@@ -2,7 +2,7 @@
 import { CloudWatchLogsClient } from '@aws-sdk/client-cloudwatch-logs';
 import { AwsLogGroupScanner } from './aws-log-group.scanner';
 import { AwsRegion } from 'cloud-cost-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AwsAdapterError } from 'shared-aws-infra-utils';
 import { mockPricing } from '../testing/mock-pricing';
 
 jest.mock('@aws-sdk/client-cloudwatch-logs');

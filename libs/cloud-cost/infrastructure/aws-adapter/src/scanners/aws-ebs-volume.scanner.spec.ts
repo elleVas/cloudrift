@@ -2,7 +2,7 @@
 import { EC2Client, DescribeVolumesCommand } from '@aws-sdk/client-ec2';
 import { AwsEbsVolumeScanner } from './aws-ebs-volume.scanner';
 import { AwsRegion, type PricingPort } from 'cloud-cost-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AwsAdapterError } from 'shared-aws-infra-utils';
 import { mockPricing } from '../testing/mock-pricing';
 
 jest.mock('@aws-sdk/client-ec2');

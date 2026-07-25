@@ -2,7 +2,7 @@
 import { CloudWatchClient, DescribeAlarmsCommand } from '@aws-sdk/client-cloudwatch';
 import { AwsCloudwatchAlarmOrphanedScanner } from './aws-cloudwatch-alarm-orphaned.scanner';
 import { AwsRegion } from 'dead-resources-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AwsAdapterError } from 'shared-aws-infra-utils';
 
 jest.mock('@aws-sdk/client-cloudwatch');
 

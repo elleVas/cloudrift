@@ -9,10 +9,7 @@ import { LambdaClient, ListFunctionsCommand, type FunctionConfiguration } from '
 import { Result, createLogger } from 'shared-kernel';
 import type { AwsRegion, PricingPort, WasteScannerPort, WastedResource } from 'cloud-cost-domain';
 import { LambdaLogGroupOrphaned, LambdaLogGroupOrphanedPolicy } from 'cloud-cost-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
-import { paginate } from '../utils/paginate';
-import { mapWithConcurrency } from '../utils/map-with-concurrency';
-import { createAwsClientConfig } from '../utils/client-config';
+import { AwsAdapterError, paginate, mapWithConcurrency, createAwsClientConfig } from 'shared-aws-infra-utils';
 
 const LOG_GROUP_PREFIX = '/aws/lambda/';
 // Only orphan candidates pay for a DescribeLogStreams call — the (usually

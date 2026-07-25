@@ -3,7 +3,7 @@ import { ElastiCacheClient } from '@aws-sdk/client-elasticache';
 import { CloudWatchClient, GetMetricStatisticsCommand } from '@aws-sdk/client-cloudwatch';
 import { AwsElastiCacheIdleScanner } from './aws-elasticache-idle.scanner';
 import { AwsRegion } from 'cloud-cost-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AwsAdapterError } from 'shared-aws-infra-utils';
 
 jest.mock('@aws-sdk/client-elasticache');
 jest.mock('@aws-sdk/client-cloudwatch');

@@ -4,9 +4,7 @@ import type { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
 import { createLogger } from 'shared-kernel';
 import type { AwsRegion } from 'cloud-cost-domain';
 import { MqBroker, MqIdleBrokerPolicy, type WastePolicy } from 'cloud-cost-domain';
-import { paginate } from '../utils/paginate';
-import { mapWithConcurrency } from '../utils/map-with-concurrency';
-import { createAwsClientConfig } from '../utils/client-config';
+import { paginate, mapWithConcurrency, createAwsClientConfig } from 'shared-aws-infra-utils';
 import { sumMetric, type MetricWindow } from '../utils/cloudwatch-metrics';
 import { CloudWatchIdleScanner } from './cloudwatch-idle.scanner';
 

@@ -14,6 +14,8 @@ module.exports = {
   moduleNameMapper: {
     '^shared-kernel$': '<rootDir>/../../../shared/kernel/src/index.ts',
     '^shared-kernel/(.*)$': '<rootDir>/../../../shared/kernel/src/$1',
+    '^shared-aws-infra-utils$': '<rootDir>/../../../shared/aws-infra-utils/src/index.ts',
+    '^shared-aws-infra-utils/(.*)$': '<rootDir>/../../../shared/aws-infra-utils/src/$1',
     '^cloud-cost-domain$': '<rootDir>/../../../cloud-cost/domain/src/index.ts',
     '^cloud-cost-domain/(.*)$': '<rootDir>/../../../cloud-cost/domain/src/$1',
     '^resource-security-domain$': '<rootDir>/../../domain/src/index.ts',

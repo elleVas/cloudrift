@@ -2,7 +2,7 @@
 import { RDSClient, DescribeDBInstancesCommand } from '@aws-sdk/client-rds';
 import { AwsRdsInstanceUnencryptedScanner } from './aws-rds-instance-unencrypted.scanner';
 import { AwsRegion } from 'resource-security-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AwsAdapterError } from 'shared-aws-infra-utils';
 
 jest.mock('@aws-sdk/client-rds');
 

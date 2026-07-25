@@ -3,10 +3,7 @@ import { IAMClient, ListUsersCommand, ListMFADevicesCommand, type User } from '@
 import { Result } from 'shared-kernel';
 import type { AwsRegion, ResourceSecurityScannerPort, SecurityFinding } from 'resource-security-domain';
 import { IamUserMfaDisabled, IamUserMfaDisabledPolicy } from 'resource-security-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
-import { paginate } from '../utils/paginate';
-import { mapWithConcurrency } from '../utils/map-with-concurrency';
-import { createAwsClientConfig } from '../utils/client-config';
+import { AwsAdapterError, paginate, mapWithConcurrency, createAwsClientConfig } from 'shared-aws-infra-utils';
 
 const IAM_ENDPOINT_REGION = 'us-east-1';
 /** Per-user `ListMFADevicesCommand` calls in flight at once. */

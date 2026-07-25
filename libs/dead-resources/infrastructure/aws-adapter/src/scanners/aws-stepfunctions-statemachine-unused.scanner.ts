@@ -3,10 +3,7 @@ import { SFNClient, ListStateMachinesCommand, ListExecutionsCommand, type StateM
 import { Result } from 'shared-kernel';
 import type { AwsRegion, DeadResourceScannerPort, DeadResource } from 'dead-resources-domain';
 import { StepfunctionsStatemachineUnused, StepfunctionsStatemachineUnusedPolicy } from 'dead-resources-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
-import { paginate } from '../utils/paginate';
-import { mapWithConcurrency } from '../utils/map-with-concurrency';
-import { createAwsClientConfig } from '../utils/client-config';
+import { AwsAdapterError, paginate, mapWithConcurrency, createAwsClientConfig } from 'shared-aws-infra-utils';
 
 /** Bounds the per-state-machine ListExecutions fan-out, same reasoning/value as `iam-user-inactive`'s fan-out. */
 const EXECUTION_LOOKUP_CONCURRENCY = 5;

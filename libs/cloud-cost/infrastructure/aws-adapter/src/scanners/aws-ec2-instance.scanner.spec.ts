@@ -6,7 +6,7 @@ import {
 } from '@aws-sdk/client-ec2';
 import { AwsEc2InstanceScanner } from './aws-ec2-instance.scanner';
 import { AwsRegion, type Ec2Instance } from 'cloud-cost-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AwsAdapterError } from 'shared-aws-infra-utils';
 import { mockPricing } from '../testing/mock-pricing';
 
 jest.mock('@aws-sdk/client-ec2');

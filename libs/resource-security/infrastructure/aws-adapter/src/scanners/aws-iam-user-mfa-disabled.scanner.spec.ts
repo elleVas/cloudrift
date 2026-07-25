@@ -2,7 +2,7 @@
 import { IAMClient, ListUsersCommand, ListMFADevicesCommand } from '@aws-sdk/client-iam';
 import { AwsIamUserMfaDisabledScanner } from './aws-iam-user-mfa-disabled.scanner';
 import { AwsRegion } from 'resource-security-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AwsAdapterError } from 'shared-aws-infra-utils';
 
 jest.mock('@aws-sdk/client-iam');
 

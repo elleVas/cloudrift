@@ -3,7 +3,7 @@ import { OpenSearchClient } from '@aws-sdk/client-opensearch';
 import { CloudWatchClient, GetMetricStatisticsCommand } from '@aws-sdk/client-cloudwatch';
 import { AwsOpenSearchIdleScanner } from './aws-opensearch-idle.scanner';
 import { AwsRegion } from 'cloud-cost-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AwsAdapterError } from 'shared-aws-infra-utils';
 
 jest.mock('@aws-sdk/client-opensearch');
 jest.mock('@aws-sdk/client-cloudwatch');

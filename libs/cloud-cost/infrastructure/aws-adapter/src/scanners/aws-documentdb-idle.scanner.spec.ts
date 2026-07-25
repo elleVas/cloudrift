@@ -3,7 +3,7 @@ import { DocDBClient, DescribeDBInstancesCommand } from '@aws-sdk/client-docdb';
 import { CloudWatchClient, GetMetricStatisticsCommand } from '@aws-sdk/client-cloudwatch';
 import { AwsDocumentDbIdleScanner } from './aws-documentdb-idle.scanner';
 import { AwsRegion } from 'cloud-cost-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AwsAdapterError } from 'shared-aws-infra-utils';
 
 jest.mock('@aws-sdk/client-docdb');
 jest.mock('@aws-sdk/client-cloudwatch');

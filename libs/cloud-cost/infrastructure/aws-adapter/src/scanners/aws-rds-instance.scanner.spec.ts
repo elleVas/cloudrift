@@ -2,7 +2,7 @@
 import { RDSClient, DescribeDBInstancesCommand } from '@aws-sdk/client-rds';
 import { AwsRdsInstanceScanner } from './aws-rds-instance.scanner';
 import { AwsRegion } from 'cloud-cost-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AwsAdapterError } from 'shared-aws-infra-utils';
 import { mockPricing } from '../testing/mock-pricing';
 
 jest.mock('@aws-sdk/client-rds');

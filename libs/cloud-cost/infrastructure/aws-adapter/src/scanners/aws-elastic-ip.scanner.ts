@@ -12,8 +12,7 @@ import type {
   WastedResource,
 } from 'cloud-cost-domain';
 import { ElasticIp, ElasticIpWastePolicy } from 'cloud-cost-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
-import { createAwsClientConfig } from '../utils/client-config';
+import { AwsAdapterError, createAwsClientConfig } from 'shared-aws-infra-utils';
 
 const logger = createLogger('cloudrift:scanner');
 

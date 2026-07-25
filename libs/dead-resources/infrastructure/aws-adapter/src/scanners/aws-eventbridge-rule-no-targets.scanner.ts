@@ -3,10 +3,7 @@ import { EventBridgeClient, ListRulesCommand, ListTargetsByRuleCommand, type Rul
 import { Result } from 'shared-kernel';
 import type { AwsRegion, DeadResourceScannerPort, DeadResource } from 'dead-resources-domain';
 import { EventbridgeRuleNoTargets, EventbridgeRuleNoTargetsPolicy } from 'dead-resources-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
-import { paginate } from '../utils/paginate';
-import { mapWithConcurrency } from '../utils/map-with-concurrency';
-import { createAwsClientConfig } from '../utils/client-config';
+import { AwsAdapterError, paginate, mapWithConcurrency, createAwsClientConfig } from 'shared-aws-infra-utils';
 
 /** Bounds the per-rule ListTargetsByRule fan-out, same reasoning/value as `iam-user-inactive`'s fan-out. */
 const TARGET_LOOKUP_CONCURRENCY = 5;

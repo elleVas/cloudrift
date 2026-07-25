@@ -14,6 +14,8 @@ module.exports = {
   moduleNameMapper: {
     '^shared-kernel$': '<rootDir>/../../../shared/kernel/src/index.ts',
     '^shared-kernel/(.*)$': '<rootDir>/../../../shared/kernel/src/$1',
+    '^shared-aws-infra-utils$': '<rootDir>/../../../shared/aws-infra-utils/src/index.ts',
+    '^shared-aws-infra-utils/(.*)$': '<rootDir>/../../../shared/aws-infra-utils/src/$1',
     // dead-resources-domain re-exports AwsRegion from cloud-cost-domain, so
     // that source also needs to resolve here.
     '^cloud-cost-domain$': '<rootDir>/../../../cloud-cost/domain/src/index.ts',

@@ -3,9 +3,7 @@ import { S3Client, ListBucketsCommand, GetBucketEncryptionCommand } from '@aws-s
 import { Result, createLogger } from 'shared-kernel';
 import type { AwsRegion, ResourceSecurityScannerPort, SecurityFinding } from 'resource-security-domain';
 import { S3BucketEncryptionMissing, S3BucketEncryptionMissingPolicy } from 'resource-security-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
-import { mapWithConcurrency } from '../utils/map-with-concurrency';
-import { createAwsClientConfig } from '../utils/client-config';
+import { AwsAdapterError, mapWithConcurrency, createAwsClientConfig } from 'shared-aws-infra-utils';
 
 const logger = createLogger('cloudrift:scanner');
 /** Per-bucket `GetBucketEncryption` calls in flight at once. */

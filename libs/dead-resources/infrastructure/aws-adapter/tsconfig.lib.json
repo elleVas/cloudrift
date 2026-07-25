@@ -16,6 +16,9 @@
     },
     {
       "path": "../../../shared/kernel/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../shared/aws-infra-utils/tsconfig.lib.json"
     }
   ]
 }

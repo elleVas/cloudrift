@@ -2,7 +2,7 @@
 import { IAMClient, GetAccountSummaryCommand } from '@aws-sdk/client-iam';
 import { AwsIamRootMfaDisabledScanner } from './aws-iam-root-mfa-disabled.scanner';
 import { AwsRegion } from 'resource-security-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AwsAdapterError } from 'shared-aws-infra-utils';
 
 jest.mock('@aws-sdk/client-iam');
 

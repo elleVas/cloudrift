@@ -3,9 +3,7 @@ import { Route53Client, ListHostedZonesCommand, type HostedZone } from '@aws-sdk
 import { Result } from 'shared-kernel';
 import type { AwsRegion, DeadResourceScannerPort, DeadResource } from 'dead-resources-domain';
 import { Route53HostedZoneEmpty, Route53HostedZoneEmptyPolicy } from 'dead-resources-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
-import { paginate } from '../utils/paginate';
-import { createAwsClientConfig } from '../utils/client-config';
+import { AwsAdapterError, paginate, createAwsClientConfig } from 'shared-aws-infra-utils';
 
 /** Route53 has a single global endpoint — always sign against this region, never the one `scan()` receives (ADR-0078). */
 const ROUTE53_ENDPOINT_REGION = 'us-east-1';

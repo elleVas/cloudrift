@@ -3,7 +3,7 @@ import { CloudWatchLogsClient, DescribeLogStreamsCommand } from '@aws-sdk/client
 import { LambdaClient } from '@aws-sdk/client-lambda';
 import { AwsLambdaLogGroupOrphanedScanner } from './aws-lambda-loggroup-orphaned.scanner';
 import { AwsRegion } from 'cloud-cost-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AwsAdapterError } from 'shared-aws-infra-utils';
 import { mockPricing } from '../testing/mock-pricing';
 
 jest.mock('@aws-sdk/client-cloudwatch-logs');

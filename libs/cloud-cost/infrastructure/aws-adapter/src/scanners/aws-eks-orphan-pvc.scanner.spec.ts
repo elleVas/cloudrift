@@ -3,7 +3,7 @@ import { EC2Client, DescribeVolumesCommand } from '@aws-sdk/client-ec2';
 import { EKSClient, ListClustersCommand } from '@aws-sdk/client-eks';
 import { AwsEksOrphanPvcScanner } from './aws-eks-orphan-pvc.scanner';
 import { AwsRegion, type PricingPort } from 'cloud-cost-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AwsAdapterError } from 'shared-aws-infra-utils';
 import { mockPricing } from '../testing/mock-pricing';
 
 jest.mock('@aws-sdk/client-ec2');

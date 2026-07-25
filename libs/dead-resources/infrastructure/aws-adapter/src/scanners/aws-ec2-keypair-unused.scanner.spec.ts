@@ -2,7 +2,7 @@
 import { EC2Client, DescribeKeyPairsCommand } from '@aws-sdk/client-ec2';
 import { AwsEc2KeyPairUnusedScanner } from './aws-ec2-keypair-unused.scanner';
 import { AwsRegion } from 'dead-resources-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AwsAdapterError } from 'shared-aws-infra-utils';
 
 jest.mock('@aws-sdk/client-ec2');
 

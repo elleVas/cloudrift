@@ -7,9 +7,7 @@ import {
 import { Result, createLogger } from 'shared-kernel';
 import type { AwsRegion, PricingPort, WasteScannerPort, WastedResource } from 'cloud-cost-domain';
 import { LogGroup, LogGroupWastePolicy } from 'cloud-cost-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
-import { paginate } from '../utils/paginate';
-import { createAwsClientConfig } from '../utils/client-config';
+import { AwsAdapterError, paginate, createAwsClientConfig } from 'shared-aws-infra-utils';
 
 const logger = createLogger('cloudrift:scanner');
 

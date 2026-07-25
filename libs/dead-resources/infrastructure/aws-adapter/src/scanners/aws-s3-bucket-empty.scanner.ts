@@ -3,9 +3,7 @@ import { S3Client, ListBucketsCommand, ListObjectsV2Command, type Bucket } from 
 import { Result, createLogger } from 'shared-kernel';
 import type { AwsRegion, DeadResourceScannerPort, DeadResource } from 'dead-resources-domain';
 import { S3BucketEmpty, S3BucketEmptyPolicy } from 'dead-resources-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
-import { mapWithConcurrency } from '../utils/map-with-concurrency';
-import { createAwsClientConfig } from '../utils/client-config';
+import { AwsAdapterError, mapWithConcurrency, createAwsClientConfig } from 'shared-aws-infra-utils';
 
 const logger = createLogger('cloudrift:scanner');
 

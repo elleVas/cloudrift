@@ -3,7 +3,7 @@ import { KafkaClient, ListClustersV2Command } from '@aws-sdk/client-kafka';
 import { CloudWatchClient, GetMetricStatisticsCommand } from '@aws-sdk/client-cloudwatch';
 import { AwsMskIdleScanner } from './aws-msk-idle.scanner';
 import { AwsRegion } from 'cloud-cost-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AwsAdapterError } from 'shared-aws-infra-utils';
 
 jest.mock('@aws-sdk/client-kafka');
 jest.mock('@aws-sdk/client-cloudwatch');

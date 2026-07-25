@@ -2,7 +2,7 @@
 import { S3Client, ListBucketsCommand } from '@aws-sdk/client-s3';
 import { AwsS3MultipartUploadAbandonedScanner } from './aws-s3-multipart-upload-abandoned.scanner';
 import { AwsRegion } from 'cloud-cost-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AwsAdapterError } from 'shared-aws-infra-utils';
 import { mockPricing } from '../testing/mock-pricing';
 
 jest.mock('@aws-sdk/client-s3');

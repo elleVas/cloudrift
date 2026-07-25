@@ -3,9 +3,7 @@ import { EC2Client, DescribeSecurityGroupsCommand, type SecurityGroup, type IpPe
 import { Result } from 'shared-kernel';
 import type { AwsRegion, ResourceSecurityScannerPort, SecurityFinding } from 'resource-security-domain';
 import { Ec2SecurityGroupOpenIngress, Ec2SecurityGroupOpenIngressPolicy } from 'resource-security-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
-import { paginate } from '../utils/paginate';
-import { createAwsClientConfig } from '../utils/client-config';
+import { AwsAdapterError, paginate, createAwsClientConfig } from 'shared-aws-infra-utils';
 
 const OPEN_IPV4 = '0.0.0.0/0';
 const OPEN_IPV6 = '::/0';
