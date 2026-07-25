@@ -2,7 +2,7 @@
 import { CodePipelineClient, ListPipelinesCommand, ListPipelineExecutionsCommand } from '@aws-sdk/client-codepipeline';
 import { AwsCodepipelinePipelineStaleScanner } from './aws-codepipeline-pipeline-stale.scanner';
 import { AwsRegion } from 'cloud-cost-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AwsAdapterError } from 'shared-aws-infra-utils';
 import { mockPricing } from '../testing/mock-pricing';
 
 jest.mock('@aws-sdk/client-codepipeline');

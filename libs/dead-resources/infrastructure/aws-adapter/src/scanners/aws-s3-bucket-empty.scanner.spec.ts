@@ -2,7 +2,7 @@
 import { S3Client, ListBucketsCommand } from '@aws-sdk/client-s3';
 import { AwsS3BucketEmptyScanner } from './aws-s3-bucket-empty.scanner';
 import { AwsRegion } from 'dead-resources-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AwsAdapterError } from 'shared-aws-infra-utils';
 
 jest.mock('@aws-sdk/client-s3');
 

@@ -7,7 +7,7 @@ import {
 import { AwsEc2UnderutilizedScanner } from './aws-ec2-underutilized.scanner';
 import type { Ec2InstancePricingSource } from './aws-ec2-underutilized.scanner';
 import { AwsRegion, type UnderutilizedEc2Instance } from 'cloud-cost-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AwsAdapterError } from 'shared-aws-infra-utils';
 
 jest.mock('@aws-sdk/client-ec2');
 jest.mock('@aws-sdk/client-cloudwatch');

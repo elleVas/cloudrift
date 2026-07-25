@@ -3,8 +3,7 @@ import { EC2Client, DescribeReservedInstancesCommand, type ReservedInstances } f
 import { Result } from 'shared-kernel';
 import type { AwsRegion, DeadResourceScannerPort, DeadResource } from 'dead-resources-domain';
 import { Ec2RiExpiringSoon, Ec2RiExpiringSoonPolicy } from 'dead-resources-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
-import { createAwsClientConfig } from '../utils/client-config';
+import { AwsAdapterError, createAwsClientConfig } from 'shared-aws-infra-utils';
 
 type ReservedInstancesWithId = ReservedInstances & {
   ReservedInstancesId: string;

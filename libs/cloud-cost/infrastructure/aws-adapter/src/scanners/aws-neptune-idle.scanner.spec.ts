@@ -3,7 +3,7 @@ import { NeptuneClient, DescribeDBInstancesCommand } from '@aws-sdk/client-neptu
 import { CloudWatchClient, GetMetricStatisticsCommand } from '@aws-sdk/client-cloudwatch';
 import { AwsNeptuneIdleScanner } from './aws-neptune-idle.scanner';
 import { AwsRegion } from 'cloud-cost-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AwsAdapterError } from 'shared-aws-infra-utils';
 
 jest.mock('@aws-sdk/client-neptune');
 jest.mock('@aws-sdk/client-cloudwatch');

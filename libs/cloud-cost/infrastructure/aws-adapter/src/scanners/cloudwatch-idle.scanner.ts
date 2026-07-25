@@ -2,10 +2,8 @@
 import { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
 import { Result } from 'shared-kernel';
 import type { AwsRegion, ResourceKind, WasteScannerPort, WastedResource, WastePolicy } from 'cloud-cost-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
-import { mapWithConcurrency } from '../utils/map-with-concurrency';
+import { AwsAdapterError, mapWithConcurrency, createAwsClientConfig } from 'shared-aws-infra-utils';
 import { metricWindow, type MetricWindow } from '../utils/cloudwatch-metrics';
-import { createAwsClientConfig } from '../utils/client-config';
 
 /**
  * Template method for the CloudWatch-based scanners (REVIEW.md #2): list

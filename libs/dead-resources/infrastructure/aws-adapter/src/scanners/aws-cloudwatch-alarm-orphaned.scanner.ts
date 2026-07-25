@@ -3,9 +3,7 @@ import { CloudWatchClient, DescribeAlarmsCommand, type MetricAlarm } from '@aws-
 import { Result } from 'shared-kernel';
 import type { AwsRegion, DeadResourceScannerPort, DeadResource } from 'dead-resources-domain';
 import { CloudwatchAlarmOrphaned, CloudwatchAlarmOrphanedPolicy } from 'dead-resources-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
-import { paginate } from '../utils/paginate';
-import { createAwsClientConfig } from '../utils/client-config';
+import { AwsAdapterError, paginate, createAwsClientConfig } from 'shared-aws-infra-utils';
 
 type MetricAlarmWithId = MetricAlarm & { AlarmArn: string; AlarmName: string; AlarmConfigurationUpdatedTimestamp: Date };
 

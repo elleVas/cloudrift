@@ -2,7 +2,7 @@
 import { EC2Client, DescribeVolumesCommand } from '@aws-sdk/client-ec2';
 import { AwsEc2VolumeUnencryptedScanner } from './aws-ec2-volume-unencrypted.scanner';
 import { AwsRegion } from 'resource-security-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AwsAdapterError } from 'shared-aws-infra-utils';
 
 jest.mock('@aws-sdk/client-ec2');
 

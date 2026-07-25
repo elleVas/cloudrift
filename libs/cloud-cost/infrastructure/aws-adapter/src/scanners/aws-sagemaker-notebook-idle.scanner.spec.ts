@@ -3,7 +3,7 @@ import { SageMakerClient, ListNotebookInstancesCommand } from '@aws-sdk/client-s
 import { CloudWatchClient, GetMetricStatisticsCommand } from '@aws-sdk/client-cloudwatch';
 import { AwsSageMakerNotebookIdleScanner } from './aws-sagemaker-notebook-idle.scanner';
 import { AwsRegion } from 'cloud-cost-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AwsAdapterError } from 'shared-aws-infra-utils';
 
 jest.mock('@aws-sdk/client-sagemaker');
 jest.mock('@aws-sdk/client-cloudwatch');

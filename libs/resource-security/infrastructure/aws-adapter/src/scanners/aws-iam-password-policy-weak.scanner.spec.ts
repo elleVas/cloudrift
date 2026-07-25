@@ -2,7 +2,7 @@
 import { IAMClient } from '@aws-sdk/client-iam';
 import { AwsIamPasswordPolicyWeakScanner } from './aws-iam-password-policy-weak.scanner';
 import { AwsRegion } from 'resource-security-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AwsAdapterError } from 'shared-aws-infra-utils';
 
 jest.mock('@aws-sdk/client-iam');
 

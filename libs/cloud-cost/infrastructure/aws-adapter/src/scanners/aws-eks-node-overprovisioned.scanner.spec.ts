@@ -4,7 +4,7 @@ import { CloudWatchClient, GetMetricStatisticsCommand } from '@aws-sdk/client-cl
 import { AwsEksNodeOverprovisionedScanner, suggestNodeCount } from './aws-eks-node-overprovisioned.scanner';
 import type { EksNodeInstancePricingSource } from './aws-eks-node-overprovisioned.scanner';
 import { AwsRegion } from 'cloud-cost-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AwsAdapterError } from 'shared-aws-infra-utils';
 
 jest.mock('@aws-sdk/client-eks');
 jest.mock('@aws-sdk/client-cloudwatch');

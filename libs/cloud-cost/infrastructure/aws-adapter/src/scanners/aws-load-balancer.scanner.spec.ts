@@ -7,7 +7,7 @@ import {
 } from '@aws-sdk/client-elastic-load-balancing-v2';
 import { AwsLoadBalancerScanner } from './aws-load-balancer.scanner';
 import { AwsRegion } from 'cloud-cost-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AwsAdapterError } from 'shared-aws-infra-utils';
 import { mockPricing } from '../testing/mock-pricing';
 
 jest.mock('@aws-sdk/client-elastic-load-balancing-v2');

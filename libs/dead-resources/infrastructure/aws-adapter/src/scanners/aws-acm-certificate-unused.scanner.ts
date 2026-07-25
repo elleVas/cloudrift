@@ -3,9 +3,7 @@ import { ACMClient, ListCertificatesCommand, type CertificateSummary } from '@aw
 import { Result } from 'shared-kernel';
 import type { AwsRegion, DeadResourceScannerPort, DeadResource } from 'dead-resources-domain';
 import { AcmCertificateUnused, AcmCertificateUnusedPolicy } from 'dead-resources-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
-import { paginate } from '../utils/paginate';
-import { createAwsClientConfig } from '../utils/client-config';
+import { AwsAdapterError, paginate, createAwsClientConfig } from 'shared-aws-infra-utils';
 
 type CertificateSummaryWithId = CertificateSummary & { CertificateArn: string; DomainName: string; CreatedAt: Date };
 

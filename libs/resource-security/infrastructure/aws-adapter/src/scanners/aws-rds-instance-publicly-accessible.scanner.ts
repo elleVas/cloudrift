@@ -3,9 +3,7 @@ import { RDSClient, DescribeDBInstancesCommand, type DBInstance } from '@aws-sdk
 import { Result } from 'shared-kernel';
 import type { AwsRegion, ResourceSecurityScannerPort, SecurityFinding } from 'resource-security-domain';
 import { RdsInstancePubliclyAccessible, RdsInstancePubliclyAccessiblePolicy } from 'resource-security-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
-import { paginate } from '../utils/paginate';
-import { createAwsClientConfig } from '../utils/client-config';
+import { AwsAdapterError, paginate, createAwsClientConfig } from 'shared-aws-infra-utils';
 
 type DbInstanceWithId = DBInstance & { DBInstanceIdentifier: string };
 

@@ -19,9 +19,7 @@ import { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
 import { Result } from 'shared-kernel';
 import type { AwsRegion, WasteScannerPort, WastedResource } from 'cloud-cost-domain';
 import { EnvironmentGhost, EnvironmentGhostPolicy, type WastePolicy } from 'cloud-cost-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
-import { paginate } from '../utils/paginate';
-import { createAwsClientConfig } from '../utils/client-config';
+import { AwsAdapterError, paginate, createAwsClientConfig } from 'shared-aws-infra-utils';
 import { sumMetric, metricWindow } from '../utils/cloudwatch-metrics';
 
 // Only these 4 resource types carry a state/idle signal cloudrift already

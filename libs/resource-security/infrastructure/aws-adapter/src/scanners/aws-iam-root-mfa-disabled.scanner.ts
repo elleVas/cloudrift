@@ -3,8 +3,7 @@ import { IAMClient, GetAccountSummaryCommand } from '@aws-sdk/client-iam';
 import { Result } from 'shared-kernel';
 import type { AwsRegion, ResourceSecurityScannerPort, SecurityFinding } from 'resource-security-domain';
 import { IamRootMfaDisabled, IamRootMfaDisabledPolicy } from 'resource-security-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
-import { createAwsClientConfig } from '../utils/client-config';
+import { AwsAdapterError, createAwsClientConfig } from 'shared-aws-infra-utils';
 
 /** IAM has a single global endpoint — always sign against this region, never the one `scan()` receives. */
 const IAM_ENDPOINT_REGION = 'us-east-1';

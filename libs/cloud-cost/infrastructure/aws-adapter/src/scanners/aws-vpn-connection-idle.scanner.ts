@@ -4,7 +4,7 @@ import type { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
 import { createLogger } from 'shared-kernel';
 import type { AwsRegion, PricingPort } from 'cloud-cost-domain';
 import { VpnConnection, VpnConnectionIdlePolicy, type WastePolicy } from 'cloud-cost-domain';
-import { createAwsClientConfig } from '../utils/client-config';
+import { createAwsClientConfig } from 'shared-aws-infra-utils';
 import { sumMetrics, type MetricWindow } from '../utils/cloudwatch-metrics';
 import { CloudWatchIdleScanner } from './cloudwatch-idle.scanner';
 

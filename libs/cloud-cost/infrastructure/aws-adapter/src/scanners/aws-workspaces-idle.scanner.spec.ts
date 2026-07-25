@@ -2,7 +2,7 @@
 import { WorkSpacesClient } from '@aws-sdk/client-workspaces';
 import { AwsWorkspacesIdleScanner } from './aws-workspaces-idle.scanner';
 import { AwsRegion, type Workspace } from 'cloud-cost-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AwsAdapterError } from 'shared-aws-infra-utils';
 
 jest.mock('@aws-sdk/client-workspaces');
 

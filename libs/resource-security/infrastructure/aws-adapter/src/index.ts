@@ -13,4 +13,4 @@ export { AwsRdsInstanceUnencryptedScanner } from './scanners/aws-rds-instance-un
 export { AwsS3BucketEncryptionMissingScanner } from './scanners/aws-s3-bucket-encryption-missing.scanner';
 export { AwsRdsInstancePubliclyAccessibleScanner } from './scanners/aws-rds-instance-publicly-accessible.scanner';
 export { AwsCloudtrailNotMultiregionScanner } from './scanners/aws-cloudtrail-not-multiregion.scanner';
-export { AwsAdapterError } from './errors/aws-adapter.error';
+export { AwsAdapterError } from 'shared-aws-infra-utils';

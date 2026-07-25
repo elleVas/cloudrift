@@ -2,7 +2,7 @@
 import { S3Client, ListBucketsCommand, GetBucketEncryptionCommand } from '@aws-sdk/client-s3';
 import { AwsS3BucketEncryptionMissingScanner } from './aws-s3-bucket-encryption-missing.scanner';
 import { AwsRegion } from 'resource-security-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AwsAdapterError } from 'shared-aws-infra-utils';
 
 jest.mock('@aws-sdk/client-s3');
 

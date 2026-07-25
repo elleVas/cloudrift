@@ -3,7 +3,7 @@ import { IAMClient, ListInstanceProfilesCommand } from '@aws-sdk/client-iam';
 import { EC2Client, DescribeRegionsCommand, DescribeInstancesCommand } from '@aws-sdk/client-ec2';
 import { AwsIamInstanceProfileUnattachedScanner } from './aws-iam-instance-profile-unattached.scanner';
 import { AwsRegion } from 'dead-resources-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AwsAdapterError } from 'shared-aws-infra-utils';
 
 jest.mock('@aws-sdk/client-iam');
 jest.mock('@aws-sdk/client-ec2');

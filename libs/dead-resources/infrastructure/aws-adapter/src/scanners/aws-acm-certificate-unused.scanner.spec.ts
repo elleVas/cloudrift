@@ -2,7 +2,7 @@
 import { ACMClient, ListCertificatesCommand } from '@aws-sdk/client-acm';
 import { AwsAcmCertificateUnusedScanner } from './aws-acm-certificate-unused.scanner';
 import { AwsRegion } from 'dead-resources-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AwsAdapterError } from 'shared-aws-infra-utils';
 
 jest.mock('@aws-sdk/client-acm');
 

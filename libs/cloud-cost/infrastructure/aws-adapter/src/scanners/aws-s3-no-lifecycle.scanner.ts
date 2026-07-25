@@ -9,10 +9,7 @@ import { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
 import { Result, createLogger } from 'shared-kernel';
 import type { AwsRegion, PricingPort, WasteScannerPort, WastedResource } from 'cloud-cost-domain';
 import { S3Bucket, S3NoLifecyclePolicy } from 'cloud-cost-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
-import { paginate } from '../utils/paginate';
-import { mapWithConcurrency } from '../utils/map-with-concurrency';
-import { createAwsClientConfig } from '../utils/client-config';
+import { AwsAdapterError, paginate, mapWithConcurrency, createAwsClientConfig } from 'shared-aws-infra-utils';
 import { avgMetric } from '../utils/cloudwatch-metrics';
 
 const logger = createLogger('cloudrift:scanner');

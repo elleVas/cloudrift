@@ -3,7 +3,7 @@ import { MqClient } from '@aws-sdk/client-mq';
 import { CloudWatchClient, GetMetricStatisticsCommand } from '@aws-sdk/client-cloudwatch';
 import { AwsMqIdleScanner } from './aws-mq-idle.scanner';
 import { AwsRegion } from 'cloud-cost-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AwsAdapterError } from 'shared-aws-infra-utils';
 
 jest.mock('@aws-sdk/client-mq');
 jest.mock('@aws-sdk/client-cloudwatch');

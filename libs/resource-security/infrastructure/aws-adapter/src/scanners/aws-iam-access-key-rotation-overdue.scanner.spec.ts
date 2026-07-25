@@ -2,7 +2,7 @@
 import { IAMClient, ListUsersCommand, ListAccessKeysCommand } from '@aws-sdk/client-iam';
 import { AwsIamAccessKeyRotationOverdueScanner } from './aws-iam-access-key-rotation-overdue.scanner';
 import { AwsRegion } from 'resource-security-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AwsAdapterError } from 'shared-aws-infra-utils';
 
 jest.mock('@aws-sdk/client-iam');
 

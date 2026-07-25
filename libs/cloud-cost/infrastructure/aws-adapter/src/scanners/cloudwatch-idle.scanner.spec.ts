@@ -2,7 +2,7 @@
 import { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
 import { CloudWatchIdleScanner } from './cloudwatch-idle.scanner';
 import { sumMetric, type MetricWindow } from '../utils/cloudwatch-metrics';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AwsAdapterError } from 'shared-aws-infra-utils';
 import { AwsRegion, WastePolicy, type WasteVerdict, type WastedResource } from 'cloud-cost-domain';
 
 jest.mock('@aws-sdk/client-cloudwatch');

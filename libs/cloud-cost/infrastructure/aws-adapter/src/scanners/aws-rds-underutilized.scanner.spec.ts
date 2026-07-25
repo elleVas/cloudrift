@@ -7,7 +7,7 @@ import {
 import { AwsRdsUnderutilizedScanner } from './aws-rds-underutilized.scanner';
 import type { RdsInstancePricingSource } from './aws-rds-underutilized.scanner';
 import { AwsRegion, type RdsUnderutilizedInstance } from 'cloud-cost-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AwsAdapterError } from 'shared-aws-infra-utils';
 
 jest.mock('@aws-sdk/client-rds');
 jest.mock('@aws-sdk/client-cloudwatch');

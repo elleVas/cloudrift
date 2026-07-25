@@ -3,7 +3,7 @@ import { SQSClient } from '@aws-sdk/client-sqs';
 import { CloudWatchClient, GetMetricStatisticsCommand } from '@aws-sdk/client-cloudwatch';
 import { AwsSqsDlqAbandonedScanner, DLQ_NAME_PATTERN } from './aws-sqs-dlq-abandoned.scanner';
 import { AwsRegion } from 'cloud-cost-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AwsAdapterError } from 'shared-aws-infra-utils';
 
 jest.mock('@aws-sdk/client-sqs');
 jest.mock('@aws-sdk/client-cloudwatch');

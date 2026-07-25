@@ -2,7 +2,7 @@
 import { S3Client, ListBucketsCommand, GetPublicAccessBlockCommand, GetBucketPolicyStatusCommand, GetBucketAclCommand } from '@aws-sdk/client-s3';
 import { AwsS3BucketPublicScanner } from './aws-s3-bucket-public.scanner';
 import { AwsRegion } from 'resource-security-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AwsAdapterError } from 'shared-aws-infra-utils';
 
 jest.mock('@aws-sdk/client-s3');
 

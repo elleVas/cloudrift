@@ -13,9 +13,7 @@ import type {
   WastedResource,
 } from 'cloud-cost-domain';
 import { RdsInstance, RdsInstanceWastePolicy } from 'cloud-cost-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
-import { paginate } from '../utils/paginate';
-import { createAwsClientConfig } from '../utils/client-config';
+import { AwsAdapterError, paginate, createAwsClientConfig } from 'shared-aws-infra-utils';
 import { NON_RDS_ENGINES } from '../utils/non-rds-engines';
 
 const logger = createLogger('cloudrift:scanner');

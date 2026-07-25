@@ -10,6 +10,9 @@
       "path": "./libs/shared/kernel"
     },
     {
+      "path": "./libs/shared/aws-infra-utils"
+    },
+    {
       "path": "./libs/cloud-cost/domain"
     },
     {

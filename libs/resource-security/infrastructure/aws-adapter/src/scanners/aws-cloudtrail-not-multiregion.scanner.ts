@@ -3,8 +3,7 @@ import { CloudTrailClient, DescribeTrailsCommand } from '@aws-sdk/client-cloudtr
 import { Result } from 'shared-kernel';
 import type { AwsRegion, ResourceSecurityScannerPort, SecurityFinding } from 'resource-security-domain';
 import { CloudtrailNotMultiregion, CloudtrailNotMultiregionPolicy } from 'resource-security-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
-import { createAwsClientConfig } from '../utils/client-config';
+import { AwsAdapterError, createAwsClientConfig } from 'shared-aws-infra-utils';
 
 /** CloudTrail's `DescribeTrails` (with `includeShadowTrails`) needs one home-region endpoint to see every trail account-wide. */
 const CLOUDTRAIL_ENDPOINT_REGION = 'us-east-1';

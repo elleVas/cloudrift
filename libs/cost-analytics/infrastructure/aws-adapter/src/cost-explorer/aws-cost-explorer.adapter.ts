@@ -2,8 +2,7 @@
 import { CostExplorerClient, GetCostAndUsageCommand, type ResultByTime } from '@aws-sdk/client-cost-explorer';
 import { Result } from 'shared-kernel';
 import type { CostByService, CostExplorerPort, CostPeriodBucket } from 'cost-analytics-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
-import { createAwsClientConfig } from '../utils/client-config';
+import { AwsAdapterError, createAwsClientConfig } from 'shared-aws-infra-utils';
 
 const METRIC = 'UnblendedCost';
 

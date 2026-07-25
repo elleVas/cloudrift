@@ -8,7 +8,7 @@ import {
 } from '@aws-sdk/client-sagemaker';
 import { AwsSageMakerTrainingOrphanedScanner } from './aws-sagemaker-training-orphaned.scanner';
 import { AwsRegion } from 'cloud-cost-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AwsAdapterError } from 'shared-aws-infra-utils';
 
 jest.mock('@aws-sdk/client-sagemaker');
 

@@ -8,10 +8,7 @@ import {
 import { Result, createLogger } from 'shared-kernel';
 import type { AwsRegion, WasteScannerPort, WastedResource } from 'cloud-cost-domain';
 import { Workspace, WorkspacesIdlePolicy } from 'cloud-cost-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
-import { createAwsClientConfig } from '../utils/client-config';
-import { paginate } from '../utils/paginate';
-import { mapWithConcurrency } from '../utils/map-with-concurrency';
+import { AwsAdapterError, createAwsClientConfig, paginate, mapWithConcurrency } from 'shared-aws-infra-utils';
 
 const logger = createLogger('cloudrift:scanner');
 const PRICING_CONCURRENCY = 5;

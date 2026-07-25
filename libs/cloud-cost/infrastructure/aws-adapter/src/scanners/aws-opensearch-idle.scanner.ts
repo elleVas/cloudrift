@@ -9,8 +9,7 @@ import type { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
 import { createLogger } from 'shared-kernel';
 import type { AwsRegion } from 'cloud-cost-domain';
 import { OpenSearchDomain, OpenSearchIdleDomainPolicy, type WastePolicy } from 'cloud-cost-domain';
-import { createAwsClientConfig } from '../utils/client-config';
-import { mapWithConcurrency } from '../utils/map-with-concurrency';
+import { createAwsClientConfig, mapWithConcurrency } from 'shared-aws-infra-utils';
 import { sumMetrics, type MetricWindow } from '../utils/cloudwatch-metrics';
 import { CloudWatchIdleScanner } from './cloudwatch-idle.scanner';
 

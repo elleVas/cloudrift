@@ -3,7 +3,7 @@ import { RedshiftClient } from '@aws-sdk/client-redshift';
 import { CloudWatchClient, GetMetricStatisticsCommand } from '@aws-sdk/client-cloudwatch';
 import { AwsRedshiftIdleScanner } from './aws-redshift-idle.scanner';
 import { AwsRegion } from 'cloud-cost-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
+import { AwsAdapterError } from 'shared-aws-infra-utils';
 
 jest.mock('@aws-sdk/client-redshift');
 jest.mock('@aws-sdk/client-cloudwatch');

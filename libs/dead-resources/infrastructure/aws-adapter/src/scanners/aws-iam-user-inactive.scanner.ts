@@ -9,10 +9,7 @@ import {
 import { Result } from 'shared-kernel';
 import type { AwsRegion, DeadResourceScannerPort, DeadResource } from 'dead-resources-domain';
 import { IamUserInactive, IamUserInactivePolicy } from 'dead-resources-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
-import { paginate } from '../utils/paginate';
-import { mapWithConcurrency } from '../utils/map-with-concurrency';
-import { createAwsClientConfig } from '../utils/client-config';
+import { AwsAdapterError, paginate, mapWithConcurrency, createAwsClientConfig } from 'shared-aws-infra-utils';
 
 /** IAM has a single global endpoint — always sign against this region, never the one `scan()` receives (ADR-0078). */
 const IAM_ENDPOINT_REGION = 'us-east-1';

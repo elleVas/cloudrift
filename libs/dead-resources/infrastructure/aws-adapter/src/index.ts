@@ -17,4 +17,4 @@ export { AwsIamInstanceProfileUnattachedScanner } from './scanners/aws-iam-insta
 export { AwsEventbridgeRuleNoTargetsScanner } from './scanners/aws-eventbridge-rule-no-targets.scanner';
 export { AwsEcrRepositoryEmptyScanner } from './scanners/aws-ecr-repository-empty.scanner';
 export { AwsStepfunctionsStatemachineUnusedScanner } from './scanners/aws-stepfunctions-statemachine-unused.scanner';
-export { AwsAdapterError } from './errors/aws-adapter.error';
+export { AwsAdapterError } from 'shared-aws-infra-utils';

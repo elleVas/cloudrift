@@ -6,9 +6,7 @@ import {
 } from '@aws-sdk/client-pricing';
 import { Result } from 'shared-kernel';
 import type { AwsRegion } from 'cloud-cost-domain';
-import { AwsAdapterError } from '../errors/aws-adapter.error';
-import { createAwsClientConfig } from '../utils/client-config';
-import { mapWithConcurrency } from '../utils/map-with-concurrency';
+import { AwsAdapterError, createAwsClientConfig, mapWithConcurrency } from 'shared-aws-infra-utils';
 import type { PriceTable, RegionPrices } from './table-pricing.adapter';
 
 /** The Pricing API only lives in some regions; us-east-1 is always valid. */
