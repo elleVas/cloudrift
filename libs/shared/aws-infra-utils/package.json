@@ -29,6 +29,44 @@
           "jestConfig": "libs/shared/aws-infra-utils/jest.config.cjs",
           "passWithNoTests": true
         }
+      },
+      "build-pkg": {
+        "executor": "@nx/esbuild:esbuild",
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "options": {
+          "platform": "node",
+          "outputPath": "libs/shared/aws-infra-utils/dist-pkg",
+          "format": [
+            "esm"
+          ],
+          "bundle": true,
+          "thirdParty": false,
+          "declaration": true,
+          "declarationRootDir": "libs/shared/aws-infra-utils/src",
+          "main": "libs/shared/aws-infra-utils/src/index.ts",
+          "tsConfig": "libs/shared/aws-infra-utils/tsconfig.lib.json",
+          "esbuildOptions": {
+            "sourcemap": false,
+            "outExtension": {
+              ".js": ".js"
+            }
+          }
+        }
+      },
+      "publish-pkg": {
+        "dependsOn": [
+          "build-pkg"
+        ],
+        "cache": true,
+        "outputs": [
+          "{projectRoot}/dist-pkg/package.json"
+        ],
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "node libs/shared/aws-infra-utils/scripts/make-publish-package.mjs"
+        }
       }
     }
   },

@@ -14,7 +14,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { isBuiltin } from 'node:module';
+import { extractExternals, resolveExternalVersions } from '../../../scripts/lib/bundle-externals.mjs';
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const appDir = resolve(scriptDir, '..');
@@ -29,18 +29,10 @@ const bundle = readFileSync(resolve(distDir, 'main.js'), 'utf8');
 // bundle — entrambe le forme restano esterne (thirdParty: false), e serve
 // prenderle entrambe: un pacchetto caricato solo via dynamic import()
 // (@clack/prompts, pdfkit) non produce mai un require(...) nel bundle.
-const externals = new Set();
-for (const match of bundle.matchAll(/\b(?:require|import)\(["']([^"']+)["']\)/g)) {
-  const spec = match[1];
-  if (spec.startsWith('.') || spec.startsWith('/') || isBuiltin(spec)) continue;
-  externals.add(packageNameOf(spec));
-}
+const externals = extractExternals(bundle);
 
 // 2. Risolvi la versione di ciascun esterno (app → root → versione installata).
-const dependencies = {};
-for (const name of [...externals].sort()) {
-  dependencies[name] = resolveVersion(name);
-}
+const dependencies = resolveExternalVersions(externals, { pkg: appPkg, rootPkg, workspaceRoot });
 
 // 3. Comporre il manifest di pubblicazione dai metadati del manifest di sviluppo.
 const publishManifest = {
@@ -73,27 +65,4 @@ for (const [name, version] of Object.entries(dependencies)) {
 
 function readJson(path) {
   return JSON.parse(readFileSync(path, 'utf8'));
-}
-
-function packageNameOf(spec) {
-  const parts = spec.split('/');
-  return spec.startsWith('@') ? `${parts[0]}/${parts[1]}` : parts[0];
-}
-
-function resolveVersion(name) {
-  const fromApp = appPkg.dependencies?.[name];
-  if (fromApp && !fromApp.startsWith('workspace:')) return fromApp;
-
-  const fromRoot = rootPkg.dependencies?.[name] ?? rootPkg.devDependencies?.[name];
-  if (fromRoot) return fromRoot;
-
-  try {
-    const installed = readJson(resolve(workspaceRoot, 'node_modules', name, 'package.json'));
-    return `^${installed.version}`;
-  } catch {
-    throw new Error(
-      `Cannot resolve a version for external dependency "${name}". ` +
-        `Add it to the root or apps/cli package.json.`,
-    );
-  }
 }
