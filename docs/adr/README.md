@@ -74,6 +74,7 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 | [0075](0075-nx-dep-constraints-layer-enforcement.md) | Nx `depConstraints` enforce the hexagonal layering at lint time | Accepted |
 | [0077](0077-scanner-registry-split-on-pricing-seam.md) | Scanner registry split on the always-on/live-pricing seam | Accepted |
 | [0084](0084-typescript-as-cast-cleanup.md) | TypeScript `as` cast cleanup: mechanical fixes, deferred fallback decisions, legitimate exceptions | Accepted |
+| [0086](0086-mcp-tool-handlers-error-boundary.md) | MCP tool handlers wrapped in a shared error boundary | Accepted |
 
 ## Stack
 
@@ -103,6 +104,7 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 | [0066](0066-eks-scanners-aws-api-only-kubeconfig-deferred.md) | EKS scanners — AWS API only, kubeconfig deferred | Accepted |
 | [0071](0071-unified-entry-wizard-bare-invocation.md) | Bare `cloudrift` (no subcommand, real terminal) launches a unified mode-picker wizard | Accepted |
 | [0073](0073-brand-mark-pixel-art-pipeline.md) | Brand mark generated from the real logo via an offline pixel-art sampling pipeline | Accepted |
+| [0087](0087-precommit-hooks-eslint-only-no-prettier.md) | Pre-commit hooks via husky + lint-staged, `eslint --fix` only — no `prettier --write` | Accepted |
 
 ## Reporting
 
