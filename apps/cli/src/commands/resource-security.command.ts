@@ -10,6 +10,7 @@ import { formatResourceSecurityReportAsJson } from '../formatters/resource-secur
 import { generateResourceSecurityReportPdf } from '../formatters/resource-security-report.pdf-formatter';
 import { startScanSpinner } from '../wizard/scan-spinner';
 import { defaultResourceSecurityDeps, type ResourceSecurityDeps } from './resource-security.composition';
+import { reportCliError as fail } from './report-cli-error';
 
 export type { ResourceSecurityDeps };
 
@@ -31,11 +32,6 @@ export interface ResourceSecurityCommandOptions {
   scanners?: string[];
   /** Already-validated kind filter — how the wizard's multiselect passes its choice through. `--scanners` wins if both are set. */
   scannerKinds?: ResourceSecurityKind[];
-}
-
-function fail(message: string): void {
-  console.error(chalk.red(`\n  Error: ${message}\n`));
-  process.exitCode = 1;
 }
 
 function isResourceSecurityKind(kind: string): kind is ResourceSecurityKind {

@@ -11,6 +11,7 @@ import { confirmCostExplorerCharge } from '../wizard/cost-confirmation.wizard';
 import { startScanSpinner } from '../wizard/scan-spinner';
 import { defaultCostAnalyticsDeps, type CostAnalyticsDeps } from './cost-analytics.composition';
 import { applyCostTrendGate } from './post-analysis';
+import { reportCliError as fail } from './report-cli-error';
 
 const OUTPUT_FORMATS = ['table', 'json'] as const;
 type OutputFormat = (typeof OUTPUT_FORMATS)[number];
@@ -28,11 +29,6 @@ export interface CostCommandOptions {
   silent?: boolean;
   yes?: boolean;
   pdf?: string | boolean;
-}
-
-function fail(message: string): void {
-  console.error(chalk.red(`\n  Error: ${message}\n`));
-  process.exitCode = 1;
 }
 
 /**
