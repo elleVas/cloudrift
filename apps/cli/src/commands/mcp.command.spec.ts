@@ -110,6 +110,30 @@ describe('cloudrift mcp server', () => {
     expect(policy.Statement[0].Action).toEqual(expect.arrayContaining(['sts:GetCallerIdentity', 'ce:GetCostAndUsage']));
     expect(runAggregateAnalysis).not.toHaveBeenCalled();
   });
+
+  it('analyze_cloudrift surfaces a thrown (not rejected-Result) error as isError instead of crashing the server', async () => {
+    const client = await connectedClient({
+      runAggregateAnalysis: async () => {
+        throw new Error('unexpected composition failure');
+      },
+    });
+    const result = await client.callTool({ name: 'analyze_cloudrift', arguments: {} });
+    expect(result.isError).toBe(true);
+    const content = result.content as Array<{ type: string; text: string }>;
+    expect(content[0].text).toContain('unexpected composition failure');
+  });
+
+  it('analyze_cloudrift surfaces a thrown non-Error value as isError with a string message', async () => {
+    const client = await connectedClient({
+      runAggregateAnalysis: async () => {
+        throw 'a string thrown for some reason';
+      },
+    });
+    const result = await client.callTool({ name: 'analyze_cloudrift', arguments: {} });
+    expect(result.isError).toBe(true);
+    const content = result.content as Array<{ type: string; text: string }>;
+    expect(content[0].text).toContain('a string thrown for some reason');
+  });
 });
 
 describe('CLOUDRIFT_DISABLE_MCP kill switch', () => {

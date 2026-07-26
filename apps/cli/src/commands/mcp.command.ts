@@ -135,6 +135,26 @@ function errorResult(message: string): CallToolResult {
   return { content: [{ type: 'text', text: message }], isError: true };
 }
 
+/**
+ * Every registered tool handler runs inside the MCP SDK's own request
+ * dispatch, outside any try/catch of ours — an uncaught throw (a bad
+ * `deps` composition, a domain use case rejecting instead of returning
+ * `Result.fail`, ...) would otherwise surface as a raw JSON-RPC error to
+ * the client instead of the same structured `isError` shape every other
+ * failure in this file uses.
+ */
+function withErrorBoundary<Args extends unknown[]>(
+  handler: (...args: Args) => Promise<CallToolResult>,
+): (...args: Args) => Promise<CallToolResult> {
+  return async (...args) => {
+    try {
+      return await handler(...args);
+    } catch (err) {
+      return errorResult(err instanceof Error ? err.message : String(err));
+    }
+  };
+}
+
 function buildResourceTypesCatalog() {
   return [
     ...RESOURCE_KINDS.map((kind) => ({
@@ -204,11 +224,11 @@ export function buildMcpServer(deps: McpDeps): McpServer {
           .describe('Path to a cloudrift.config.json/.cloudriftrc file, if not in the current directory.'),
       },
     },
-    async (args) => {
+    withErrorBoundary(async (args) => {
       const result = await deps.runAggregateAnalysis(args);
       if (!result.ok) return errorResult(result.error.message);
       return jsonResult(result.value);
-    },
+    }),
   );
 
   server.registerTool(
@@ -220,7 +240,7 @@ export function buildMcpServer(deps: McpDeps): McpServer {
         'resource-security domains, with its human-readable label. Static — no AWS calls.',
       inputSchema: {},
     },
-    async () => jsonResult(buildResourceTypesCatalog()),
+    withErrorBoundary(async () => jsonResult(buildResourceTypesCatalog())),
   );
 
   server.registerTool(
@@ -233,7 +253,7 @@ export function buildMcpServer(deps: McpDeps): McpServer {
         'livePricing to analyze_cloudrift only if you also grant that action separately.',
       inputSchema: {},
     },
-    async () => jsonResult(REQUIRED_IAM_POLICY),
+    withErrorBoundary(async () => jsonResult(REQUIRED_IAM_POLICY)),
   );
 
   return server;

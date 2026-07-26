@@ -231,6 +231,14 @@ if (!parsed.ok) return fail(parsed.error.message); // messaggio pulito, exit 1, 
 
 ---
 
+## husky + lint-staged per i controlli pre-commit
+
+**Scelta:** `husky` (gestione dei git hook, attivata tramite lo script `prepare` della root, così `pnpm install` da solo la abilita) + `lint-staged` (esegue comandi solo sui file in staging). L'hook pre-commit esegue `eslint --fix` sui file `*.{ts,tsx,js,jsx}` in staging — nessun `prettier --write`.
+
+**Perché:** intercetta problemi di lint esattamente sui file che si stanno committando, più rapido di un `nx affected -t lint` completo. Prettier è escluso deliberatamente dall'hook: il codebase oggi non è formattato secondo Prettier (molti file esistenti superano il `printWidth: 80` di default) — eseguirlo qui riformatterebbe righe preesistenti non correlate a ogni commit che tocca un file con quel problema. Vedi [ADR-0087](../adr/0087-precommit-hooks-eslint-only-no-prettier.md).
+
+---
+
 ## Stima dei costi
 
 I prezzi vivono **solo** in `prices.json` (infrastruttura), con override per-regione e fallback su `default` (us-east-1). Il file dichiara `pricesAsOf` (data di ultima verifica del listino) e ogni report — tabella, PDF e JSON — la espone, insieme al disclaimer che le stime possono differire dalla fattura reale (sconti, reserved pricing, variazioni regionali).
