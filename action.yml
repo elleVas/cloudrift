@@ -1,4 +1,4 @@
-name: 'cloudrift'
+name: 'cloudrift-aws-waste-scanner'
 description: 'Scan an AWS account for wasted cloud resources and fail the job over a cost budget'
 author: 'elleVas'
 branding:
