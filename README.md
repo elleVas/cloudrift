@@ -176,7 +176,7 @@ Every finding is also tagged `waste` or `optimization`: `waste` is money being s
 **False-positive guards (waste policies):**
 
 - **Grace period** — resources younger than 7 days (configurable via `--min-age-days`) are never reported. For EC2 the stop time is reconstructed from `StateTransitionReason`; for NAT Gateways and Load Balancers the creation time is used.
-- **Exclusion tag** — any resource tagged `cloudrift:ignore` (configurable via `--ignore-tag`) is skipped.
+- **Exclusion tag** — any resource tagged `cloudrift:ignore` (configurable via `--ignore-tag`) is skipped. Caveat: anyone with tag-write access to a resource can apply this tag to hide it from scans — the same trust boundary as any other AWS permission, see [SECURITY.md](./SECURITY.md#tag-based-exclusion-is-a-trust-boundary-not-a-security-control).
 - **AMI-bound snapshots** — orphan snapshots referenced by a registered AMI are not reported (they cannot be deleted anyway).
 
 > Prices vary by region. The tool uses region-specific pricing for: `us-east-1`, `us-west-2`, `eu-west-1`, `eu-central-1`, `ap-southeast-1`, `ap-northeast-1`. Every report states the date the price table was last verified (`prices as of`).

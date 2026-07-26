@@ -38,6 +38,10 @@ Out of scope:
 - issues that require an attacker to already have write access to your AWS credentials or local filesystem
 - the IAM permissions you grant to the credentials you run cloudrift with — that's on the user to scope to read-only, as documented in [Required IAM permissions](./docs/en/iam-permissions.md)
 
+### Tag-based exclusion is a trust boundary, not a security control
+
+The `cloudrift:ignore` tag (configurable via `--ignore-tag`) skips a resource during a scan. This is a convenience for known exceptions (e.g. an intentionally idle staging environment), not an access control: anyone with tag-write permission on a resource can apply it to hide that resource from future scans. This is the same trust level as any other AWS permission — if you don't want a principal to be able to suppress findings, don't grant it `TagResource`/`CreateTags` (or equivalent) on the resources cloudrift scans.
+
 ### If you're wrapping cloudrift in another service
 
 `--json`, `--pdf`, and `--config` accept any filesystem path, resolved with the same privileges as the process running the CLI — by design, so you can write reports and load config wherever you choose, the same trust level as any other CLI flag. Reviewed internally 2026-07-13: this isn't a vulnerability for direct, interactive use (whoever can pass CLI flags already has that filesystem access), so cloudrift does not restrict these paths to the working directory.
