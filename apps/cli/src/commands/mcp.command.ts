@@ -9,8 +9,9 @@ import { DEAD_RESOURCE_KINDS, DEAD_RESOURCE_KIND_META } from 'dead-resources-dom
 import { RESOURCE_SECURITY_KINDS, RESOURCE_SECURITY_KIND_META } from 'resource-security-domain';
 import { PDF_LOGO_PNG_BASE64 } from '../pdf-logo-data';
 import { defaultMcpDeps, type McpDeps } from './mcp.composition';
+import { cliVersion } from '../cli-version';
 
-const SERVER_VERSION = '0.7.0';
+const SERVER_VERSION = cliVersion;
 
 /**
  * Global kill switch, independent of any project/`cloudrift.config.json`

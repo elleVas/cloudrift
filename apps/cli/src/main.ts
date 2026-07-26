@@ -9,11 +9,12 @@ import { resourceSecurityCommand } from './commands/resource-security.command';
 import { mcpCommand } from './commands/mcp.command';
 import { runEntryWizard } from './wizard/entry.wizard';
 import { isInteractiveTty } from './wizard/tty';
+import { cliVersion } from './cli-version';
 
 program
   .name('cloudrift')
   .description('Detect and report wasted AWS cloud resources')
-  .version('0.7.0');
+  .version(cliVersion);
 
 program
   .command('analyze')
