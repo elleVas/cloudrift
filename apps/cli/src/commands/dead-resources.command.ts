@@ -10,6 +10,7 @@ import { formatDeadResourcesReportAsJson } from '../formatters/dead-resources-re
 import { generateDeadResourcesReportPdf } from '../formatters/dead-resources-report.pdf-formatter';
 import { startScanSpinner } from '../wizard/scan-spinner';
 import { defaultDeadResourcesDeps, type DeadResourcesDeps } from './dead-resources.composition';
+import { reportCliError as fail } from './report-cli-error';
 
 export type { DeadResourcesDeps };
 
@@ -32,11 +33,6 @@ export interface DeadResourcesCommandOptions {
   scanners?: string[];
   /** Already-validated kind filter — how the wizard's multiselect passes its choice through. `--scanners` wins if both are set. */
   scannerKinds?: DeadResourceKind[];
-}
-
-function fail(message: string): void {
-  console.error(chalk.red(`\n  Error: ${message}\n`));
-  process.exitCode = 1;
 }
 
 function isDeadResourceKind(kind: string): kind is DeadResourceKind {

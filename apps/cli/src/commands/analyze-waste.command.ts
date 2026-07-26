@@ -18,6 +18,7 @@ import {
 } from './analyze-waste.composition';
 import { resolveMinAgeDays, resolveExplicitScanners, resolveRegions } from './resolve-options';
 import { writeArtifacts, applyCostGate } from './post-analysis';
+import { reportCliError as fail } from './report-cli-error';
 
 export type { AnalyzeDeps };
 
@@ -43,11 +44,6 @@ export interface AnalyzeWasteOptions {
   silent?: boolean;
   scanners?: string[];
   allServices?: boolean;
-}
-
-function fail(message: string): void {
-  console.error(chalk.red(`\n  Error: ${message}\n`));
-  process.exitCode = 1;
 }
 
 /**

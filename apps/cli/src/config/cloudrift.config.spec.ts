@@ -45,6 +45,12 @@ describe('parseConfig', () => {
     if (!result.ok) expect(result.error.message).toContain('prices');
   });
 
+  it('rejects a negative price value', () => {
+    const result = parseConfig(JSON.stringify({ prices: { 'us-east-1': { 'ebs-gp3': -5 } } }));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.message).toContain('prices');
+  });
+
   it('parses thresholds.ebsIdleMaxOps', () => {
     const result = parseConfig(JSON.stringify({ thresholds: { ebsIdleMaxOps: 50 } }));
     expect(result.ok).toBe(true);

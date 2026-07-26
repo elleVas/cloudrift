@@ -115,6 +115,7 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 | [0059](0059-presenter-dispatch-exhaustive-switch.md) | Presenter dispatch via an exhaustive switch on the finding, not a generic `presenterFor(kind)` | Accepted |
 | [0072](0072-pdf-shared-layout-module.md) | Shared PDF layout module across all three reports; table cells never truncated | Accepted |
 | [0076](0076-resource-name-column-alongside-opaque-ids.md) | A `Name`/`User` column alongside opaque AWS-generated IDs, never replacing them | Accepted |
+| [0088](0088-severity-report-template-method.md) | `SeverityReportFormatter` template method for the severity-based reports | Accepted |
 
 ## Testing
 
