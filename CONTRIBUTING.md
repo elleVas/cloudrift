@@ -55,7 +55,7 @@ CI (`.github/workflows/ci.yml`) runs lint, test, and build on every PR to `main`
 3. Make your change. Keep it focused: one logical change per PR.
 4. Add or update tests. This project treats the test pyramid seriously — see [docs/en/testing.md](./docs/en/testing.md) for what belongs at the domain, infrastructure, and CLI e2e level. A scanner change with no spec update will be asked to add one.
 5. Run `pnpm nx affected -t lint,test,typecheck` and make sure it's clean.
-6. Commit with a clear message (imperative mood, e.g. `feat(cli): add --pdf artifact support`). Conventional-commit-style prefixes (`feat`, `fix`, `docs`, `refactor`, `test`, `chore`) are appreciated but not enforced.
+6. Commit with a clear message (imperative mood, e.g. `feat(cli): add --pdf artifact support`). Conventional-commit-style prefixes (`feat`, `fix`, `docs`, `refactor`, `test`, `chore`) are appreciated but not enforced. A pre-commit hook (husky + lint-staged, set up automatically by `pnpm install`) runs `eslint --fix` on the files you're committing — it's a fast staged-files check, not a substitute for step 5.
 7. Open a pull request against `main`, describing what changed and why.
 
 ### Adding a new resource scanner
