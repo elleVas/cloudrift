@@ -126,6 +126,21 @@ async function waitForInstanceState(ec2, instanceId, state) {
  * a failure there is logged and skipped rather than aborting the whole seed.
  */
 export async function seedLocalstack(regionCode) {
+  // Guardia di sicurezza: questo script chiama API di scrittura (Create*) e va
+  // eseguito SOLO contro LocalStack. Senza questo controllo, un client AWS SDK
+  // costruito senza AWS_ENDPOINT_URL punta silenziosamente ad AWS reale — è
+  // esattamente quello che ha creato una VPC/subnet reali e un Transit Gateway
+  // a pagamento sull'account dell'utente il 2026-07-24 (vedi
+  // docs/adr/0002-localstack-e2e-scope.md per il contesto dell'harness).
+  const endpoint = process.env.AWS_ENDPOINT_URL ?? '';
+  if (!/localhost|127\.0\.0\.1/.test(endpoint)) {
+    throw new Error(
+      `Refusing to run: AWS_ENDPOINT_URL is "${endpoint || '(unset)'}", which does not look like LocalStack. ` +
+        `This script issues real Create*/write EC2 calls — export AWS_ENDPOINT_URL=http://localhost:4566 ` +
+        `(and AWS_ACCESS_KEY_ID=test, AWS_SECRET_ACCESS_KEY=test) before running it, or it will hit real AWS.`,
+    );
+  }
+
   const seeded = [];
   const skipped = [];
 
