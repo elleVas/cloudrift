@@ -71,7 +71,7 @@ The package targets **Node 20+** (`engines`). The bundle is CommonJS, so every e
 
 ## Homebrew
 
-The tap lives in a **separate** repository, `elleVas/homebrew-cloudrift` (Homebrew's naming convention — a formula cannot live in this repo and be installable via `brew install elleVas/cloudrift/cloudrift`). The formula uses Homebrew's `Language::Node` npm-install pattern: `depends_on "node"`, `def install; system "npm", "install", *std_npm_args; end`, `url` pointing at the published npm tarball (`https://registry.npmjs.org/@cloudrift/cli/-/cli-<version>.tgz`) with its `sha256`.
+The tap lives in a **separate** repository, `elleVas/homebrew-cloudrift` (Homebrew's naming convention — a formula cannot live in this repo and be installable via `brew install elleVas/cloudrift/cloudrift`). The formula uses Homebrew's `Language::Node` npm-install pattern: `depends_on "node"`, `def install; system "npm", "install", *std_npm_args; bin.install_symlink Dir["#{libexec}/bin/*"]; end` (the symlink step is required — `std_npm_args` alone installs into `libexec` but doesn't link the binary into `bin`), `url` pointing at the published npm tarball (`https://registry.npmjs.org/@cloudrift/cli/-/cli-<version>.tgz`) with its `sha256`.
 
 **The tap is bumped automatically.** The last step of `release.yml` ("Bump Homebrew formula") runs `scripts/bump-homebrew-formula.mjs`, which:
 
