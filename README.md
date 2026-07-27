@@ -1,6 +1,7 @@
 # cloudrift
 
 [![npm version](https://img.shields.io/npm/v/@cloudrift/cli.svg)](https://www.npmjs.com/package/@cloudrift/cli)
+[![Homebrew](https://img.shields.io/badge/homebrew-tap-fbb040.svg?logo=homebrew)](https://github.com/elleVas/homebrew-cloudrift)
 [![License](https://img.shields.io/npm/l/@cloudrift/cli.svg)](https://github.com/elleVas/cloudrift/blob/main/LICENSE.md)
 [![Coverage](https://img.shields.io/badge/coverage-%E2%89%A580%25%20domain%2Fapp%20%C2%B7%20%E2%89%A560%25%20infra-brightgreen.svg)](https://github.com/elleVas/cloudrift/actions/workflows/ci.yml)
 [![🇮🇹 Italiano](https://img.shields.io/badge/🇮🇹-Italiano-lightgrey.svg)](https://github.com/elleVas/cloudrift/blob/main/docs/it/leggimi.md)
@@ -17,6 +18,8 @@
 npm install -g @cloudrift/cli
 cloudrift
 ```
+
+macOS/Linux via Homebrew: `brew install elleVas/cloudrift/cloudrift`
 
 That's it — no subcommand needed, the interactive wizard walks you through region and scanner selection. Requires **Node.js 20+** and AWS credentials with [read-only IAM permissions](https://github.com/elleVas/cloudrift/blob/main/docs/en/iam-permissions.md) (`aws configure`, or env vars — see [full setup](#full-setup-fresh-aws-credentials-from-source) below if you need that first).
 
@@ -50,6 +53,12 @@ See [docs/en/usage.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/us
 npm install -g @cloudrift/cli
 # or run it once-off, without installing:
 npx @cloudrift/cli analyze
+```
+
+**Or via Homebrew** (macOS/Linux):
+
+```sh
+brew install elleVas/cloudrift/cloudrift
 ```
 
 **From source** (for contributing, or to run unreleased changes):
