@@ -22,6 +22,27 @@ import { EcrImageUntaggedPolicy } from './ecr-image-untagged.policy';
 import { S3MultipartUploadAbandonedPolicy } from './s3-multipart-upload-abandoned.policy';
 import { RdsManualSnapshotOldPolicy } from './rds-manual-snapshot-old.policy';
 import { SecretsManagerUnusedPolicy } from './secretsmanager-unused.policy';
+import { AuroraServerlessOverprovisionedPolicy } from './aurora-serverless-overprovisioned.policy';
+import { CodepipelinePipelineStalePolicy } from './codepipeline-pipeline-stale.policy';
+import { DocumentDbIdleInstancePolicy } from './documentdb-instance.policy';
+import { EksNodeOverprovisionedPolicy } from './eks-node-overprovisioned.policy';
+import { EksOrphanPvcPolicy } from './eks-orphan-pvc.policy';
+import { EnvironmentGhostPolicy } from './environment-ghost.policy';
+import { FsxIdleFilesystemPolicy } from './fsx-file-system.policy';
+import { KinesisProvisionedIdleStreamPolicy } from './kinesis-stream.policy';
+import { LambdaLogGroupOrphanedPolicy } from './lambda-loggroup-orphaned.policy';
+import { MqIdleBrokerPolicy } from './mq-broker.policy';
+import { MskIdleClusterPolicy } from './msk-cluster.policy';
+import { NeptuneIdleInstancePolicy } from './neptune-instance.policy';
+import { OpenSearchIdleDomainPolicy } from './opensearch-domain.policy';
+import { RedshiftIdleClusterPolicy } from './redshift-cluster.policy';
+import { SageMakerEndpointIdlePolicy } from './sagemaker-endpoint-idle.policy';
+import { SageMakerNotebookIdlePolicy } from './sagemaker-notebook-idle.policy';
+import { SageMakerTrainingOrphanedPolicy } from './sagemaker-training-orphaned.policy';
+import { SqsDlqAbandonedWastePolicy } from './sqs-dlq-abandoned.policy';
+import { TransitGatewayIdleAttachmentPolicy } from './transit-gateway-attachment.policy';
+import { VpnConnectionIdlePolicy } from './vpn-connection.policy';
+import { WorkspacesIdlePolicy } from './workspace.policy';
 import { DEFAULT_IGNORE_TAG, DEFAULT_MIN_AGE_DAYS } from './waste-policy';
 import { EbsVolume } from '../entities/ebs-volume.entity';
 import { ElasticIp } from '../entities/elastic-ip.entity';
@@ -50,6 +71,27 @@ import { RdsManualSnapshotOld } from '../entities/rds-manual-snapshot-old.entity
 import { SecretsManagerUnused } from '../entities/secretsmanager-unused.entity';
 import type { EbsSnapshotProps } from '../entities/ebs-snapshot.entity';
 import type { Ec2InstanceProps } from '../entities/ec2-instance.entity';
+import { AuroraServerlessOverprovisioned } from '../entities/aurora-serverless-overprovisioned.entity';
+import { CodepipelinePipelineStale } from '../entities/codepipeline-pipeline-stale.entity';
+import { DocumentDbInstance } from '../entities/documentdb-instance.entity';
+import { EksNodeOverprovisioned } from '../entities/eks-node-overprovisioned.entity';
+import { EksOrphanPvc } from '../entities/eks-orphan-pvc.entity';
+import { EnvironmentGhost } from '../entities/environment-ghost.entity';
+import { FsxFileSystem } from '../entities/fsx-file-system.entity';
+import { KinesisStream } from '../entities/kinesis-stream.entity';
+import { LambdaLogGroupOrphaned } from '../entities/lambda-loggroup-orphaned.entity';
+import { MqBroker } from '../entities/mq-broker.entity';
+import { MskCluster } from '../entities/msk-cluster.entity';
+import { NeptuneInstance } from '../entities/neptune-instance.entity';
+import { OpenSearchDomain } from '../entities/opensearch-domain.entity';
+import { RedshiftCluster } from '../entities/redshift-cluster.entity';
+import { SageMakerEndpointIdle } from '../entities/sagemaker-endpoint-idle.entity';
+import { SageMakerNotebookIdle } from '../entities/sagemaker-notebook-idle.entity';
+import { SageMakerTrainingOrphaned } from '../entities/sagemaker-training-orphaned.entity';
+import { SqsDlqAbandoned } from '../entities/sqs-dlq-abandoned.entity';
+import { TransitGatewayAttachment } from '../entities/transit-gateway-attachment.entity';
+import { VpnConnection } from '../entities/vpn-connection.entity';
+import { Workspace } from '../entities/workspace.entity';
 import { AwsRegion } from '../value-objects/aws-region.value-object';
 
 const region = AwsRegion.create('us-east-1');
@@ -80,6 +122,10 @@ describe('EbsVolumeWastePolicy', () => {
 
   it('flags an old unattached volume as waste', () => {
     expect(policy.evaluate(makeVolume(), now).isWaste).toBe(true);
+  });
+
+  it('defaults "now" to the current time when omitted', () => {
+    expect(policy.evaluate(makeVolume()).isWaste).toBe(true);
   });
 
   it('does not flag an attached volume', () => {
@@ -959,5 +1005,822 @@ describe('SecretsManagerUnusedPolicy', () => {
 
   it('does not flag a secret accessed recently', () => {
     expect(policy.evaluate(makeSecret({ lastAccessedDate: yesterday }), now).isWaste).toBe(false);
+  });
+});
+
+describe('AuroraServerlessOverprovisionedPolicy', () => {
+  const policy = new AuroraServerlessOverprovisionedPolicy();
+
+  function makeCluster(
+    overrides: {
+      minAcu?: number;
+      peakAcu?: number;
+      hasDatapoint?: boolean;
+      suggestedMinAcu?: number;
+      clusterCreateTime?: Date;
+    } = {},
+  ): AuroraServerlessOverprovisioned {
+    return new AuroraServerlessOverprovisioned({
+      clusterIdentifier: 'cluster-1',
+      region,
+      accountId: '123456789012',
+      engine: 'aurora-postgresql',
+      minAcu: overrides.minAcu ?? 4,
+      maxAcu: 16,
+      peakAcu: overrides.peakAcu ?? 1,
+      hasDatapoint: overrides.hasDatapoint ?? true,
+      suggestedMinAcu: overrides.suggestedMinAcu ?? 1,
+      windowHours: 336,
+      clusterCreateTime: overrides.clusterCreateTime ?? oldDate,
+      detectedAt: now,
+      tags: {},
+      monthlyCostUsd: 30,
+    });
+  }
+
+  it('flags a cluster whose Min ACU floor is far above peak usage', () => {
+    expect(policy.evaluate(makeCluster(), now).isWaste).toBe(true);
+  });
+
+  it('does not flag when there is no CloudWatch datapoint in the window', () => {
+    expect(policy.evaluate(makeCluster({ hasDatapoint: false }), now).isWaste).toBe(false);
+  });
+
+  it('does not flag when peak ACU is above the utilization threshold', () => {
+    expect(policy.evaluate(makeCluster({ peakAcu: 3 }), now).isWaste).toBe(false);
+  });
+
+  it('does not flag when no Min ACU reduction is available', () => {
+    expect(policy.evaluate(makeCluster({ suggestedMinAcu: 4 }), now).isWaste).toBe(false);
+  });
+
+  it('does not flag a freshly created cluster (grace period)', () => {
+    expect(policy.evaluate(makeCluster({ clusterCreateTime: yesterday }), now).isWaste).toBe(false);
+  });
+
+  it('honours a custom Min ACU utilization threshold', () => {
+    const strict = new AuroraServerlessOverprovisionedPolicy({}, 80);
+    expect(strict.evaluate(makeCluster({ peakAcu: 3 }), now).isWaste).toBe(true);
+  });
+});
+
+describe('CodepipelinePipelineStalePolicy', () => {
+  const policy = new CodepipelinePipelineStalePolicy();
+
+  function makePipeline(
+    overrides: { createdAt?: Date; lastExecutionAt?: Date } = {},
+  ): CodepipelinePipelineStale {
+    return new CodepipelinePipelineStale({
+      pipelineName: 'my-pipeline',
+      region,
+      accountId: '123456789012',
+      createdAt: overrides.createdAt ?? oldDate,
+      lastExecutionAt: overrides.lastExecutionAt,
+      detectedAt: now,
+      tags: {},
+      monthlyCostUsd: 1,
+    });
+  }
+
+  it('flags a pipeline that has never executed', () => {
+    expect(policy.evaluate(makePipeline(), now).isWaste).toBe(true);
+  });
+
+  it('flags a pipeline whose last execution is old', () => {
+    expect(policy.evaluate(makePipeline({ lastExecutionAt: oldDate }), now).isWaste).toBe(true);
+  });
+
+  it('does not flag a freshly created pipeline that has never executed (grace period)', () => {
+    expect(policy.evaluate(makePipeline({ createdAt: yesterday }), now).isWaste).toBe(false);
+  });
+
+  it('does not flag a pipeline that executed recently', () => {
+    expect(policy.evaluate(makePipeline({ lastExecutionAt: yesterday }), now).isWaste).toBe(false);
+  });
+});
+
+describe('DocumentDbIdleInstancePolicy', () => {
+  const policy = new DocumentDbIdleInstancePolicy();
+
+  function makeInstance(
+    overrides: { connectionsLastWindow?: number; instanceCreateTime?: Date } = {},
+  ): DocumentDbInstance {
+    return new DocumentDbInstance({
+      dbInstanceIdentifier: 'docdb-1',
+      region,
+      accountId: '123456789012',
+      dbInstanceClass: 'db.t3.medium',
+      connectionsLastWindow: overrides.connectionsLastWindow ?? 0,
+      metricWindowHours: 48,
+      instanceCreateTime: overrides.instanceCreateTime ?? oldDate,
+      detectedAt: now,
+      tags: {},
+      monthlyCostUsd: 55,
+    });
+  }
+
+  it('flags an old instance with zero connections', () => {
+    const verdict = policy.evaluate(makeInstance(), now);
+    expect(verdict.isWaste).toBe(true);
+    expect(verdict.reason).toContain('48h');
+  });
+
+  it('does not flag an instance with connections', () => {
+    expect(policy.evaluate(makeInstance({ connectionsLastWindow: 3 }), now).isWaste).toBe(false);
+  });
+
+  it('does not flag a freshly created instance (grace period)', () => {
+    expect(policy.evaluate(makeInstance({ instanceCreateTime: yesterday }), now).isWaste).toBe(false);
+  });
+});
+
+describe('EksNodeOverprovisionedPolicy', () => {
+  const policy = new EksNodeOverprovisionedPolicy();
+
+  function makeNodegroup(
+    overrides: {
+      cpuRequestedMillis?: number;
+      hasDatapoint?: boolean;
+      suggestedNodeCount?: number;
+      nodegroupCreateTime?: Date;
+    } = {},
+  ): EksNodeOverprovisioned {
+    return new EksNodeOverprovisioned({
+      clusterName: 'my-cluster',
+      nodegroupName: 'my-nodegroup',
+      region,
+      accountId: '123456789012',
+      instanceType: 'm5.large',
+      nodeCount: 3,
+      suggestedNodeCount: overrides.suggestedNodeCount ?? 1,
+      cpuAllocatableMillis: 1000,
+      cpuRequestedMillis: overrides.cpuRequestedMillis ?? 100,
+      memoryAllocatableBytes: 1024 ** 3,
+      memoryRequestedBytes: 128 * 1024 ** 2,
+      hasDatapoint: overrides.hasDatapoint ?? true,
+      windowHours: 336,
+      nodegroupCreateTime: overrides.nodegroupCreateTime ?? oldDate,
+      detectedAt: now,
+      tags: {},
+      monthlyCostUsd: 40,
+    });
+  }
+
+  it('flags an overprovisioned node group', () => {
+    expect(policy.evaluate(makeNodegroup(), now).isWaste).toBe(true);
+  });
+
+  it('does not flag when there is no Container Insights datapoint', () => {
+    expect(policy.evaluate(makeNodegroup({ hasDatapoint: false }), now).isWaste).toBe(false);
+  });
+
+  it('does not flag when CPU requested is above the utilization threshold', () => {
+    expect(policy.evaluate(makeNodegroup({ cpuRequestedMillis: 400 }), now).isWaste).toBe(false);
+  });
+
+  it('does not flag when no node count reduction is available', () => {
+    expect(policy.evaluate(makeNodegroup({ suggestedNodeCount: 3 }), now).isWaste).toBe(false);
+  });
+
+  it('does not flag a freshly created node group (grace period)', () => {
+    expect(policy.evaluate(makeNodegroup({ nodegroupCreateTime: yesterday }), now).isWaste).toBe(false);
+  });
+
+  it('honours a custom CPU utilization threshold', () => {
+    const strict = new EksNodeOverprovisionedPolicy({}, 50);
+    expect(strict.evaluate(makeNodegroup({ cpuRequestedMillis: 400 }), now).isWaste).toBe(true);
+  });
+});
+
+describe('EksOrphanPvcPolicy', () => {
+  const policy = new EksOrphanPvcPolicy();
+
+  function makeVolume(
+    overrides: {
+      state?: string;
+      clusterName?: string;
+      clusterExists?: boolean;
+      createdTime?: Date;
+    } = {},
+  ): EksOrphanPvc {
+    return new EksOrphanPvc({
+      volumeId: 'vol-pvc-1',
+      region,
+      accountId: '123456789012',
+      pvcName: 'data-pvc',
+      pvcNamespace: 'default',
+      clusterName: overrides.clusterName,
+      clusterExists: overrides.clusterExists ?? true,
+      sizeGb: 20,
+      volumeType: 'gp3',
+      state: overrides.state ?? 'available',
+      createdTime: overrides.createdTime ?? oldDate,
+      detectedAt: now,
+      tags: {},
+      monthlyCostUsd: 1.6,
+    });
+  }
+
+  it('flags an unattached PVC volume', () => {
+    expect(policy.evaluate(makeVolume(), now).isWaste).toBe(true);
+  });
+
+  it('flags a PVC volume whose owning cluster no longer exists', () => {
+    const verdict = policy.evaluate(
+      makeVolume({ state: 'in-use', clusterName: 'gone-cluster', clusterExists: false }),
+      now,
+    );
+    expect(verdict.isWaste).toBe(true);
+    expect(verdict.reason).toContain('gone-cluster');
+  });
+
+  it('does not flag an attached volume whose cluster still exists', () => {
+    expect(policy.evaluate(makeVolume({ state: 'in-use' }), now).isWaste).toBe(false);
+  });
+
+  it('does not flag a freshly created volume (grace period)', () => {
+    expect(policy.evaluate(makeVolume({ createdTime: yesterday }), now).isWaste).toBe(false);
+  });
+});
+
+describe('EnvironmentGhostPolicy', () => {
+  const policy = new EnvironmentGhostPolicy();
+
+  function makeEnvironment(
+    overrides: {
+      resourceCount?: number;
+      inactiveResourceCount?: number;
+      lastActivityTimestamp?: Date;
+    } = {},
+  ): EnvironmentGhost {
+    return new EnvironmentGhost({
+      environmentName: 'pr-123',
+      detectionMethod: 'tag',
+      resourceCount: overrides.resourceCount ?? 2,
+      resourceTypes: ['ec2-instance', 'rds-instance'],
+      inactiveResourceCount: overrides.inactiveResourceCount ?? 2,
+      lastActivityTimestamp: overrides.lastActivityTimestamp ?? oldDate,
+      region,
+      accountId: '123456789012',
+      tags: {},
+      detectedAt: now,
+    });
+  }
+
+  it('flags a group whose resources are all inactive past the threshold', () => {
+    expect(policy.evaluate(makeEnvironment(), now).isWaste).toBe(true);
+  });
+
+  it('does not flag a group with no evaluable resources', () => {
+    expect(
+      policy.evaluate(makeEnvironment({ resourceCount: 0, inactiveResourceCount: 0 }), now).isWaste,
+    ).toBe(false);
+  });
+
+  it('does not flag a group with at least one active resource', () => {
+    expect(policy.evaluate(makeEnvironment({ inactiveResourceCount: 1 }), now).isWaste).toBe(false);
+  });
+
+  it('does not flag a group inactive for less than the inactivity threshold', () => {
+    expect(policy.evaluate(makeEnvironment({ lastActivityTimestamp: yesterday }), now).isWaste).toBe(false);
+  });
+
+  it('honours a custom inactivity threshold', () => {
+    const lenient = new EnvironmentGhostPolicy({}, 0);
+    expect(lenient.evaluate(makeEnvironment({ lastActivityTimestamp: yesterday }), now).isWaste).toBe(true);
+  });
+});
+
+describe('FsxIdleFilesystemPolicy', () => {
+  const policy = new FsxIdleFilesystemPolicy();
+
+  function makeFileSystem(
+    overrides: { ioBytesLastWindow?: number; creationTime?: Date } = {},
+  ): FsxFileSystem {
+    return new FsxFileSystem({
+      fileSystemId: 'fs-1',
+      region,
+      accountId: '123456789012',
+      fileSystemType: 'WINDOWS',
+      storageCapacityGiB: 300,
+      ioBytesLastWindow: overrides.ioBytesLastWindow ?? 0,
+      metricWindowHours: 48,
+      creationTime: overrides.creationTime ?? oldDate,
+      detectedAt: now,
+      tags: {},
+      monthlyCostUsd: 45,
+    });
+  }
+
+  it('flags an old file system with zero I/O', () => {
+    const verdict = policy.evaluate(makeFileSystem(), now);
+    expect(verdict.isWaste).toBe(true);
+    expect(verdict.reason).toContain('48h');
+  });
+
+  it('does not flag a file system with I/O activity', () => {
+    expect(policy.evaluate(makeFileSystem({ ioBytesLastWindow: 4096 }), now).isWaste).toBe(false);
+  });
+
+  it('does not flag a freshly created file system (grace period)', () => {
+    expect(policy.evaluate(makeFileSystem({ creationTime: yesterday }), now).isWaste).toBe(false);
+  });
+});
+
+describe('KinesisProvisionedIdleStreamPolicy', () => {
+  const policy = new KinesisProvisionedIdleStreamPolicy();
+
+  function makeStream(
+    overrides: { incomingActivityLastWindow?: number; streamCreationTimestamp?: Date } = {},
+  ): KinesisStream {
+    return new KinesisStream({
+      streamName: 'my-stream',
+      region,
+      accountId: '123456789012',
+      openShardCount: 2,
+      incomingActivityLastWindow: overrides.incomingActivityLastWindow ?? 0,
+      metricWindowHours: 48,
+      streamCreationTimestamp: overrides.streamCreationTimestamp ?? oldDate,
+      detectedAt: now,
+      tags: {},
+      monthlyCostUsd: 21.6,
+    });
+  }
+
+  it('flags an old stream with zero incoming activity', () => {
+    expect(policy.evaluate(makeStream(), now).isWaste).toBe(true);
+  });
+
+  it('does not flag a stream with incoming records', () => {
+    expect(policy.evaluate(makeStream({ incomingActivityLastWindow: 500 }), now).isWaste).toBe(false);
+  });
+
+  it('does not flag a freshly created stream (grace period)', () => {
+    expect(policy.evaluate(makeStream({ streamCreationTimestamp: yesterday }), now).isWaste).toBe(false);
+  });
+});
+
+describe('LambdaLogGroupOrphanedPolicy', () => {
+  const policy = new LambdaLogGroupOrphanedPolicy();
+
+  function makeGroup(
+    overrides: { functionExists?: boolean; lastEventTimestamp?: Date | null } = {},
+  ): LambdaLogGroupOrphaned {
+    return new LambdaLogGroupOrphaned({
+      logGroupName: '/aws/lambda/deleted-fn',
+      functionName: 'deleted-fn',
+      functionExists: overrides.functionExists ?? false,
+      storedBytes: 1024 ** 2,
+      lastEventTimestamp: overrides.lastEventTimestamp === undefined ? null : overrides.lastEventTimestamp,
+      region,
+      accountId: '123456789012',
+      tags: {},
+      monthlyCostUsd: 0.01,
+      detectedAt: now,
+    });
+  }
+
+  it('flags a log group whose function no longer exists and never logged', () => {
+    expect(policy.evaluate(makeGroup(), now).isWaste).toBe(true);
+  });
+
+  it('flags a log group whose last event is outside the grace period', () => {
+    expect(policy.evaluate(makeGroup({ lastEventTimestamp: oldDate }), now).isWaste).toBe(true);
+  });
+
+  it('does not flag a log group whose function still exists', () => {
+    expect(policy.evaluate(makeGroup({ functionExists: true }), now).isWaste).toBe(false);
+  });
+
+  it('does not flag a log group that logged recently (grace period)', () => {
+    expect(policy.evaluate(makeGroup({ lastEventTimestamp: yesterday }), now).isWaste).toBe(false);
+  });
+});
+
+describe('MqIdleBrokerPolicy', () => {
+  const policy = new MqIdleBrokerPolicy();
+
+  function makeBroker(overrides: { networkBytesLastWindow?: number; created?: Date } = {}): MqBroker {
+    return new MqBroker({
+      brokerId: 'broker-1',
+      brokerName: 'my-broker',
+      region,
+      accountId: '123456789012',
+      hostInstanceType: 'mq.t3.micro',
+      deploymentMode: 'SINGLE_INSTANCE',
+      networkBytesLastWindow: overrides.networkBytesLastWindow ?? 0,
+      metricWindowHours: 48,
+      created: overrides.created ?? oldDate,
+      detectedAt: now,
+      tags: {},
+      monthlyCostUsd: 13,
+    });
+  }
+
+  it('flags an old broker with zero network traffic', () => {
+    expect(policy.evaluate(makeBroker(), now).isWaste).toBe(true);
+  });
+
+  it('does not flag a broker with network traffic', () => {
+    expect(policy.evaluate(makeBroker({ networkBytesLastWindow: 2048 }), now).isWaste).toBe(false);
+  });
+
+  it('does not flag a freshly created broker (grace period)', () => {
+    expect(policy.evaluate(makeBroker({ created: yesterday }), now).isWaste).toBe(false);
+  });
+});
+
+describe('MskIdleClusterPolicy', () => {
+  const policy = new MskIdleClusterPolicy();
+
+  function makeCluster(overrides: { bytesLastWindow?: number; creationTime?: Date } = {}): MskCluster {
+    return new MskCluster({
+      clusterName: 'my-msk-cluster',
+      region,
+      accountId: '123456789012',
+      brokerInstanceType: 'kafka.t3.small',
+      numberOfBrokerNodes: 3,
+      bytesLastWindow: overrides.bytesLastWindow ?? 0,
+      metricWindowHours: 48,
+      creationTime: overrides.creationTime ?? oldDate,
+      detectedAt: now,
+      tags: {},
+      monthlyCostUsd: 105,
+    });
+  }
+
+  it('flags an old cluster with zero broker traffic', () => {
+    expect(policy.evaluate(makeCluster(), now).isWaste).toBe(true);
+  });
+
+  it('does not flag a cluster with broker traffic', () => {
+    expect(policy.evaluate(makeCluster({ bytesLastWindow: 1024 }), now).isWaste).toBe(false);
+  });
+
+  it('does not flag a freshly created cluster (grace period)', () => {
+    expect(policy.evaluate(makeCluster({ creationTime: yesterday }), now).isWaste).toBe(false);
+  });
+});
+
+describe('NeptuneIdleInstancePolicy', () => {
+  const policy = new NeptuneIdleInstancePolicy();
+
+  function makeInstance(
+    overrides: { requestsLastWindow?: number; instanceCreateTime?: Date } = {},
+  ): NeptuneInstance {
+    return new NeptuneInstance({
+      dbInstanceIdentifier: 'neptune-1',
+      region,
+      accountId: '123456789012',
+      dbInstanceClass: 'db.r5.large',
+      requestsLastWindow: overrides.requestsLastWindow ?? 0,
+      metricWindowHours: 48,
+      instanceCreateTime: overrides.instanceCreateTime ?? oldDate,
+      detectedAt: now,
+      tags: {},
+      monthlyCostUsd: 190,
+    });
+  }
+
+  it('flags an old instance with zero query traffic', () => {
+    expect(policy.evaluate(makeInstance(), now).isWaste).toBe(true);
+  });
+
+  it('does not flag an instance with query traffic', () => {
+    expect(policy.evaluate(makeInstance({ requestsLastWindow: 50 }), now).isWaste).toBe(false);
+  });
+
+  it('does not flag a freshly created instance (grace period)', () => {
+    expect(policy.evaluate(makeInstance({ instanceCreateTime: yesterday }), now).isWaste).toBe(false);
+  });
+});
+
+describe('OpenSearchIdleDomainPolicy', () => {
+  const policy = new OpenSearchIdleDomainPolicy();
+
+  function makeDomain(overrides: { requestsLastWindow?: number } = {}): OpenSearchDomain {
+    return new OpenSearchDomain({
+      domainName: 'my-domain',
+      region,
+      accountId: '123456789012',
+      instanceType: 'r6g.large.search',
+      instanceCount: 2,
+      requestsLastWindow: overrides.requestsLastWindow ?? 0,
+      metricWindowHours: 48,
+      detectedAt: now,
+      tags: {},
+      monthlyCostUsd: 280,
+    });
+  }
+
+  it('flags a domain with only internal cluster chatter', () => {
+    expect(policy.evaluate(makeDomain(), now).isWaste).toBe(true);
+  });
+
+  it('does not flag a domain with real search/indexing traffic', () => {
+    expect(policy.evaluate(makeDomain({ requestsLastWindow: 10000 }), now).isWaste).toBe(false);
+  });
+});
+
+describe('RedshiftIdleClusterPolicy', () => {
+  const policy = new RedshiftIdleClusterPolicy();
+
+  function makeCluster(
+    overrides: { connectionsLastWindow?: number; clusterCreateTime?: Date } = {},
+  ): RedshiftCluster {
+    return new RedshiftCluster({
+      clusterIdentifier: 'redshift-1',
+      region,
+      accountId: '123456789012',
+      nodeType: 'dc2.large',
+      numberOfNodes: 2,
+      connectionsLastWindow: overrides.connectionsLastWindow ?? 0,
+      metricWindowHours: 48,
+      clusterCreateTime: overrides.clusterCreateTime ?? oldDate,
+      detectedAt: now,
+      tags: {},
+      monthlyCostUsd: 360,
+    });
+  }
+
+  it('flags an old cluster with zero connections', () => {
+    expect(policy.evaluate(makeCluster(), now).isWaste).toBe(true);
+  });
+
+  it('does not flag a cluster with connections', () => {
+    expect(policy.evaluate(makeCluster({ connectionsLastWindow: 4 }), now).isWaste).toBe(false);
+  });
+
+  it('does not flag a freshly created cluster (grace period)', () => {
+    expect(policy.evaluate(makeCluster({ clusterCreateTime: yesterday }), now).isWaste).toBe(false);
+  });
+});
+
+describe('SageMakerEndpointIdlePolicy', () => {
+  const policy = new SageMakerEndpointIdlePolicy();
+
+  function makeEndpoint(
+    overrides: { status?: string; invocationsLastWindow?: number; creationTime?: Date } = {},
+  ): SageMakerEndpointIdle {
+    return new SageMakerEndpointIdle({
+      endpointName: 'my-endpoint',
+      region,
+      accountId: '123456789012',
+      endpointConfigName: 'my-endpoint-config',
+      instanceType: 'ml.m5.large',
+      instanceCount: 1,
+      status: overrides.status ?? 'InService',
+      invocationsLastWindow: overrides.invocationsLastWindow ?? 0,
+      windowHours: 336,
+      creationTime: overrides.creationTime ?? oldDate,
+      detectedAt: now,
+      tags: {},
+      monthlyCostUsd: 100,
+    });
+  }
+
+  it('flags an InService endpoint with zero invocations', () => {
+    expect(policy.evaluate(makeEndpoint(), now).isWaste).toBe(true);
+  });
+
+  it('does not flag an endpoint that is not InService', () => {
+    expect(policy.evaluate(makeEndpoint({ status: 'Creating' }), now).isWaste).toBe(false);
+  });
+
+  it('does not flag an endpoint with invocations', () => {
+    expect(policy.evaluate(makeEndpoint({ invocationsLastWindow: 20 }), now).isWaste).toBe(false);
+  });
+
+  it('does not flag a freshly created endpoint (grace period)', () => {
+    expect(policy.evaluate(makeEndpoint({ creationTime: yesterday }), now).isWaste).toBe(false);
+  });
+});
+
+describe('SageMakerNotebookIdlePolicy', () => {
+  const policy = new SageMakerNotebookIdlePolicy();
+
+  function makeNotebook(
+    overrides: { status?: string; maxCpuPercent?: number; lastModifiedTime?: Date } = {},
+  ): SageMakerNotebookIdle {
+    return new SageMakerNotebookIdle({
+      notebookInstanceName: 'my-notebook',
+      region,
+      accountId: '123456789012',
+      instanceType: 'ml.t3.medium',
+      status: overrides.status ?? 'InService',
+      maxCpuPercent: overrides.maxCpuPercent ?? 0.5,
+      windowHours: 336,
+      lastModifiedTime: overrides.lastModifiedTime ?? oldDate,
+      detectedAt: now,
+      tags: {},
+      monthlyCostUsd: 40,
+    });
+  }
+
+  it('flags an InService notebook with low max CPU', () => {
+    expect(policy.evaluate(makeNotebook(), now).isWaste).toBe(true);
+  });
+
+  it('does not flag a notebook that is not InService', () => {
+    expect(policy.evaluate(makeNotebook({ status: 'Stopped' }), now).isWaste).toBe(false);
+  });
+
+  it('does not flag a notebook with CPU above threshold', () => {
+    expect(policy.evaluate(makeNotebook({ maxCpuPercent: 10 }), now).isWaste).toBe(false);
+  });
+
+  it('does not flag a notebook whose max CPU equals the threshold exactly (boundary)', () => {
+    expect(policy.evaluate(makeNotebook({ maxCpuPercent: 2 }), now).isWaste).toBe(false);
+  });
+
+  it('does not flag a recently modified notebook (grace period)', () => {
+    expect(policy.evaluate(makeNotebook({ lastModifiedTime: yesterday }), now).isWaste).toBe(false);
+  });
+
+  it('honours a custom CPU threshold', () => {
+    const lenient = new SageMakerNotebookIdlePolicy({}, 15);
+    expect(lenient.evaluate(makeNotebook({ maxCpuPercent: 10 }), now).isWaste).toBe(true);
+  });
+});
+
+describe('SageMakerTrainingOrphanedPolicy', () => {
+  const policy = new SageMakerTrainingOrphanedPolicy();
+
+  function makeModel(
+    overrides: { referencedByEndpointConfig?: boolean; creationTime?: Date } = {},
+  ): SageMakerTrainingOrphaned {
+    return new SageMakerTrainingOrphaned({
+      modelName: 'my-model',
+      region,
+      accountId: '123456789012',
+      modelArn: 'arn:aws:sagemaker:us-east-1:123456789012:model/my-model',
+      primaryContainerImage: '123456789012.dkr.ecr.us-east-1.amazonaws.com/my-image:latest',
+      modelDataUrl: 's3://my-bucket/model.tar.gz',
+      referencedByEndpointConfig: overrides.referencedByEndpointConfig ?? false,
+      creationTime: overrides.creationTime ?? oldDate,
+      detectedAt: now,
+      tags: {},
+      monthlyCostUsd: 2,
+    });
+  }
+
+  it('flags a model not referenced by any endpoint config', () => {
+    expect(policy.evaluate(makeModel(), now).isWaste).toBe(true);
+  });
+
+  it('does not flag a model referenced by an endpoint config', () => {
+    expect(policy.evaluate(makeModel({ referencedByEndpointConfig: true }), now).isWaste).toBe(false);
+  });
+
+  it('does not flag a freshly created model (grace period)', () => {
+    expect(policy.evaluate(makeModel({ creationTime: yesterday }), now).isWaste).toBe(false);
+  });
+});
+
+describe('SqsDlqAbandonedWastePolicy', () => {
+  const policy = new SqsDlqAbandonedWastePolicy();
+  const DAY_SECONDS = 86400;
+
+  function makeQueue(
+    overrides: {
+      identifiedAsDlq?: boolean;
+      approximateNumberOfMessages?: number;
+      oldestMessageAgeSeconds?: number;
+    } = {},
+  ): SqsDlqAbandoned {
+    return new SqsDlqAbandoned({
+      queueUrl: 'https://sqs.us-east-1.amazonaws.com/123456789012/my-dlq',
+      queueName: 'my-dlq',
+      approximateNumberOfMessages: overrides.approximateNumberOfMessages ?? 5,
+      oldestMessageAgeSeconds: overrides.oldestMessageAgeSeconds ?? 20 * DAY_SECONDS,
+      identifiedAsDlq: overrides.identifiedAsDlq ?? true,
+      region,
+      accountId: '123456789012',
+      tags: {},
+    });
+  }
+
+  it('flags a DLQ with old unconsumed messages', () => {
+    expect(policy.evaluate(makeQueue(), now).isWaste).toBe(true);
+  });
+
+  it('does not flag a queue not identified as a DLQ', () => {
+    expect(policy.evaluate(makeQueue({ identifiedAsDlq: false }), now).isWaste).toBe(false);
+  });
+
+  it('does not flag a DLQ with no messages', () => {
+    expect(policy.evaluate(makeQueue({ approximateNumberOfMessages: 0 }), now).isWaste).toBe(false);
+  });
+
+  it('does not flag a DLQ whose oldest message is within the grace period', () => {
+    expect(policy.evaluate(makeQueue({ oldestMessageAgeSeconds: 2 * DAY_SECONDS }), now).isWaste).toBe(false);
+  });
+
+  it('honours a custom minimum message age', () => {
+    const lenient = new SqsDlqAbandonedWastePolicy({}, 1);
+    expect(lenient.evaluate(makeQueue({ oldestMessageAgeSeconds: 2 * DAY_SECONDS }), now).isWaste).toBe(true);
+  });
+});
+
+describe('TransitGatewayIdleAttachmentPolicy', () => {
+  const policy = new TransitGatewayIdleAttachmentPolicy();
+
+  function makeAttachment(
+    overrides: { bytesLastWindow?: number; creationTime?: Date } = {},
+  ): TransitGatewayAttachment {
+    return new TransitGatewayAttachment({
+      transitGatewayAttachmentId: 'tgw-attach-1',
+      region,
+      accountId: '123456789012',
+      transitGatewayId: 'tgw-1',
+      resourceType: 'vpc',
+      bytesLastWindow: overrides.bytesLastWindow ?? 0,
+      metricWindowHours: 48,
+      creationTime: overrides.creationTime ?? oldDate,
+      detectedAt: now,
+      tags: {},
+      monthlyCostUsd: 51,
+    });
+  }
+
+  it('flags an old attachment with zero traffic', () => {
+    expect(policy.evaluate(makeAttachment(), now).isWaste).toBe(true);
+  });
+
+  it('does not flag an attachment with traffic', () => {
+    expect(policy.evaluate(makeAttachment({ bytesLastWindow: 1024 }), now).isWaste).toBe(false);
+  });
+
+  it('does not flag a freshly created attachment (grace period)', () => {
+    expect(policy.evaluate(makeAttachment({ creationTime: yesterday }), now).isWaste).toBe(false);
+  });
+});
+
+describe('VpnConnectionIdlePolicy', () => {
+  const policy = new VpnConnectionIdlePolicy();
+
+  function makeConnection(overrides: { tunnelBytesLastWindow?: number } = {}): VpnConnection {
+    return new VpnConnection({
+      vpnConnectionId: 'vpn-1',
+      region,
+      accountId: '123456789012',
+      vpnGatewayId: 'vgw-1',
+      transitGatewayId: undefined,
+      tunnelBytesLastWindow: overrides.tunnelBytesLastWindow ?? 0,
+      metricWindowHours: 48,
+      detectedAt: now,
+      tags: {},
+      monthlyCostUsd: 36.5,
+    });
+  }
+
+  it('flags a connection with zero tunnel traffic', () => {
+    expect(policy.evaluate(makeConnection(), now).isWaste).toBe(true);
+  });
+
+  it('does not flag a connection with tunnel traffic', () => {
+    expect(policy.evaluate(makeConnection({ tunnelBytesLastWindow: 2048 }), now).isWaste).toBe(false);
+  });
+});
+
+describe('WorkspacesIdlePolicy', () => {
+  const policy = new WorkspacesIdlePolicy();
+
+  function makeWorkspace(overrides: { lastKnownUserConnectionTimestamp?: Date } = {}): Workspace {
+    return new Workspace({
+      workspaceId: 'ws-1',
+      region,
+      accountId: '123456789012',
+      userName: 'jdoe',
+      computeTypeName: 'STANDARD',
+      runningMode: 'ALWAYS_ON',
+      lastKnownUserConnectionTimestamp: overrides.lastKnownUserConnectionTimestamp,
+      detectedAt: now,
+      tags: {},
+      monthlyCostUsd: 36,
+    });
+  }
+
+  it('flags a WorkSpace that never connected', () => {
+    expect(policy.evaluate(makeWorkspace(), now).isWaste).toBe(true);
+  });
+
+  it('flags a WorkSpace whose last connection is outside the window', () => {
+    expect(policy.evaluate(makeWorkspace({ lastKnownUserConnectionTimestamp: oldDate }), now).isWaste).toBe(
+      true,
+    );
+  });
+
+  it('does not flag a WorkSpace connected within the window', () => {
+    expect(
+      policy.evaluate(makeWorkspace({ lastKnownUserConnectionTimestamp: yesterday }), now).isWaste,
+    ).toBe(false);
+  });
+
+  it('honours a custom idle window', () => {
+    const strict = new WorkspacesIdlePolicy({}, 0);
+    expect(
+      strict.evaluate(makeWorkspace({ lastKnownUserConnectionTimestamp: yesterday }), now).isWaste,
+    ).toBe(true);
   });
 });

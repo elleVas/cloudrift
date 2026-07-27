@@ -35,4 +35,16 @@ describe('EcrImageUntagged', () => {
   it('costEstimate description references the image size', () => {
     expect(makeImage().costEstimate.description).toContain('2.00 GB');
   });
+
+  it('exposes the remaining props', () => {
+    const imagePushedAt = new Date('2025-12-01');
+    const detectedAt = new Date('2026-06-09');
+    const img = makeImage({ region, accountId: '999999999999', sizeBytes: 1024, imagePushedAt, detectedAt, tags: { env: 'prod' } });
+    expect(img.region).toBe(region);
+    expect(img.accountId).toBe('999999999999');
+    expect(img.sizeBytes).toBe(1024);
+    expect(img.imagePushedAt).toBe(imagePushedAt);
+    expect(img.detectedAt).toBe(detectedAt);
+    expect(img.tags).toEqual({ env: 'prod' });
+  });
 });

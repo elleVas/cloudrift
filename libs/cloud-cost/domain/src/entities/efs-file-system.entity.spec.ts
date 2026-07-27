@@ -54,4 +54,16 @@ describe('EfsFileSystem', () => {
   it('costEstimate description references the file system size', () => {
     expect(makeFileSystem().costEstimate.description).toContain('GB');
   });
+
+  it('exposes the remaining props', () => {
+    const creationTime = new Date('2023-01-01');
+    const detectedAt = new Date('2026-06-09');
+    const fs = makeFileSystem({ region, accountId: '999999999999', ioBytesLastWindow: 1024, creationTime, detectedAt });
+    expect(fs.region).toBe(region);
+    expect(fs.accountId).toBe('999999999999');
+    expect(fs.ioBytesLastWindow).toBe(1024);
+    expect(fs.metricWindowHours).toBe(48);
+    expect(fs.creationTime).toBe(creationTime);
+    expect(fs.detectedAt).toBe(detectedAt);
+  });
 });

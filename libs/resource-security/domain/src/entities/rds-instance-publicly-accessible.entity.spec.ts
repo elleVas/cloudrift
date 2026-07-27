@@ -21,4 +21,16 @@ describe('RdsInstancePubliclyAccessible', () => {
     expect(finding.kind).toBe('rds-instance-publicly-accessible');
     expect(finding.severity).toBe('critical');
   });
+
+  it('exposes the remaining props', () => {
+    const detectedAt = new Date('2026-07-23');
+    const region = AwsRegion.create('eu-west-1');
+    const finding = makeFinding({ dbInstanceIdentifier: 'db-9', region, accountId: '999999999999', detectedAt, tags: { env: 'prod' } });
+    expect(finding.dbInstanceIdentifier).toBe('db-9');
+    expect(finding.region).toBe(region);
+    expect(finding.accountId).toBe('999999999999');
+    expect(finding.detectedAt).toBe(detectedAt);
+    expect(finding.tags).toEqual({ env: 'prod' });
+    expect(finding.riskReason).toContain('publicly accessible');
+  });
 });

@@ -41,4 +41,15 @@ describe('SecretsManagerUnused', () => {
   it('costEstimate returns the fixed monthly cost', () => {
     expect(makeSecret().costEstimate.monthlyCostUsd).toBe(0.4);
   });
+
+  it('exposes the remaining props', () => {
+    const createdDate = new Date('2025-01-01');
+    const detectedAt = new Date('2026-06-09');
+    const secret = makeSecret({ region, accountId: '999999999999', createdDate, detectedAt, tags: { env: 'prod' } });
+    expect(secret.region).toBe(region);
+    expect(secret.accountId).toBe('999999999999');
+    expect(secret.createdDate).toBe(createdDate);
+    expect(secret.detectedAt).toBe(detectedAt);
+    expect(secret.tags).toEqual({ env: 'prod' });
+  });
 });

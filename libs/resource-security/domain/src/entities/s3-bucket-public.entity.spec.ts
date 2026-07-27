@@ -25,4 +25,13 @@ describe('S3BucketPublic', () => {
     const finding = makeFinding({ publicVia: ['bucket policy allows public access', 'bucket ACL grants public access'] });
     expect(finding.riskReason).toBe('bucket policy allows public access; bucket ACL grants public access');
   });
+
+  it('exposes the remaining props', () => {
+    const detectedAt = new Date('2026-07-23');
+    const finding = makeFinding({ bucketName: 'other-bucket', accountId: '999999999999', detectedAt, tags: { env: 'prod' } });
+    expect(finding.bucketName).toBe('other-bucket');
+    expect(finding.accountId).toBe('999999999999');
+    expect(finding.detectedAt).toBe(detectedAt);
+    expect(finding.tags).toEqual({ env: 'prod' });
+  });
 });

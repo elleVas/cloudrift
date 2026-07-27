@@ -28,4 +28,19 @@ describe('Ec2DefaultSecurityGroupPermissive', () => {
   it('riskReason reports which rule types are present', () => {
     expect(makeFinding({ hasIngressRules: true, hasEgressRules: false }).riskReason).toContain('ingress rules present');
   });
+
+  it('exposes the remaining props', () => {
+    const detectedAt = new Date('2026-07-23');
+    const region = AwsRegion.create('eu-west-1');
+    const finding = makeFinding({ vpcId: 'vpc-9', region, accountId: '999999999999', detectedAt, tags: { env: 'prod' } });
+    expect(finding.vpcId).toBe('vpc-9');
+    expect(finding.region).toBe(region);
+    expect(finding.accountId).toBe('999999999999');
+    expect(finding.detectedAt).toBe(detectedAt);
+    expect(finding.tags).toEqual({ env: 'prod' });
+  });
+
+  it('riskReason reports egress-only exposure', () => {
+    expect(makeFinding({ hasIngressRules: false, hasEgressRules: true }).riskReason).toContain('egress rules present');
+  });
 });

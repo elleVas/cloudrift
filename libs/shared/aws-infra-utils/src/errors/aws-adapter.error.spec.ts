@@ -23,6 +23,16 @@ describe('AwsAdapterError', () => {
     expect(err.cause.message).toBe('boom');
   });
 
+  it('normalizes a non-Error cause (e.g. a thrown string) into a real Error', () => {
+    delete process.env.DEBUG;
+    const { AwsAdapterError } = require('./aws-adapter.error');
+    const err = new AwsAdapterError('S3', 'access denied');
+
+    expect(err.cause).toBeInstanceOf(Error);
+    expect(err.cause.message).toBe('access denied');
+    expect(err.message).toBe('AWS S3 adapter failed: access denied');
+  });
+
   it('is silent when DEBUG is unset', () => {
     delete process.env.DEBUG;
     const { AwsAdapterError } = require('./aws-adapter.error');

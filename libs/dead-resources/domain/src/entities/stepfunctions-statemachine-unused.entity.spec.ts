@@ -29,4 +29,16 @@ describe('StepfunctionsStatemachineUnused', () => {
     expect(machine.hygieneReason).toContain('never been executed');
     expect(machine.severity).toBe('info');
   });
+
+  it('exposes the remaining props', () => {
+    const region = AwsRegion.create('eu-west-1');
+    const createdAt = new Date('2022-01-01');
+    const detectedAt = new Date('2026-07-23');
+    const machine = makeMachine({ region, accountId: '999999999999', createdAt, detectedAt, tags: {} });
+    expect(machine.region).toBe(region);
+    expect(machine.accountId).toBe('999999999999');
+    expect(machine.createdAt).toBe(createdAt);
+    expect(machine.detectedAt).toBe(detectedAt);
+    expect(machine.tags).toEqual({});
+  });
 });

@@ -41,4 +41,32 @@ describe('EbsVolume', () => {
   it('equals another volume with the same id', () => {
     expect(makeVolume().equals(makeVolume())).toBe(true);
   });
+
+  it('exposes the remaining props', () => {
+    const region = AwsRegion.create('eu-west-1');
+    const createTime = new Date('2025-01-01');
+    const detectedAt = new Date('2026-06-09');
+    const volume = new EbsVolume({
+      volumeId: 'vol-9',
+      region,
+      accountId: '999999999999',
+      sizeGb: 200,
+      volumeType: 'gp2',
+      state: 'available',
+      createTime,
+      detectedAt,
+      tags: { env: 'prod' },
+      monthlyCostUsd: 16,
+    });
+    expect(volume.region).toBe(region);
+    expect(volume.accountId).toBe('999999999999');
+    expect(volume.sizeGb).toBe(200);
+    expect(volume.volumeType).toBe('gp2');
+    expect(volume.state).toBe('available');
+    expect(volume.createTime).toBe(createTime);
+    expect(volume.detectedAt).toBe(detectedAt);
+    expect(volume.tags).toEqual({ env: 'prod' });
+    expect(volume.wasteReason).toBe('unattached');
+    expect(volume.kind).toBe('ebs-volume');
+  });
 });

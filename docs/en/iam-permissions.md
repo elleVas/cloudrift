@@ -2,7 +2,7 @@
 
 > 🇮🇹 [Versione italiana](../it/permessi-iam.md)
 
-The AWS principal needs the following read-only permissions:
+The AWS principal needs the following read-only permissions. Run [`cloudrift iam-policy`](usage.md#iam-policy--print-the-required-iam-policy) to print this exact policy (all blocks below, combined) as ready-to-paste JSON instead of copying it from here.
 
 ```json
 {

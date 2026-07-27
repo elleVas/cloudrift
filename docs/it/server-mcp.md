@@ -4,7 +4,7 @@
 
 cloudrift può girare come server [MCP](https://modelcontextprotocol.io) (Model Context Protocol) locale, così un agente AI — Claude Code, Kiro, VS Code Copilot Chat (Agent mode), o qualsiasi altro client compatibile con MCP — può chiamare direttamente gli scanner di cloudrift come tool, invece che tu lanci la CLI a mano e incolli l'output di ritorno.
 
-Questa pagina copre solo il **collegamento di un client**. Per il comando `cloudrift mcp` in sé (come avviarlo, l'interruttore `CLOUDRIFT_DISABLE_MCP`), vedi [utilizzo.md](utilizzo.md#mcp---esegui-cloudrift-come-server-mcp-locale).
+Questa pagina copre solo il **collegamento di un client**. Per il comando `cloudrift mcp` in sé (come avviarlo, l'interruttore `CLOUDRIFT_DISABLE_MCP`), vedi [utilizzo.md](utilizzo.md#mcp--esegui-cloudrift-come-server-mcp-locale).
 
 ## Tool esposti
 

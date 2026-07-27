@@ -34,4 +34,17 @@ describe('CodepipelinePipelineStale', () => {
   it('costEstimate reflects the flat monthly price', () => {
     expect(makePipeline().costEstimate.monthlyCostUsd).toBe(1);
   });
+
+  it('exposes the remaining props', () => {
+    const createdAt = new Date('2023-01-01');
+    const lastExecutionAt = new Date('2026-01-01');
+    const detectedAt = new Date('2026-06-09');
+    const pipeline = makePipeline({ region, accountId: '999999999999', createdAt, lastExecutionAt, detectedAt, tags: {} });
+    expect(pipeline.region).toBe(region);
+    expect(pipeline.accountId).toBe('999999999999');
+    expect(pipeline.createdAt).toBe(createdAt);
+    expect(pipeline.lastExecutionAt).toBe(lastExecutionAt);
+    expect(pipeline.detectedAt).toBe(detectedAt);
+    expect(pipeline.tags).toEqual({});
+  });
 });

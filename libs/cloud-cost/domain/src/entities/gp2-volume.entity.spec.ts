@@ -46,4 +46,14 @@ describe('Gp2Volume', () => {
   it('costEstimate description references the gp2 to gp3 saving', () => {
     expect(makeVolume().costEstimate.description).toContain('gp2 → gp3');
   });
+
+  it('exposes the remaining props', () => {
+    const createTime = new Date('2023-01-01');
+    const detectedAt = new Date('2026-06-09');
+    const volume = makeVolume({ region, accountId: '999999999999', createTime, detectedAt });
+    expect(volume.region).toBe(region);
+    expect(volume.accountId).toBe('999999999999');
+    expect(volume.createTime).toBe(createTime);
+    expect(volume.detectedAt).toBe(detectedAt);
+  });
 });

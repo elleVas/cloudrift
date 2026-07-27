@@ -23,4 +23,13 @@ describe('IamRootAccessKeyActive', () => {
   it('riskReason mentions the active access key', () => {
     expect(makeFinding().riskReason).toContain('active access key');
   });
+
+  it('exposes the remaining props', () => {
+    const detectedAt = new Date('2026-07-23');
+    const finding = makeFinding({ accountId: '999999999999', accessKeysPresent: false, detectedAt, tags: { env: 'prod' } });
+    expect(finding.accountId).toBe('999999999999');
+    expect(finding.accessKeysPresent).toBe(false);
+    expect(finding.detectedAt).toBe(detectedAt);
+    expect(finding.tags).toEqual({ env: 'prod' });
+  });
 });

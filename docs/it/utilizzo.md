@@ -74,7 +74,7 @@ Il flag `--pdf` genera un PDF in aggiunta all'output console (aggiungi `--silent
 
 - **Executive summary** — totale spreco mensile e annuale, numero di risorse, breakdown per tipo
 - **Top raccomandazioni** — fino a 8 voci ordinate per impatto mensile, con risparmio annuale stimato
-- **Pagine di dettaglio** — una tabella per ogni tipo di risorsa trovata (EBS, Elastic IP, RDS, Load Balancer, EC2, Snapshot, NAT Gateway)
+- **Pagine di dettaglio** — una tabella per ogni tipo di risorsa trovata (EBS, Elastic IP, RDS, Load Balancer, EC2, Snapshot, NAT Gateway), ogni riga termina con una colonna `Link` — clicca ovunque nella cella per aprire la risorsa esatta nella console AWS (alcuni tipi senza un URL derivabile la lasciano vuota invece di indovinare, vedi [ADR-0091](../adr/0091-aws-console-deep-links-in-reports.md), in inglese). La stessa URL è disponibile come campo `consoleUrl` su ogni finding in `--format json` / `--json`.
 - **Scan warnings** — elencati se alcuni tipi di risorsa non hanno potuto essere scansionati
 
 ```sh
@@ -319,3 +319,11 @@ Questo è indipendente da `cloudrift.config.json` di proposito: `cloudrift mcp` 
 ### Collegare un client MCP
 
 Vedi [docs/it/server-mcp.md](server-mcp.md) per i tool esposti da questo server e come collegare Kiro, VS Code (GitHub Copilot Chat) e Claude Code — ognuno usa un formato di configurazione diverso, un file copiato 1:1 dall'uno all'altro non funzionerà.
+
+## `iam-policy` — stampa la policy IAM richiesta
+
+```sh
+node apps/cli/dist/main.js iam-policy
+```
+
+Stampa la policy IAM read-only completa richiesta da cloudrift (ogni azione usata da `analyze`/`dead-resources`/`resource-security`/`cost`/`trend`) come JSON pronto da incollare — la stessa policy statica documentata a mano in [docs/it/permessi-iam.md](permessi-iam.md) e restituita dal tool MCP `get_required_iam_permissions`. Nessuna chiamata AWS, nessun flag, nessun filtro per comando (oggi non esiste una mappatura IAM per singolo tipo di risorsa, quindi non è disponibile un filtro tipo `--scanners`). Utile per incollarla direttamente nella console AWS, in una risorsa Terraform `aws_iam_policy`, o in un `PolicyDocument.fromJson(...)` CDK.

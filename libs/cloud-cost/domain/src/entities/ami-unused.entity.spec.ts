@@ -45,4 +45,15 @@ describe('AmiUnused', () => {
   it('costEstimate description references the backing snapshot size', () => {
     expect(makeAmi().costEstimate.description).toContain('20 GB');
   });
+
+  it('exposes the remaining props', () => {
+    const creationDate = new Date('2025-05-01');
+    const detectedAt = new Date('2026-06-09');
+    const ami = makeAmi({ region, accountId: '999999999999', creationDate, detectedAt, tags: { env: 'prod' } });
+    expect(ami.region).toBe(region);
+    expect(ami.accountId).toBe('999999999999');
+    expect(ami.creationDate).toBe(creationDate);
+    expect(ami.detectedAt).toBe(detectedAt);
+    expect(ami.tags).toEqual({ env: 'prod' });
+  });
 });

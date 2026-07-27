@@ -37,4 +37,15 @@ describe('RdsManualSnapshotOld', () => {
   it('costEstimate description references the allocated storage', () => {
     expect(makeSnapshot().costEstimate.description).toContain('100 GB');
   });
+
+  it('exposes the remaining props', () => {
+    const snapshotCreateTime = new Date('2025-01-01');
+    const detectedAt = new Date('2026-06-09');
+    const snap = makeSnapshot({ region, accountId: '999999999999', snapshotCreateTime, detectedAt, tags: { env: 'prod' } });
+    expect(snap.region).toBe(region);
+    expect(snap.accountId).toBe('999999999999');
+    expect(snap.snapshotCreateTime).toBe(snapshotCreateTime);
+    expect(snap.detectedAt).toBe(detectedAt);
+    expect(snap.tags).toEqual({ env: 'prod' });
+  });
 });

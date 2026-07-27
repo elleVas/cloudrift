@@ -3,6 +3,8 @@ import { createWriteStream } from 'fs';
 import Table from 'cli-table3';
 import chalk from 'chalk';
 import { REPORT_CONTACT } from 'cloud-cost-application';
+import type { AwsRegion } from 'cloud-cost-domain';
+import { buildConsoleUrl } from '../aws-console-link';
 import {
   C,
   PAGE_H,
@@ -83,7 +85,7 @@ interface TopFinding {
  */
 export abstract class SeverityReportFormatter<
   K extends string,
-  G extends { kind: K; severity: Severity },
+  G extends { kind: K; severity: Severity; id: string; region?: AwsRegion },
   F extends G = G,
 > {
   protected abstract readonly kinds: readonly K[];
@@ -239,10 +241,17 @@ export abstract class SeverityReportFormatter<
       const presenter = this.presenterFor(kind);
       doc.addPage();
       const y = this.sectionHeader(doc, presenter.title);
-      const rows = findings.map((finding) => [...this.rowFor(finding), finding.severity]);
-      const headers = [...presenter.head, 'Severity'];
+      const links = findings.map((finding) =>
+        buildConsoleUrl({ kind: finding.kind, id: finding.id, region: finding.region?.code }),
+      );
+      const rows = findings.map((finding, i) => [
+        ...this.rowFor(finding),
+        finding.severity,
+        links[i] ? 'Open ↗' : '',
+      ]);
+      const headers = [...presenter.head, 'Severity', 'Link'];
       const colWidths = computeColumnWidths(doc, headers, rows, CONTENT_W);
-      drawTable(doc, headers, rows, colWidths, y, contentBottom);
+      drawTable(doc, headers, rows, colWidths, y, contentBottom, links);
     }
   }
 

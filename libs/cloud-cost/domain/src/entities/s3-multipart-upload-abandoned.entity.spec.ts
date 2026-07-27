@@ -37,4 +37,15 @@ describe('S3MultipartUploadAbandoned', () => {
   it('costEstimate description references the uploaded size', () => {
     expect(makeUpload().costEstimate.description).toContain('5.00 GB');
   });
+
+  it('exposes the remaining props', () => {
+    const initiated = new Date('2025-01-01');
+    const detectedAt = new Date('2026-06-09');
+    const upload = makeUpload({ region, accountId: '999999999999', initiated, detectedAt, tags: { env: 'prod' } });
+    expect(upload.region).toBe(region);
+    expect(upload.accountId).toBe('999999999999');
+    expect(upload.initiated).toBe(initiated);
+    expect(upload.detectedAt).toBe(detectedAt);
+    expect(upload.tags).toEqual({ env: 'prod' });
+  });
 });

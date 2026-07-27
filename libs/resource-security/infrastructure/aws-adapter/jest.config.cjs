@@ -11,6 +11,10 @@ module.exports = {
   },
   moduleFileExtensions: ['ts', 'js', 'json'],
   testMatch: ['<rootDir>/src/**/*.spec.ts'],
+  collectCoverageFrom: ['<rootDir>/src/**/*.ts', '!<rootDir>/src/**/*.spec.ts', '!<rootDir>/src/index.ts'],
+  coverageThreshold: {
+    global: { statements: 60, branches: 60, functions: 60, lines: 60 },
+  },
   moduleNameMapper: {
     '^shared-kernel$': '<rootDir>/../../../shared/kernel/src/index.ts',
     '^shared-kernel/(.*)$': '<rootDir>/../../../shared/kernel/src/$1',

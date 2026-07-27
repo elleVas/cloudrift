@@ -49,4 +49,15 @@ describe('NatGateway', () => {
   it('costEstimate description references NAT Gateway', () => {
     expect(makeGateway().costEstimate.description).toContain('NAT Gateway');
   });
+
+  it('exposes the remaining props', () => {
+    const createTime = new Date('2023-01-01');
+    const detectedAt = new Date('2026-06-09');
+    const gateway = makeGateway({ region, accountId: '999999999999', bytesOutLastWindow: 512, createTime, detectedAt });
+    expect(gateway.region).toBe(region);
+    expect(gateway.accountId).toBe('999999999999');
+    expect(gateway.bytesOutLastWindow).toBe(512);
+    expect(gateway.createTime).toBe(createTime);
+    expect(gateway.detectedAt).toBe(detectedAt);
+  });
 });

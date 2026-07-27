@@ -63,4 +63,11 @@ describe('LoadBalancer', () => {
   it('exposes tags', () => {
     expect(makeLb().tags).toEqual({ Team: 'platform' });
   });
+
+  it('exposes the remaining props', () => {
+    const lb = makeLb();
+    expect(lb.accountId).toBe('123456789012');
+    expect(lb.createdTime).toEqual(new Date('2025-03-01'));
+    expect(lb.detectedAt).toEqual(new Date('2026-06-09'));
+  });
 });

@@ -44,4 +44,13 @@ describe('OrphanedEni', () => {
   it('costEstimate is zero (hygiene flag, no direct cost)', () => {
     expect(makeEni().costEstimate.monthlyCostUsd).toBe(0);
   });
+
+  it('exposes the remaining props', () => {
+    const detectedAt = new Date('2026-06-09');
+    const eni = makeEni({ region, accountId: '999999999999', detectedAt });
+    expect(eni.region).toBe(region);
+    expect(eni.accountId).toBe('999999999999');
+    expect(eni.status).toBe('available');
+    expect(eni.detectedAt).toBe(detectedAt);
+  });
 });

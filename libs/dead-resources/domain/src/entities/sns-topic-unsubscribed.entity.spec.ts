@@ -28,4 +28,14 @@ describe('SnsTopicUnsubscribed', () => {
     expect(topic.hygieneReason).toContain('no subscriptions');
     expect(topic.severity).toBe('info');
   });
+
+  it('exposes the remaining props', () => {
+    const region = AwsRegion.create('eu-west-1');
+    const detectedAt = new Date('2026-07-23');
+    const topic = makeTopic({ region, accountId: '999999999999', detectedAt, tags: {} });
+    expect(topic.region).toBe(region);
+    expect(topic.accountId).toBe('999999999999');
+    expect(topic.detectedAt).toBe(detectedAt);
+    expect(topic.tags).toEqual({});
+  });
 });

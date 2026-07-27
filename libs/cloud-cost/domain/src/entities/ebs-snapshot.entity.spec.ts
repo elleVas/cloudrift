@@ -56,4 +56,15 @@ describe('EbsSnapshot', () => {
   it('costEstimate description references orphan snapshot', () => {
     expect(makeSnapshot().costEstimate.description).toContain('orphan snapshot');
   });
+
+  it('exposes the remaining props', () => {
+    const startTime = new Date('2022-01-01');
+    const detectedAt = new Date('2026-06-09');
+    const snapshot = makeSnapshot({ region, accountId: '999999999999', startTime, detectedAt, tags: { env: 'prod' } });
+    expect(snapshot.region).toBe(region);
+    expect(snapshot.accountId).toBe('999999999999');
+    expect(snapshot.startTime).toBe(startTime);
+    expect(snapshot.detectedAt).toBe(detectedAt);
+    expect(snapshot.tags).toEqual({ env: 'prod' });
+  });
 });

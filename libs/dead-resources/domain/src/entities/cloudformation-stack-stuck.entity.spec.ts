@@ -31,4 +31,16 @@ describe('CloudformationStackStuck', () => {
     expect(stack.hygieneReason).toBe('stuck in DELETE_FAILED');
     expect(stack.severity).toBe('critical');
   });
+
+  it('exposes the remaining props', () => {
+    const region = AwsRegion.create('eu-west-1');
+    const createdAt = new Date('2022-01-01');
+    const detectedAt = new Date('2026-07-23');
+    const stack = makeStack({ region, accountId: '999999999999', createdAt, detectedAt, tags: { env: 'prod' } });
+    expect(stack.region).toBe(region);
+    expect(stack.accountId).toBe('999999999999');
+    expect(stack.createdAt).toBe(createdAt);
+    expect(stack.detectedAt).toBe(detectedAt);
+    expect(stack.tags).toEqual({ env: 'prod' });
+  });
 });

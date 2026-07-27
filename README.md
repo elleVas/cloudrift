@@ -2,6 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/@cloudrift/cli.svg)](https://www.npmjs.com/package/@cloudrift/cli)
 [![License](https://img.shields.io/npm/l/@cloudrift/cli.svg)](https://github.com/elleVas/cloudrift/blob/main/LICENSE.md)
+[![Coverage](https://img.shields.io/badge/coverage-%E2%89%A580%25%20domain%2Fapp%20%C2%B7%20%E2%89%A560%25%20infra-brightgreen.svg)](https://github.com/elleVas/cloudrift/actions/workflows/ci.yml)
 [![🇮🇹 Italiano](https://img.shields.io/badge/🇮🇹-Italiano-lightgrey.svg)](https://github.com/elleVas/cloudrift/blob/main/docs/it/leggimi.md)
 
 <p align="center">
@@ -270,7 +271,7 @@ Run cloudrift as a local [MCP](https://modelcontextprotocol.io) server over stdi
 cloudrift mcp
 ```
 
-See [docs/en/mcp-server.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/mcp-server.md) for client configuration (Kiro, VS Code, Claude Code) and [docs/en/usage.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/usage.md#mcp---run-cloudrift-as-a-local-mcp-server) for the `CLOUDRIFT_DISABLE_MCP` kill switch.
+See [docs/en/mcp-server.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/mcp-server.md) for client configuration (Kiro, VS Code, Claude Code) and [docs/en/usage.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/usage.md#mcp--run-cloudrift-as-a-local-mcp-server) for the `CLOUDRIFT_DISABLE_MCP` kill switch.
 
 ---
 

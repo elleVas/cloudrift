@@ -23,4 +23,13 @@ describe('IamRootMfaDisabled', () => {
   it('riskReason explains the missing MFA device', () => {
     expect(makeFinding().riskReason).toContain('no MFA device');
   });
+
+  it('exposes the remaining props', () => {
+    const detectedAt = new Date('2026-07-23');
+    const finding = makeFinding({ accountId: '999999999999', mfaEnabled: true, detectedAt, tags: { env: 'prod' } });
+    expect(finding.accountId).toBe('999999999999');
+    expect(finding.mfaEnabled).toBe(true);
+    expect(finding.detectedAt).toBe(detectedAt);
+    expect(finding.tags).toEqual({ env: 'prod' });
+  });
 });

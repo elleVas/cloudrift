@@ -53,4 +53,15 @@ describe('UnderutilizedEc2Instance', () => {
   it('costEstimate description references rightsizing saving', () => {
     expect(makeInstance().costEstimate.description).toContain('rightsizing saving');
   });
+
+  it('exposes the remaining props', () => {
+    const launchTime = new Date('2023-01-01');
+    const detectedAt = new Date('2026-06-09');
+    const instance = makeInstance({ region, accountId: '999999999999', launchTime, detectedAt });
+    expect(instance.region).toBe(region);
+    expect(instance.accountId).toBe('999999999999');
+    expect(instance.launchTime).toBe(launchTime);
+    expect(instance.detectedAt).toBe(detectedAt);
+    expect(instance.tags).toEqual({ Env: 'prod' });
+  });
 });

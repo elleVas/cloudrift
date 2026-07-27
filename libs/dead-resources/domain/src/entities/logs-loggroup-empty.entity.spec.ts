@@ -29,4 +29,16 @@ describe('LogsLogGroupEmpty', () => {
     expect(lg.hygieneReason).toContain('never stored');
     expect(lg.severity).toBe('info');
   });
+
+  it('exposes the remaining props', () => {
+    const region = AwsRegion.create('eu-west-1');
+    const createdAt = new Date('2022-01-01');
+    const detectedAt = new Date('2026-07-23');
+    const lg = makeLogGroup({ region, accountId: '999999999999', createdAt, detectedAt, tags: {} });
+    expect(lg.region).toBe(region);
+    expect(lg.accountId).toBe('999999999999');
+    expect(lg.createdAt).toBe(createdAt);
+    expect(lg.detectedAt).toBe(detectedAt);
+    expect(lg.tags).toEqual({});
+  });
 });
