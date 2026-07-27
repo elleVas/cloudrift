@@ -271,7 +271,7 @@ Run cloudrift as a local [MCP](https://modelcontextprotocol.io) server over stdi
 cloudrift mcp
 ```
 
-See [docs/en/mcp-server.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/mcp-server.md) for client configuration (Kiro, VS Code, Claude Code) and [docs/en/usage.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/usage.md#mcp---run-cloudrift-as-a-local-mcp-server) for the `CLOUDRIFT_DISABLE_MCP` kill switch.
+See [docs/en/mcp-server.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/mcp-server.md) for client configuration (Kiro, VS Code, Claude Code) and [docs/en/usage.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/usage.md#mcp--run-cloudrift-as-a-local-mcp-server) for the `CLOUDRIFT_DISABLE_MCP` kill switch.
 
 ---
 

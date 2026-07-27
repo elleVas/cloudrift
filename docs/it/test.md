@@ -25,6 +25,10 @@ Questo documento descrive la piramide dei test di cloudrift: cosa copre ciascun 
         └─────────────────────────┘
 ```
 
+### Gate di coverage
+
+Tutti i 16 `jest.config.cjs` impostano un `coverageThreshold` reale — **80%** (statements/branches/functions/lines) per i progetti domain e application, **60%** per i progetti infrastructure e per `apps/cli` — calcolato su ogni file `.ts` sotto `src/`, non solo sui file che uno spec importa (`collectCoverageFrom` esclude esplicitamente solo `*.spec.ts` e il barrel `index.ts`, puro re-export senza logica propria). `pnpm nx run <project>:test` fallisce se un progetto scende sotto la propria soglia. Vedi [ADR-0090](../adr/0090-enforced-coverage-thresholds.md) per il perché di questo calcolo (un `collectCoverageFrom` più stretto nascondeva silenziosamente interi file non testati dalla percentuale) e per il perché i numeri sono stati raggiunti scrivendo test reali, non calibrando la soglia sulla copertura già esistente.
+
 ### Dominio — entità e policy
 
 Unit test puri, senza mock. Uno spec per entità, che verifica i campi esposti, il valore calcolato specifico dell'entità, `kind`, `wasteReason` e `costEstimate`:

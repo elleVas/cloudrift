@@ -579,7 +579,7 @@ Esegui cloudrift come server [MCP](https://modelcontextprotocol.io) locale via s
 cloudrift mcp
 ```
 
-Vedi [server-mcp.md](server-mcp.md) per la configurazione dei client (Kiro, VS Code, Claude Code) e [utilizzo.md](utilizzo.md#mcp---esegui-cloudrift-come-server-mcp-locale) per l'interruttore `CLOUDRIFT_DISABLE_MCP`.
+Vedi [server-mcp.md](server-mcp.md) per la configurazione dei client (Kiro, VS Code, Claude Code) e [utilizzo.md](utilizzo.md#mcp--esegui-cloudrift-come-server-mcp-locale) per l'interruttore `CLOUDRIFT_DISABLE_MCP`.
 
 ---
 

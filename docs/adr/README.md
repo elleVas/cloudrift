@@ -25,6 +25,7 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 | [0081](0081-resource-security-parallel-domain.md) | `resource-security` as a new parallel domain (14 security-posture checks) | Accepted |
 | [0082](0082-mcp-server-second-input-adapter.md) | MCP server as a second input adapter, not a fifth bounded context | Accepted |
 | [0083](0083-dedicated-mcp-client-config-doc.md) | Dedicated MCP client-configuration doc, with Claude Code added | Accepted |
+| [0089](0089-empty-packages-directory-removed.md) | Empty `packages/` directory removed | Accepted |
 
 ## Cost analytics (`cost` / `trend`)
 
@@ -116,6 +117,7 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 | [0072](0072-pdf-shared-layout-module.md) | Shared PDF layout module across all three reports; table cells never truncated | Accepted |
 | [0076](0076-resource-name-column-alongside-opaque-ids.md) | A `Name`/`User` column alongside opaque AWS-generated IDs, never replacing them | Accepted |
 | [0088](0088-severity-report-template-method.md) | `SeverityReportFormatter` template method for the severity-based reports | Accepted |
+| [0091](0091-aws-console-deep-links-in-reports.md) | AWS console deep links in JSON/PDF findings, partial coverage by design | Accepted |
 
 ## Testing
 
@@ -126,6 +128,7 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 | [0040](0040-localstack-bumped-4-14-0-cloudwatch-fixed.md) | LocalStack bumped to 4.14.0 — CloudWatch incompatibility resolved | Accepted |
 | [0055](0055-pdf-formatter-smoke-test.md) | PDF formatter gets a full-coverage smoke test, not a layout snapshot | Accepted |
 | [0068](0068-sagemaker-scanners-excluded-from-localstack-e2e.md) | SageMaker scanners excluded from the LocalStack e2e harness | Accepted |
+| [0090](0090-enforced-coverage-thresholds.md) | Enforced coverage thresholds (80% domain/app, 60% infra), computed over the whole `src/` tree | Accepted |
 
 ## Future / non-implemented
 

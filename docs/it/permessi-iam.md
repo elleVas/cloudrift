@@ -2,7 +2,7 @@
 
 > 🇬🇧 [English version](../en/iam-permissions.md)
 
-Il principal AWS deve avere le seguenti permission in sola lettura:
+Il principal AWS deve avere le seguenti permission in sola lettura. Esegui [`cloudrift iam-policy`](utilizzo.md#iam-policy--stampa-la-policy-iam-richiesta) per stampare questa esatta policy (tutti i blocchi sotto, combinati) come JSON pronto da incollare, invece di copiarla da qui.
 
 ```json
 {

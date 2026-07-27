@@ -74,7 +74,7 @@ The `--pdf` flag generates a PDF alongside the normal console output (add `--sil
 
 - **Executive summary** — monthly and annual waste totals, resource count, per-type breakdown
 - **Top recommendations** — up to 8 items sorted by monthly savings potential, with estimated annual saving
-- **Detail pages** — one table per resource type found (EBS volumes, Elastic IPs, RDS, Load Balancers, EC2, Snapshots, NAT Gateways)
+- **Detail pages** — one table per resource type found (EBS volumes, Elastic IPs, RDS, Load Balancers, EC2, Snapshots, NAT Gateways), each row ending in a `Link` column — click anywhere in the cell to open that exact resource in the AWS console (a handful of kinds without a derivable console URL leave it blank rather than guess, see [ADR-0091](../adr/0091-aws-console-deep-links-in-reports.md)). The same URL is available as a `consoleUrl` field on each finding in `--format json` / `--json`.
 - **Scan warnings** — listed if any resource type could not be scanned
 
 ```sh
@@ -304,3 +304,11 @@ This is independent of `cloudrift.config.json` on purpose: `cloudrift mcp` works
 ### Connecting an MCP client
 
 See [docs/en/mcp-server.md](mcp-server.md) for the tools this server exposes and how to connect Kiro, VS Code (GitHub Copilot Chat), and Claude Code — each uses a different config format, so a file copied 1:1 from one to another will not work.
+
+## `iam-policy` — print the required IAM policy
+
+```sh
+node apps/cli/dist/main.js iam-policy
+```
+
+Prints the full read-only IAM policy cloudrift needs (every action across `analyze`/`dead-resources`/`resource-security`/`cost`/`trend`) as ready-to-paste JSON — the same static policy documented by hand in [docs/en/iam-permissions.md](iam-permissions.md) and returned by the `get_required_iam_permissions` MCP tool. No AWS calls, no flags, no per-command filtering (there is no per-kind IAM mapping today, so `--scanners`-style narrowing isn't available here). Useful for pasting straight into the AWS console, a Terraform `aws_iam_policy` resource, or a CDK `PolicyDocument.fromJson(...)`.
