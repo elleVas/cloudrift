@@ -46,4 +46,12 @@ describe('ElasticIp', () => {
   it('costEstimate description references the unassociated Elastic IP', () => {
     expect(makeEip().costEstimate.description).toContain('Elastic IP');
   });
+
+  it('exposes the remaining props', () => {
+    const detectedAt = new Date('2026-06-09');
+    const eip = makeEip({ region, accountId: '999999999999', detectedAt });
+    expect(eip.region).toBe(region);
+    expect(eip.accountId).toBe('999999999999');
+    expect(eip.detectedAt).toBe(detectedAt);
+  });
 });

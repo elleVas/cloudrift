@@ -36,4 +36,15 @@ describe('IamRoleUnused', () => {
     const role = makeRole({ lastUsedAt: new Date('2026-01-15') });
     expect(role.hygieneReason).toContain('2026-01-15');
   });
+
+  it('exposes the remaining props', () => {
+    const createdAt = new Date('2022-01-01');
+    const detectedAt = new Date('2026-07-23');
+    const role = makeRole({ arn: 'arn:aws:iam::999999999999:role/other', accountId: '999999999999', createdAt, detectedAt, tags: {} });
+    expect(role.arn).toBe('arn:aws:iam::999999999999:role/other');
+    expect(role.accountId).toBe('999999999999');
+    expect(role.createdAt).toBe(createdAt);
+    expect(role.detectedAt).toBe(detectedAt);
+    expect(role.tags).toEqual({});
+  });
 });

@@ -26,4 +26,14 @@ describe('S3BucketEmpty', () => {
     expect(bucket.hygieneReason).toContain('no objects');
     expect(bucket.severity).toBe('info');
   });
+
+  it('exposes the remaining props', () => {
+    const createdAt = new Date('2022-01-01');
+    const detectedAt = new Date('2026-07-23');
+    const bucket = makeBucket({ accountId: '999999999999', createdAt, detectedAt, tags: {} });
+    expect(bucket.accountId).toBe('999999999999');
+    expect(bucket.createdAt).toBe(createdAt);
+    expect(bucket.detectedAt).toBe(detectedAt);
+    expect(bucket.tags).toEqual({});
+  });
 });

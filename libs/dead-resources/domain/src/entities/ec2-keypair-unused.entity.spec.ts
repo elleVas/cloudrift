@@ -36,4 +36,13 @@ describe('Ec2KeyPairUnused', () => {
   it('tags default to an empty object when none are set', () => {
     expect(makeKeyPair().tags).toEqual({});
   });
+
+  it('exposes the remaining props', () => {
+    const createdAt = new Date('2022-01-01');
+    const detectedAt = new Date('2026-06-09');
+    const keyPair = makeKeyPair({ region, createdAt, detectedAt });
+    expect(keyPair.region).toBe(region);
+    expect(keyPair.createdAt).toBe(createdAt);
+    expect(keyPair.detectedAt).toBe(detectedAt);
+  });
 });

@@ -50,4 +50,32 @@ describe('RdsInstance', () => {
     expect(db.dbInstanceClass).toBe('db.t3.medium');
     expect(db.multiAZ).toBe(false);
   });
+
+  it('exposes the remaining props', () => {
+    const region = AwsRegion.create('us-east-1');
+    const detectedAt = new Date('2026-06-09');
+    const db = new RdsInstance({
+      dbInstanceIdentifier: 'db-9',
+      region,
+      accountId: '999999999999',
+      dbInstanceClass: 'db.t3.large',
+      engine: 'mysql',
+      dbInstanceStatus: 'stopped',
+      allocatedStorageGb: 200,
+      storageType: 'gp3',
+      multiAZ: true,
+      detectedAt,
+      tags: { env: 'prod' },
+      monthlyCostUsd: 20,
+    });
+    expect(db.region).toBe(region);
+    expect(db.accountId).toBe('999999999999');
+    expect(db.dbInstanceStatus).toBe('stopped');
+    expect(db.allocatedStorageGb).toBe(200);
+    expect(db.storageType).toBe('gp3');
+    expect(db.detectedAt).toBe(detectedAt);
+    expect(db.tags).toEqual({ env: 'prod' });
+    expect(db.kind).toBe('rds-instance');
+    expect(db.wasteReason).toContain('stopped');
+  });
 });

@@ -357,8 +357,15 @@ export function drawTable(
   colWidths: number[],
   startY: number,
   contentBottom: number,
+  // Parallel to `rows`: when present for a row, an invisible clickable
+  // hotspot is layered over that row's *last* column (the visible cell text
+  // is still whatever `rows` put there, e.g. a short "Open ↗" label — this
+  // only adds the link annotation, it doesn't draw anything itself).
+  links?: (string | undefined)[],
 ): number {
   const totalW = colWidths.reduce((a, b) => a + b, 0);
+  const lastColX = MARGIN + colWidths.slice(0, -1).reduce((a, b) => a + b, 0);
+  const lastColW = colWidths.at(-1) ?? 0;
   let segmentStartY = startY;
   let segmentH = 0;
   let y = startY;
@@ -394,6 +401,8 @@ export function drawTable(
     }
     doc.rect(MARGIN, y, totalW, h).fill(i % 2 === 0 ? '#ffffff' : C.rowAlt);
     renderWrappedRow(doc, wrapped, colWidths, y, false);
+    const link = links?.[i];
+    if (link) doc.link(lastColX, y, lastColW, h, link);
     y += h;
     segmentH += h;
   }

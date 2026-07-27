@@ -28,4 +28,15 @@ describe('IamInstanceProfileUnattached', () => {
     expect(profile.hygieneReason).toContain('not attached');
     expect(profile.severity).toBe('info');
   });
+
+  it('exposes the remaining props', () => {
+    const createdAt = new Date('2022-01-01');
+    const detectedAt = new Date('2026-07-23');
+    const profile = makeProfile({ arn: 'arn:aws:iam::999999999999:instance-profile/other', accountId: '999999999999', createdAt, detectedAt, tags: {} });
+    expect(profile.arn).toBe('arn:aws:iam::999999999999:instance-profile/other');
+    expect(profile.accountId).toBe('999999999999');
+    expect(profile.createdAt).toBe(createdAt);
+    expect(profile.detectedAt).toBe(detectedAt);
+    expect(profile.tags).toEqual({});
+  });
 });

@@ -27,4 +27,16 @@ describe('IamAccessKeyRotationOverdue', () => {
   it('riskReason reports the key age', () => {
     expect(makeFinding().riskReason).toContain('200d');
   });
+
+  it('exposes the remaining props', () => {
+    const createdAt = new Date(Date.now() - 100 * MS_PER_DAY);
+    const detectedAt = new Date();
+    const finding = makeFinding({ accessKeyId: 'AKIA9', userName: 'bob', accountId: '999999999999', createdAt, detectedAt, tags: { env: 'prod' } });
+    expect(finding.accessKeyId).toBe('AKIA9');
+    expect(finding.userName).toBe('bob');
+    expect(finding.accountId).toBe('999999999999');
+    expect(finding.createdAt).toBe(createdAt);
+    expect(finding.detectedAt).toBe(detectedAt);
+    expect(finding.tags).toEqual({ env: 'prod' });
+  });
 });

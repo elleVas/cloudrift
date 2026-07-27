@@ -28,4 +28,14 @@ describe('Ec2SecurityGroupUnused', () => {
     expect(sg.hygieneReason).toContain('not attached');
     expect(sg.severity).toBe('info');
   });
+
+  it('exposes the remaining props', () => {
+    const region = AwsRegion.create('eu-west-1');
+    const detectedAt = new Date('2026-07-23');
+    const sg = makeGroup({ region, accountId: '999999999999', detectedAt, tags: { env: 'prod' } });
+    expect(sg.region).toBe(region);
+    expect(sg.accountId).toBe('999999999999');
+    expect(sg.detectedAt).toBe(detectedAt);
+    expect(sg.tags).toEqual({ env: 'prod' });
+  });
 });

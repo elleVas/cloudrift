@@ -29,4 +29,14 @@ describe('IamAccessKeyStale', () => {
     expect(key.hygieneReason).toContain('not rotated since 2023-01-01');
     expect(key.severity).toBe('warning');
   });
+
+  it('exposes the remaining props', () => {
+    const createdAt = new Date('2022-01-01');
+    const detectedAt = new Date('2026-07-23');
+    const key = makeKey({ accountId: '999999999999', createdAt, detectedAt, tags: {} });
+    expect(key.accountId).toBe('999999999999');
+    expect(key.createdAt).toBe(createdAt);
+    expect(key.detectedAt).toBe(detectedAt);
+    expect(key.tags).toEqual({});
+  });
 });

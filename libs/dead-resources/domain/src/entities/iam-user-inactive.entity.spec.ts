@@ -40,4 +40,14 @@ describe('IamUserInactive', () => {
   it('does not implement region (IAM is a global service)', () => {
     expect((makeUser() as unknown as { region?: unknown }).region).toBeUndefined();
   });
+
+  it('exposes the remaining props', () => {
+    const createdAt = new Date('2022-01-01');
+    const detectedAt = new Date('2026-07-23');
+    const user = makeUser({ accountId: '999999999999', createdAt, detectedAt, tags: {} });
+    expect(user.accountId).toBe('999999999999');
+    expect(user.createdAt).toBe(createdAt);
+    expect(user.detectedAt).toBe(detectedAt);
+    expect(user.tags).toEqual({});
+  });
 });

@@ -52,4 +52,16 @@ describe('IdleEbsVolume', () => {
     expect(makeVolume().costEstimate.monthlyCostUsd).toBe(4);
     expect(makeVolume().costEstimate.description).toContain('idle EBS');
   });
+
+  it('exposes the remaining props', () => {
+    const createTime = new Date('2023-01-01');
+    const detectedAt = new Date('2026-06-09');
+    const volume = makeVolume({ region, accountId: '999999999999', sizeGb: 200, createTime, detectedAt, tags: {} });
+    expect(volume.region).toBe(region);
+    expect(volume.accountId).toBe('999999999999');
+    expect(volume.sizeGb).toBe(200);
+    expect(volume.createTime).toBe(createTime);
+    expect(volume.detectedAt).toBe(detectedAt);
+    expect(volume.tags).toEqual({});
+  });
 });

@@ -19,4 +19,14 @@ describe('S3BucketEncryptionMissing', () => {
     expect(finding.kind).toBe('s3-bucket-encryption-missing');
     expect(finding.severity).toBe('warning');
   });
+
+  it('exposes the remaining props', () => {
+    const detectedAt = new Date('2026-07-23');
+    const finding = makeFinding({ bucketName: 'other-bucket', accountId: '999999999999', detectedAt, tags: { env: 'prod' } });
+    expect(finding.bucketName).toBe('other-bucket');
+    expect(finding.accountId).toBe('999999999999');
+    expect(finding.detectedAt).toBe(detectedAt);
+    expect(finding.tags).toEqual({ env: 'prod' });
+    expect(finding.riskReason).toContain('no default server-side encryption');
+  });
 });

@@ -28,4 +28,15 @@ describe('IamPolicyUnattached', () => {
     expect(policy.hygieneReason).toContain('not attached');
     expect(policy.severity).toBe('info');
   });
+
+  it('exposes the remaining props', () => {
+    const createdAt = new Date('2022-01-01');
+    const detectedAt = new Date('2026-07-23');
+    const policy = makePolicy({ arn: 'arn:aws:iam::999999999999:policy/other', accountId: '999999999999', createdAt, detectedAt, tags: {} });
+    expect(policy.arn).toBe('arn:aws:iam::999999999999:policy/other');
+    expect(policy.accountId).toBe('999999999999');
+    expect(policy.createdAt).toBe(createdAt);
+    expect(policy.detectedAt).toBe(detectedAt);
+    expect(policy.tags).toEqual({});
+  });
 });

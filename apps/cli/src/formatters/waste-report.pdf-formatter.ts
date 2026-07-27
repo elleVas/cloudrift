@@ -14,6 +14,7 @@ import type {
 import type { WasteReportMeta } from 'cloud-cost-application';
 import { REPORT_DISCLAIMER } from 'cloud-cost-application';
 import { presenterFor, rowFor, recommendFor } from './resource-presenters';
+import { buildConsoleUrl } from '../aws-console-link';
 import {
   C,
   PAGE_H,
@@ -182,13 +183,17 @@ function drawDetailPages(
     const presenter = presenterFor(kind);
     doc.addPage();
     const y = sectionHeader(doc, presenter.title);
-    const rows = findings.map((finding) => [
+    const links = findings.map((finding) =>
+      buildConsoleUrl({ kind: finding.kind, id: finding.id, region: finding.region.code }),
+    );
+    const rows = findings.map((finding, i) => [
       ...rowFor(finding),
       `$${finding.costEstimate.monthlyCostUsd.toFixed(2)}/mo`,
+      links[i] ? 'Open ↗' : '',
     ]);
-    const headers = [...presenter.head, 'Cost/mo'];
+    const headers = [...presenter.head, 'Cost/mo', 'Link'];
     const colWidths = computeColumnWidths(doc, headers, rows, CONTENT_W);
-    drawTable(doc, headers, rows, colWidths, y, contentBottom);
+    drawTable(doc, headers, rows, colWidths, y, contentBottom, links);
   }
 }
 

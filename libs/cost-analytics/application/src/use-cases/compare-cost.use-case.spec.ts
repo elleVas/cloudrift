@@ -100,4 +100,11 @@ describe('CompareCostUseCase', () => {
     expect(result.value.current.totalUsd).toBe(51.32);
     expect(result.value.changePercent).toBeNull();
   });
+
+  it('defaults "today" to the current date when omitted', async () => {
+    const useCase = new CompareCostUseCase(fakePort([]));
+    const result = await useCase.execute({});
+
+    expect(result.ok).toBe(true);
+  });
 });

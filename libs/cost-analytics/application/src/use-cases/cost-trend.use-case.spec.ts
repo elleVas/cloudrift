@@ -81,4 +81,12 @@ describe('CostTrendUseCase', () => {
     if (result.ok) return;
     expect(result.error.message).toBe('access denied');
   });
+
+  it('defaults "today" to the current date when omitted', async () => {
+    const port: CostExplorerPort = { getCostAndUsage: async () => Result.ok([]) };
+    const useCase = new CostTrendUseCase(port);
+    const result = await useCase.execute({});
+
+    expect(result.ok).toBe(true);
+  });
 });

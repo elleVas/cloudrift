@@ -48,4 +48,14 @@ describe('S3Bucket', () => {
   it('costEstimate description references the bucket size', () => {
     expect(makeBucket().costEstimate.description).toContain('GB');
   });
+
+  it('exposes the remaining props', () => {
+    const creationDate = new Date('2023-01-01');
+    const detectedAt = new Date('2026-06-09');
+    const bucket = makeBucket({ region, accountId: '999999999999', creationDate, detectedAt });
+    expect(bucket.region).toBe(region);
+    expect(bucket.accountId).toBe('999999999999');
+    expect(bucket.creationDate).toBe(creationDate);
+    expect(bucket.detectedAt).toBe(detectedAt);
+  });
 });

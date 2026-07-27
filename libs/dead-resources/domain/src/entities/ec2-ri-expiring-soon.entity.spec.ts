@@ -33,4 +33,13 @@ describe('Ec2RiExpiringSoon', () => {
     expect(ri.hygieneReason).toBe('expires 2026-08-01');
     expect(ri.severity).toBe('warning');
   });
+
+  it('exposes the remaining props', () => {
+    const detectedAt = new Date('2026-07-23');
+    const ri = makeRi({ region, accountId: '999999999999', detectedAt, tags: { env: 'prod' } });
+    expect(ri.region).toBe(region);
+    expect(ri.accountId).toBe('999999999999');
+    expect(ri.detectedAt).toBe(detectedAt);
+    expect(ri.tags).toEqual({ env: 'prod' });
+  });
 });

@@ -23,6 +23,27 @@ describe('createAwsClientConfig', () => {
     expect(call.logger.debug).toBeInstanceOf(Function);
   });
 
+  it.each(['trace', 'debug', 'info', 'warn', 'error'] as const)(
+    'routes logger.%s through the namespaced debug channel, tagged with its level',
+    (level) => {
+      process.env.DEBUG = 'cloudrift:*';
+      const writeSpy = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+      jest.resetModules();
+      const { createAwsClientConfig: reloadedFactory } = require('./client-config');
+
+      reloadedFactory();
+      const { NodeHttpHandler: ReloadedHandler } = require('@smithy/node-http-handler');
+      const call = (ReloadedHandler as jest.Mock).mock.calls.at(-1)[0];
+      call.logger[level]('some detail', 42);
+
+      expect(writeSpy).toHaveBeenCalledWith(expect.stringContaining(`cloudrift:http ${level}`));
+      expect(writeSpy).toHaveBeenCalledWith(expect.stringContaining('"args":["some detail",42]'));
+
+      writeSpy.mockRestore();
+      delete process.env.DEBUG;
+    },
+  );
+
   it('keeps HTTP keep-alive on by default', () => {
     createAwsClientConfig();
     const call = (NodeHttpHandler as jest.Mock).mock.calls.at(-1)[0];

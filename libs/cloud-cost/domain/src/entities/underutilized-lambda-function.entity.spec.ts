@@ -40,4 +40,14 @@ describe('UnderutilizedLambdaFunction', () => {
   it('costEstimate is zero (hygiene flag, no direct cost)', () => {
     expect(makeFunction().costEstimate.monthlyCostUsd).toBe(0);
   });
+
+  it('exposes the remaining props', () => {
+    const lastModified = new Date('2023-01-01');
+    const detectedAt = new Date('2026-06-09');
+    const fn = makeFunction({ region, accountId: '999999999999', lastModified, detectedAt });
+    expect(fn.region).toBe(region);
+    expect(fn.accountId).toBe('999999999999');
+    expect(fn.lastModified).toBe(lastModified);
+    expect(fn.detectedAt).toBe(detectedAt);
+  });
 });

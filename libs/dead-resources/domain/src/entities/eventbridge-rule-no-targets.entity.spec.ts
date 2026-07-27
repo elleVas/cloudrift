@@ -28,4 +28,14 @@ describe('EventbridgeRuleNoTargets', () => {
     expect(rule.hygieneReason).toContain('no targets');
     expect(rule.severity).toBe('info');
   });
+
+  it('exposes the remaining props', () => {
+    const region = AwsRegion.create('eu-west-1');
+    const detectedAt = new Date('2026-07-23');
+    const rule = makeRule({ region, accountId: '999999999999', detectedAt, tags: { env: 'prod' } });
+    expect(rule.region).toBe(region);
+    expect(rule.accountId).toBe('999999999999');
+    expect(rule.detectedAt).toBe(detectedAt);
+    expect(rule.tags).toEqual({ env: 'prod' });
+  });
 });

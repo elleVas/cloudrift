@@ -26,4 +26,12 @@ describe('Route53HostedZoneEmpty', () => {
     expect(zone.hygieneReason).toContain('no records');
     expect(zone.severity).toBe('info');
   });
+
+  it('exposes the remaining props', () => {
+    const detectedAt = new Date('2026-07-23');
+    const zone = makeZone({ accountId: '999999999999', detectedAt, tags: {} });
+    expect(zone.accountId).toBe('999999999999');
+    expect(zone.detectedAt).toBe(detectedAt);
+    expect(zone.tags).toEqual({});
+  });
 });

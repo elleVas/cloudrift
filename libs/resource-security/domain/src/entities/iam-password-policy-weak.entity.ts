@@ -57,7 +57,6 @@ export class IamPasswordPolicyWeak extends Entity<string> implements SecurityFin
   }
 
   private get weaknesses(): string[] {
-    if (!this.props.exists) return [];
     const reasons: string[] = [];
     if ((this.props.minimumPasswordLength ?? 0) < MIN_LENGTH_BASELINE) reasons.push(`minimum length below ${MIN_LENGTH_BASELINE}`);
     if (!this.props.requireSymbols) reasons.push('symbols not required');

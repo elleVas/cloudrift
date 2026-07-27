@@ -56,4 +56,16 @@ describe('OverprovisionedDynamoDbTable', () => {
   it('costEstimate returns the stored monthlyCostUsd', () => {
     expect(makeTable().costEstimate.monthlyCostUsd).toBe(12.5);
   });
+
+  it('exposes the remaining props', () => {
+    const creationDateTime = new Date('2023-01-01');
+    const detectedAt = new Date('2026-06-09');
+    const table = makeTable({ region, accountId: '999999999999', writeCapacityUnits: 50, creationDateTime, detectedAt });
+    expect(table.region).toBe(region);
+    expect(table.accountId).toBe('999999999999');
+    expect(table.writeCapacityUnits).toBe(50);
+    expect(table.windowDays).toBe(WINDOW_DAYS);
+    expect(table.creationDateTime).toBe(creationDateTime);
+    expect(table.detectedAt).toBe(detectedAt);
+  });
 });

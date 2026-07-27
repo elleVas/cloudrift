@@ -10,6 +10,7 @@ import { RESOURCE_SECURITY_KINDS, RESOURCE_SECURITY_KIND_META } from 'resource-s
 import { PDF_LOGO_PNG_BASE64 } from '../pdf-logo-data';
 import { defaultMcpDeps, type McpDeps } from './mcp.composition';
 import { cliVersion } from '../cli-version';
+import { REQUIRED_IAM_POLICY } from '../iam-policy';
 
 const SERVER_VERSION = cliVersion;
 
@@ -27,105 +28,6 @@ export function isDisabledByEnv(): boolean {
   const raw = process.env[DISABLE_ENV_VAR];
   return raw === '1' || raw?.toLowerCase() === 'true';
 }
-
-/**
- * Read-only IAM actions cloudrift needs for `analyze_cloudrift` (which
- * always scans all four domains). Kept in sync by hand with
- * `docs/en/iam-permissions.md` — the union of its base policy,
- * `dead-resources` block, `resource-security` block, and `ce:GetCostAndUsage`
- * (needed here unconditionally: `analyze_cloudrift` always includes the
- * cost-trend domain, unlike the standalone `analyze` command).
- */
-const REQUIRED_IAM_POLICY = {
-  Version: '2012-10-17',
-  Statement: [
-    {
-      Effect: 'Allow',
-      Action: [
-        'ec2:DescribeVolumes',
-        'ec2:DescribeAddresses',
-        'ec2:DescribeInstances',
-        'ec2:DescribeSnapshots',
-        'ec2:DescribeImages',
-        'ec2:DescribeNatGateways',
-        'ec2:DescribeNetworkInterfaces',
-        'ec2:DescribeLaunchTemplates',
-        'ec2:DescribeLaunchTemplateVersions',
-        'ec2:DescribeKeyPairs',
-        'ec2:DescribeReservedInstances',
-        'ec2:DescribeSecurityGroups',
-        'ec2:DescribeRegions',
-        'ec2:DescribeSnapshotAttribute',
-        'cloudwatch:GetMetricStatistics',
-        'cloudwatch:DescribeAlarms',
-        'rds:DescribeDBInstances',
-        'rds:DescribeDBClusters',
-        'rds:DescribeDBSnapshots',
-        'elasticloadbalancing:DescribeLoadBalancers',
-        'elasticloadbalancing:DescribeTargetGroups',
-        'elasticloadbalancing:DescribeTargetHealth',
-        'logs:DescribeLogGroups',
-        's3:ListAllMyBuckets',
-        's3:ListBucket',
-        's3:GetBucketLifecycleConfiguration',
-        's3:ListMultipartUploadParts',
-        's3:ListBucketMultipartUploads',
-        's3:GetBucketAcl',
-        's3:GetBucketPolicyStatus',
-        's3:GetPublicAccessBlock',
-        's3:GetBucketEncryption',
-        'ecr:DescribeRepositories',
-        'ecr:DescribeImages',
-        'codepipeline:ListPipelines',
-        'codepipeline:ListPipelineExecutions',
-        'secretsmanager:ListSecrets',
-        'lambda:ListFunctions',
-        'elasticfilesystem:DescribeFileSystems',
-        'dynamodb:ListTables',
-        'dynamodb:DescribeTable',
-        'elasticache:DescribeCacheClusters',
-        'sagemaker:ListNotebookInstances',
-        'sagemaker:ListEndpoints',
-        'sagemaker:DescribeEndpoint',
-        'sagemaker:DescribeEndpointConfig',
-        'sagemaker:ListEndpointConfigs',
-        'sagemaker:ListModels',
-        'sagemaker:DescribeModel',
-        'sagemaker:ListTags',
-        'sqs:ListQueues',
-        'sqs:GetQueueAttributes',
-        'sqs:ListDeadLetterSourceQueues',
-        'sqs:ListQueueTags',
-        'tag:GetResources',
-        'eks:ListClusters',
-        'eks:ListNodegroups',
-        'eks:DescribeNodegroup',
-        'iam:ListUsers',
-        'iam:ListAccessKeys',
-        'iam:GetAccessKeyLastUsed',
-        'iam:ListPolicies',
-        'iam:ListRoles',
-        'iam:ListInstanceProfiles',
-        'iam:GetAccountSummary',
-        'iam:ListMFADevices',
-        'iam:GetAccountPasswordPolicy',
-        'acm:ListCertificates',
-        'route53:ListHostedZones',
-        'cloudformation:DescribeStacks',
-        'sns:ListTopics',
-        'sns:ListSubscriptionsByTopic',
-        'events:ListRules',
-        'events:ListTargetsByRule',
-        'states:ListStateMachines',
-        'states:ListExecutions',
-        'cloudtrail:DescribeTrails',
-        'ce:GetCostAndUsage',
-        'sts:GetCallerIdentity',
-      ],
-      Resource: '*',
-    },
-  ],
-} as const;
 
 function jsonResult(value: unknown): CallToolResult {
   return { content: [{ type: 'text', text: JSON.stringify(value, null, 2) }] };

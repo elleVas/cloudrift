@@ -47,4 +47,14 @@ describe('LogGroup', () => {
   it('costEstimate description references the stored size', () => {
     expect(makeLogGroup().costEstimate.description).toContain('GB');
   });
+
+  it('exposes the remaining props', () => {
+    const creationTime = new Date('2023-01-01');
+    const detectedAt = new Date('2026-06-09');
+    const lg = makeLogGroup({ region, accountId: '999999999999', creationTime, detectedAt });
+    expect(lg.region).toBe(region);
+    expect(lg.accountId).toBe('999999999999');
+    expect(lg.creationTime).toBe(creationTime);
+    expect(lg.detectedAt).toBe(detectedAt);
+  });
 });

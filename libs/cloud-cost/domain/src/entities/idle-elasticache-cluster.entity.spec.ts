@@ -50,4 +50,16 @@ describe('IdleElastiCacheCluster', () => {
   it('costEstimate description references the node type', () => {
     expect(makeCluster().costEstimate.description).toContain('cache.t3.micro');
   });
+
+  it('exposes the remaining props', () => {
+    const createTime = new Date('2023-01-01');
+    const detectedAt = new Date('2026-06-09');
+    const cluster = makeCluster({ region, accountId: '999999999999', numCacheNodes: 3, createTime, detectedAt });
+    expect(cluster.region).toBe(region);
+    expect(cluster.accountId).toBe('999999999999');
+    expect(cluster.numCacheNodes).toBe(3);
+    expect(cluster.connectionsLastWindow).toBe(0);
+    expect(cluster.createTime).toBe(createTime);
+    expect(cluster.detectedAt).toBe(detectedAt);
+  });
 });

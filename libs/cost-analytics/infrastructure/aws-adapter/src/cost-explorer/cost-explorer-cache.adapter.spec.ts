@@ -1,10 +1,16 @@
 // SPDX-License-Identifier: Apache-2.0
 import { mkdtemp, rm } from 'fs/promises';
-import { tmpdir } from 'os';
+import { tmpdir, homedir } from 'os';
 import { join } from 'path';
 import { Result } from 'shared-kernel';
 import type { CostExplorerPort, CostPeriodBucket } from 'cost-analytics-domain';
-import { CachedCostExplorerAdapter } from './cost-explorer-cache.adapter';
+import { CachedCostExplorerAdapter, defaultCostExplorerCacheDir } from './cost-explorer-cache.adapter';
+
+describe('defaultCostExplorerCacheDir', () => {
+  it('resolves to a fixed path under the home directory', () => {
+    expect(defaultCostExplorerCacheDir()).toBe(join(homedir(), '.cloudrift', 'cache', 'cost-explorer'));
+  });
+});
 
 const BUCKET: CostPeriodBucket[] = [
   { start: '2026-06-01', end: '2026-06-02', totalUsd: 10, byService: [], final: true },

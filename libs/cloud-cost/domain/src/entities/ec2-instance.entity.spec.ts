@@ -55,4 +55,19 @@ describe('Ec2Instance', () => {
     });
     expect(noVols.costEstimate.monthlyCostUsd).toBe(0);
   });
+
+  it('exposes the remaining props', () => {
+    const stoppedSince = new Date('2026-05-01');
+    expect(stoppedInstance.region).toBe(region);
+    expect(stoppedInstance.accountId).toBe('123456789012');
+    expect(stoppedInstance.launchTime).toEqual(new Date('2024-01-01'));
+    expect(stoppedInstance.detectedAt).toEqual(new Date('2026-06-09'));
+    expect(stoppedInstance.tags).toEqual({ Env: 'dev' });
+    expect(stoppedInstance.wasteReason).toContain('still billed');
+    const withStoppedSince = new Ec2Instance({
+      instanceId: 'i-ss', region, accountId: '123456789012', instanceType: 't3.micro',
+      state: 'stopped', launchTime: new Date(), detectedAt: new Date(), stoppedSince, attachedVolumes: [], tags: {}, monthlyCostUsd: 0,
+    });
+    expect(withStoppedSince.stoppedSince).toBe(stoppedSince);
+  });
 });

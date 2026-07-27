@@ -2,6 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/@cloudrift/cli.svg)](https://www.npmjs.com/package/@cloudrift/cli)
 [![License](https://img.shields.io/npm/l/@cloudrift/cli.svg)](https://github.com/elleVas/cloudrift/blob/main/LICENSE.md)
+[![Coverage](https://img.shields.io/badge/coverage-%E2%89%A580%25%20domain%2Fapp%20%C2%B7%20%E2%89%A560%25%20infra-brightgreen.svg)](https://github.com/elleVas/cloudrift/actions/workflows/ci.yml)
 [![🇮🇹 Italiano](https://img.shields.io/badge/🇮🇹-Italiano-lightgrey.svg)](https://github.com/elleVas/cloudrift/blob/main/docs/it/leggimi.md)
 
 <p align="center">
