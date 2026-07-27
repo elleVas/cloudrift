@@ -6,12 +6,14 @@ export {
   RESOURCE_KIND_META,
   categoryOf,
   isEstimated,
+  effortOf,
 } from './wasted-resource';
 export type {
   ResourceKind,
   WastedResource,
   FindingCategory,
   ResourceKindMeta,
+  RemediationEffort,
 } from './wasted-resource';
 export { groupByKind } from './group-by-kind';
 export type { ResourceKindMap, FindingsByKind } from './group-by-kind';

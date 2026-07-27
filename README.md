@@ -228,7 +228,7 @@ cloudrift dead-resources --scanners iam-user-inactive  # only one check
 | **ECR Repositories (empty)** | Zero images | info | 7-day grace period (`--min-age-days`) |
 | **Step Functions State Machines (never executed)** | STANDARD-type, zero executions (EXPRESS excluded) | info | 7-day grace period (`--min-age-days`) |
 
-**IAM, Route53, and (for this command) S3 are global AWS services**: those seven checks run once per scan regardless of how many `--regions` you pass, never once per region — the other eleven checks are genuinely regional. See [ADR-0078](https://github.com/elleVas/cloudrift/blob/main/docs/adr/0078-dead-resources-parallel-domain.md)/[ADR-0079](https://github.com/elleVas/cloudrift/blob/main/docs/adr/0079-dead-resources-global-scope-scanners.md) for the design behind this split, `--format json`/`--pdf` for machine-readable/shareable output. See [docs/en/usage.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/usage.md#dead-resources--deadunused-resource-hygiene) for the full flag reference.
+**IAM, Route53, and (for this command) S3 are global AWS services**: those seven checks run once per scan regardless of how many `--regions` you pass, never once per region — the other eleven checks are genuinely regional. See [ADR-0078](https://github.com/elleVas/cloudrift/blob/main/docs/adr/0078-dead-resources-parallel-domain.md)/[ADR-0079](https://github.com/elleVas/cloudrift/blob/main/docs/adr/0079-dead-resources-global-scope-scanners.md) for the design behind this split, `--format json`/`csv`/`--pdf` for machine-readable/shareable output. See [docs/en/usage.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/usage.md#dead-resources--deadunused-resource-hygiene) for the full flag reference.
 
 ---
 
@@ -259,7 +259,7 @@ cloudrift resource-security --scanners iam-root-mfa-disabled    # only one check
 | **RDS Instances (publicly accessible)** | Reachable from outside its VPC | critical |
 | **CloudTrail (no multi-region trail)** | No trail with multi-region logging | warning |
 
-**IAM, S3 (bucket listing), and CloudTrail are global for this command**: those eight checks run once per scan regardless of how many `--regions` you pass, never once per region — the other six checks are genuinely regional. `--format json`/`--pdf` for machine-readable/shareable output, no `--min-age-days` (a security misconfiguration is a risk from the moment it exists). See [docs/en/usage.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/usage.md#resource-security--security-posture-scan) for the full flag reference.
+**IAM, S3 (bucket listing), and CloudTrail are global for this command**: those eight checks run once per scan regardless of how many `--regions` you pass, never once per region — the other six checks are genuinely regional. `--format json`/`csv`/`--pdf` for machine-readable/shareable output, no `--min-age-days` (a security misconfiguration is a risk from the moment it exists). See [docs/en/usage.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/usage.md#resource-security--security-posture-scan) for the full flag reference.
 
 ---
 
@@ -295,6 +295,7 @@ The full reference — flags, config file, pricing sources, CI/CD, IAM permissio
 | [docs/en/vertical-scanners.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/vertical-scanners.md) | The Phase 6 vertical scanners (Serverless, Aurora, SageMaker, Dev/PR, EKS) |
 | [docs/en/adding-a-resource.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/adding-a-resource.md) | Step-by-step guide to adding a new resource type        |
 | [docs/en/mcp-server.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/mcp-server.md)               | Connecting Kiro, VS Code Copilot Chat, and Claude Code to `cloudrift mcp` |
+| [docs/en/remediation-effort.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/remediation-effort.md) | The low/medium/high effort rating behind the PDF's "Top quick wins" ranking |
 
 ## License
 

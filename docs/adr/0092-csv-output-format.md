@@ -1,0 +1,34 @@
+# ADR-0092: `csv` output format, flat DTO schema, `OUTPUT_FORMATS` consolidated
+
+- **Status:** Accepted (2026-07-27)
+
+## Context
+
+CSV was the last real gap on the competitor scorecard: every other report shape (`table`, `json`, and `markdown` for `analyze`) already existed, but nothing let a user pull findings straight into a spreadsheet/pivot-table workflow. The ask was to add `--format csv` across all five commands (`analyze`, `cost`, `trend`, `dead-resources`, `resource-security`) and expose it as a wizard choice everywhere `table`/`json` already are.
+
+Each of the five command files had its own copy-pasted `OUTPUT_FORMATS`/`isOutputFormat` pair (`analyze-waste.command.ts`, `cost.command.ts`, `trend.command.ts`, `dead-resources.command.ts`, `resource-security.command.ts`) — identical except `analyze`'s extra `'markdown'` member. Adding `'csv'` meant touching all five regardless, which is exactly the trigger condition this project's own DRY discipline calls for: fix duplication you're already touching, don't leave it for later out of laziness.
+
+## Decision
+
+**`apps/cli/src/output-format.ts`** is the new single source of truth: `OUTPUT_FORMATS = ['table', 'json', 'csv']`, `WASTE_OUTPUT_FORMATS = [...OUTPUT_FORMATS, 'markdown']`, and one generic `isOutputFormat<T>(formats, format)` type guard. All five commands import from here instead of declaring their own copy; `analyze-waste.command.ts` is the only one using `WASTE_OUTPUT_FORMATS`.
+
+**One `*.csv-formatter.ts` file per domain**, sibling to the existing `*.json-formatter.ts` (`waste-report.csv-formatter.ts`, `dead-resources-report.csv-formatter.ts`, `resource-security-report.csv-formatter.ts`, `cost-comparison.csv-formatter.ts`, `cost-trend.csv-formatter.ts`) — same file-per-format-per-domain convention the codebase already uses for table/json/pdf/markdown. Each one calls the *same* `toXxxReportDto()`/`toCostComparisonDto()`/`toCostTrendDto()` function its JSON sibling already calls, then flattens `dto.findings` (or `dto.byService`/`dto.months`) into rows — so CSV and JSON are guaranteed to describe the same data, just serialized differently. The findings-domain formatters also add `consoleUrl` via `buildConsoleUrl()`, matching [ADR-0091](0091-aws-console-deep-links-in-reports.md)'s placement (CLI-layer presentation concern, not the DTO).
+
+**Row schema: flat, raw DTO fields — not the presenter's per-kind columns.** `resource-presenters.ts`/`dead-resource-presenters.ts`/`resource-security-presenters.ts` give every finding *kind* its own header/row shape (e.g. `['Volume ID', 'Name', 'Region', 'Size', 'Type', 'Created']` for `ebs-volume`) for the table/PDF output, where a human reads one kind's section at a time. A single CSV file mixing kinds needs one column set for every row, so CSV formatters bypass the presenter layer entirely and use the DTO's already-uniform per-domain shape instead (`id, kind, category, estimated, region, accountId, detectedAt, wasteReason, description, monthlyCostUsd, tags, userName, consoleUrl` for waste; `id, kind, region, accountId, detectedAt, tags, hygieneReason/riskReason, severity, consoleUrl` for dead-resources/resource-security). `tags` (a `Record<string, string>`) is JSON-encoded into a single quoted field rather than flattened into dynamic columns, since the tag keys aren't fixed across findings.
+
+**`apps/cli/src/formatters/csv-utils.ts`**: an ~8-line `toCsv(headers, rows)` with its own comma/quote/newline escaping, no new dependency. The format is simple enough (no multi-line cells beyond what `JSON.stringify(tags)` might produce, no BOM/encoding concerns) that pulling in `csv-stringify` or similar would be pure overhead for what a dozen lines already cover correctly.
+
+**Wizard:** `output-format.wizard.ts`'s three prompt functions (`promptWasteOutput`, `promptDeadResourcesOutput`/`promptResourceSecurityOutput`, `promptSimpleOutput`) each gained a `{ value: 'csv', label: 'CSV' }` option, and their choice types now reuse `OutputFormat`/`WasteOutputFormat` from the new shared module instead of their own inline unions.
+
+**No new `--csv [filename]` file-artifact flag.** Only `--format csv` (stdout) was in scope — `--pdf`/`--json` file-writing flags exist inconsistently today (only `analyze` has both; `dead-resources`/`resource-security`/`cost`/`trend` only have `--pdf`), and adding a sixth flag combination wasn't asked for. A CSV file on disk is `--format csv > file.csv`, already scriptable without new code.
+
+## Alternatives Considered
+
+- **Leave `OUTPUT_FORMATS` duplicated, add `'csv'` to each of the five copies independently.** Rejected: the five files were being edited anyway to add the csv branch, so the marginal cost of consolidating was near zero, and leaving it would have grown the duplication from 5x to 5x-plus-drift-risk (a future format added to one copy and forgotten in another).
+- **Add `toCsv()` to `SeverityReportFormatter`** ([ADR-0088](0088-severity-report-template-method.md)), mirroring how it already hosts `toTable()`/`toPdf()`. Rejected: that base class is presenter/kind-grouping machinery, and CSV's row-per-finding-flat-schema doesn't need kind grouping at all — `formatXxxReportAsJson()` already proves this by skipping the base class entirely and working off the DTO directly. Adding `toCsv()` there would have meant re-deriving a flat DTO-shaped view from inside a class built around per-kind presenters, more code than just following the JSON formatter's existing pattern.
+- **CSV rows shaped like the presenter's per-kind table columns** (`Volume ID`, `Size`, `Type`, ... for `ebs-volume`; different columns for `elastic-ip`, etc.). Rejected: a single CSV file needs one column set for every row it contains; per-kind columns would force either separate CSV files per kind (unrequested scope increase) or padding every row to the union of all kinds' columns (mostly-empty, unreadable). The flat DTO schema is uniform across every kind in a domain by construction.
+- **A CSV library dependency (`csv-stringify`, `papaparse`, ...).** Rejected: the escaping surface needed (comma, quote-doubling, embedded newline) is small and stable; a project convention already avoids dependencies where a short, tested, first-party function suffices (e.g. [ADR-0047](0047-minimal-namespaced-debug-logger.md)'s no-dependency logger).
+
+## Consequences
+
+Five new formatter files plus `csv-utils.ts` and `output-format.ts`, one new test file per formatter plus `csv-utils.spec.ts`, and a `csv format` test added to each of the five command specs. `docs/en/usage.md`'s five `--format` flag-reference rows and the `--format` help strings in `main.ts` were updated to list `csv` alongside `table`/`json`(/`markdown`). Any format added in the future only needs `OUTPUT_FORMATS`/`WASTE_OUTPUT_FORMATS` updated once, not five times.

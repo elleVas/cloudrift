@@ -60,70 +60,117 @@ export type ResourceKind = (typeof RESOURCE_KINDS)[number];
  */
 export type FindingCategory = 'waste' | 'optimization';
 
+/**
+ * How much work remediating a finding of this kind takes, independent of its
+ * dollar cost — see docs/en/remediation-effort.md for the full per-kind
+ * rationale. Feeds the PDF "quick wins" ranking (ADR-0093): a cheap-to-fix
+ * finding should outrank an expensive one that needs a maintenance window.
+ * - `low`: pure delete/detach of a resource nothing else references, no
+ *   dependents by construction, reversible or near-zero risk.
+ * - `medium`: needs verification before acting (the scan's "idle"/"unused"
+ *   call could be wrong), or is an in-place config change with no downtime
+ *   but some secondary effect.
+ * - `high`: needs downtime, data migration, or coordination with another
+ *   team/service that may depend on the resource silently.
+ */
+export type RemediationEffort = 'low' | 'medium' | 'high';
+
 export interface ResourceKindMeta {
   label: string;
   category: FindingCategory;
   /** The saving is a heuristic estimate (rightsizing) rather than a definite value. */
   estimated: boolean;
+  effort: RemediationEffort;
 }
 
 export const RESOURCE_KIND_META: Record<ResourceKind, ResourceKindMeta> = {
-  'ebs-volume': { label: 'EBS Volumes', category: 'waste', estimated: false },
-  'elastic-ip': { label: 'Elastic IPs', category: 'waste', estimated: false },
-  'rds-instance': { label: 'RDS Instances', category: 'waste', estimated: false },
-  'load-balancer': { label: 'Load Balancers', category: 'waste', estimated: false },
-  'ec2-instance': { label: 'EC2 Instances', category: 'waste', estimated: false },
-  'ebs-snapshot': { label: 'EBS Snapshots', category: 'waste', estimated: false },
-  'nat-gateway': { label: 'NAT Gateways', category: 'waste', estimated: false },
-  'ebs-gp2-upgrade': { label: 'EBS gp2→gp3 Upgrades', category: 'optimization', estimated: false },
-  'ebs-idle': { label: 'EBS Volumes (idle)', category: 'waste', estimated: false },
+  'ebs-volume': { label: 'EBS Volumes', category: 'waste', estimated: false, effort: 'low' },
+  'elastic-ip': { label: 'Elastic IPs', category: 'waste', estimated: false, effort: 'low' },
+  'rds-instance': { label: 'RDS Instances', category: 'waste', estimated: false, effort: 'high' },
+  'load-balancer': { label: 'Load Balancers', category: 'waste', estimated: false, effort: 'medium' },
+  'ec2-instance': { label: 'EC2 Instances', category: 'waste', estimated: false, effort: 'medium' },
+  'ebs-snapshot': { label: 'EBS Snapshots', category: 'waste', estimated: false, effort: 'low' },
+  'nat-gateway': { label: 'NAT Gateways', category: 'waste', estimated: false, effort: 'medium' },
+  'ebs-gp2-upgrade': { label: 'EBS gp2→gp3 Upgrades', category: 'optimization', estimated: false, effort: 'low' },
+  'ebs-idle': { label: 'EBS Volumes (idle)', category: 'waste', estimated: false, effort: 'low' },
   'ec2-underutilized': {
     label: 'EC2 Instances (underutilized)',
     category: 'optimization',
     estimated: true,
+    effort: 'medium',
   },
   'rds-underutilized': {
     label: 'RDS Instances (underutilized)',
     category: 'optimization',
     estimated: true,
+    effort: 'high',
   },
-  'log-group': { label: 'CloudWatch Log Groups', category: 'waste', estimated: false },
-  'eni-orphaned': { label: 'Orphaned ENIs', category: 'waste', estimated: false },
-  's3-no-lifecycle': { label: 'S3 Buckets (no lifecycle)', category: 'optimization', estimated: true },
-  'lambda-underutilized': { label: 'Lambda Functions (underutilized)', category: 'optimization', estimated: false },
-  'efs-unused': { label: 'EFS File Systems (unused)', category: 'waste', estimated: false },
+  'log-group': { label: 'CloudWatch Log Groups', category: 'waste', estimated: false, effort: 'low' },
+  'eni-orphaned': { label: 'Orphaned ENIs', category: 'waste', estimated: false, effort: 'low' },
+  's3-no-lifecycle': { label: 'S3 Buckets (no lifecycle)', category: 'optimization', estimated: true, effort: 'low' },
+  'lambda-underutilized': {
+    label: 'Lambda Functions (underutilized)',
+    category: 'optimization',
+    estimated: false,
+    effort: 'low',
+  },
+  'efs-unused': { label: 'EFS File Systems (unused)', category: 'waste', estimated: false, effort: 'medium' },
   'dynamodb-overprovisioned': {
     label: 'DynamoDB Tables (overprovisioned)',
     category: 'optimization',
     estimated: true,
+    effort: 'low',
   },
-  'elasticache-idle': { label: 'ElastiCache Clusters (idle)', category: 'waste', estimated: false },
-  'redshift-idle-cluster': { label: 'Redshift Clusters (idle)', category: 'waste', estimated: false },
-  'opensearch-idle-domain': { label: 'OpenSearch Domains (idle)', category: 'waste', estimated: false },
-  'msk-idle-cluster': { label: 'MSK Clusters (idle)', category: 'waste', estimated: false },
-  'fsx-idle-filesystem': { label: 'FSx File Systems (idle)', category: 'waste', estimated: false },
-  'documentdb-idle-instance': { label: 'DocumentDB Instances (idle)', category: 'waste', estimated: false },
-  'neptune-idle-instance': { label: 'Neptune Instances (idle)', category: 'waste', estimated: false },
-  'mq-idle-broker': { label: 'Amazon MQ Brokers (idle)', category: 'waste', estimated: false },
-  'workspaces-idle': { label: 'WorkSpaces (idle, AlwaysOn)', category: 'waste', estimated: false },
-  'vpn-connection-idle': { label: 'Site-to-Site VPN Connections (idle)', category: 'waste', estimated: false },
+  'elasticache-idle': { label: 'ElastiCache Clusters (idle)', category: 'waste', estimated: false, effort: 'medium' },
+  'redshift-idle-cluster': { label: 'Redshift Clusters (idle)', category: 'waste', estimated: false, effort: 'high' },
+  'opensearch-idle-domain': {
+    label: 'OpenSearch Domains (idle)',
+    category: 'waste',
+    estimated: false,
+    effort: 'medium',
+  },
+  'msk-idle-cluster': { label: 'MSK Clusters (idle)', category: 'waste', estimated: false, effort: 'high' },
+  'fsx-idle-filesystem': { label: 'FSx File Systems (idle)', category: 'waste', estimated: false, effort: 'medium' },
+  'documentdb-idle-instance': {
+    label: 'DocumentDB Instances (idle)',
+    category: 'waste',
+    estimated: false,
+    effort: 'high',
+  },
+  'neptune-idle-instance': { label: 'Neptune Instances (idle)', category: 'waste', estimated: false, effort: 'high' },
+  'mq-idle-broker': { label: 'Amazon MQ Brokers (idle)', category: 'waste', estimated: false, effort: 'medium' },
+  'workspaces-idle': { label: 'WorkSpaces (idle, AlwaysOn)', category: 'waste', estimated: false, effort: 'low' },
+  'vpn-connection-idle': {
+    label: 'Site-to-Site VPN Connections (idle)',
+    category: 'waste',
+    estimated: false,
+    effort: 'medium',
+  },
   'transit-gateway-idle-attachment': {
     label: 'Transit Gateway Attachments (idle)',
     category: 'waste',
     estimated: false,
+    effort: 'medium',
   },
   'kinesis-provisioned-idle-stream': {
     label: 'Kinesis Streams (idle, Provisioned mode)',
     category: 'waste',
     estimated: false,
+    effort: 'medium',
   },
   // Phase 6.1 (ADR-0065): serverless orphans vertical. $0 hygiene flag, same
   // rationale as 'eni-orphaned' — no direct AWS cost, but signals ignored errors.
-  'sqs-dlq-abandoned': { label: 'SQS Dead Letter Queues (abandoned)', category: 'waste', estimated: false },
+  'sqs-dlq-abandoned': {
+    label: 'SQS Dead Letter Queues (abandoned)',
+    category: 'waste',
+    estimated: false,
+    effort: 'low',
+  },
   'lambda-loggroup-orphaned': {
     label: 'CloudWatch Log Groups (orphaned Lambda)',
     category: 'waste',
     estimated: false,
+    effort: 'low',
   },
   // Phase 6.2: Aurora Serverless v2 vertical. The Min ACU floor is always
   // billed (730h/mo); lowering it is a definite saving, but the recommended
@@ -132,16 +179,28 @@ export const RESOURCE_KIND_META: Record<ResourceKind, ResourceKindMeta> = {
     label: 'Aurora Serverless v2 (overprovisioned Min ACU)',
     category: 'optimization',
     estimated: true,
+    effort: 'medium',
   },
   // Phase 6.3 (ADR-0065): SageMaker vertical. Notebook/endpoint costs are
   // per-instance-type (requires --live-pricing); training-orphaned is a
   // namespace-hygiene flag priced via the static S3 storage estimate.
-  'sagemaker-notebook-idle': { label: 'SageMaker Notebook Instances (idle)', category: 'waste', estimated: false },
-  'sagemaker-endpoint-idle': { label: 'SageMaker Endpoints (idle)', category: 'waste', estimated: false },
+  'sagemaker-notebook-idle': {
+    label: 'SageMaker Notebook Instances (idle)',
+    category: 'waste',
+    estimated: false,
+    effort: 'low',
+  },
+  'sagemaker-endpoint-idle': {
+    label: 'SageMaker Endpoints (idle)',
+    category: 'waste',
+    estimated: false,
+    effort: 'high',
+  },
   'sagemaker-training-orphaned': {
     label: 'SageMaker Models (orphaned, no endpoint)',
     category: 'optimization',
     estimated: true,
+    effort: 'low',
   },
   // Phase 6.4 (ADR-0065): Dev/PR ghost environments. $0 hygiene flag, same
   // rationale as 'eni-orphaned'/'sqs-dlq-abandoned' — no direct AWS cost,
@@ -150,6 +209,7 @@ export const RESOURCE_KIND_META: Record<ResourceKind, ResourceKindMeta> = {
     label: 'Dev/PR Environments (ghost, all resources inactive)',
     category: 'waste',
     estimated: false,
+    effort: 'medium',
   },
   // Phase 6.5 (ADR-0065/ADR-0066): EKS cost visibility vertical. Per-instance-
   // type pricing (requires --live-pricing); the suggested node count is a
@@ -158,29 +218,52 @@ export const RESOURCE_KIND_META: Record<ResourceKind, ResourceKindMeta> = {
     label: 'EKS Node Groups (overprovisioned)',
     category: 'optimization',
     estimated: true,
+    effort: 'high',
   },
   // Phase 6.5 (ADR-0065/ADR-0066): EBS pricing is static, no --live-pricing gate.
   'eks-orphan-pvc': {
     label: 'EKS Orphaned PVC Volumes',
     category: 'waste',
     estimated: false,
+    effort: 'low',
   },
   // Added 2026-07-22: all fixed at-rest cost, always-on like the rest of
   // the EC2/S3/RDS scanners above.
-  'ami-unused': { label: 'AMIs (unused, backing snapshots still billed)', category: 'waste', estimated: false },
-  'ecr-image-untagged': { label: 'ECR Images (untagged)', category: 'waste', estimated: false },
+  'ami-unused': {
+    label: 'AMIs (unused, backing snapshots still billed)',
+    category: 'waste',
+    estimated: false,
+    effort: 'low',
+  },
+  'ecr-image-untagged': { label: 'ECR Images (untagged)', category: 'waste', estimated: false, effort: 'low' },
   's3-multipart-upload-abandoned': {
     label: 'S3 Multipart Uploads (abandoned)',
     category: 'waste',
     estimated: false,
+    effort: 'low',
   },
-  'rds-manual-snapshot-old': { label: 'RDS Manual Snapshots (old)', category: 'waste', estimated: false },
-  'secretsmanager-unused': { label: 'Secrets Manager Secrets (unused)', category: 'waste', estimated: false },
+  'rds-manual-snapshot-old': {
+    label: 'RDS Manual Snapshots (old)',
+    category: 'waste',
+    estimated: false,
+    effort: 'low',
+  },
+  'secretsmanager-unused': {
+    label: 'Secrets Manager Secrets (unused)',
+    category: 'waste',
+    estimated: false,
+    effort: 'medium',
+  },
   // Added 2026-07-23: moved here from the dead-resources candidate list —
   // CodePipeline's flat $1/mo-per-pipeline fee is a real fixed at-rest cost
   // (ADR-0037 criteria), not a $0 hygiene flag, so it belongs with the rest
   // of the WastedResource scanners, always-on like ebs-snapshot.
-  'codepipeline-pipeline-stale': { label: 'CodePipeline Pipelines (stale)', category: 'waste', estimated: false },
+  'codepipeline-pipeline-stale': {
+    label: 'CodePipeline Pipelines (stale)',
+    category: 'waste',
+    estimated: false,
+    effort: 'low',
+  },
 };
 
 // Cast, not narrowed: `Object.fromEntries` always returns a plain
@@ -198,6 +281,10 @@ export function categoryOf(kind: ResourceKind): FindingCategory {
 
 export function isEstimated(kind: ResourceKind): boolean {
   return RESOURCE_KIND_META[kind].estimated;
+}
+
+export function effortOf(kind: ResourceKind): RemediationEffort {
+  return RESOURCE_KIND_META[kind].effort;
 }
 
 /**

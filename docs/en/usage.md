@@ -15,7 +15,7 @@ node apps/cli/dist/main.js analyze [options]
 | Option                       | Description                                                                                                    | Default            |
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
 | `-r, --regions <regions...>` | AWS regions to scan                                                                                            | `us-east-1`        |
-| `--format <format>`          | stdout output format: `table`, `json`, or `markdown` (for CI / PR comments)                                   | `table`            |
+| `--format <format>`          | stdout output format: `table`, `json`, `markdown` (for CI / PR comments), or `csv`                            | `table`            |
 | `--config <path>`            | Path to a config file (defaults to `cloudrift.config.json` / `.cloudriftrc` in the cwd)                       | auto-discovered    |
 | `--live-pricing`             | Fetch current list prices from the AWS Pricing API (falls back to the static table; config prices still win)  | off (static table) |
 | `--scanners <kinds...>`      | Only run these services (space-separated resource kinds, e.g. `ebs-volume elastic-ip`); skips the interactive picker | — |
@@ -28,7 +28,7 @@ node apps/cli/dist/main.js analyze [options]
 | `--silent`                   | Suppress all stdout output (banner, report, confirmations) — use with `--pdf`/`--json` for file-only output    | off                |
 | `-h, --help`                 | Show help                                                                                                      | —                  |
 
-> **stdout vs. file artifacts:** `--format` controls what goes to **stdout** (the report itself). `--json` / `--pdf` write **additional files** to disk and are independent of `--format` — by default the chosen `--format` still prints to stdout *in addition to* writing those files (so e.g. `--pdf` alone still shows the table by default). Add `--silent` for file-only output with nothing printed to the terminal. In machine-readable formats (`json`, `markdown`) all human messages are routed to stderr, so stdout carries only the report — ideal for piping. Errors and the cost-gate alert always surface on stderr, even with `--silent`.
+> **stdout vs. file artifacts:** `--format` controls what goes to **stdout** (the report itself). `--json` / `--pdf` write **additional files** to disk and are independent of `--format` — by default the chosen `--format` still prints to stdout *in addition to* writing those files (so e.g. `--pdf` alone still shows the table by default). Add `--silent` for file-only output with nothing printed to the terminal. In machine-readable formats (`json`, `markdown`, `csv`) all human messages are routed to stderr, so stdout carries only the report — ideal for piping. Errors and the cost-gate alert always surface on stderr, even with `--silent`.
 >
 > **Flag order with `--pdf`/`--json`:** their filename is an *optional* value (`--pdf [filename]`), so it's only picked up if it immediately follows the flag — `--pdf --silent ./report.pdf` fails ("too many arguments") because `--silent` blocks `--pdf` from seeing the filename, leaving `./report.pdf` with nothing to attach to. Either keep the filename right after the flag (`--pdf ./report.pdf --silent`), or use `=` to make order irrelevant: `--pdf=./report.pdf --silent --format json`.
 >
@@ -120,7 +120,7 @@ node apps/cli/dist/main.js trend [options]
 | --- | --- | --- |
 | `--account-id <id>` | AWS account ID override (auto-detected via STS when omitted) | auto-detected |
 | `--config <path>` | Path to a config file | auto-discovered |
-| `--format <format>` | stdout format: `table` or `json` | `table` |
+| `--format <format>` | stdout format: `table`, `json`, or `csv` | `table` |
 | `--fail-on-increase <pct>` | Exit with code 2 if spend increased more than this percent vs. the previous period (overrides `config.costIncreaseAlertPercent`) | off |
 | `--refresh-cache` | Bypass the local Cost Explorer cache and re-fetch closed periods from AWS | off |
 | `-y, --yes` | Skip the "this costs $0.01" confirmation | — |
@@ -135,7 +135,7 @@ node apps/cli/dist/main.js trend [options]
 | `--config <path>` | Path to a config file | auto-discovered |
 | `--months <n>` | Number of calendar months to show (1–36) | `6` |
 | `--services <names...>` | Restrict to these services (shorthand like `ec2 s3 rds`, or the exact Cost Explorer service name) | all services |
-| `--format <format>` | stdout format: `table` (ANSI bar chart) or `json` | `table` |
+| `--format <format>` | stdout format: `table` (ANSI bar chart), `json`, or `csv` | `table` |
 | `--refresh-cache` | Bypass the local Cost Explorer cache | off |
 | `-y, --yes` | Skip the billing confirmation | — |
 | `--pdf [filename]` | Also write a PDF report (defaults to `reports/cloudrift-trend-YYYY_MM_DD.pdf`) | — |
@@ -174,7 +174,7 @@ node apps/cli/dist/main.js dead-resources [options]
 | `--min-age-days <days>`      | Grace period: resources younger than this many days are not reported (`ec2-ri-expiring-soon` doesn't use this — see below) | `7`     |
 | `--ignore-tag <tag>`         | Resources carrying this tag are excluded from the report                                                       | `cloudrift:ignore` |
 | `--scanners <kinds...>`      | Only run these checks (space-separated, e.g. `ec2-keypair-unused iam-user-inactive`)                           | all checks          |
-| `--format <format>`          | stdout output format: `table` or `json`                                                                        | `table`            |
+| `--format <format>`          | stdout output format: `table`, `json`, or `csv`                                                                | `table`            |
 | `--pdf [filename]`           | Also write a PDF report to disk (defaults to `reports/cloudrift-dead-resources-YYYY_MM_DD.pdf`)                | —                  |
 | `--silent`                   | Suppress all stdout output (banner, report). Errors still surface.                                              | off                |
 | `-h, --help`                 | Show help                                                                                                       | —                  |
@@ -236,7 +236,7 @@ node apps/cli/dist/main.js resource-security [options]
 | `--account-id <id>`          | AWS account ID override (auto-detected via `sts:GetCallerIdentity` when omitted)                               | auto-detected      |
 | `--ignore-tag <tag>`         | Resources carrying this tag are excluded from the report                                                       | `cloudrift:ignore` |
 | `--scanners <kinds...>`      | Only run these checks (space-separated, e.g. `iam-root-mfa-disabled s3-bucket-public`)                         | all checks          |
-| `--format <format>`          | stdout output format: `table` or `json`                                                                        | `table`            |
+| `--format <format>`          | stdout output format: `table`, `json`, or `csv`                                                                | `table`            |
 | `--pdf [filename]`           | Also write a PDF report to disk (defaults to `reports/cloudrift-resource-security-YYYY_MM_DD.pdf`)             | —                  |
 | `--silent`                   | Suppress all stdout output (banner, report). Errors still surface.                                              | off                |
 | `-h, --help`                 | Show help                                                                                                       | —                  |

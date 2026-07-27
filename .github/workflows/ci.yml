@@ -89,8 +89,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run tests
-        run: pnpm nx run-many --target=test --all --parallel
+      # --coverage is what actually makes each project's coverageThreshold
+      # (ADR-0090) get checked — Jest silently skips it without that flag.
+      # Sequential, not --parallel: coverage + parallel workers previously
+      # produced spurious CPU-contention timeouts on the heavier PDF specs
+      # (see ADR-0090's Consequences section).
+      - name: Run tests with coverage
+        run: pnpm nx run-many --target=test --all --coverage
 
   audit:
     name: Dependency audit

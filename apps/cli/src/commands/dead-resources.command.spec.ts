@@ -121,6 +121,23 @@ describe('deadResourcesCommand (CLI end-to-end)', () => {
     expect(parsed.countBySeverity).toEqual({ info: 1, warning: 0, critical: 0 });
   });
 
+  it('csv format: stdout is a CSV with a header row and one row per finding', async () => {
+    await run(
+      { format: 'csv' },
+      makeDeps({
+        summary: {
+          findings: [makeKeyPair('key-3')],
+          countBySeverity: { info: 1, warning: 0, critical: 0 },
+          scanErrors: [],
+        },
+      }),
+    );
+    const lines = stdout.trim().split('\n');
+    expect(lines[0]).toBe('id,kind,region,accountId,detectedAt,tags,hygieneReason,severity,consoleUrl');
+    expect(lines).toHaveLength(2);
+    expect(lines[1]).toContain('key-3');
+  });
+
   it('--silent suppresses stdout entirely', async () => {
     await run({ format: 'table', silent: true }, makeDeps());
     expect(stdout).toBe('');

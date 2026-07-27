@@ -94,6 +94,13 @@ describe('costCommand (CLI end-to-end)', () => {
     expect(parsed.previous).toBeDefined();
   });
 
+  it('csv format: stdout is a CSV with a header row and one row per service delta', async () => {
+    const port = dynamicDailyPort((ymd) => (ymd.endsWith('-01') ? 42 : 0));
+    await run({ format: 'csv' }, makeDeps({ port }));
+    const lines = stdout.trim().split('\n');
+    expect(lines[0]).toBe('service,currentUsd,previousUsd,changeUsd,changePercent');
+  });
+
   it('exits 2 via --fail-on-increase when the last two weeks spiked vs. a quiet baseline', async () => {
     const today = new Date();
     const recencyCutoff = new Date(today.getTime() - 15 * 86_400_000).toISOString().slice(0, 10);

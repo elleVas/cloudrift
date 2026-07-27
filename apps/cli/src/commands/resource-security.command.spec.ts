@@ -105,6 +105,23 @@ describe('resourceSecurityCommand (CLI end-to-end)', () => {
     expect(parsed.countBySeverity).toEqual({ info: 0, warning: 0, critical: 1 });
   });
 
+  it('csv format: stdout is a CSV with a header row and one row per finding', async () => {
+    await run(
+      { format: 'csv' },
+      makeDeps({
+        summary: {
+          findings: [makeFinding('123456789012')],
+          countBySeverity: { info: 0, warning: 0, critical: 1 },
+          scanErrors: [],
+        },
+      }),
+    );
+    const lines = stdout.trim().split('\n');
+    expect(lines[0]).toBe('id,kind,region,accountId,detectedAt,tags,riskReason,severity,consoleUrl');
+    expect(lines).toHaveLength(2);
+    expect(lines[1]).toContain('123456789012');
+  });
+
   it('--silent suppresses stdout entirely', async () => {
     await run({ format: 'table', silent: true }, makeDeps());
     expect(stdout).toBe('');

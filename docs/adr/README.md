@@ -118,6 +118,8 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 | [0076](0076-resource-name-column-alongside-opaque-ids.md) | A `Name`/`User` column alongside opaque AWS-generated IDs, never replacing them | Accepted |
 | [0088](0088-severity-report-template-method.md) | `SeverityReportFormatter` template method for the severity-based reports | Accepted |
 | [0091](0091-aws-console-deep-links-in-reports.md) | AWS console deep links in JSON/PDF findings, partial coverage by design | Accepted |
+| [0092](0092-csv-output-format.md) | `csv` output format, flat DTO schema, `OUTPUT_FORMATS` consolidated | Accepted |
+| [0093](0093-quick-wins-effort-and-category-bar-chart.md) | Quick-wins ranked by savings/effort, category bar chart in the waste PDF | Accepted |
 
 ## Testing
 

@@ -6,19 +6,15 @@ import { CostTrendUseCase } from 'cost-analytics-application';
 import type { CostAnalyticsMeta } from 'cost-analytics-application';
 import { formatCostTrendAsChart } from '../formatters/cost-trend.chart-formatter';
 import { formatCostTrendAsJson } from '../formatters/cost-trend.json-formatter';
+import { formatCostTrendAsCsv } from '../formatters/cost-trend.csv-formatter';
 import { generateCostTrendPdf } from '../formatters/cost-trend.pdf-formatter';
 import { resolveServiceNames } from '../config/cost-explorer-service-names';
 import { confirmCostExplorerCharge } from '../wizard/cost-confirmation.wizard';
 import { startScanSpinner } from '../wizard/scan-spinner';
 import { defaultCostAnalyticsDeps, type CostAnalyticsDeps } from './cost-analytics.composition';
 import { reportCliError as fail } from './report-cli-error';
+import { OUTPUT_FORMATS, isOutputFormat } from '../output-format';
 
-const OUTPUT_FORMATS = ['table', 'json'] as const;
-type OutputFormat = (typeof OUTPUT_FORMATS)[number];
-
-function isOutputFormat(format: string): format is OutputFormat {
-  return (OUTPUT_FORMATS as readonly string[]).includes(format);
-}
 const DEFAULT_MONTHS = 6;
 const MAX_MONTHS = 36;
 
@@ -44,7 +40,7 @@ export async function trendCommand(
   deps: CostAnalyticsDeps = defaultCostAnalyticsDeps,
 ): Promise<void> {
   const format = options.format ?? 'table';
-  if (!isOutputFormat(format)) {
+  if (!isOutputFormat(OUTPUT_FORMATS, format)) {
     return fail(`--format must be one of: ${OUTPUT_FORMATS.join(', ')}. Got "${options.format}".`);
   }
 
@@ -87,8 +83,14 @@ export async function trendCommand(
   const meta: CostAnalyticsMeta = { accountId, generatedAt: new Date() };
 
   if (!silent) {
-    const rendered =
-      format === 'json' ? formatCostTrendAsJson(result.value, meta) : formatCostTrendAsChart(result.value);
+    let rendered: string;
+    if (format === 'json') {
+      rendered = formatCostTrendAsJson(result.value, meta);
+    } else if (format === 'csv') {
+      rendered = formatCostTrendAsCsv(result.value, meta);
+    } else {
+      rendered = formatCostTrendAsChart(result.value);
+    }
     console.log(rendered);
   }
 
