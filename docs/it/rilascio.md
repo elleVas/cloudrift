@@ -69,11 +69,24 @@ Il pacchetto punta a **Node 20+** (`engines`). Il bundle è CommonJS, quindi ogn
 
 [`action.yml`](../../action.yml) nella root del repo è un'azione composita che installa `@cloudrift/cli` da npm ed esegue `cloudrift analyze`, quindi `uses: elleVas/cloudrift@v<versione>` funziona una volta che la versione referenziata è pubblicata su npm. Dopo un rilascio, verificala con un run `workflow_dispatch` in un workflow usa-e-getta prima di puntarci consumer reali — oggi nessuna CI esercita `action.yml`.
 
-## Homebrew (dopo il primo publish npm)
+## Homebrew
 
-Nessun tap Homebrew esiste ancora. Documentato in anticipo così la Fase B non riparte da zero, ma nulla di questo è ancora costruito o automatizzato:
+Il tap vive in un repository **separato**, `elleVas/homebrew-cloudrift` (convenzione di naming di Homebrew — una formula non può vivere in questo repo ed essere installabile via `brew install elleVas/cloudrift/cloudrift`). La formula usa il pattern npm-install `Language::Node` di Homebrew: `depends_on "node"`, `def install; system "npm", "install", *std_npm_args; end`, `url` che punta al tarball npm pubblicato (`https://registry.npmjs.org/@cloudrift/cli/-/cli-<versione>.tgz`) con il suo `sha256`.
 
-1. La convenzione di naming dei tap Homebrew richiede un repository GitHub **separato** chiamato `homebrew-cloudrift` (es. `elleVas/homebrew-cloudrift`) — una formula non può vivere in questo repo ed essere installabile via `brew install elleVas/cloudrift/cloudrift`.
-2. La formula dovrebbe usare il pattern npm-install di `Language::Node` di Homebrew (l'approccio standard per CLI pubblicate su npm — nessun build separato, `depends_on "node"`, `def install; system "npm", "install", *std_npm_args; end`), puntando `url` al tarball npm pubblicato (`https://registry.npmjs.org/@cloudrift/cli/-/cli-<versione>.tgz`) con il suo `sha256`. Il tarball esiste — e il suo checksum è calcolabile — solo dopo che la versione corrispondente è effettivamente su npm.
-3. Ogni rilascio successivo al primo richiede di aggiornare `url`/`sha256`/`version` della formula nel tap — a mano o con un piccolo script di follow-up; non ancora costruito.
-4. Valida in locale con `brew audit --strict cloudrift` e `brew test cloudrift` prima di pubblicare modifiche al tap.
+**Il tap viene aggiornato automaticamente.** L'ultimo step di `release.yml` ("Bump Homebrew formula") esegue `scripts/bump-homebrew-formula.mjs`, che:
+
+1. scarica il tarball npm appena pubblicato (ritentando per qualche minuto se il registry non l'ha ancora propagato — vedi nota sotto),
+2. ne calcola lo `sha256`,
+3. scrive una nuova `Formula/cloudrift.rb`,
+4. la pusha su un branch nel repo del tap, apre una PR e abilita l'auto-merge.
+
+La CI del tap stesso (`.github/workflows/test-formula.yml`) esegue poi `brew audit --strict --online` + `brew install --build-from-source` + `brew test` sulla PR; la branch protection su `main` del tap richiede quel check verde prima di poter mergiare. Quindi un solo `git push --tags` qui pubblica sia su npm sia su Homebrew, con il lato Homebrew condizionato a un `brew install` reale che funziona prima del merge.
+
+### Setup una tantum (già fatto per il tap attuale, tenuto qui come riferimento)
+
+- Il repo del tap stesso: `gh repo create elleVas/homebrew-cloudrift --public`, `Formula/cloudrift.rb` + `test-formula.yml` scaffoldati, `allow_auto_merge` abilitato, branch protection su `main` che richiede il check `audit`.
+- **`HOMEBREW_TAP_TOKEN`**: un PAT GitHub fine-grained con scope limitato a `elleVas/homebrew-cloudrift`, permessi **Contents: Read & write** e **Pull requests: Read & write**, aggiunto come secret con nome `HOMEBREW_TAP_TOKEN` su **questo** repo (`elleVas/cloudrift` → Settings → Secrets and variables → Actions). Senza, lo step "Bump Homebrew formula" logga un warning e salta — non fa mai fallire la release npm.
+
+### Propagazione del registry
+
+npm può impiegare qualche minuto a rendere fetchabile un tarball appena pubblicato (fino a ~6 minuti osservati al primo rilascio pubblico) — `bump-homebrew-formula.mjs` ritenta ogni 30s per un massimo di ~10 minuti prima di arrendersi, quindi normalmente questo è invisibile.

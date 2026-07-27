@@ -83,3 +83,42 @@ jobs:
         run: |
           gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --generate-notes
           gh release upload "$GITHUB_REF_NAME" apps/cli/dist/sbom.cyclonedx.json apps/cli/dist/sbom.spdx.json
+
+      # HOMEBREW_TAP_TOKEN is a fine-grained PAT scoped to elleVas/homebrew-cloudrift
+      # (Contents + Pull requests: read & write) — see docs/en/releasing.md#homebrew
+      # for the one-time setup. Skips gracefully (doesn't fail the release) until
+      # that secret exists, so npm publish is never blocked by tap plumbing.
+      - name: Bump Homebrew formula
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::warning::HOMEBREW_TAP_TOKEN not set — skipping Homebrew tap bump (see docs/en/releasing.md#homebrew for one-time setup)"
+            exit 0
+          fi
+
+          TAP_DIR="$(mktemp -d)"
+          git clone "https://x-access-token:${GH_TOKEN}@github.com/elleVas/homebrew-cloudrift.git" "$TAP_DIR"
+          cd "$TAP_DIR"
+
+          BRANCH="bump-${GITHUB_REF_NAME}"
+          git checkout -b "$BRANCH"
+
+          node "$GITHUB_WORKSPACE/scripts/bump-homebrew-formula.mjs" "${GITHUB_REF_NAME#v}" Formula/cloudrift.rb
+
+          if git diff --quiet Formula/cloudrift.rb; then
+            echo "Formula already up to date, nothing to bump."
+            exit 0
+          fi
+
+          git config user.name "cloudrift-release-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add Formula/cloudrift.rb
+          git commit -m "cloudrift $GITHUB_REF_NAME"
+          git push origin "$BRANCH"
+
+          gh pr create --repo elleVas/homebrew-cloudrift \
+            --title "cloudrift $GITHUB_REF_NAME" \
+            --body "Automated bump from the elleVas/cloudrift release workflow." \
+            --head "$BRANCH" --base main
+          gh pr merge --repo elleVas/homebrew-cloudrift --auto --squash "$BRANCH"
