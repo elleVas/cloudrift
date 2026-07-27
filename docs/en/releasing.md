@@ -69,11 +69,24 @@ The package targets **Node 20+** (`engines`). The bundle is CommonJS, so every e
 
 [`action.yml`](../../action.yml) at the repo root is a composite action that installs `@cloudrift/cli` from npm and runs `cloudrift analyze`, so `uses: elleVas/cloudrift@v<version>` only works once the referenced version is actually published to npm (same gate as everything else in this document). After a release, sanity-check it with a `workflow_dispatch` run in a scratch workflow before pointing real consumers at the new tag — nothing in CI exercises `action.yml` today.
 
-## Homebrew (after the first npm publish)
+## Homebrew
 
-No Homebrew tap exists yet. This is documented ahead of time so Phase B doesn't start from zero, but none of it is built or automated yet:
+The tap lives in a **separate** repository, `elleVas/homebrew-cloudrift` (Homebrew's naming convention — a formula cannot live in this repo and be installable via `brew install elleVas/cloudrift/cloudrift`). The formula uses Homebrew's `Language::Node` npm-install pattern: `depends_on "node"`, `def install; system "npm", "install", *std_npm_args; end`, `url` pointing at the published npm tarball (`https://registry.npmjs.org/@cloudrift/cli/-/cli-<version>.tgz`) with its `sha256`.
 
-1. Homebrew's tap naming convention requires a **separate** GitHub repository named `homebrew-cloudrift` (e.g. `elleVas/homebrew-cloudrift`) — a formula cannot live in this repo and be installable via `brew install elleVas/cloudrift/cloudrift`.
-2. The formula should use Homebrew's `Language::Node` npm-install pattern (the standard approach for npm-published CLIs — no separate build step, `depends_on "node"`, `def install; system "npm", "install", *std_npm_args; end`), pointing `url` at the published npm tarball (`https://registry.npmjs.org/@cloudrift/cli/-/cli-<version>.tgz`) with its `sha256`. The tarball only exists — and its checksum is only knowable — after the corresponding version is actually on npm.
-3. Every release after the first needs the tap formula's `url`/`sha256`/`version` bumped to match — either by hand or with a small follow-up script; not built yet.
-4. Validate locally with `brew audit --strict cloudrift` and `brew test cloudrift` before publishing tap changes.
+**The tap is bumped automatically.** The last step of `release.yml` ("Bump Homebrew formula") runs `scripts/bump-homebrew-formula.mjs`, which:
+
+1. downloads the npm tarball just published (retrying for a few minutes if the registry hasn't propagated it yet — see the note below),
+2. computes its `sha256`,
+3. writes a fresh `Formula/cloudrift.rb`,
+4. pushes it to a branch in the tap repo, opens a PR, and enables auto-merge.
+
+The tap repo's own CI (`.github/workflows/test-formula.yml`) then runs `brew audit --strict --online` + `brew install --build-from-source` + `brew test` on the PR; branch protection on the tap's `main` requires that check to pass before the PR can merge. So one `git push --tags` here ends up publishing to both npm and Homebrew, with the Homebrew side gated on a real `brew install` succeeding first.
+
+### One-time setup (already done for the current tap, kept here for reference)
+
+- The tap repo itself: `gh repo create elleVas/homebrew-cloudrift --public`, `Formula/cloudrift.rb` + `test-formula.yml` scaffolded, `allow_auto_merge` enabled, branch protection on `main` requiring the `audit` check.
+- **`HOMEBREW_TAP_TOKEN`**: a fine-grained GitHub PAT scoped to `elleVas/homebrew-cloudrift` only, with **Contents: Read & write** and **Pull requests: Read & write** permissions, added as a secret named `HOMEBREW_TAP_TOKEN` on **this** repo (`elleVas/cloudrift` → Settings → Secrets and variables → Actions). Without it, the "Bump Homebrew formula" step logs a warning and skips — it never fails the npm release.
+
+### Registry propagation
+
+npm can take a few minutes to make a freshly published tarball fetchable (up to ~6 minutes was observed on the first public release) — `bump-homebrew-formula.mjs` retries every 30s for up to ~10 minutes before giving up, so this is normally invisible.
