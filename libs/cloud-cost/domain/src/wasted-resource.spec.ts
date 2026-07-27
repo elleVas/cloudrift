@@ -1,5 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
-import { RESOURCE_KINDS, RESOURCE_KIND_META, RESOURCE_KIND_LABELS, categoryOf, isEstimated } from './wasted-resource';
+import {
+  RESOURCE_KINDS,
+  RESOURCE_KIND_META,
+  RESOURCE_KIND_LABELS,
+  categoryOf,
+  isEstimated,
+  effortOf,
+} from './wasted-resource';
 
 describe('RESOURCE_KIND_META', () => {
   it('has a metadata entry for every declared resource kind', () => {
@@ -8,6 +15,7 @@ describe('RESOURCE_KIND_META', () => {
       expect(typeof RESOURCE_KIND_META[kind].label).toBe('string');
       expect(['waste', 'optimization']).toContain(RESOURCE_KIND_META[kind].category);
       expect(typeof RESOURCE_KIND_META[kind].estimated).toBe('boolean');
+      expect(['low', 'medium', 'high']).toContain(RESOURCE_KIND_META[kind].effort);
     }
   });
 });
@@ -37,5 +45,15 @@ describe('isEstimated', () => {
 
   it('returns true for a kind with a heuristic cost estimate', () => {
     expect(isEstimated('ec2-underutilized')).toBe(true);
+  });
+});
+
+describe('effortOf', () => {
+  it('returns "low" for a pure delete/detach kind', () => {
+    expect(effortOf('ebs-volume')).toBe('low');
+  });
+
+  it('returns "high" for a kind needing downtime/coordination', () => {
+    expect(effortOf('rds-instance')).toBe('high');
   });
 });

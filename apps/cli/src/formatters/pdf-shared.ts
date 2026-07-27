@@ -14,6 +14,7 @@ export const C = {
   primary: '#1d4ed8',
   danger: '#dc2626',
   warning: '#d97706',
+  success: '#16a34a',
   text: '#111827',
   muted: '#6b7280',
   tableHeader: '#f3f4f6',
@@ -359,7 +360,7 @@ export function drawTable(
   contentBottom: number,
   // Parallel to `rows`: when present for a row, an invisible clickable
   // hotspot is layered over that row's *last* column (the visible cell text
-  // is still whatever `rows` put there, e.g. a short "Open ↗" label — this
+  // is still whatever `rows` put there, e.g. a short "Open ->" label — this
   // only adds the link annotation, it doesn't draw anything itself).
   links?: (string | undefined)[],
 ): number {

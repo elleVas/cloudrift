@@ -55,7 +55,7 @@ program
   )
   .option(
     '--format <format>',
-    'stdout output format: table (default), json, or markdown (for CI / PR comments)',
+    'stdout output format: table (default), json, markdown (for CI / PR comments), or csv',
     'table',
   )
   // [filename] is an optional value: commander only attaches it to --pdf/--json
@@ -84,7 +84,7 @@ program
     '--config <path>',
     'path to a cloudrift config file (defaults to cloudrift.config.json / .cloudriftrc in the cwd)',
   )
-  .option('--format <format>', 'stdout output format: table (default) or json', 'table')
+  .option('--format <format>', 'stdout output format: table (default), json, or csv', 'table')
   .option(
     '--fail-on-increase <pct>',
     'exit with code 2 if spend increased more than this percent vs. the previous period (overrides config)',
@@ -110,7 +110,7 @@ program
     '--services <names...>',
     'restrict totals to these services (shorthand like ec2/s3/rds, or the exact Cost Explorer service name)',
   )
-  .option('--format <format>', 'stdout output format: table (default, ANSI bar chart) or json', 'table')
+  .option('--format <format>', 'stdout output format: table (default, ANSI bar chart), json, or csv', 'table')
   .option('--refresh-cache', 'bypass the local Cost Explorer cache and re-fetch closed periods from AWS')
   .option('-y, --yes', 'skip the interactive "this costs $0.01" confirmation')
   .option('--pdf [filename]', 'Also write a PDF report to disk (optional filename, defaults to reports/cloudrift-trend-YYYY_MM_DD.pdf)')
@@ -138,7 +138,7 @@ program
     '--scanners <kinds...>',
     'only run these checks (space-separated, e.g. ec2-keypair-unused iam-user-inactive)',
   )
-  .option('--format <format>', 'stdout output format: table (default) or json', 'table')
+  .option('--format <format>', 'stdout output format: table (default), json, or csv', 'table')
   // See the `analyze` command's --pdf option above for why [filename] needs
   // to be written as --pdf=./path.pdf when combined with other flags.
   .option(
@@ -165,7 +165,7 @@ program
     '--scanners <kinds...>',
     'only run these checks (space-separated, e.g. iam-root-mfa-disabled s3-bucket-public)',
   )
-  .option('--format <format>', 'stdout output format: table (default) or json', 'table')
+  .option('--format <format>', 'stdout output format: table (default), json, or csv', 'table')
   .option(
     '--pdf [filename]',
     'Also write a PDF report to disk (optional filename, defaults to reports/cloudrift-resource-security-YYYY_MM_DD.pdf)',

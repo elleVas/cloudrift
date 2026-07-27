@@ -7,19 +7,14 @@ import type { ResourceSecurityKind, ResourceSecurityPolicyOptions } from 'resour
 import { renderBrandMark } from '../brand-mark';
 import { formatResourceSecurityReportAsTable } from '../formatters/resource-security-report.table-formatter';
 import { formatResourceSecurityReportAsJson } from '../formatters/resource-security-report.json-formatter';
+import { formatResourceSecurityReportAsCsv } from '../formatters/resource-security-report.csv-formatter';
 import { generateResourceSecurityReportPdf } from '../formatters/resource-security-report.pdf-formatter';
 import { startScanSpinner } from '../wizard/scan-spinner';
 import { defaultResourceSecurityDeps, type ResourceSecurityDeps } from './resource-security.composition';
 import { reportCliError as fail } from './report-cli-error';
+import { OUTPUT_FORMATS, isOutputFormat } from '../output-format';
 
 export type { ResourceSecurityDeps };
-
-const OUTPUT_FORMATS = ['table', 'json'] as const;
-type OutputFormat = (typeof OUTPUT_FORMATS)[number];
-
-function isOutputFormat(format: string): format is OutputFormat {
-  return (OUTPUT_FORMATS as readonly string[]).includes(format);
-}
 
 export interface ResourceSecurityCommandOptions {
   regions: string[];
@@ -59,7 +54,7 @@ export async function resourceSecurityCommand(
   deps: ResourceSecurityDeps = defaultResourceSecurityDeps,
 ): Promise<void> {
   const format = options.format ?? 'table';
-  if (!isOutputFormat(format)) {
+  if (!isOutputFormat(OUTPUT_FORMATS, format)) {
     return fail(`--format must be one of: ${OUTPUT_FORMATS.join(', ')}. Got "${options.format}".`);
   }
 
@@ -110,8 +105,14 @@ export async function resourceSecurityCommand(
   const meta = { accountId, regions: regions.map((r) => r.code), generatedAt: new Date() };
 
   if (!silent) {
-    const rendered =
-      format === 'json' ? formatResourceSecurityReportAsJson(result.value, meta) : formatResourceSecurityReportAsTable(result.value);
+    let rendered: string;
+    if (format === 'json') {
+      rendered = formatResourceSecurityReportAsJson(result.value, meta);
+    } else if (format === 'csv') {
+      rendered = formatResourceSecurityReportAsCsv(result.value, meta);
+    } else {
+      rendered = formatResourceSecurityReportAsTable(result.value);
+    }
     console.log(rendered);
   }
 

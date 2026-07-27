@@ -8,6 +8,7 @@ import {
 } from 'cloud-cost-domain';
 import type {
   FindingCategory,
+  RemediationEffort,
   WastedResource,
   WastedResourcesSummary,
 } from 'cloud-cost-domain';
@@ -111,6 +112,17 @@ function drawSummaryPage(
   doc.font('Helvetica-Bold').fontSize(10.5).fillColor(C.text)
     .text('Waste breakdown by resource type', MARGIN, y, { lineBreak: false });
   y += 16;
+
+  // Bar chart first (skim-in-5-seconds view of the biggest offenders), exact
+  // per-kind numbers in the table right below — additive, not a replacement,
+  // so nothing present today is lost.
+  const chartRows = buildCategoryChartRows(summary, 'waste');
+  if (chartRows.length > 0) {
+    y = ensureSpace(doc, y, measureBarChartHeight(doc, chartRows), contentBottom);
+    y = drawBarChart(doc, chartRows, y);
+    y += 14;
+  }
+
   const breakdownRows = buildBreakdownRows(summary, 'waste');
   const breakdownHeaders = ['Resource type', 'Found', 'Est. cost/month'];
   const breakdownColWidths = computeColumnWidths(doc, breakdownHeaders, breakdownRows, CONTENT_W);
@@ -142,7 +154,7 @@ function drawSummaryPage(
     y += 20;
     y = ensureSpace(doc, y, 16 + measureRecommendationsHeight(doc, wins), contentBottom);
     doc.font('Helvetica-Bold').fontSize(10.5).fillColor(C.text)
-      .text('Top recommendations — sorted by monthly impact', MARGIN, y, { lineBreak: false });
+      .text('Top quick wins — savings vs. remediation effort', MARGIN, y, { lineBreak: false });
     y += 16;
     y = drawRecommendations(doc, wins, y, contentBottom);
   }
@@ -189,7 +201,9 @@ function drawDetailPages(
     const rows = findings.map((finding, i) => [
       ...rowFor(finding),
       `$${finding.costEstimate.monthlyCostUsd.toFixed(2)}/mo`,
-      links[i] ? 'Open ↗' : '',
+      // Plain ASCII, not '↗': the base-14 Helvetica font (WinAnsi encoding)
+      // has no glyph for U+2197, which rendered as a broken/missing-glyph box.
+      links[i] ? 'Open ->' : '',
     ]);
     const headers = [...presenter.head, 'Cost/mo', 'Link'];
     const colWidths = computeColumnWidths(doc, headers, rows, CONTENT_W);
@@ -208,7 +222,14 @@ function sectionHeader(doc: PDFKit.PDFDocument, title: string): number {
 interface QuickWin {
   label: string;
   monthlyCostUsd: number;
+  effort: RemediationEffort;
 }
+
+// Divides the $ impact down by how much work remediating it takes (ADR-0093,
+// docs/en/remediation-effort.md), so a cheap-to-fix medium finding can outrank
+// an expensive one that needs a maintenance window — "quick wins" means both
+// savings AND effort, not just the biggest dollar figure.
+const EFFORT_WEIGHT: Record<RemediationEffort, number> = { low: 1, medium: 2, high: 3 };
 
 function buildQuickWins(summary: WastedResourcesSummary): QuickWin[] {
   // Routed through groupByKind (not summary.findings directly) so `finding`
@@ -216,18 +237,26 @@ function buildQuickWins(summary: WastedResourcesSummary): QuickWin[] {
   const grouped = groupByKind(summary.findings);
   const wins: QuickWin[] = [];
   for (const kind of RESOURCE_KINDS) {
+    const { effort } = RESOURCE_KIND_META[kind];
     for (const finding of grouped[kind]) {
-      wins.push({ label: recommendFor(finding), monthlyCostUsd: finding.costEstimate.monthlyCostUsd });
+      wins.push({ label: recommendFor(finding), monthlyCostUsd: finding.costEstimate.monthlyCostUsd, effort });
     }
   }
-  return wins.sort((a, b) => b.monthlyCostUsd - a.monthlyCostUsd).slice(0, 8);
+  return wins
+    .sort((a, b) => b.monthlyCostUsd / EFFORT_WEIGHT[b.effort] - a.monthlyCostUsd / EFFORT_WEIGHT[a.effort])
+    .slice(0, 8);
 }
 
-// Fixed overhead around the label column: 22 (index area) + 74 (gap, monthly
-// cost width and its own gap, all folded into the annual column's x-offset)
-// + 40 (annual cost width) + 8 (right padding, so "/yr" doesn't sit flush
-// against the table border) = 144. labelW must leave exactly this much room.
-const RECOMMENDATION_FIXED_W = 144;
+const EFFORT_BADGE_COLOR: Record<RemediationEffort, string> = { low: C.success, medium: C.warning, high: C.danger };
+const EFFORT_BADGE_LABEL: Record<RemediationEffort, string> = { low: 'LOW', medium: 'MED', high: 'HIGH' };
+const EFFORT_BADGE_W = 32;
+
+// Fixed overhead around the label column: 22 (index area) + 4 (gap) + 32
+// (effort badge) + 74 (gap, monthly cost width and its own gap, all folded
+// into the annual column's x-offset) + 40 (annual cost width) + 8 (right
+// padding, so "/yr" doesn't sit flush against the table border) = 180.
+// labelW must leave exactly this much room.
+const RECOMMENDATION_FIXED_W = 180;
 
 function recommendationLabelWidth(): number {
   return CONTENT_W - RECOMMENDATION_FIXED_W;
@@ -275,7 +304,7 @@ function drawRecommendations(
       segmentH = 0;
     }
 
-    const { monthlyCostUsd } = wins[i];
+    const { monthlyCostUsd, effort } = wins[i];
     const annual = monthlyCostUsd * 12;
     const bg = i % 2 === 0 ? '#ffffff' : C.rowAlt;
 
@@ -291,19 +320,90 @@ function drawRecommendations(
       doc.text(line, MARGIN + 22, y + 6 + li * LINE_H, { width: labelW, lineBreak: false });
     });
 
+    // Effort badge
+    doc.font('Helvetica-Bold').fontSize(7.5).fillColor(EFFORT_BADGE_COLOR[effort])
+      .text(EFFORT_BADGE_LABEL[effort], MARGIN + 22 + labelW + 4, y + 6.5, { width: EFFORT_BADGE_W, align: 'right', lineBreak: false });
+
     // Monthly cost
     doc.font('Helvetica-Bold').fontSize(8.5).fillColor(C.danger)
-      .text(`$${monthlyCostUsd.toFixed(2)}/mo`, MARGIN + 22 + labelW + 4, y + 6, { width: 66, align: 'right', lineBreak: false });
+      .text(`$${monthlyCostUsd.toFixed(2)}/mo`, MARGIN + 22 + labelW + 40, y + 6, { width: 66, align: 'right', lineBreak: false });
 
     // Annual cost
     doc.font('Helvetica').fontSize(8).fillColor(C.muted)
-      .text(`$${annual.toFixed(0)}/yr`, MARGIN + 22 + labelW + 74, y + 6, { width: 40, align: 'right', lineBreak: false });
+      .text(`$${annual.toFixed(0)}/yr`, MARGIN + 22 + labelW + 110, y + 6, { width: 40, align: 'right', lineBreak: false });
 
     y += h;
     segmentH += h;
   }
 
   strokeSegmentBorder();
+  return y;
+}
+
+// ─── Category bar chart ───────────────────────────────────────────────────────
+
+interface BarChartRow {
+  label: string;
+  monthlyCostUsd: number;
+}
+
+const BAR_CHART_LABEL_W = 190;
+const BAR_CHART_VALUE_W = 64;
+const BAR_CHART_MAX_ROWS = 6;
+const BAR_CHART_BAR_H = 8;
+const BAR_CHART_ROW_MIN_H = 16;
+
+/** Top N resource kinds by monthly cost within a category — capped so the
+ * chart stays a skimmable "biggest offenders" view; the exact table right
+ * below it still lists every kind found, capped or not. */
+function buildCategoryChartRows(summary: WastedResourcesSummary, category: FindingCategory): BarChartRow[] {
+  const grouped = groupByKind(summary.findings);
+  return RESOURCE_KINDS
+    .filter((kind) => RESOURCE_KIND_META[kind].category === category && grouped[kind].length > 0)
+    .map((kind) => ({
+      label: RESOURCE_KIND_LABELS[kind],
+      monthlyCostUsd: grouped[kind].reduce((sum, f) => sum + f.costEstimate.monthlyCostUsd, 0),
+    }))
+    .sort((a, b) => b.monthlyCostUsd - a.monthlyCostUsd)
+    .slice(0, BAR_CHART_MAX_ROWS);
+}
+
+function measureBarChartHeight(doc: PDFKit.PDFDocument, rows: BarChartRow[]): number {
+  doc.font('Helvetica').fontSize(8);
+  return rows.reduce(
+    (total, row) => total + Math.max(rowHeightForLines(wrapToLines(doc, row.label, BAR_CHART_LABEL_W).length), BAR_CHART_ROW_MIN_H),
+    0,
+  );
+}
+
+function drawBarChart(doc: PDFKit.PDFDocument, rows: BarChartRow[], startY: number): number {
+  let y = startY;
+  const barAreaX = MARGIN + BAR_CHART_LABEL_W + 8;
+  const barAreaW = CONTENT_W - BAR_CHART_LABEL_W - 8 - BAR_CHART_VALUE_W - 8;
+  const maxCost = Math.max(...rows.map((r) => r.monthlyCostUsd), 0.01);
+
+  for (const row of rows) {
+    doc.font('Helvetica').fontSize(8);
+    const labelLines = wrapToLines(doc, row.label, BAR_CHART_LABEL_W);
+    const rowH = Math.max(rowHeightForLines(labelLines.length), BAR_CHART_ROW_MIN_H);
+
+    doc.fillColor(C.text);
+    labelLines.forEach((line, li) => {
+      doc.text(line, MARGIN, y + li * LINE_H, { width: BAR_CHART_LABEL_W, lineBreak: false });
+    });
+
+    const barW = Math.max((row.monthlyCostUsd / maxCost) * barAreaW, 2);
+    doc.rect(barAreaX, y + (rowH - BAR_CHART_BAR_H) / 2, barW, BAR_CHART_BAR_H).fill(C.primary);
+
+    doc.font('Helvetica-Bold').fontSize(8).fillColor(C.text).text(
+      `$${row.monthlyCostUsd.toFixed(2)}/mo`,
+      barAreaX + barAreaW + 8,
+      y + (rowH - LINE_H) / 2,
+      { width: BAR_CHART_VALUE_W, align: 'right', lineBreak: false },
+    );
+
+    y += rowH;
+  }
   return y;
 }
 

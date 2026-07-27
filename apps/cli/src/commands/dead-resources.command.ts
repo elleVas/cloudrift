@@ -7,19 +7,14 @@ import type { DeadResourceKind, DeadResourcePolicyOptions } from 'dead-resources
 import { renderBrandMark } from '../brand-mark';
 import { formatDeadResourcesReportAsTable } from '../formatters/dead-resources-report.table-formatter';
 import { formatDeadResourcesReportAsJson } from '../formatters/dead-resources-report.json-formatter';
+import { formatDeadResourcesReportAsCsv } from '../formatters/dead-resources-report.csv-formatter';
 import { generateDeadResourcesReportPdf } from '../formatters/dead-resources-report.pdf-formatter';
 import { startScanSpinner } from '../wizard/scan-spinner';
 import { defaultDeadResourcesDeps, type DeadResourcesDeps } from './dead-resources.composition';
 import { reportCliError as fail } from './report-cli-error';
+import { OUTPUT_FORMATS, isOutputFormat } from '../output-format';
 
 export type { DeadResourcesDeps };
-
-const OUTPUT_FORMATS = ['table', 'json'] as const;
-type OutputFormat = (typeof OUTPUT_FORMATS)[number];
-
-function isOutputFormat(format: string): format is OutputFormat {
-  return (OUTPUT_FORMATS as readonly string[]).includes(format);
-}
 
 export interface DeadResourcesCommandOptions {
   regions: string[];
@@ -59,7 +54,7 @@ export async function deadResourcesCommand(
   deps: DeadResourcesDeps = defaultDeadResourcesDeps,
 ): Promise<void> {
   const format = options.format ?? 'table';
-  if (!isOutputFormat(format)) {
+  if (!isOutputFormat(OUTPUT_FORMATS, format)) {
     return fail(`--format must be one of: ${OUTPUT_FORMATS.join(', ')}. Got "${options.format}".`);
   }
 
@@ -122,8 +117,14 @@ export async function deadResourcesCommand(
   const meta = { accountId, regions: regions.map((r) => r.code), generatedAt: new Date() };
 
   if (!silent) {
-    const rendered =
-      format === 'json' ? formatDeadResourcesReportAsJson(result.value, meta) : formatDeadResourcesReportAsTable(result.value);
+    let rendered: string;
+    if (format === 'json') {
+      rendered = formatDeadResourcesReportAsJson(result.value, meta);
+    } else if (format === 'csv') {
+      rendered = formatDeadResourcesReportAsCsv(result.value, meta);
+    } else {
+      rendered = formatDeadResourcesReportAsTable(result.value);
+    }
     console.log(rendered);
   }
 

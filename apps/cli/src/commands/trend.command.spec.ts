@@ -77,6 +77,15 @@ describe('trendCommand (CLI end-to-end)', () => {
     expect(parsed.months[1].final).toBe(false);
   });
 
+  it('csv format: stdout is a CSV with a header row and one row per month', async () => {
+    await run({ format: 'csv' }, makeDeps());
+    const lines = stdout.trim().split('\n');
+    expect(lines[0]).toBe('month,totalUsd,final');
+    expect(lines).toHaveLength(3);
+    expect(lines[1]).toBe('2026-06,100,true');
+    expect(lines[2]).toBe('2026-07,50,false');
+  });
+
   it('passes an unresolved shorthand through unchanged as a literal Cost Explorer name', async () => {
     await run({ format: 'json', services: ['Amazon Custom Service'] }, makeDeps());
     const parsed = JSON.parse(stdout.trim());

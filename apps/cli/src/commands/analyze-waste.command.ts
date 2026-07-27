@@ -6,7 +6,9 @@ import type { WasteReportMeta } from 'cloud-cost-application';
 import { formatWasteReportAsTable } from '../formatters/waste-report.table-formatter';
 import { formatWasteReportAsJson } from '../formatters/waste-report.json-formatter';
 import { formatWasteReportAsMarkdown } from '../formatters/waste-report.markdown-formatter';
+import { formatWasteReportAsCsv } from '../formatters/waste-report.csv-formatter';
 import { renderBrandMark } from '../brand-mark';
+import { WASTE_OUTPUT_FORMATS, isOutputFormat } from '../output-format';
 import {
   promptScannerSelection,
   shouldPromptScannerSelection,
@@ -24,12 +26,6 @@ export type { AnalyzeDeps };
 
 const DEFAULT_CLOUDWATCH_WINDOW_HOURS = 48;
 const DEFAULT_UTILIZATION_WINDOW_HOURS = 168;
-const OUTPUT_FORMATS = ['table', 'json', 'markdown'] as const;
-type OutputFormat = (typeof OUTPUT_FORMATS)[number];
-
-function isOutputFormat(format: string): format is OutputFormat {
-  return (OUTPUT_FORMATS as readonly string[]).includes(format);
-}
 
 export interface AnalyzeWasteOptions {
   regions: string[];
@@ -59,9 +55,9 @@ export async function analyzeWasteCommand(
   deps: AnalyzeDeps = defaultAnalyzeDeps,
 ): Promise<void> {
   const format = options.format ?? 'table';
-  if (!isOutputFormat(format)) {
+  if (!isOutputFormat(WASTE_OUTPUT_FORMATS, format)) {
     return fail(
-      `--format must be one of: ${OUTPUT_FORMATS.join(', ')}. Got "${options.format}".`,
+      `--format must be one of: ${WASTE_OUTPUT_FORMATS.join(', ')}. Got "${options.format}".`,
     );
   }
 
@@ -185,6 +181,8 @@ export async function analyzeWasteCommand(
       rendered = formatWasteReportAsMarkdown(result.value, meta, {
         costAlertThresholdUsd: config.costAlertThresholdUsd,
       });
+    } else if (format === 'csv') {
+      rendered = formatWasteReportAsCsv(result.value, meta);
     } else {
       rendered = formatWasteReportAsTable(result.value, meta);
     }

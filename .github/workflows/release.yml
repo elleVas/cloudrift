@@ -48,8 +48,14 @@ jobs:
           fi
           echo "Releasing @cloudrift/cli@$PKG_VERSION"
 
-      - name: Lint and test
-        run: pnpm nx run-many -t lint test --all --parallel
+      - name: Lint
+        run: pnpm nx run-many -t lint --all --parallel
+
+      # --coverage is what actually makes each project's coverageThreshold
+      # (ADR-0090) get checked — Jest silently skips it without that flag.
+      # Sequential, not --parallel: see ci.yml for why.
+      - name: Test with coverage
+        run: pnpm nx run-many -t test --all --coverage
 
       - name: Package the CLI for npm
         run: pnpm nx package cli

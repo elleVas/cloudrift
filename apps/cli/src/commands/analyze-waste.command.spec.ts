@@ -130,6 +130,19 @@ describe('analyzeWasteCommand (CLI end-to-end)', () => {
     expect(stdout).not.toContain('Scanning');
   });
 
+  it('csv format: stdout is a CSV with a header row and one row per finding', async () => {
+    await run({ format: 'csv' }, makeDeps({
+      summary: summaryOf([wasteVolume('vol-1', 8)], 8),
+    }));
+    expect(stdout).not.toContain('Scanning');
+    const lines = stdout.trim().split('\n');
+    expect(lines[0]).toBe(
+      'id,kind,category,estimated,region,accountId,detectedAt,wasteReason,description,monthlyCostUsd,tags,userName,consoleUrl',
+    );
+    expect(lines).toHaveLength(2);
+    expect(lines[1]).toContain('vol-1');
+  });
+
   it('exits 2 when waste exceeds the configured threshold', async () => {
     await run({ format: 'json' }, makeDeps({
       config: { costAlertThresholdUsd: 5 },

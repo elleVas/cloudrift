@@ -247,7 +247,9 @@ export abstract class SeverityReportFormatter<
       const rows = findings.map((finding, i) => [
         ...this.rowFor(finding),
         finding.severity,
-        links[i] ? 'Open ↗' : '',
+        // Plain ASCII, not '↗': the base-14 Helvetica font (WinAnsi encoding)
+        // has no glyph for U+2197, which rendered as a broken/missing-glyph box.
+        links[i] ? 'Open ->' : '',
       ]);
       const headers = [...presenter.head, 'Severity', 'Link'];
       const colWidths = computeColumnWidths(doc, headers, rows, CONTENT_W);

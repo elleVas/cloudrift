@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
+import type { OutputFormat, WasteOutputFormat } from '../output-format';
 
 export interface WasteOutputChoice {
-  format: 'table' | 'json' | 'markdown';
+  format: WasteOutputFormat;
   savePdf: boolean;
   saveJson: boolean;
 }
@@ -16,6 +17,7 @@ export async function promptWasteOutput(): Promise<WasteOutputChoice | undefined
       { value: 'table', label: 'Table (default)' },
       { value: 'json', label: 'JSON' },
       { value: 'markdown', label: 'Markdown' },
+      { value: 'csv', label: 'CSV' },
     ],
     initialValue: 'table',
   });
@@ -31,11 +33,11 @@ export async function promptWasteOutput(): Promise<WasteOutputChoice | undefined
 }
 
 export interface DeadResourcesOutputChoice {
-  format: 'table' | 'json';
+  format: OutputFormat;
   savePdf: boolean;
 }
 
-/** Output format + optional PDF for the dead-resources wizard flow — table/json only, no markdown (see dead-resources.command.ts). */
+/** Output format + optional PDF for the dead-resources wizard flow — table/json/csv only, no markdown (see dead-resources.command.ts). */
 export async function promptDeadResourcesOutput(): Promise<DeadResourcesOutputChoice | undefined> {
   const { select, confirm, cancel, isCancel } = await import('@clack/prompts');
 
@@ -44,6 +46,7 @@ export async function promptDeadResourcesOutput(): Promise<DeadResourcesOutputCh
     options: [
       { value: 'table', label: 'Table (default)' },
       { value: 'json', label: 'JSON' },
+      { value: 'csv', label: 'CSV' },
     ],
     initialValue: 'table',
   });
@@ -57,20 +60,21 @@ export async function promptDeadResourcesOutput(): Promise<DeadResourcesOutputCh
 
 export type ResourceSecurityOutputChoice = DeadResourcesOutputChoice;
 
-/** Output format + optional PDF for the resource-security wizard flow — table/json only, no markdown, same shape as dead-resources. */
+/** Output format + optional PDF for the resource-security wizard flow — table/json/csv only, no markdown, same shape as dead-resources. */
 export async function promptResourceSecurityOutput(): Promise<ResourceSecurityOutputChoice | undefined> {
   return promptDeadResourcesOutput();
 }
 
 /** Output format for the cost/trend wizard flow — no file artifacts yet, see PDF backlog item. */
-export async function promptSimpleOutput(): Promise<'table' | 'json' | undefined> {
+export async function promptSimpleOutput(): Promise<OutputFormat | undefined> {
   const { select, cancel, isCancel } = await import('@clack/prompts');
 
-  const format = await select<'table' | 'json'>({
+  const format = await select<OutputFormat>({
     message: 'How should the report be shown?',
     options: [
       { value: 'table', label: 'Table / chart (default)' },
       { value: 'json', label: 'JSON' },
+      { value: 'csv', label: 'CSV' },
     ],
     initialValue: 'table',
   });

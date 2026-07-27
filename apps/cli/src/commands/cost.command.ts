@@ -6,19 +6,14 @@ import { CompareCostUseCase } from 'cost-analytics-application';
 import type { CostAnalyticsMeta } from 'cost-analytics-application';
 import { formatCostComparisonAsTable } from '../formatters/cost-comparison.table-formatter';
 import { formatCostComparisonAsJson } from '../formatters/cost-comparison.json-formatter';
+import { formatCostComparisonAsCsv } from '../formatters/cost-comparison.csv-formatter';
 import { generateCostComparisonPdf } from '../formatters/cost-comparison.pdf-formatter';
 import { confirmCostExplorerCharge } from '../wizard/cost-confirmation.wizard';
 import { startScanSpinner } from '../wizard/scan-spinner';
 import { defaultCostAnalyticsDeps, type CostAnalyticsDeps } from './cost-analytics.composition';
 import { applyCostTrendGate } from './post-analysis';
 import { reportCliError as fail } from './report-cli-error';
-
-const OUTPUT_FORMATS = ['table', 'json'] as const;
-type OutputFormat = (typeof OUTPUT_FORMATS)[number];
-
-function isOutputFormat(format: string): format is OutputFormat {
-  return (OUTPUT_FORMATS as readonly string[]).includes(format);
-}
+import { OUTPUT_FORMATS, isOutputFormat } from '../output-format';
 
 export interface CostCommandOptions {
   accountId?: string;
@@ -40,7 +35,7 @@ export async function costCommand(
   deps: CostAnalyticsDeps = defaultCostAnalyticsDeps,
 ): Promise<void> {
   const format = options.format ?? 'table';
-  if (!isOutputFormat(format)) {
+  if (!isOutputFormat(OUTPUT_FORMATS, format)) {
     return fail(`--format must be one of: ${OUTPUT_FORMATS.join(', ')}. Got "${options.format}".`);
   }
 
@@ -84,10 +79,14 @@ export async function costCommand(
   const meta: CostAnalyticsMeta = { accountId, generatedAt: new Date() };
 
   if (!silent) {
-    const rendered =
-      format === 'json'
-        ? formatCostComparisonAsJson(result.value, meta)
-        : formatCostComparisonAsTable(result.value);
+    let rendered: string;
+    if (format === 'json') {
+      rendered = formatCostComparisonAsJson(result.value, meta);
+    } else if (format === 'csv') {
+      rendered = formatCostComparisonAsCsv(result.value, meta);
+    } else {
+      rendered = formatCostComparisonAsTable(result.value);
+    }
     console.log(rendered);
   }
 
