@@ -15,6 +15,8 @@ npm install -g @cloudrift/cli
 cloudrift
 ```
 
+macOS/Linux via Homebrew: `brew install elleVas/cloudrift/cloudrift`
+
 Tutto qui — nessun sottocomando necessario, il wizard interattivo ti guida nella scelta di regioni e scanner. Richiede **Node.js 20+** e credenziali AWS con [permessi IAM in sola lettura](#permessi-iam-necessari) (`aws configure`, o variabili d'ambiente — vedi [setup completo](#setup-completo-credenziali-aws-da-zero-dai-sorgenti) qui sotto se ti serve prima quello).
 
 Preferisci i flag al wizard (script, CI)? Stesso tool, stesso output:
@@ -60,6 +62,12 @@ Vedi [Utilizzo](#utilizzo) per l'elenco completo dei flag.
 npm install -g @cloudrift/cli
 # oppure eseguilo una tantum, senza installarlo:
 npx @cloudrift/cli analyze
+```
+
+**Oppure via Homebrew** (macOS/Linux):
+
+```sh
+brew install elleVas/cloudrift/cloudrift
 ```
 
 **Dai sorgenti** (per contribuire, o per eseguire modifiche non ancora rilasciate):
