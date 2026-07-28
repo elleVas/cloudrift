@@ -71,8 +71,12 @@ program
     'Also write a JSON report to disk (optional filename, defaults to reports/AWS_report_YYYY_MM_DD.json)',
   )
   .option(
+    '--csv [filename]',
+    'Also write a CSV report to disk (optional filename, defaults to reports/AWS_report_YYYY_MM_DD.csv)',
+  )
+  .option(
     '--silent',
-    'suppress all stdout output (banner, report, confirmations) — use with --pdf/--json for file-only output. Errors and the cost-gate alert still surface.',
+    'suppress all stdout output (banner, report, confirmations) — use with --pdf/--json/--csv for file-only output. Errors and the cost-gate alert still surface.',
   )
   .action((options) => analyzeWasteCommand(options));
 
@@ -94,6 +98,7 @@ program
   // See the `analyze` command's --pdf option above for why [filename] needs
   // to be written as --pdf=./path.pdf when combined with other flags.
   .option('--pdf [filename]', 'Also write a PDF report to disk (optional filename, defaults to reports/cloudrift-cost-YYYY_MM_DD.pdf)')
+  .option('--csv [filename]', 'Also write a CSV report to disk (optional filename, defaults to reports/cloudrift-cost-YYYY_MM_DD.csv)')
   .option('--silent', 'suppress all stdout output. Errors and the increase-gate alert still surface.')
   .action((options) => costCommand(options));
 
@@ -114,6 +119,7 @@ program
   .option('--refresh-cache', 'bypass the local Cost Explorer cache and re-fetch closed periods from AWS')
   .option('-y, --yes', 'skip the interactive "this costs $0.01" confirmation')
   .option('--pdf [filename]', 'Also write a PDF report to disk (optional filename, defaults to reports/cloudrift-trend-YYYY_MM_DD.pdf)')
+  .option('--csv [filename]', 'Also write a CSV report to disk (optional filename, defaults to reports/cloudrift-trend-YYYY_MM_DD.csv)')
   .option('--silent', 'suppress all stdout output.')
   .action((options) => trendCommand(options));
 
@@ -145,6 +151,10 @@ program
     '--pdf [filename]',
     'Also write a PDF report to disk (optional filename, defaults to reports/cloudrift-dead-resources-YYYY_MM_DD.pdf)',
   )
+  .option(
+    '--csv [filename]',
+    'Also write a CSV report to disk (optional filename, defaults to reports/cloudrift-dead-resources-YYYY_MM_DD.csv)',
+  )
   .option('--silent', 'suppress all stdout output (banner, report). Errors still surface.')
   .action((options) => deadResourcesCommand(options));
 
@@ -169,6 +179,10 @@ program
   .option(
     '--pdf [filename]',
     'Also write a PDF report to disk (optional filename, defaults to reports/cloudrift-resource-security-YYYY_MM_DD.pdf)',
+  )
+  .option(
+    '--csv [filename]',
+    'Also write a CSV report to disk (optional filename, defaults to reports/cloudrift-resource-security-YYYY_MM_DD.csv)',
   )
   .option('--silent', 'suppress all stdout output (banner, report). Errors still surface.')
   .action((options) => resourceSecurityCommand(options));

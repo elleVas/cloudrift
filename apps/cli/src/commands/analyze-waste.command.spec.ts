@@ -196,6 +196,23 @@ describe('analyzeWasteCommand (CLI end-to-end)', () => {
     }
   });
 
+  it('writes a CSV artifact to disk with --csv <file>', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'cloudrift-cli-'));
+    const file = join(dir, 'out.csv');
+    try {
+      await run({ format: 'table', csv: file }, makeDeps({
+        summary: summaryOf([wasteVolume('vol-1', 8)], 8),
+      }));
+      const lines = (await readFile(file, 'utf8')).trim().split('\n');
+      expect(lines[0]).toBe(
+        'id,kind,category,estimated,region,accountId,detectedAt,wasteReason,description,monthlyCostUsd,tags,userName,consoleUrl,pricesAsOf,pricesStale',
+      );
+      expect(lines[1]).toContain('vol-1');
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
   it('writes a PDF artifact to disk with --pdf <file>', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'cloudrift-cli-'));
     const file = join(dir, 'out.pdf');

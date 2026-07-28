@@ -167,6 +167,28 @@ describe('deadResourcesCommand (CLI end-to-end)', () => {
     expect(received?.scannerKinds).toEqual(['iam-user-inactive']);
   });
 
+  it('writes a CSV artifact to disk with --csv <file>', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'cloudrift-cli-'));
+    const file = join(dir, 'out.csv');
+    try {
+      await run(
+        { format: 'table', csv: file },
+        makeDeps({
+          summary: {
+            findings: [makeKeyPair('key-1')],
+            countBySeverity: { info: 1, warning: 0, critical: 0 },
+            scanErrors: [],
+          },
+        }),
+      );
+      const lines = (await readFile(file, 'utf8')).trim().split('\n');
+      expect(lines[0]).toBe('id,kind,region,accountId,detectedAt,tags,hygieneReason,severity,consoleUrl');
+      expect(lines[1]).toContain('key-1');
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
   it('writes a PDF artifact to disk with --pdf <file>', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'cloudrift-cli-'));
     const file = join(dir, 'out.pdf');

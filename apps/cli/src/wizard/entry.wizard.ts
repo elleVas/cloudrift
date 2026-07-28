@@ -46,6 +46,7 @@ export async function runEntryWizard(): Promise<void> {
       format: output.format,
       pdf: output.savePdf ? true : undefined,
       json: output.saveJson ? true : undefined,
+      csv: output.saveCsv ? true : undefined,
     });
     return;
   }
@@ -66,6 +67,7 @@ export async function runEntryWizard(): Promise<void> {
       scannerKinds,
       format: output.format,
       pdf: output.savePdf ? true : undefined,
+      csv: output.saveCsv ? true : undefined,
     });
     return;
   }
@@ -86,6 +88,7 @@ export async function runEntryWizard(): Promise<void> {
       scannerKinds,
       format: output.format,
       pdf: output.savePdf ? true : undefined,
+      csv: output.saveCsv ? true : undefined,
     });
     return;
   }

@@ -7,10 +7,11 @@ import type { WasteReportMeta } from 'cloud-cost-application';
 import type { CostComparisonSummary } from 'cost-analytics-domain';
 import type { CloudriftConfig } from '../config/cloudrift.config';
 import { formatWasteReportAsJson } from '../formatters/waste-report.json-formatter';
+import { formatWasteReportAsCsv } from '../formatters/waste-report.csv-formatter';
 import { generateWasteReportPdf } from '../formatters/waste-report.pdf-formatter';
 import type { AnalyzeWasteOptions } from './analyze-waste.command';
 
-/** --json / --pdf are file artifacts, independent of the stdout format. */
+/** --json / --csv / --pdf are file artifacts, independent of the stdout format. */
 export async function writeArtifacts(
   result: WastedResourcesSummary,
   meta: WasteReportMeta,
@@ -27,6 +28,16 @@ export async function writeArtifacts(
     await mkdir(dirname(jsonPath), { recursive: true });
     await writeFile(jsonPath, formatWasteReportAsJson(result, meta));
     info(chalk.green(`  JSON report saved to ${jsonPath}`));
+  }
+
+  if (options.csv !== undefined && options.csv !== false) {
+    const csvPath =
+      typeof options.csv === 'string'
+        ? resolve(process.cwd(), options.csv)
+        : resolve(process.cwd(), 'reports', `AWS_report_${day}.csv`);
+    await mkdir(dirname(csvPath), { recursive: true });
+    await writeFile(csvPath, formatWasteReportAsCsv(result, meta));
+    info(chalk.green(`  CSV report saved to ${csvPath}`));
   }
 
   if (options.pdf !== undefined && options.pdf !== false) {

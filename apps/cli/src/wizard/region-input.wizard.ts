@@ -19,10 +19,15 @@ export async function promptRegions(): Promise<string[] | undefined> {
   // resolved shape (same reasoning as `scanner-selection.wizard.ts`).
   const options = AWS_REGION_CODES.map((code) => ({ value: code, label: code })) as Option<string>[];
   const selected = await autocompleteMultiselect<string>({
-    message: 'Which AWS regions do you want to scan? (type to search, space to toggle, enter to confirm)',
+    // Space only toggles the focused option after an arrow key has moved the
+    // cursor at least once — clack's autocomplete prompt otherwise treats a
+    // bare space as a character typed into the search box (no public option
+    // to change this, see @clack/core's AutocompletePrompt#isNavigating).
+    // Tab always toggles regardless, so it's called out as the reliable key.
+    message: 'Which AWS regions do you want to scan? (type to search, tab to toggle, enter to confirm)',
     options,
     initialValues: [],
-    placeholder: 'Type to search, e.g. "eu-w"...',
+    placeholder: 'Type to search, e.g. "eu-w"... (press an arrow key first if space doesn\'t toggle)',
     required: true,
   });
 

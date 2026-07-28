@@ -5,6 +5,7 @@ export interface WasteOutputChoice {
   format: WasteOutputFormat;
   savePdf: boolean;
   saveJson: boolean;
+  saveCsv: boolean;
 }
 
 /** Output format + optional file artifacts for the waste-scan wizard flow. */
@@ -29,12 +30,16 @@ export async function promptWasteOutput(): Promise<WasteOutputChoice | undefined
   const saveJson = await confirm({ message: 'Also save a JSON report to disk?', initialValue: false });
   if (isCancel(saveJson)) return bail(cancel);
 
-  return { format, savePdf, saveJson };
+  const saveCsv = await confirm({ message: 'Also save a CSV report to disk?', initialValue: false });
+  if (isCancel(saveCsv)) return bail(cancel);
+
+  return { format, savePdf, saveJson, saveCsv };
 }
 
 export interface DeadResourcesOutputChoice {
   format: OutputFormat;
   savePdf: boolean;
+  saveCsv: boolean;
 }
 
 /** Output format + optional PDF for the dead-resources wizard flow — table/json/csv only, no markdown (see dead-resources.command.ts). */
@@ -55,7 +60,10 @@ export async function promptDeadResourcesOutput(): Promise<DeadResourcesOutputCh
   const savePdf = await confirm({ message: 'Also save a PDF report to disk?', initialValue: false });
   if (isCancel(savePdf)) return bail(cancel);
 
-  return { format, savePdf };
+  const saveCsv = await confirm({ message: 'Also save a CSV report to disk?', initialValue: false });
+  if (isCancel(saveCsv)) return bail(cancel);
+
+  return { format, savePdf, saveCsv };
 }
 
 export type ResourceSecurityOutputChoice = DeadResourcesOutputChoice;
