@@ -88,37 +88,182 @@ jobs:
       # (Contents + Pull requests: read & write) — see docs/en/releasing.md#homebrew
       # for the one-time setup. Skips gracefully (doesn't fail the release) until
       # that secret exists, so npm publish is never blocked by tap plumbing.
-      - name: Bump Homebrew formula
+      #
+      # This only generates the "bare" formula (url/sha256/version, no bottle
+      # block yet) — build-bottles/publish-bottles below build the precompiled
+      # bottles against this exact file and merge the bottle block in before
+      # anything is pushed to the tap.
+      - name: Generate bare Homebrew formula
+        id: homebrew-formula
         env:
           GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         run: |
           if [ -z "$GH_TOKEN" ]; then
             echo "::warning::HOMEBREW_TAP_TOKEN not set — skipping Homebrew tap bump (see docs/en/releasing.md#homebrew for one-time setup)"
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
 
-          TAP_DIR="$(mktemp -d)"
-          git clone "https://x-access-token:${GH_TOKEN}@github.com/elleVas/homebrew-cloudrift.git" "$TAP_DIR"
-          cd "$TAP_DIR"
+          node scripts/bump-homebrew-formula.mjs "${GITHUB_REF_NAME#v}" bare-formula.rb
 
+          curl -fsSL -o current-formula.rb "https://raw.githubusercontent.com/elleVas/homebrew-cloudrift/main/Formula/cloudrift.rb" || true
+          if [ -f current-formula.rb ] && diff -q current-formula.rb bare-formula.rb > /dev/null 2>&1; then
+            echo "Formula already up to date, nothing to bump."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload bare formula artifact
+        if: steps.homebrew-formula.outputs.changed == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: homebrew-formula-bare
+          path: bare-formula.rb
+          if-no-files-found: error
+
+    outputs:
+      homebrew_enabled: ${{ steps.homebrew-formula.outputs.enabled }}
+      homebrew_formula_changed: ${{ steps.homebrew-formula.outputs.changed }}
+
+  # Builds a precompiled bottle per platform so `brew install cloudrift` never
+  # needs to run `npm install`/Xcode Command Line Tools on the user's machine —
+  # see the bottle decision in the Homebrew tap automation notes. Runs on the
+  # exact bare formula generated above so every platform bottles the same
+  # url/sha256.
+  build-bottles:
+    name: Build Homebrew bottle (${{ matrix.platform }})
+    needs: publish
+    if: needs.publish.outputs.homebrew_enabled == 'true' && needs.publish.outputs.homebrew_formula_changed == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-arm64
+            os: macos-14
+          - platform: macos-intel
+            os: macos-13
+          - platform: linux
+            os: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout tap repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          repository: elleVas/homebrew-cloudrift
+
+      - name: Download bare formula
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: homebrew-formula-bare
+
+      - name: Install formula into tap checkout
+        run: mv bare-formula.rb Formula/cloudrift.rb
+
+      # GitHub's macOS runners ship Homebrew preinstalled; ubuntu-latest doesn't,
+      # so install it here to get identical brew commands on every platform.
+      - name: Install Homebrew (Linux only)
+        if: runner.os == 'Linux'
+        run: |
+          NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          echo "/home/linuxbrew/.linuxbrew/bin" >> "$GITHUB_PATH"
+          echo "/home/linuxbrew/.linuxbrew/sbin" >> "$GITHUB_PATH"
+
+      # Homebrew refuses to load formulae from a tap it doesn't recognize
+      # (typosquatting protection) — same tap+trust sequence already verified
+      # working on GitHub-hosted runners in the tap's own test-formula.yml.
+      - name: Tap and trust the local formula
+        run: |
+          brew tap elleVas/cloudrift "$PWD"
+          brew trust ellevas/cloudrift
+
+      - name: Build the bottle
+        run: brew install --formula --build-bottle cloudrift
+
+      - name: Generate bottle spec
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          brew bottle --json --root-url="https://github.com/elleVas/homebrew-cloudrift/releases/download/cloudrift-${VERSION}" cloudrift
+
+      - name: Upload bottle artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: bottle-${{ matrix.platform }}
+          path: |
+            *.bottle.tar.gz
+            *.bottle.json
+          if-no-files-found: error
+
+  # Merges the per-platform bottle specs into one bottle block, publishes the
+  # bottle tarballs as tap release assets (root_url target), and opens the
+  # same auto-merging PR the tap's audit CI already gates — now carrying the
+  # bottle block instead of just the source url/sha256.
+  publish-bottles:
+    name: Publish bottles to the tap
+    needs: build-bottles
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout tap repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          repository: elleVas/homebrew-cloudrift
+
+      - name: Download bare formula
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: homebrew-formula-bare
+
+      - name: Install formula into tap checkout
+        run: mv bare-formula.rb Formula/cloudrift.rb
+
+      - name: Download bottle artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: bottle-*
+          merge-multiple: true
+
+      - name: Install Homebrew
+        run: |
+          NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          echo "/home/linuxbrew/.linuxbrew/bin" >> "$GITHUB_PATH"
+          echo "/home/linuxbrew/.linuxbrew/sbin" >> "$GITHUB_PATH"
+
+      - name: Tap and trust the local formula
+        run: |
+          brew tap elleVas/cloudrift "$PWD"
+          brew trust ellevas/cloudrift
+
+      - name: Merge bottle specs into the formula
+        run: brew bottle --merge --write --no-commit *.bottle.json
+
+      # Upload the tarballs before opening the PR so the tap's `brew audit
+      # --online` check (required by branch protection) sees a formula whose
+      # bottle root_url already resolves.
+      - name: Create GitHub release with bottle tarballs
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          gh release create "cloudrift-${VERSION}" *.bottle.tar.gz \
+            --repo elleVas/homebrew-cloudrift \
+            --title "cloudrift ${VERSION} bottles" \
+            --notes "Precompiled Homebrew bottles for cloudrift ${VERSION} (macOS arm64, macOS Intel, Linux)."
+
+      - name: Open PR with the bottled formula
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
           BRANCH="bump-${GITHUB_REF_NAME}"
           git checkout -b "$BRANCH"
-
-          node "$GITHUB_WORKSPACE/scripts/bump-homebrew-formula.mjs" "${GITHUB_REF_NAME#v}" Formula/cloudrift.rb
-
-          if git diff --quiet Formula/cloudrift.rb; then
-            echo "Formula already up to date, nothing to bump."
-            exit 0
-          fi
-
           git config user.name "cloudrift-release-bot"
           git config user.email "actions@users.noreply.github.com"
           git add Formula/cloudrift.rb
-          git commit -m "cloudrift $GITHUB_REF_NAME"
-          git push origin "$BRANCH"
+          git commit -m "cloudrift ${GITHUB_REF_NAME}"
+          git push "https://x-access-token:${GH_TOKEN}@github.com/elleVas/homebrew-cloudrift.git" "$BRANCH"
 
           gh pr create --repo elleVas/homebrew-cloudrift \
-            --title "cloudrift $GITHUB_REF_NAME" \
-            --body "Automated bump from the elleVas/cloudrift release workflow." \
+            --title "cloudrift ${GITHUB_REF_NAME}" \
+            --body "Automated bump (source + precompiled bottles) from the elleVas/cloudrift release workflow." \
             --head "$BRANCH" --base main
           gh pr merge --repo elleVas/homebrew-cloudrift --auto --squash "$BRANCH"
