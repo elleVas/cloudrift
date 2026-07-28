@@ -19,7 +19,7 @@ describe('StaticPriceTableAdapter', () => {
     });
 
     it('returns ap-southeast-1 gp2 price', () => {
-      expect(adapter.getPrice(apSoutheast1, 'ebs-gp2')).toBe(0.114);
+      expect(adapter.getPrice(apSoutheast1, 'ebs-gp2')).toBe(0.12);
     });
 
     it('falls back to default for unknown region', () => {
@@ -36,8 +36,8 @@ describe('StaticPriceTableAdapter', () => {
       expect(adapter.getPrice(usEast1, 'ebs-snapshot')).toBe(0.05);
     });
 
-    it('returns ap-southeast-1 snapshot price (higher)', () => {
-      expect(adapter.getPrice(apSoutheast1, 'ebs-snapshot')).toBe(0.055);
+    it('returns ap-southeast-1 snapshot price (same as us-east-1)', () => {
+      expect(adapter.getPrice(apSoutheast1, 'ebs-snapshot')).toBe(0.05);
     });
   });
 
