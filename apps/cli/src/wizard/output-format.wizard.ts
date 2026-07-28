@@ -18,7 +18,6 @@ export async function promptWasteOutput(): Promise<WasteOutputChoice | undefined
       { value: 'table', label: 'Table (default)' },
       { value: 'json', label: 'JSON' },
       { value: 'markdown', label: 'Markdown' },
-      { value: 'csv', label: 'CSV' },
     ],
     initialValue: 'table',
   });
@@ -42,7 +41,7 @@ export interface DeadResourcesOutputChoice {
   saveCsv: boolean;
 }
 
-/** Output format + optional PDF for the dead-resources wizard flow — table/json/csv only, no markdown (see dead-resources.command.ts). */
+/** Output format + optional PDF for the dead-resources wizard flow — table/json only, no markdown (see dead-resources.command.ts). */
 export async function promptDeadResourcesOutput(): Promise<DeadResourcesOutputChoice | undefined> {
   const { select, confirm, cancel, isCancel } = await import('@clack/prompts');
 
@@ -51,7 +50,6 @@ export async function promptDeadResourcesOutput(): Promise<DeadResourcesOutputCh
     options: [
       { value: 'table', label: 'Table (default)' },
       { value: 'json', label: 'JSON' },
-      { value: 'csv', label: 'CSV' },
     ],
     initialValue: 'table',
   });
@@ -68,27 +66,38 @@ export async function promptDeadResourcesOutput(): Promise<DeadResourcesOutputCh
 
 export type ResourceSecurityOutputChoice = DeadResourcesOutputChoice;
 
-/** Output format + optional PDF for the resource-security wizard flow — table/json/csv only, no markdown, same shape as dead-resources. */
+/** Output format + optional PDF for the resource-security wizard flow — table/json only, no markdown, same shape as dead-resources. */
 export async function promptResourceSecurityOutput(): Promise<ResourceSecurityOutputChoice | undefined> {
   return promptDeadResourcesOutput();
 }
 
-/** Output format for the cost/trend wizard flow — no file artifacts yet, see PDF backlog item. */
-export async function promptSimpleOutput(): Promise<OutputFormat | undefined> {
-  const { select, cancel, isCancel } = await import('@clack/prompts');
+export interface CostTrendOutputChoice {
+  format: OutputFormat;
+  savePdf: boolean;
+  saveCsv: boolean;
+}
+
+/** Output format + optional file artifacts for the cost/trend wizard flow. */
+export async function promptCostTrendOutput(): Promise<CostTrendOutputChoice | undefined> {
+  const { select, confirm, cancel, isCancel } = await import('@clack/prompts');
 
   const format = await select<OutputFormat>({
     message: 'How should the report be shown?',
     options: [
       { value: 'table', label: 'Table / chart (default)' },
       { value: 'json', label: 'JSON' },
-      { value: 'csv', label: 'CSV' },
     ],
     initialValue: 'table',
   });
   if (isCancel(format)) return bail(cancel);
 
-  return format;
+  const savePdf = await confirm({ message: 'Also save a PDF report to disk?', initialValue: false });
+  if (isCancel(savePdf)) return bail(cancel);
+
+  const saveCsv = await confirm({ message: 'Also save a CSV report to disk?', initialValue: false });
+  if (isCancel(saveCsv)) return bail(cancel);
+
+  return { format, savePdf, saveCsv };
 }
 
 function bail(cancelFn: (message?: string) => void): undefined {
