@@ -15,6 +15,7 @@ export interface RdsManualSnapshotOldProps {
   detectedAt: Date;
   tags: Record<string, string>;
   monthlyCostUsd: number;
+  wasteReason: string;
 }
 
 export class RdsManualSnapshotOld extends Entity<string> implements WastedResource {
@@ -35,7 +36,7 @@ export class RdsManualSnapshotOld extends Entity<string> implements WastedResour
   get tags(): Record<string, string> { return this.props.tags; }
 
   get kind(): 'rds-manual-snapshot-old' { return 'rds-manual-snapshot-old'; }
-  get wasteReason(): string { return 'manual snapshot older than the grace period'; }
+  get wasteReason(): string { return this.props.wasteReason; }
 
   get costEstimate(): CostEstimate {
     return CostEstimate.of(this.props.monthlyCostUsd, `${this.props.allocatedStorageGb} GB manual snapshot`);

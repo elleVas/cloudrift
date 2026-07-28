@@ -9,6 +9,6 @@ export class EcrImageUntaggedPolicy extends WastePolicy<EcrImageUntagged> {
     if (this.isWithinGracePeriod(image.imagePushedAt, now)) {
       return notWaste(`pushed less than ${this.minAgeDays}d ago`);
     }
-    return waste('no image tag');
+    return waste(`no image tag, pushed ${this.ageInDays(image.imagePushedAt, now).toFixed(0)}d ago, not pullable by tag`);
   }
 }

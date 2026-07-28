@@ -10,6 +10,6 @@ export class S3MultipartUploadAbandonedPolicy extends WastePolicy<S3MultipartUpl
     if (this.isWithinGracePeriod(upload.initiated, now)) {
       return notWaste(`initiated less than ${this.minAgeDays}d ago`);
     }
-    return waste('incomplete multipart upload past the grace period');
+    return waste(`incomplete multipart upload, initiated ${this.ageInDays(upload.initiated, now).toFixed(0)}d ago, never completed or aborted`);
   }
 }

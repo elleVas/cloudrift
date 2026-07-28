@@ -12,6 +12,6 @@ export class EbsSnapshotWastePolicy extends WastePolicy<EbsSnapshot> {
     if (this.isWithinGracePeriod(snapshot.startTime, now)) {
       return notWaste(`created less than ${this.minAgeDays}d ago`);
     }
-    return waste('source volume deleted');
+    return waste(`source volume deleted, snapshot ${this.ageInDays(snapshot.startTime, now).toFixed(0)}d old`);
   }
 }

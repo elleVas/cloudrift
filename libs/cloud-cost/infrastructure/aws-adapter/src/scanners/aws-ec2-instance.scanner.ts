@@ -84,7 +84,7 @@ export class AwsEc2InstanceScanner implements WasteScannerPort {
             return sum + pricePerGb * vol.sizeGb;
           }, 0).toFixed(4);
 
-          return new Ec2Instance({
+          const props = {
             instanceId: inst.InstanceId,
             region,
             accountId: this.accountId,
@@ -98,9 +98,11 @@ export class AwsEc2InstanceScanner implements WasteScannerPort {
               (inst.Tags ?? []).map((t) => [t.Key ?? '', t.Value ?? '']),
             ),
             monthlyCostUsd,
-          });
+          };
+          const verdict = this.policy.evaluate(new Ec2Instance({ ...props, wasteReason: '' }), now);
+          return verdict.isWaste ? new Ec2Instance({ ...props, wasteReason: verdict.reason }) : null;
         })
-        .filter((instance) => this.policy.evaluate(instance, now).isWaste);
+        .filter((instance): instance is Ec2Instance => instance !== null);
 
       return Result.ok(instances);
     } catch (err) {

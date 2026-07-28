@@ -43,7 +43,7 @@ export class AwsLogGroupScanner implements WasteScannerPort {
           return validGroups
             .map((lg) => {
               const storedBytes = lg.storedBytes ?? 0;
-              return new LogGroup({
+              const props = {
                 logGroupName: lg.logGroupName,
                 region,
                 accountId: this.accountId,
@@ -53,9 +53,11 @@ export class AwsLogGroupScanner implements WasteScannerPort {
                 detectedAt: now,
                 tags: {},
                 monthlyCostUsd: +((storedBytes / 1024 ** 3) * pricePerGb).toFixed(4),
-              });
+              };
+              const verdict = this.policy.evaluate(new LogGroup({ ...props, wasteReason: '' }), now);
+              return verdict.isWaste ? new LogGroup({ ...props, wasteReason: verdict.reason }) : null;
             })
-            .filter((group) => this.policy.evaluate(group, now).isWaste);
+            .filter((group): group is LogGroup => group !== null);
         },
       );
 

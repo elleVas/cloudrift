@@ -15,6 +15,7 @@ export interface S3BucketProps {
   tags: Record<string, string>;
   /** Heuristic estimate of the monthly saving from enabling a lifecycle policy. */
   monthlyCostUsd: number;
+  wasteReason: string;
 }
 
 /**
@@ -39,7 +40,7 @@ export class S3Bucket extends Entity<string> implements WastedResource {
   get tags(): Record<string, string> { return this.props.tags; }
 
   get kind(): 's3-no-lifecycle' { return 's3-no-lifecycle'; }
-  get wasteReason(): string { return 'no lifecycle policy configured'; }
+  get wasteReason(): string { return this.props.wasteReason; }
 
   hasLifecyclePolicy(): boolean {
     return this.props.hasLifecyclePolicy;

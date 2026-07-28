@@ -8,6 +8,6 @@ export class AmiUnusedPolicy extends WastePolicy<AmiUnused> {
     if (this.isWithinGracePeriod(ami.creationDate, now)) {
       return notWaste(`created less than ${this.minAgeDays}d ago`);
     }
-    return waste('not referenced by any instance or launch template');
+    return waste(`not referenced by any instance or launch template, created ${this.ageInDays(ami.creationDate, now).toFixed(0)}d ago`);
   }
 }

@@ -76,6 +76,7 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 | [0077](0077-scanner-registry-split-on-pricing-seam.md) | Scanner registry split on the always-on/live-pricing seam | Accepted |
 | [0084](0084-typescript-as-cast-cleanup.md) | TypeScript `as` cast cleanup: mechanical fixes, deferred fallback decisions, legitimate exceptions | Accepted |
 | [0086](0086-mcp-tool-handlers-error-boundary.md) | MCP tool handlers wrapped in a shared error boundary | Accepted |
+| [0094](0094-wastereason-derived-from-policy-verdict.md) | `wasteReason` derived from the policy's `WasteVerdict`, not hardcoded on the entity | Accepted |
 
 ## Stack
 

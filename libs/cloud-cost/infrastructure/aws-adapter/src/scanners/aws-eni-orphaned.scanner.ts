@@ -45,8 +45,8 @@ export class AwsEniOrphanedScanner implements WasteScannerPort {
       }
 
       const enis = validEnis
-        .map((eni) =>
-          new OrphanedEni({
+        .map((eni) => {
+          const props = {
             networkInterfaceId: eni.NetworkInterfaceId,
             region,
             accountId: this.accountId,
@@ -57,9 +57,11 @@ export class AwsEniOrphanedScanner implements WasteScannerPort {
             tags: Object.fromEntries(
               (eni.TagSet ?? []).map((t) => [t.Key ?? '', t.Value ?? '']),
             ),
-          }),
-        )
-        .filter((eni) => this.policy.evaluate(eni, now).isWaste);
+          };
+          const verdict = this.policy.evaluate(new OrphanedEni({ ...props, wasteReason: '' }), now);
+          return verdict.isWaste ? new OrphanedEni({ ...props, wasteReason: verdict.reason }) : null;
+        })
+        .filter((eni): eni is OrphanedEni => eni !== null);
 
       return Result.ok(enis);
     } catch (err) {

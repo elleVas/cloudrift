@@ -19,6 +19,7 @@ export interface EbsSnapshotProps {
   description: string;
   tags: Record<string, string>;
   monthlyCostUsd: number;
+  wasteReason: string;
 }
 
 export class EbsSnapshot extends Entity<string> implements WastedResource {
@@ -41,7 +42,7 @@ export class EbsSnapshot extends Entity<string> implements WastedResource {
   get tags(): Record<string, string> { return this.props.tags; }
 
   get kind(): 'ebs-snapshot' { return 'ebs-snapshot'; }
-  get wasteReason(): string { return 'source volume deleted'; }
+  get wasteReason(): string { return this.props.wasteReason; }
 
   isOrphan(): boolean {
     return !this.props.sourceVolumeExists;

@@ -71,7 +71,7 @@ export class AwsS3NoLifecycleScanner implements WasteScannerPort {
         .map((b, index) => {
           const { hasLifecyclePolicy, sizeBytes } = details[index];
           const sizeGb = sizeBytes / 1024 ** 3;
-          return new S3Bucket({
+          const props = {
             bucketName: b.Name,
             region,
             accountId: this.accountId,
@@ -81,9 +81,11 @@ export class AwsS3NoLifecycleScanner implements WasteScannerPort {
             detectedAt: now,
             tags: {},
             monthlyCostUsd: +(sizeGb * pricePerGb * ESTIMATED_SAVING_FRACTION).toFixed(4),
-          });
+          };
+          const verdict = this.policy.evaluate(new S3Bucket({ ...props, wasteReason: '' }), now);
+          return verdict.isWaste ? new S3Bucket({ ...props, wasteReason: verdict.reason }) : null;
         })
-        .filter((bucket) => this.policy.evaluate(bucket, now).isWaste);
+        .filter((bucket): bucket is S3Bucket => bucket !== null);
 
       return Result.ok(buckets);
     } catch (err) {

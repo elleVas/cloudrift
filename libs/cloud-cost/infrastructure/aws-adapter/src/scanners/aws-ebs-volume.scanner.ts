@@ -56,7 +56,7 @@ export class AwsEbsVolumeScanner implements WasteScannerPort {
           const volumeType = v.VolumeType ?? 'gp2';
           const pricePerGb =
             this.pricing.getPrice(region, `ebs-${volumeType}`) || this.pricing.getPrice(region, 'ebs-gp3');
-          return new EbsVolume({
+          const props = {
             volumeId: v.VolumeId,
             region,
             accountId: this.accountId,
@@ -77,9 +77,14 @@ export class AwsEbsVolumeScanner implements WasteScannerPort {
               (v.Tags ?? []).map((t) => [t.Key ?? '', t.Value ?? '']),
             ),
             monthlyCostUsd: +(pricePerGb * v.Size).toFixed(4),
-          });
+          };
+          // Evaluated twice by design: the policy needs a constructed entity to
+          // call isUnattached()/createTime, but its verdict.reason must flow
+          // into the final (immutable) entity rather than being discarded.
+          const verdict = this.policy.evaluate(new EbsVolume({ ...props, wasteReason: '' }), now);
+          return verdict.isWaste ? new EbsVolume({ ...props, wasteReason: verdict.reason }) : null;
         })
-        .filter((volume) => this.policy.evaluate(volume, now).isWaste);
+        .filter((volume): volume is EbsVolume => volume !== null);
 
       return Result.ok(volumes);
     } catch (err) {

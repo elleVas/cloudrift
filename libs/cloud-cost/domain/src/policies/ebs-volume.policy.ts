@@ -9,6 +9,6 @@ export class EbsVolumeWastePolicy extends WastePolicy<EbsVolume> {
     if (this.isWithinGracePeriod(volume.createTime, now)) {
       return notWaste(`created less than ${this.minAgeDays}d ago`);
     }
-    return waste('unattached');
+    return waste(`unattached, created ${this.ageInDays(volume.createTime, now).toFixed(0)}d ago`);
   }
 }

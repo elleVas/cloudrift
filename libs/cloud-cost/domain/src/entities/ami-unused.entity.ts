@@ -16,6 +16,7 @@ export interface AmiUnusedProps {
   totalSnapshotSizeGb: number;
   tags: Record<string, string>;
   monthlyCostUsd: number;
+  wasteReason: string;
 }
 
 export class AmiUnused extends Entity<string> implements WastedResource {
@@ -35,7 +36,7 @@ export class AmiUnused extends Entity<string> implements WastedResource {
   get tags(): Record<string, string> { return this.props.tags; }
 
   get kind(): 'ami-unused' { return 'ami-unused'; }
-  get wasteReason(): string { return 'not referenced by any instance or launch template'; }
+  get wasteReason(): string { return this.props.wasteReason; }
 
   isUnused(): boolean {
     return !this.props.inUse;

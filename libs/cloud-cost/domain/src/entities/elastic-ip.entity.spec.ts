@@ -14,6 +14,7 @@ function makeEip(overrides: Partial<ElasticIpProps> = {}): ElasticIp {
     detectedAt: new Date('2026-06-09'),
     tags: { Env: 'dev' },
     monthlyCostUsd: 3.6,
+    wasteReason: 'unassociated',
     ...overrides,
   });
 }

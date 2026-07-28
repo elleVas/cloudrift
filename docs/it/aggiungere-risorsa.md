@@ -80,6 +80,7 @@ export interface LogGroupProps {
   detectedAt: Date;
   tags: Record<string, string>;
   monthlyCostUsd: number;
+  wasteReason: string;   // impostato dal WasteVerdict.reason della policy, mai hardcoded — vedi ADR-0094
 }
 
 export class LogGroup extends Entity<string> implements WastedResource {
@@ -98,7 +99,7 @@ export class LogGroup extends Entity<string> implements WastedResource {
   get tags(): Record<string, string> { return this.props.tags; }
 
   get kind(): 'log-group' { return 'log-group'; }
-  get wasteReason(): string { return 'no retention policy'; }
+  get wasteReason(): string { return this.props.wasteReason; }
 
   hasRetentionPolicy(): boolean {
     return this.props.retentionInDays !== undefined;
@@ -114,7 +115,7 @@ export class LogGroup extends Entity<string> implements WastedResource {
 **Regole:**
 - L'ID dell'entità è l'identificativo univoco AWS
 - Le props sono congelate ricorsivamente (`this.deepFreeze()`, ereditato da `Entity` — vedi [ADR-0060](../adr/0060-entity-deep-freeze.md)), non solo al primo livello
-- L'entità porta i **fatti** (qui `retentionInDays`); la **decisione** sta nella policy
+- L'entità porta i **fatti** (qui `retentionInDays`); la **decisione**, incluso il motivo leggibile dall'utente, sta nella policy — `wasteReason` è una prop impostata da `WasteVerdict.reason`, mai un getter hardcoded (vedi [ADR-0094](../adr/0094-wastereason-derived-from-policy-verdict.md))
 - Esporta entità e props da `domain/src/index.ts`
 
 ---
@@ -130,12 +131,12 @@ export class LogGroupWastePolicy extends WastePolicy<LogGroup> {
     if (this.isWithinGracePeriod(group.creationTime, now)) {
       return notWaste(`created less than ${this.minAgeDays}d ago`);
     }
-    return waste('no retention policy');
+    return waste(`no retention policy (created ${this.ageInDays(group.creationTime, now).toFixed(0)}d ago)`);
   }
 }
 ```
 
-Tag di esclusione e periodo di grazia arrivano gratis dalla classe base. Aggiungi i test in `waste-policies.spec.ts` (caso waste, caso grace period, caso tag) ed esporta la policy dall'`index.ts` del domain.
+Tag di esclusione e periodo di grazia arrivano gratis dalla classe base. L'argomento di `waste(...)` non è un dettaglio solo interno — finisce nel `wasteReason` dell'entità e quindi in ogni report (vedi passo 5 e [ADR-0094](../adr/0094-wastereason-derived-from-policy-verdict.md)), quindi preferisci un motivo che includa i dati di età/contesto già disponibili (`ageInDays()`, anch'esso dalla classe base) invece di una stringa statica fissa. Aggiungi i test in `waste-policies.spec.ts` (caso waste, caso grace period, caso tag) ed esporta la policy dall'`index.ts` del domain.
 
 ---
 
@@ -207,7 +208,7 @@ export class AwsLogGroupScanner implements WasteScannerPort {
       const groups = validGroups
         .map((lg) => {
           const storedBytes = lg.storedBytes ?? 0;
-          return new LogGroup({
+          const props = {
             logGroupName: lg.logGroupName,
             region,
             accountId: this.accountId,
@@ -217,9 +218,15 @@ export class AwsLogGroupScanner implements WasteScannerPort {
             detectedAt: now,
             tags: {},
             monthlyCostUsd: +((storedBytes / 1024 ** 3) * pricePerGb).toFixed(4),
-          });
+          };
+          // Valutata prima su un'istanza usa-e-getta: la policy ha bisogno di
+          // un'entità costruita per chiamare i suoi metodi, ma il suo
+          // verdict.reason deve finire nell'entità finale (immutabile),
+          // non essere scartato — vedi ADR-0094.
+          const verdict = this.policy.evaluate(new LogGroup({ ...props, wasteReason: '' }), now);
+          return verdict.isWaste ? new LogGroup({ ...props, wasteReason: verdict.reason }) : null;
         })
-        .filter((group) => this.policy.evaluate(group, now).isWaste);
+        .filter((group): group is LogGroup => group !== null);
 
       return Result.ok(groups);
     } catch (err) {
@@ -236,7 +243,7 @@ export class AwsLogGroupScanner implements WasteScannerPort {
 - `paginate()` per tutte le chiamate list — passa un `select` per-pagina solo se il numero di risorse di questo tipo può davvero crescere senza limite nel tempo (vedi [ADR-0054](../adr/0054-paginate-select-per-page-streaming.md)); la maggior parte degli scanner non ne ha bisogno
 - Eventuale fan-out interno (una chiamata per elemento) → `mapWithConcurrency` con limite
 - Ogni campo richiesto letto da una risposta AWS passa da un `.filter()` a restringimento di tipo, mai un `!` nudo — vedi [ADR-0051](../adr/0051-type-narrowing-guards-on-aws-responses.md)
-- La policy si applica **sempre** prima del return
+- La policy si applica **sempre** prima del return — e il suo `WasteVerdict` completo (non solo `.isWaste`) finisce nel `wasteReason` dell'entità finale, vedi [ADR-0094](../adr/0094-wastereason-derived-from-policy-verdict.md)
 - Esporta lo scanner da `aws-adapter/src/index.ts` e aggiungi `@aws-sdk/client-cloudwatch-logs` nel `package.json` root
 
 ---

@@ -17,6 +17,7 @@ function makeSnapshot(overrides: Partial<RdsManualSnapshotOldProps> = {}): RdsMa
     detectedAt: new Date('2026-06-09'),
     tags: {},
     monthlyCostUsd: 9.5,
+    wasteReason: 'manual snapshot 159d old',
     ...overrides,
   });
 }
@@ -31,7 +32,7 @@ describe('RdsManualSnapshotOld', () => {
 
   it('exposes kind and wasteReason', () => {
     expect(makeSnapshot().kind).toBe('rds-manual-snapshot-old');
-    expect(makeSnapshot().wasteReason).toContain('grace period');
+    expect(makeSnapshot().wasteReason).toContain('d old');
   });
 
   it('costEstimate description references the allocated storage', () => {

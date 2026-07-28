@@ -16,6 +16,7 @@ function makeBucket(overrides: Partial<S3BucketProps> = {}): S3Bucket {
     detectedAt: new Date('2026-06-09'),
     tags: { Env: 'dev' },
     monthlyCostUsd: 0.0092,
+    wasteReason: 'no lifecycle policy configured (created 831d ago)',
     ...overrides,
   });
 }

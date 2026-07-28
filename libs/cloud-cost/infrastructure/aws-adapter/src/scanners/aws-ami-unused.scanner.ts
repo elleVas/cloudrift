@@ -97,7 +97,7 @@ export class AwsAmiUnusedScanner implements WasteScannerPort {
             (sum, bdm) => sum + (bdm.Ebs?.VolumeSize ?? 0),
             0,
           );
-          return new AmiUnused({
+          const props = {
             imageId: img.ImageId,
             region,
             accountId: this.accountId,
@@ -108,9 +108,11 @@ export class AwsAmiUnusedScanner implements WasteScannerPort {
             totalSnapshotSizeGb,
             tags: Object.fromEntries((img.Tags ?? []).map((t) => [t.Key ?? '', t.Value ?? ''])),
             monthlyCostUsd: +(totalSnapshotSizeGb * pricePerGb).toFixed(4),
-          });
+          };
+          const verdict = this.policy.evaluate(new AmiUnused({ ...props, wasteReason: '' }), now);
+          return verdict.isWaste ? new AmiUnused({ ...props, wasteReason: verdict.reason }) : null;
         })
-        .filter((ami) => this.policy.evaluate(ami, now).isWaste);
+        .filter((ami): ami is AmiUnused => ami !== null);
 
       return Result.ok(results);
     } catch (err) {

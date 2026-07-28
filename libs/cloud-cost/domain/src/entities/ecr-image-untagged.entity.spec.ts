@@ -16,6 +16,7 @@ function makeImage(overrides: Partial<EcrImageUntaggedProps> = {}): EcrImageUnta
     detectedAt: new Date('2026-06-09'),
     tags: {},
     monthlyCostUsd: 0.2,
+    wasteReason: 'no image tag, pushed 159d ago, not pullable by tag',
     ...overrides,
   });
 }

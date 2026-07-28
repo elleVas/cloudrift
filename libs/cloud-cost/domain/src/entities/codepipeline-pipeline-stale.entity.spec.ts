@@ -14,6 +14,7 @@ function makePipeline(overrides: Partial<CodepipelinePipelineStaleProps> = {}): 
     detectedAt: new Date('2026-06-09'),
     tags: {},
     monthlyCostUsd: 1,
+    wasteReason: 'never executed, created 876d ago',
     ...overrides,
   });
 }
@@ -28,7 +29,7 @@ describe('CodepipelinePipelineStale', () => {
 
   it('exposes kind and wasteReason', () => {
     expect(makePipeline().kind).toBe('codepipeline-pipeline-stale');
-    expect(makePipeline().wasteReason).toContain('grace period');
+    expect(makePipeline().wasteReason).toContain('never executed');
   });
 
   it('costEstimate reflects the flat monthly price', () => {

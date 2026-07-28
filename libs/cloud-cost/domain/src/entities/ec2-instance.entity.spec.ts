@@ -18,6 +18,7 @@ const stoppedInstance = new Ec2Instance({
   ],
   tags: { Env: 'dev' },
   monthlyCostUsd: 14,
+  wasteReason: 'stopped 30d ago (attached EBS still billed)',
 });
 
 describe('Ec2Instance', () => {
@@ -35,7 +36,7 @@ describe('Ec2Instance', () => {
   it('isStopped returns false for running state', () => {
     const running = new Ec2Instance({
       instanceId: 'i-run', region, accountId: '123456789012', instanceType: 't3.micro',
-      state: 'running', launchTime: new Date(), detectedAt: new Date(), attachedVolumes: [], tags: {}, monthlyCostUsd: 0,
+      state: 'running', launchTime: new Date(), detectedAt: new Date(), attachedVolumes: [], tags: {}, monthlyCostUsd: 0, wasteReason: '',
     });
     expect(running.isStopped()).toBe(false);
   });
@@ -51,7 +52,7 @@ describe('Ec2Instance', () => {
   it('costEstimate with zero volumes reports $0', () => {
     const noVols = new Ec2Instance({
       instanceId: 'i-nov', region, accountId: '123456789012', instanceType: 't3.micro',
-      state: 'stopped', launchTime: new Date(), detectedAt: new Date(), attachedVolumes: [], tags: {}, monthlyCostUsd: 0,
+      state: 'stopped', launchTime: new Date(), detectedAt: new Date(), attachedVolumes: [], tags: {}, monthlyCostUsd: 0, wasteReason: '',
     });
     expect(noVols.costEstimate.monthlyCostUsd).toBe(0);
   });
@@ -66,7 +67,7 @@ describe('Ec2Instance', () => {
     expect(stoppedInstance.wasteReason).toContain('still billed');
     const withStoppedSince = new Ec2Instance({
       instanceId: 'i-ss', region, accountId: '123456789012', instanceType: 't3.micro',
-      state: 'stopped', launchTime: new Date(), detectedAt: new Date(), stoppedSince, attachedVolumes: [], tags: {}, monthlyCostUsd: 0,
+      state: 'stopped', launchTime: new Date(), detectedAt: new Date(), stoppedSince, attachedVolumes: [], tags: {}, monthlyCostUsd: 0, wasteReason: '',
     });
     expect(withStoppedSince.stoppedSince).toBe(stoppedSince);
   });

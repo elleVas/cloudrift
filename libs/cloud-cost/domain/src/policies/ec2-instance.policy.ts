@@ -9,6 +9,6 @@ export class Ec2InstanceWastePolicy extends WastePolicy<Ec2Instance> {
     if (this.isWithinGracePeriod(stoppedSince, now)) {
       return notWaste(`stopped less than ${this.minAgeDays}d ago`);
     }
-    return waste('stopped (attached EBS still billed)');
+    return waste(`stopped ${this.ageInDays(stoppedSince, now).toFixed(0)}d ago (attached EBS still billed)`);
   }
 }

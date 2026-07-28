@@ -57,7 +57,7 @@ export class AwsRdsInstanceScanner implements WasteScannerPort {
           const allocatedStorageGb = db.AllocatedStorage ?? 0;
           const pricePerGb =
             this.pricing.getPrice(region, `rds-${storageType}`) || this.pricing.getPrice(region, 'rds-gp2');
-          return new RdsInstance({
+          const props = {
             dbInstanceIdentifier: db.DBInstanceIdentifier,
             region,
             accountId: this.accountId,
@@ -81,9 +81,11 @@ export class AwsRdsInstanceScanner implements WasteScannerPort {
               (db.TagList ?? []).map((t) => [t.Key ?? '', t.Value ?? '']),
             ),
             monthlyCostUsd: +(pricePerGb * allocatedStorageGb).toFixed(4),
-          });
+          };
+          const verdict = this.policy.evaluate(new RdsInstance({ ...props, wasteReason: '' }), now);
+          return verdict.isWaste ? new RdsInstance({ ...props, wasteReason: verdict.reason }) : null;
         })
-        .filter((db) => this.policy.evaluate(db, now).isWaste);
+        .filter((db): db is RdsInstance => db !== null);
 
       return Result.ok(instances);
     } catch (err) {

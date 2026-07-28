@@ -14,6 +14,7 @@ export interface LogGroupProps {
   detectedAt: Date;
   tags: Record<string, string>;
   monthlyCostUsd: number;
+  wasteReason: string;
 }
 
 export class LogGroup extends Entity<string> implements WastedResource {
@@ -32,7 +33,7 @@ export class LogGroup extends Entity<string> implements WastedResource {
   get tags(): Record<string, string> { return this.props.tags; }
 
   get kind(): 'log-group' { return 'log-group'; }
-  get wasteReason(): string { return 'no retention policy'; }
+  get wasteReason(): string { return this.props.wasteReason; }
 
   hasRetentionPolicy(): boolean {
     return this.props.retentionInDays !== undefined;

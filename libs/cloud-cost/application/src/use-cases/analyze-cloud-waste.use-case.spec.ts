@@ -24,6 +24,7 @@ function makeEbsVolume(id: string, region = usEast): EbsVolume {
     detectedAt: new Date('2026-06-09'),
     tags: {},
     monthlyCostUsd: 8,
+    wasteReason: 'unattached',
   });
 }
 
@@ -36,6 +37,7 @@ function makeElasticIp(allocationId: string): ElasticIp {
     detectedAt: new Date('2026-06-09'),
     tags: {},
     monthlyCostUsd: 3.6,
+    wasteReason: 'unassociated',
   });
 }
 
