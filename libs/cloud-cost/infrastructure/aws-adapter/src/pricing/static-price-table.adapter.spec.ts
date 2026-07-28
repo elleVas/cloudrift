@@ -46,8 +46,8 @@ describe('StaticPriceTableAdapter', () => {
       expect(adapter.getPrice(usEast1, 'elastic-ip')).toBe(3.6);
     });
 
-    it('returns eu-west-1 EIP price (higher)', () => {
-      expect(adapter.getPrice(euWest1, 'elastic-ip')).toBe(3.96);
+    it('returns eu-west-1 EIP price (same as us-east-1: AWS charges a flat, region-uniform rate)', () => {
+      expect(adapter.getPrice(euWest1, 'elastic-ip')).toBe(3.6);
     });
   });
 
