@@ -14,6 +14,7 @@ function makeVolume(state: 'available' | 'in-use' = 'available'): EbsVolume {
     detectedAt: new Date('2026-06-09'),
     tags: { Environment: 'staging' },
     monthlyCostUsd: 8,
+    wasteReason: 'unattached, created 524d ago',
   });
 }
 
@@ -57,6 +58,7 @@ describe('EbsVolume', () => {
       detectedAt,
       tags: { env: 'prod' },
       monthlyCostUsd: 16,
+      wasteReason: 'unattached, created 524d ago',
     });
     expect(volume.region).toBe(region);
     expect(volume.accountId).toBe('999999999999');
@@ -66,7 +68,7 @@ describe('EbsVolume', () => {
     expect(volume.createTime).toBe(createTime);
     expect(volume.detectedAt).toBe(detectedAt);
     expect(volume.tags).toEqual({ env: 'prod' });
-    expect(volume.wasteReason).toBe('unattached');
+    expect(volume.wasteReason).toBe('unattached, created 524d ago');
     expect(volume.kind).toBe('ebs-volume');
   });
 });

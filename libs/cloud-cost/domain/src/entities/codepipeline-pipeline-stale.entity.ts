@@ -15,6 +15,7 @@ export interface CodepipelinePipelineStaleProps {
   /** Always `{}`: `ListPipelines` doesn't return tags inline (same limitation as Step Functions' `ListStateMachines`). */
   tags: Record<string, string>;
   monthlyCostUsd: number;
+  wasteReason: string;
 }
 
 export class CodepipelinePipelineStale extends Entity<string> implements WastedResource {
@@ -34,7 +35,7 @@ export class CodepipelinePipelineStale extends Entity<string> implements WastedR
   get tags(): Record<string, string> { return this.props.tags; }
 
   get kind(): 'codepipeline-pipeline-stale' { return 'codepipeline-pipeline-stale'; }
-  get wasteReason(): string { return 'no pipeline execution within the grace period'; }
+  get wasteReason(): string { return this.props.wasteReason; }
 
   get costEstimate(): CostEstimate {
     return CostEstimate.of(this.props.monthlyCostUsd, 'active pipeline');

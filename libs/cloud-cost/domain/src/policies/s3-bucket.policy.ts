@@ -8,6 +8,6 @@ export class S3NoLifecyclePolicy extends WastePolicy<S3Bucket> {
     if (this.isWithinGracePeriod(bucket.creationDate, now)) {
       return notWaste(`created less than ${this.minAgeDays}d ago`);
     }
-    return waste('no lifecycle policy');
+    return waste(`no lifecycle policy configured (created ${this.ageInDays(bucket.creationDate, now).toFixed(0)}d ago)`);
   }
 }

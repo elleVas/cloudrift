@@ -31,6 +31,7 @@ export interface Ec2InstanceProps {
   attachedVolumes: AttachedVolume[];
   tags: Record<string, string>;
   monthlyCostUsd: number;
+  wasteReason: string;
 }
 
 export class Ec2Instance extends Entity<string> implements WastedResource {
@@ -52,7 +53,7 @@ export class Ec2Instance extends Entity<string> implements WastedResource {
   get tags(): Record<string, string> { return this.props.tags; }
 
   get kind(): 'ec2-instance' { return 'ec2-instance'; }
-  get wasteReason(): string { return 'stopped (attached EBS still billed)'; }
+  get wasteReason(): string { return this.props.wasteReason; }
 
   isStopped(): boolean {
     return this.props.state === 'stopped';

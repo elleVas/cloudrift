@@ -26,6 +26,7 @@ function wasteVolume(id: string, monthlyCostUsd: number): EbsVolume {
     detectedAt: new Date('2026-06-16'),
     tags: {},
     monthlyCostUsd,
+    wasteReason: 'unattached',
   });
 }
 

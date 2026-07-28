@@ -17,6 +17,7 @@ function makeLb(
     registeredTargetCount,
     tags: { Team: 'platform' },
     monthlyCostUsd: 16.2,
+    wasteReason: 'no registered targets (created 466d ago)',
   });
 }
 

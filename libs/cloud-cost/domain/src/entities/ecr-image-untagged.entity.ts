@@ -14,6 +14,7 @@ export interface EcrImageUntaggedProps {
   detectedAt: Date;
   tags: Record<string, string>;
   monthlyCostUsd: number;
+  wasteReason: string;
 }
 
 export class EcrImageUntagged extends Entity<string> implements WastedResource {
@@ -33,7 +34,7 @@ export class EcrImageUntagged extends Entity<string> implements WastedResource {
   get tags(): Record<string, string> { return this.props.tags; }
 
   get kind(): 'ecr-image-untagged' { return 'ecr-image-untagged'; }
-  get wasteReason(): string { return 'no image tag, not pullable by tag'; }
+  get wasteReason(): string { return this.props.wasteReason; }
 
   get costEstimate(): CostEstimate {
     return CostEstimate.of(

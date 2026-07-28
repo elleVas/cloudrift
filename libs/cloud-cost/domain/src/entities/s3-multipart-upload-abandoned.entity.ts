@@ -15,6 +15,7 @@ export interface S3MultipartUploadAbandonedProps {
   detectedAt: Date;
   tags: Record<string, string>;
   monthlyCostUsd: number;
+  wasteReason: string;
 }
 
 export class S3MultipartUploadAbandoned extends Entity<string> implements WastedResource {
@@ -35,7 +36,7 @@ export class S3MultipartUploadAbandoned extends Entity<string> implements Wasted
   get tags(): Record<string, string> { return this.props.tags; }
 
   get kind(): 's3-multipart-upload-abandoned' { return 's3-multipart-upload-abandoned'; }
-  get wasteReason(): string { return 'incomplete multipart upload, never completed or aborted'; }
+  get wasteReason(): string { return this.props.wasteReason; }
 
   get costEstimate(): CostEstimate {
     return CostEstimate.of(

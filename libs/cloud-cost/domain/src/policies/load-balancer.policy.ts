@@ -8,6 +8,6 @@ export class LoadBalancerWastePolicy extends WastePolicy<LoadBalancer> {
     if (this.isWithinGracePeriod(lb.createdTime, now)) {
       return notWaste(`created less than ${this.minAgeDays}d ago`);
     }
-    return waste('no registered targets');
+    return waste(`no registered targets (created ${this.ageInDays(lb.createdTime, now).toFixed(0)}d ago)`);
   }
 }

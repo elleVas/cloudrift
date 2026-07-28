@@ -23,6 +23,7 @@ export interface EbsVolumeProps {
   detectedAt: Date;
   tags: Record<string, string>;
   monthlyCostUsd: number;
+  wasteReason: string;
 }
 
 export class EbsVolume extends Entity<string> implements WastedResource {
@@ -43,7 +44,7 @@ export class EbsVolume extends Entity<string> implements WastedResource {
   get tags(): Record<string, string> { return this.props.tags; }
 
   get kind(): 'ebs-volume' { return 'ebs-volume'; }
-  get wasteReason(): string { return 'unattached'; }
+  get wasteReason(): string { return this.props.wasteReason; }
 
   isUnattached(): boolean {
     return this.props.state === 'available';

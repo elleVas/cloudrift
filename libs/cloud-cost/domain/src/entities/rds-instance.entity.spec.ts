@@ -16,6 +16,7 @@ function makeInstance(status: 'stopped' | 'available' = 'stopped'): RdsInstance 
     detectedAt: new Date('2026-06-09'),
     tags: { Environment: 'production' },
     monthlyCostUsd: 12.8,
+    wasteReason: 'stopped (storage and backups still billed)',
   });
 }
 
@@ -67,6 +68,7 @@ describe('RdsInstance', () => {
       detectedAt,
       tags: { env: 'prod' },
       monthlyCostUsd: 20,
+      wasteReason: 'stopped (storage and backups still billed)',
     });
     expect(db.region).toBe(region);
     expect(db.accountId).toBe('999999999999');

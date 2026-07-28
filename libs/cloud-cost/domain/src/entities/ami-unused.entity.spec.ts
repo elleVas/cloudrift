@@ -17,6 +17,7 @@ function makeAmi(overrides: Partial<AmiUnusedProps> = {}): AmiUnused {
     totalSnapshotSizeGb: 20,
     tags: {},
     monthlyCostUsd: 1,
+    wasteReason: 'not referenced by any instance or launch template, created 161d ago',
     ...overrides,
   });
 }

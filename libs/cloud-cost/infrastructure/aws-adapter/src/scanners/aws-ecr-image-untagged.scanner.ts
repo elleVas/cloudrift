@@ -64,7 +64,7 @@ export class AwsEcrImageUntaggedScanner implements WasteScannerPort {
         .map(({ repositoryName, image }) => {
           const sizeBytes = image.imageSizeInBytes ?? 0;
           const sizeGb = sizeBytes / 1024 ** 3;
-          return new EcrImageUntagged({
+          const props = {
             imageDigest: image.imageDigest,
             region,
             accountId: this.accountId,
@@ -74,9 +74,11 @@ export class AwsEcrImageUntaggedScanner implements WasteScannerPort {
             detectedAt: now,
             tags: {},
             monthlyCostUsd: +(sizeGb * pricePerGb).toFixed(4),
-          });
+          };
+          const verdict = this.policy.evaluate(new EcrImageUntagged({ ...props, wasteReason: '' }), now);
+          return verdict.isWaste ? new EcrImageUntagged({ ...props, wasteReason: verdict.reason }) : null;
         })
-        .filter((image) => this.policy.evaluate(image, now).isWaste);
+        .filter((image): image is EcrImageUntagged => image !== null);
 
       return Result.ok(untagged);
     } catch (err) {

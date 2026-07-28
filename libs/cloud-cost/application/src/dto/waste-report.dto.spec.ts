@@ -17,6 +17,7 @@ const volume = new EbsVolume({
   detectedAt: new Date('2026-06-09T00:00:00Z'),
   tags: { Environment: 'staging' },
   monthlyCostUsd: 8,
+  wasteReason: 'unattached',
 });
 
 const ip = new ElasticIp({
@@ -27,6 +28,7 @@ const ip = new ElasticIp({
   detectedAt: new Date('2026-06-09T00:00:00Z'),
   tags: {},
   monthlyCostUsd: 3.6,
+  wasteReason: 'unassociated',
 });
 
 const summary: WastedResourcesSummary = {

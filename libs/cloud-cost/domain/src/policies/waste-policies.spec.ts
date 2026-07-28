@@ -114,6 +114,7 @@ function makeVolume(overrides: { createTime?: Date; tags?: Record<string, string
     detectedAt: now,
     tags: overrides.tags ?? {},
     monthlyCostUsd: 8,
+    wasteReason: '',
   });
 }
 
@@ -205,6 +206,7 @@ describe('ElasticIpWastePolicy', () => {
       associationId,
       tags,
       monthlyCostUsd: 3.6,
+      wasteReason: '',
     });
   }
 
@@ -238,6 +240,7 @@ describe('RdsInstanceWastePolicy', () => {
       detectedAt: now,
       tags,
       monthlyCostUsd: 5.75,
+      wasteReason: '',
     });
   }
 
@@ -269,6 +272,7 @@ describe('LoadBalancerWastePolicy', () => {
       registeredTargetCount,
       tags: {},
       monthlyCostUsd: 16.2,
+      wasteReason: '',
     });
   }
 
@@ -300,6 +304,7 @@ describe('Ec2InstanceWastePolicy', () => {
       attachedVolumes: [],
       tags: {},
       monthlyCostUsd: 2,
+      wasteReason: '',
       ...overrides,
     });
   }
@@ -338,6 +343,7 @@ describe('EbsSnapshotWastePolicy', () => {
       description: '',
       tags: {},
       monthlyCostUsd: 5,
+      wasteReason: '',
       ...overrides,
     });
   }
@@ -615,6 +621,7 @@ describe('LogGroupWastePolicy', () => {
       detectedAt: now,
       tags: {},
       monthlyCostUsd: 0.03,
+      wasteReason: '',
     });
   }
 
@@ -644,6 +651,7 @@ describe('OrphanedEniWastePolicy', () => {
       status,
       detectedAt: now,
       tags,
+      wasteReason: '',
     });
   }
 
@@ -676,6 +684,7 @@ describe('S3NoLifecyclePolicy', () => {
       detectedAt: now,
       tags: {},
       monthlyCostUsd: 0.0092,
+      wasteReason: '',
     });
   }
 
@@ -875,6 +884,7 @@ function makeAmi(overrides: { creationDate?: Date; inUse?: boolean } = {}): AmiU
     totalSnapshotSizeGb: 20,
     tags: {},
     monthlyCostUsd: 1,
+    wasteReason: '',
   });
 }
 
@@ -905,6 +915,7 @@ function makeEcrImage(overrides: { imagePushedAt?: Date } = {}): EcrImageUntagge
     detectedAt: now,
     tags: {},
     monthlyCostUsd: 0.1,
+    wasteReason: '',
   });
 }
 
@@ -932,6 +943,7 @@ function makeUpload(overrides: { initiated?: Date } = {}): S3MultipartUploadAban
     detectedAt: now,
     tags: {},
     monthlyCostUsd: 0.02,
+    wasteReason: '',
   });
 }
 
@@ -959,6 +971,7 @@ function makeRdsSnapshot(overrides: { snapshotCreateTime?: Date } = {}): RdsManu
     detectedAt: now,
     tags: {},
     monthlyCostUsd: 9.5,
+    wasteReason: '',
   });
 }
 
@@ -1079,6 +1092,7 @@ describe('CodepipelinePipelineStalePolicy', () => {
       detectedAt: now,
       tags: {},
       monthlyCostUsd: 1,
+      wasteReason: '',
     });
   }
 

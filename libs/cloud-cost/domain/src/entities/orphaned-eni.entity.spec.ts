@@ -15,6 +15,7 @@ function makeEni(overrides: Partial<OrphanedEniProps> = {}): OrphanedEni {
     status: 'available',
     detectedAt: new Date('2026-06-09'),
     tags: { Env: 'dev' },
+    wasteReason: 'not attached',
     ...overrides,
   });
 }

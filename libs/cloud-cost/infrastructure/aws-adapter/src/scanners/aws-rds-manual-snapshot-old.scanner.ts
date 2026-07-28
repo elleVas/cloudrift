@@ -46,7 +46,7 @@ export class AwsRdsManualSnapshotOldScanner implements WasteScannerPort {
       const snapshots = validSnapshots
         .map((snap) => {
           const allocatedStorageGb = snap.AllocatedStorage ?? 0;
-          return new RdsManualSnapshotOld({
+          const props = {
             snapshotId: snap.DBSnapshotIdentifier,
             region,
             accountId: this.accountId,
@@ -57,9 +57,11 @@ export class AwsRdsManualSnapshotOldScanner implements WasteScannerPort {
             detectedAt: now,
             tags: Object.fromEntries((snap.TagList ?? []).map((t) => [t.Key ?? '', t.Value ?? ''])),
             monthlyCostUsd: +(pricePerGb * allocatedStorageGb).toFixed(4),
-          });
+          };
+          const verdict = this.policy.evaluate(new RdsManualSnapshotOld({ ...props, wasteReason: '' }), now);
+          return verdict.isWaste ? new RdsManualSnapshotOld({ ...props, wasteReason: verdict.reason }) : null;
         })
-        .filter((snap) => this.policy.evaluate(snap, now).isWaste);
+        .filter((snap): snap is RdsManualSnapshotOld => snap !== null);
 
       return Result.ok(snapshots);
     } catch (err) {

@@ -14,6 +14,7 @@ export interface ElasticIpProps {
   instanceId?: string;
   tags: Record<string, string>;
   monthlyCostUsd: number;
+  wasteReason: string;
 }
 
 export class ElasticIp extends Entity<string> implements WastedResource {
@@ -32,7 +33,7 @@ export class ElasticIp extends Entity<string> implements WastedResource {
   get tags(): Record<string, string> { return this.props.tags; }
 
   get kind(): 'elastic-ip' { return 'elastic-ip'; }
-  get wasteReason(): string { return 'unassociated'; }
+  get wasteReason(): string { return this.props.wasteReason; }
 
   isUnassociated(): boolean {
     return !this.props.associationId;

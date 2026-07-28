@@ -8,6 +8,6 @@ export class LogGroupWastePolicy extends WastePolicy<LogGroup> {
     if (this.isWithinGracePeriod(group.creationTime, now)) {
       return notWaste(`created less than ${this.minAgeDays}d ago`);
     }
-    return waste('no retention policy');
+    return waste(`no retention policy (created ${this.ageInDays(group.creationTime, now).toFixed(0)}d ago)`);
   }
 }

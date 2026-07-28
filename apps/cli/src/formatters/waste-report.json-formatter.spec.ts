@@ -24,6 +24,7 @@ function summaryOf(volumeId: string): WastedResourcesSummary {
     detectedAt: new Date('2026-06-16'),
     tags: {},
     monthlyCostUsd: 8,
+    wasteReason: 'unattached',
   });
   return { findings: [volume], totalWasteMonthlyUsd: 8, totalOptimizationMonthlyUsd: 0, scanErrors: [] };
 }

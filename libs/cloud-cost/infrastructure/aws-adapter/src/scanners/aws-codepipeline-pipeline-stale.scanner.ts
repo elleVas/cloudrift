@@ -42,7 +42,7 @@ export class AwsCodepipelinePipelineStaleScanner implements WasteScannerPort {
           new ListPipelineExecutionsCommand({ pipelineName: pipeline.name, maxResults: 1 }),
         );
         const lastExecutionAt = r.pipelineExecutionSummaries?.[0]?.startTime;
-        return new CodepipelinePipelineStale({
+        const props = {
           pipelineName: pipeline.name,
           region,
           accountId: this.accountId,
@@ -51,10 +51,12 @@ export class AwsCodepipelinePipelineStaleScanner implements WasteScannerPort {
           detectedAt: now,
           tags: {},
           monthlyCostUsd,
-        });
+        };
+        const verdict = this.policy.evaluate(new CodepipelinePipelineStale({ ...props, wasteReason: '' }), now);
+        return verdict.isWaste ? new CodepipelinePipelineStale({ ...props, wasteReason: verdict.reason }) : null;
       });
 
-      const results = candidates.filter((p) => this.policy.evaluate(p, now).isWaste);
+      const results = candidates.filter((p): p is CodepipelinePipelineStale => p !== null);
 
       return Result.ok(results);
     } catch (err) {

@@ -71,7 +71,7 @@ export class AwsS3MultipartUploadAbandonedScanner implements WasteScannerPort {
         .flat()
         .map((u) => {
           const sizeGb = u.sizeBytes / 1024 ** 3;
-          return new S3MultipartUploadAbandoned({
+          const props = {
             uploadId: u.uploadId,
             region,
             accountId: this.accountId,
@@ -82,9 +82,11 @@ export class AwsS3MultipartUploadAbandonedScanner implements WasteScannerPort {
             detectedAt: now,
             tags: {},
             monthlyCostUsd: +(sizeGb * pricePerGb).toFixed(4),
-          });
+          };
+          const verdict = this.policy.evaluate(new S3MultipartUploadAbandoned({ ...props, wasteReason: '' }), now);
+          return verdict.isWaste ? new S3MultipartUploadAbandoned({ ...props, wasteReason: verdict.reason }) : null;
         })
-        .filter((upload) => this.policy.evaluate(upload, now).isWaste);
+        .filter((upload): upload is S3MultipartUploadAbandoned => upload !== null);
 
       return Result.ok(results);
     } catch (err) {

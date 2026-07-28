@@ -80,6 +80,7 @@ export interface LogGroupProps {
   detectedAt: Date;
   tags: Record<string, string>;
   monthlyCostUsd: number;
+  wasteReason: string;   // set from the policy's WasteVerdict.reason, never hardcoded — see ADR-0094
 }
 
 export class LogGroup extends Entity<string> implements WastedResource {
@@ -98,7 +99,7 @@ export class LogGroup extends Entity<string> implements WastedResource {
   get tags(): Record<string, string> { return this.props.tags; }
 
   get kind(): 'log-group' { return 'log-group'; }
-  get wasteReason(): string { return 'no retention policy'; }
+  get wasteReason(): string { return this.props.wasteReason; }
 
   hasRetentionPolicy(): boolean {
     return this.props.retentionInDays !== undefined;
@@ -114,7 +115,7 @@ export class LogGroup extends Entity<string> implements WastedResource {
 **Rules:**
 - The entity ID is the unique AWS identifier
 - Props are frozen recursively (`this.deepFreeze()`, inherited from `Entity` — see [ADR-0060](../adr/0060-entity-deep-freeze.md)), not just at the top level
-- The entity carries the **facts** (here `retentionInDays`); the **decision** belongs to the policy
+- The entity carries the **facts** (here `retentionInDays`); the **decision**, including the human-readable reason, belongs to the policy — `wasteReason` is a prop set from `WasteVerdict.reason`, never a hardcoded getter (see [ADR-0094](../adr/0094-wastereason-derived-from-policy-verdict.md))
 - Export entity and props from `domain/src/index.ts`
 
 ---
@@ -130,12 +131,12 @@ export class LogGroupWastePolicy extends WastePolicy<LogGroup> {
     if (this.isWithinGracePeriod(group.creationTime, now)) {
       return notWaste(`created less than ${this.minAgeDays}d ago`);
     }
-    return waste('no retention policy');
+    return waste(`no retention policy (created ${this.ageInDays(group.creationTime, now).toFixed(0)}d ago)`);
   }
 }
 ```
 
-Exclusion tag and grace period come for free from the base class. Add the tests in `waste-policies.spec.ts` (waste case, grace-period case, tag case) and export the policy from the domain's `index.ts`.
+Exclusion tag and grace period come for free from the base class. `waste(...)`'s argument is not just an internal detail — it's what ends up in the entity's `wasteReason` and therefore in every report (see step 5 and [ADR-0094](../adr/0094-wastereason-derived-from-policy-verdict.md)), so prefer a reason that includes any age/context data already at hand (`ageInDays()`, also from the base class) over a bare static string. Add the tests in `waste-policies.spec.ts` (waste case, grace-period case, tag case) and export the policy from the domain's `index.ts`.
 
 ---
 
@@ -207,7 +208,7 @@ export class AwsLogGroupScanner implements WasteScannerPort {
       const groups = validGroups
         .map((lg) => {
           const storedBytes = lg.storedBytes ?? 0;
-          return new LogGroup({
+          const props = {
             logGroupName: lg.logGroupName,
             region,
             accountId: this.accountId,
@@ -217,9 +218,15 @@ export class AwsLogGroupScanner implements WasteScannerPort {
             detectedAt: now,
             tags: {},
             monthlyCostUsd: +((storedBytes / 1024 ** 3) * pricePerGb).toFixed(4),
-          });
+          };
+          // Evaluated on a throwaway instance first: the policy needs a
+          // constructed entity to call its methods, but its verdict.reason
+          // must flow into the final (immutable) entity, not be discarded —
+          // see ADR-0094.
+          const verdict = this.policy.evaluate(new LogGroup({ ...props, wasteReason: '' }), now);
+          return verdict.isWaste ? new LogGroup({ ...props, wasteReason: verdict.reason }) : null;
         })
-        .filter((group) => this.policy.evaluate(group, now).isWaste);
+        .filter((group): group is LogGroup => group !== null);
 
       return Result.ok(groups);
     } catch (err) {
@@ -236,7 +243,7 @@ export class AwsLogGroupScanner implements WasteScannerPort {
 - `paginate()` for every list call — pass a per-page `select` only if this resource's count can genuinely grow unbounded over time (see [ADR-0054](../adr/0054-paginate-select-per-page-streaming.md)); most scanners don't need it
 - Any internal fan-out (one call per item) → `mapWithConcurrency` with a cap
 - Every required field read off an AWS response goes through a type-narrowing `.filter()`, never a bare `!` — see [ADR-0051](../adr/0051-type-narrowing-guards-on-aws-responses.md)
-- The policy is **always** applied before returning
+- The policy is **always** applied before returning — and its full `WasteVerdict` (not just `.isWaste`) flows into the final entity's `wasteReason`, per [ADR-0094](../adr/0094-wastereason-derived-from-policy-verdict.md)
 - Export the scanner from `aws-adapter/src/index.ts` and add `@aws-sdk/client-cloudwatch-logs` to the root `package.json`
 
 ---

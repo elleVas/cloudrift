@@ -16,6 +16,7 @@ const ebsVolume = new EbsVolume({
   detectedAt: now,
   tags: {},
   monthlyCostUsd: 8,
+  wasteReason: 'unattached',
 });
 
 const elasticIp = new ElasticIp({
@@ -26,6 +27,7 @@ const elasticIp = new ElasticIp({
   detectedAt: now,
   tags: {},
   monthlyCostUsd: 3.6,
+  wasteReason: 'unassociated',
 });
 
 describe('rowFor / recommendFor', () => {
@@ -50,6 +52,7 @@ describe('rowFor / recommendFor', () => {
       detectedAt: now,
       tags: { Name: 'app-server-data' },
       monthlyCostUsd: 8,
+      wasteReason: 'unattached',
     });
     expect(rowFor(named)).toContain('app-server-data');
   });

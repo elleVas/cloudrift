@@ -48,23 +48,24 @@ export class AwsElasticIpScanner implements WasteScannerPort {
       }
 
       const unassociated = validAddresses
-        .map(
-          (a) =>
-            new ElasticIp({
-              allocationId: a.AllocationId,
-              publicIp: a.PublicIp,
-              region,
-              accountId: this.accountId,
-              detectedAt: now,
-              associationId: a.AssociationId,
-              instanceId: a.InstanceId,
-              tags: Object.fromEntries(
-                (a.Tags ?? []).map((t) => [t.Key ?? '', t.Value ?? '']),
-              ),
-              monthlyCostUsd: this.pricing.getPrice(region, 'elastic-ip'),
-            }),
-        )
-        .filter((ip) => this.policy.evaluate(ip, now).isWaste);
+        .map((a) => {
+          const props = {
+            allocationId: a.AllocationId,
+            publicIp: a.PublicIp,
+            region,
+            accountId: this.accountId,
+            detectedAt: now,
+            associationId: a.AssociationId,
+            instanceId: a.InstanceId,
+            tags: Object.fromEntries(
+              (a.Tags ?? []).map((t) => [t.Key ?? '', t.Value ?? '']),
+            ),
+            monthlyCostUsd: this.pricing.getPrice(region, 'elastic-ip'),
+          };
+          const verdict = this.policy.evaluate(new ElasticIp({ ...props, wasteReason: '' }), now);
+          return verdict.isWaste ? new ElasticIp({ ...props, wasteReason: verdict.reason }) : null;
+        })
+        .filter((ip): ip is ElasticIp => ip !== null);
 
       return Result.ok(unassociated);
     } catch (err) {

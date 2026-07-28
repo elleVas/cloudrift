@@ -25,6 +25,7 @@ function makeVolume(id: string, monthlyCostUsd: number): EbsVolume {
     detectedAt: meta.generatedAt,
     tags: {},
     monthlyCostUsd,
+    wasteReason: 'unattached',
   });
 }
 

@@ -18,6 +18,7 @@ function makeSnapshot(overrides: Partial<EbsSnapshotProps> = {}): EbsSnapshot {
     description: 'backup',
     tags: { Project: 'old-app' },
     monthlyCostUsd: 5,
+    wasteReason: 'source volume deleted, snapshot 1104d old',
     ...overrides,
   });
 }

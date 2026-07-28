@@ -83,26 +83,27 @@ export class AwsEbsSnapshotScanner implements WasteScannerPort {
           );
           skipped += page.length - validSnapshots.length;
           return validSnapshots
-            .map(
-              (snap) =>
-                new EbsSnapshot({
-                  snapshotId: snap.SnapshotId,
-                  region,
-                  accountId: this.accountId,
-                  sourceVolumeId: snap.VolumeId,
-                  sourceVolumeExists: existingVolumeIds.has(snap.VolumeId),
-                  boundToAmiId: snapshotToAmi.get(snap.SnapshotId ?? ''),
-                  sizeGb: snap.VolumeSize ?? 0,
-                  startTime: snap.StartTime ?? new Date(0),
-                  detectedAt: now,
-                  description: snap.Description ?? '',
-                  tags: Object.fromEntries(
-                    (snap.Tags ?? []).map((t) => [t.Key ?? '', t.Value ?? '']),
-                  ),
-                  monthlyCostUsd: +(pricePerGb * (snap.VolumeSize ?? 0)).toFixed(4),
-                }),
-            )
-            .filter((snapshot) => this.policy.evaluate(snapshot, now).isWaste);
+            .map((snap) => {
+              const props = {
+                snapshotId: snap.SnapshotId,
+                region,
+                accountId: this.accountId,
+                sourceVolumeId: snap.VolumeId,
+                sourceVolumeExists: existingVolumeIds.has(snap.VolumeId),
+                boundToAmiId: snapshotToAmi.get(snap.SnapshotId ?? ''),
+                sizeGb: snap.VolumeSize ?? 0,
+                startTime: snap.StartTime ?? new Date(0),
+                detectedAt: now,
+                description: snap.Description ?? '',
+                tags: Object.fromEntries(
+                  (snap.Tags ?? []).map((t) => [t.Key ?? '', t.Value ?? '']),
+                ),
+                monthlyCostUsd: +(pricePerGb * (snap.VolumeSize ?? 0)).toFixed(4),
+              };
+              const verdict = this.policy.evaluate(new EbsSnapshot({ ...props, wasteReason: '' }), now);
+              return verdict.isWaste ? new EbsSnapshot({ ...props, wasteReason: verdict.reason }) : null;
+            })
+            .filter((snapshot): snapshot is EbsSnapshot => snapshot !== null);
         },
       );
 

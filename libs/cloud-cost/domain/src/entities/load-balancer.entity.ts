@@ -17,6 +17,7 @@ export interface LoadBalancerProps {
   registeredTargetCount: number;
   tags: Record<string, string>;
   monthlyCostUsd: number;
+  wasteReason: string;
 }
 
 export class LoadBalancer extends Entity<string> implements WastedResource {
@@ -37,7 +38,7 @@ export class LoadBalancer extends Entity<string> implements WastedResource {
   get tags(): Record<string, string> { return this.props.tags; }
 
   get kind(): 'load-balancer' { return 'load-balancer'; }
-  get wasteReason(): string { return 'no registered targets'; }
+  get wasteReason(): string { return this.props.wasteReason; }
 
   isIdle(): boolean {
     return this.props.registeredTargetCount === 0;

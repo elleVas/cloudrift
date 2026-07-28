@@ -15,6 +15,7 @@ function makeLogGroup(overrides: Partial<LogGroupProps> = {}): LogGroup {
     detectedAt: new Date('2026-06-09'),
     tags: { Env: 'dev' },
     monthlyCostUsd: 0.03,
+    wasteReason: 'no retention policy (created 831d ago)',
     ...overrides,
   });
 }

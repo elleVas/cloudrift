@@ -28,6 +28,7 @@ export interface RdsInstanceProps {
   detectedAt: Date;
   tags: Record<string, string>;
   monthlyCostUsd: number;
+  wasteReason: string;
 }
 
 export class RdsInstance extends Entity<string> implements WastedResource {
@@ -50,7 +51,7 @@ export class RdsInstance extends Entity<string> implements WastedResource {
   get tags(): Record<string, string> { return this.props.tags; }
 
   get kind(): 'rds-instance' { return 'rds-instance'; }
-  get wasteReason(): string { return 'stopped (storage and backups still billed)'; }
+  get wasteReason(): string { return this.props.wasteReason; }
 
   isStopped(): boolean {
     return this.props.dbInstanceStatus === 'stopped';

@@ -13,6 +13,7 @@ export interface OrphanedEniProps {
   status: string;
   detectedAt: Date;
   tags: Record<string, string>;
+  wasteReason: string;
 }
 
 /**
@@ -38,7 +39,7 @@ export class OrphanedEni extends Entity<string> implements WastedResource {
   get tags(): Record<string, string> { return this.props.tags; }
 
   get kind(): 'eni-orphaned' { return 'eni-orphaned'; }
-  get wasteReason(): string { return 'orphaned (not attached)'; }
+  get wasteReason(): string { return this.props.wasteReason; }
 
   isOrphaned(): boolean {
     return this.props.status === 'available';

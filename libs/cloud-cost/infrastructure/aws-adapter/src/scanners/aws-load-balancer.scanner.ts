@@ -54,29 +54,31 @@ export class AwsLoadBalancerScanner implements WasteScannerPort {
 
       for (const lb of candidates) {
         const registeredTargetCount = await this.countRegisteredTargets(client, lb);
-        entities.push(
-          new LoadBalancer({
-            arn: lb.LoadBalancerArn,
-            name: lb.LoadBalancerName,
-            region,
-            accountId: this.accountId,
-            // Cast, not narrowed: same shape as `aws-ebs-volume`'s `state`
-            // cast — the SDK's `LoadBalancerTypeEnum` union exactly matches
-            // `LoadBalancerType`'s member set, but the field is optional in
-            // the SDK type with no safe fallback value for "AWS omitted the
-            // type of a load balancer that unambiguously exists" — picking
-            // one needs a product decision (deferred: see cast-cleanup ADR).
-            type: lb.Type as LoadBalancerType,
-            createdTime: lb.CreatedTime ?? new Date(),
-            detectedAt: now,
-            registeredTargetCount,
-            tags: {},
-            monthlyCostUsd: this.pricing.getPrice(region, 'load-balancer'),
-          }),
-        );
+        const props = {
+          arn: lb.LoadBalancerArn,
+          name: lb.LoadBalancerName,
+          region,
+          accountId: this.accountId,
+          // Cast, not narrowed: same shape as `aws-ebs-volume`'s `state`
+          // cast — the SDK's `LoadBalancerTypeEnum` union exactly matches
+          // `LoadBalancerType`'s member set, but the field is optional in
+          // the SDK type with no safe fallback value for "AWS omitted the
+          // type of a load balancer that unambiguously exists" — picking
+          // one needs a product decision (deferred: see cast-cleanup ADR).
+          type: lb.Type as LoadBalancerType,
+          createdTime: lb.CreatedTime ?? new Date(),
+          detectedAt: now,
+          registeredTargetCount,
+          tags: {},
+          monthlyCostUsd: this.pricing.getPrice(region, 'load-balancer'),
+        };
+        const verdict = this.policy.evaluate(new LoadBalancer({ ...props, wasteReason: '' }), now);
+        if (verdict.isWaste) {
+          entities.push(new LoadBalancer({ ...props, wasteReason: verdict.reason }));
+        }
       }
 
-      return Result.ok(entities.filter((lb) => this.policy.evaluate(lb, now).isWaste));
+      return Result.ok(entities);
     } catch (err) {
       return Result.fail(new AwsAdapterError('ELB', err));
     } finally {

@@ -17,6 +17,7 @@ function makeUpload(overrides: Partial<S3MultipartUploadAbandonedProps> = {}): S
     detectedAt: new Date('2026-06-09'),
     tags: {},
     monthlyCostUsd: 0.12,
+    wasteReason: 'incomplete multipart upload, initiated 159d ago, never completed or aborted',
     ...overrides,
   });
 }
