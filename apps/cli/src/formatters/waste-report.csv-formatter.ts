@@ -19,9 +19,15 @@ const HEADERS = [
   'tags',
   'userName',
   'consoleUrl',
+  'pricesAsOf',
+  'pricesStale',
 ];
 
-/** One row per finding, raw DTO fields — meant for re-processing (spreadsheets, scripts), not on-screen reading. */
+/**
+ * One row per finding, raw DTO fields — meant for re-processing (spreadsheets, scripts), not
+ * on-screen reading. `pricesAsOf`/`pricesStale` repeat the report-level meta on every row (same
+ * pattern as `accountId`) so a script consuming just this CSV can still judge estimate freshness.
+ */
 export function formatWasteReportAsCsv(summary: WastedResourcesSummary, meta: WasteReportMeta): string {
   const dto = toWasteReportDto(summary, meta);
   const rows = dto.findings.map((finding) => [
@@ -38,6 +44,8 @@ export function formatWasteReportAsCsv(summary: WastedResourcesSummary, meta: Wa
     JSON.stringify(finding.tags),
     finding.userName,
     buildConsoleUrl(finding),
+    dto.meta.pricesAsOf,
+    dto.meta.pricesStale,
   ]);
   return toCsv(HEADERS, rows);
 }

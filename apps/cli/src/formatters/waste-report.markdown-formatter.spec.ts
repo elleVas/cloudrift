@@ -58,6 +58,33 @@ describe('formatWasteReportAsMarkdown', () => {
     expect(md).toContain('raffaelevasini@gmail.com');
   });
 
+  it('warns when the price list is over 100 days old', () => {
+    const summary: WastedResourcesSummary = {
+      findings: [],
+      totalWasteMonthlyUsd: 0,
+      totalOptimizationMonthlyUsd: 0,
+      scanErrors: [],
+    };
+
+    const md = formatWasteReportAsMarkdown(summary, meta);
+
+    expect(md).toContain('Price list is over 100 days old');
+    expect(md).toContain('--live-pricing');
+  });
+
+  it('does not warn when the price list is fresh', () => {
+    const summary: WastedResourcesSummary = {
+      findings: [],
+      totalWasteMonthlyUsd: 0,
+      totalOptimizationMonthlyUsd: 0,
+      scanErrors: [],
+    };
+
+    const md = formatWasteReportAsMarkdown(summary, { ...meta, pricesAsOf: '2026-06' });
+
+    expect(md).not.toContain('Price list is over');
+  });
+
   it('renders headline (waste), breakdown, details and recommendations', () => {
     const summary: WastedResourcesSummary = {
       findings: [makeVolume('vol-aaa', 8), makeVolume('vol-bbb', 4)],

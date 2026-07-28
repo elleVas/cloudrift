@@ -8,6 +8,7 @@ import type {
   Workspace,
 } from 'cloud-cost-domain';
 import { REPORT_CONTACT, REPORT_DISCLAIMER } from '../constants/report-disclaimer';
+import { isPricesStale } from '../pricing-staleness';
 
 /**
  * Serializable (JSON-safe) projection of the summary: it's the data contract
@@ -24,6 +25,7 @@ export interface WasteReportDto {
     regions: string[];
     generatedAt: string;
     pricesAsOf: string;
+    pricesStale: boolean;
   };
   disclaimer: string;
   contact: { email: string; linkedin: string };
@@ -107,6 +109,7 @@ export function toWasteReportDto(
       regions: meta.regions,
       generatedAt: meta.generatedAt.toISOString(),
       pricesAsOf: meta.pricesAsOf,
+      pricesStale: isPricesStale(meta.pricesAsOf, meta.generatedAt),
     },
     disclaimer: REPORT_DISCLAIMER,
     contact: REPORT_CONTACT,

@@ -137,7 +137,7 @@ describe('analyzeWasteCommand (CLI end-to-end)', () => {
     expect(stdout).not.toContain('Scanning');
     const lines = stdout.trim().split('\n');
     expect(lines[0]).toBe(
-      'id,kind,category,estimated,region,accountId,detectedAt,wasteReason,description,monthlyCostUsd,tags,userName,consoleUrl',
+      'id,kind,category,estimated,region,accountId,detectedAt,wasteReason,description,monthlyCostUsd,tags,userName,consoleUrl,pricesAsOf,pricesStale',
     );
     expect(lines).toHaveLength(2);
     expect(lines[1]).toContain('vol-1');

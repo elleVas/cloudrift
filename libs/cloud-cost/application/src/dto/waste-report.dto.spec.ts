@@ -58,6 +58,7 @@ describe('toWasteReportDto', () => {
       regions: ['us-east-1'],
       generatedAt: '2026-06-12T10:00:00.000Z',
       pricesAsOf: '2025-06',
+      pricesStale: true,
     });
     expect(dto.disclaimer).toBe(REPORT_DISCLAIMER);
     expect(dto.contact).toEqual(REPORT_CONTACT);
@@ -138,6 +139,11 @@ describe('toWasteReportDto', () => {
 
     expect(dto.findings.find((f) => f.id === 'ws-1')?.userName).toBe('jdoe');
     expect(dto.findings.find((f) => f.id === 'vol-1')?.userName).toBeUndefined();
+  });
+
+  it('flags pricesStale false when pricesAsOf is recent', () => {
+    const dto = toWasteReportDto(summary, { ...meta, pricesAsOf: '2026-06' });
+    expect(dto.meta.pricesStale).toBe(false);
   });
 
   it('maps scan errors to plain messages', () => {

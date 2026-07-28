@@ -13,7 +13,7 @@ import type {
   WastedResourcesSummary,
 } from 'cloud-cost-domain';
 import type { WasteReportMeta } from 'cloud-cost-application';
-import { REPORT_DISCLAIMER } from 'cloud-cost-application';
+import { REPORT_DISCLAIMER, isPricesStale, PRICES_STALE_AFTER_DAYS } from 'cloud-cost-application';
 import { presenterFor, rowFor, recommendFor } from './resource-presenters';
 import { buildConsoleUrl } from '../aws-console-link';
 import {
@@ -86,9 +86,21 @@ function drawSummaryPage(
   metaParts.push(`Prices as of: ${meta.pricesAsOf}`);
   doc.font('Helvetica').fontSize(8.5).fillColor(C.muted)
     .text(metaParts.join('   ·   '), MARGIN, y, { lineBreak: false });
+  y += 12;
+
+  if (isPricesStale(meta.pricesAsOf, meta.generatedAt)) {
+    doc.font('Helvetica-Bold').fontSize(8.5).fillColor(C.warning)
+      .text(
+        `⚠ Price list is over ${PRICES_STALE_AFTER_DAYS} days old — consider running with --live-pricing for fresher estimates.`,
+        MARGIN,
+        y,
+        { lineBreak: false },
+      );
+    y += 12;
+  }
 
   // Divider
-  y += 18;
+  y += 6;
   doc.moveTo(MARGIN, y).lineTo(MARGIN + CONTENT_W, y).lineWidth(0.5).strokeColor(C.border).stroke();
 
   // Metric boxes
