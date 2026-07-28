@@ -34,11 +34,24 @@ describe('formatWasteReportAsCsv', () => {
     const lines = csv.split('\n');
 
     expect(lines[0]).toBe(
-      'id,kind,category,estimated,region,accountId,detectedAt,wasteReason,description,monthlyCostUsd,tags,userName,consoleUrl',
+      'id,kind,category,estimated,region,accountId,detectedAt,wasteReason,description,monthlyCostUsd,tags,userName,consoleUrl,pricesAsOf,pricesStale',
     );
     expect(lines).toHaveLength(2);
     expect(lines[1]).toContain('vol-abc123');
     expect(lines[1]).toContain('https://console.aws.amazon.com/ec2/home?region=us-east-1#Volumes:volumeId=vol-abc123');
+  });
+
+  it('repeats pricesAsOf/pricesStale on every row', () => {
+    const csv = formatWasteReportAsCsv(summaryOf('vol-abc123'), meta);
+    const lines = csv.split('\n');
+    expect(lines[1]).toContain('2026-06,false');
+  });
+
+  it('flags pricesStale true when the price list is over 100 days old', () => {
+    const staleMeta: WasteReportMeta = { ...meta, pricesAsOf: '2025-06' };
+    const csv = formatWasteReportAsCsv(summaryOf('vol-abc123'), staleMeta);
+    const lines = csv.split('\n');
+    expect(lines[1]).toContain('2025-06,true');
   });
 
   it('JSON-encodes the tags map into a single quoted field', () => {

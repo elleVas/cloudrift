@@ -8,11 +8,12 @@ import {
   groupByKind,
 } from 'cloud-cost-domain';
 import type { FindingCategory, WastedResourcesSummary } from 'cloud-cost-domain';
-import { REPORT_CONTACT } from 'cloud-cost-application';
+import { REPORT_CONTACT, isPricesStale, PRICES_STALE_AFTER_DAYS } from 'cloud-cost-application';
 import { presenterFor, rowFor } from './resource-presenters';
 
 export interface TableReportMeta {
   pricesAsOf: string;
+  generatedAt: Date;
 }
 
 export function formatWasteReportAsTable(
@@ -94,6 +95,13 @@ export function formatWasteReportAsTable(
       `  Estimates based on AWS list prices as of ${meta.pricesAsOf}; actual billing may differ.`,
     ),
   );
+  if (isPricesStale(meta.pricesAsOf, meta.generatedAt)) {
+    lines.push(
+      chalk.yellow(
+        `  ⚠ Price list is over ${PRICES_STALE_AFTER_DAYS} days old — consider running with --live-pricing for fresher estimates.`,
+      ),
+    );
+  }
   lines.push(
     chalk.dim(
       `  Contact: ${REPORT_CONTACT.email} · ${REPORT_CONTACT.github} · ${REPORT_CONTACT.linkedin}\n`,

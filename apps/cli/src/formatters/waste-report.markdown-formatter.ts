@@ -9,7 +9,7 @@ import type {
   FindingCategory,
   WastedResourcesSummary,
 } from 'cloud-cost-domain';
-import { REPORT_CONTACT, REPORT_DISCLAIMER } from 'cloud-cost-application';
+import { REPORT_CONTACT, REPORT_DISCLAIMER, isPricesStale, PRICES_STALE_AFTER_DAYS } from 'cloud-cost-application';
 import { presenterFor, rowFor, recommendFor } from './resource-presenters';
 
 export interface MarkdownReportOptions {
@@ -31,10 +31,14 @@ function esc(cell: string): string {
     .replace(/\\/g, '\\\\');
 }
 
-function footer(meta: { pricesAsOf: string }): string {
+function footer(meta: { pricesAsOf: string; generatedAt: Date }): string {
+  const staleWarning = isPricesStale(meta.pricesAsOf, meta.generatedAt)
+    ? `\n> ⚠️ Price list is over ${PRICES_STALE_AFTER_DAYS} days old — consider running with \`--live-pricing\` for fresher estimates.\n`
+    : '';
   return (
-    `---\n<sub>Estimates use AWS list prices as of ${meta.pricesAsOf}; actual billing may differ.</sub>\n\n` +
-    `<sub>${REPORT_DISCLAIMER}</sub>\n\n` +
+    `---\n<sub>Estimates use AWS list prices as of ${meta.pricesAsOf}; actual billing may differ.</sub>\n` +
+    staleWarning +
+    `\n<sub>${REPORT_DISCLAIMER}</sub>\n\n` +
     `<sub>Contact: ${REPORT_CONTACT.email} · ` +
       `<a href="${REPORT_CONTACT.github}" target="_blank" rel="noopener noreferrer">GitHub</a> · ` +
       `<a href="${REPORT_CONTACT.linkedin}" target="_blank" rel="noopener noreferrer">LinkedIn</a></sub>`
