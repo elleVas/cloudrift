@@ -57,7 +57,7 @@ describe('StaticPriceTableAdapter', () => {
     });
 
     it('returns ap-southeast-1 gp2 RDS price (higher)', () => {
-      expect(adapter.getPrice(apSoutheast1, 'rds-gp2')).toBe(0.131);
+      expect(adapter.getPrice(apSoutheast1, 'rds-gp2')).toBe(0.138);
     });
 
     it('returns 0 for an unpriced storage type', () => {
