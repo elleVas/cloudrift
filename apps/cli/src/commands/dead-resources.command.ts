@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import chalk from 'chalk';
 import { dirname, resolve } from 'path';
-import { mkdir } from 'fs/promises';
+import { mkdir, writeFile } from 'fs/promises';
 import { AwsRegion, DEAD_RESOURCE_KINDS, DEFAULT_IGNORE_TAG } from 'dead-resources-domain';
 import type { DeadResourceKind, DeadResourcePolicyOptions } from 'dead-resources-domain';
 import { renderBrandMark } from '../brand-mark';
@@ -24,6 +24,7 @@ export interface DeadResourcesCommandOptions {
   ignoreTag?: string;
   silent?: boolean;
   pdf?: string | boolean;
+  csv?: string | boolean;
   /** Raw `--scanners` CLI input, validated against `DEAD_RESOURCE_KINDS` below. */
   scanners?: string[];
   /** Already-validated kind filter — how the wizard's multiselect passes its choice through. `--scanners` wins if both are set. */
@@ -128,8 +129,19 @@ export async function deadResourcesCommand(
     console.log(rendered);
   }
 
+  const day = meta.generatedAt.toISOString().split('T')[0].replaceAll('-', '_');
+
+  if (options.csv !== undefined && options.csv !== false) {
+    const csvPath =
+      typeof options.csv === 'string'
+        ? resolve(process.cwd(), options.csv)
+        : resolve(process.cwd(), 'reports', `cloudrift-dead-resources-${day}.csv`);
+    await mkdir(dirname(csvPath), { recursive: true });
+    await writeFile(csvPath, formatDeadResourcesReportAsCsv(result.value, meta));
+    info(chalk.green(`  CSV report saved to ${csvPath}`));
+  }
+
   if (options.pdf !== undefined && options.pdf !== false) {
-    const day = meta.generatedAt.toISOString().split('T')[0].replaceAll('-', '_');
     const outputPath =
       typeof options.pdf === 'string'
         ? resolve(process.cwd(), options.pdf)

@@ -151,6 +151,28 @@ describe('resourceSecurityCommand (CLI end-to-end)', () => {
     expect(received?.scannerKinds).toEqual(['s3-bucket-public']);
   });
 
+  it('writes a CSV artifact to disk with --csv <file>', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'cloudrift-cli-'));
+    const file = join(dir, 'out.csv');
+    try {
+      await run(
+        { format: 'table', csv: file },
+        makeDeps({
+          summary: {
+            findings: [makeFinding('123456789012')],
+            countBySeverity: { info: 0, warning: 0, critical: 1 },
+            scanErrors: [],
+          },
+        }),
+      );
+      const lines = (await readFile(file, 'utf8')).trim().split('\n');
+      expect(lines[0]).toBe('id,kind,region,accountId,detectedAt,tags,riskReason,severity,consoleUrl');
+      expect(lines[1]).toContain('123456789012');
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
   it('writes a PDF artifact to disk with --pdf <file>', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'cloudrift-cli-'));
     const file = join(dir, 'out.pdf');

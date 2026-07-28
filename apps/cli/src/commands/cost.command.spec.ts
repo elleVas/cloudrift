@@ -1,4 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
+import { readFile, mkdtemp, rm } from 'fs/promises';
+import { tmpdir } from 'os';
+import { join } from 'path';
 import { Result } from 'shared-kernel';
 import type { CostExplorerPort, CostPeriodBucket } from 'cost-analytics-domain';
 import type { CloudriftConfig } from '../config/cloudrift.config';
@@ -127,5 +130,18 @@ describe('costCommand (CLI end-to-end)', () => {
   it('--silent suppresses stdout entirely', async () => {
     await run({ format: 'table', silent: true }, makeDeps());
     expect(stdout).toBe('');
+  });
+
+  it('writes a CSV artifact to disk with --csv <file>', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'cloudrift-cli-'));
+    const file = join(dir, 'out.csv');
+    try {
+      const port = dynamicDailyPort((ymd) => (ymd.endsWith('-01') ? 42 : 0));
+      await run({ format: 'table', csv: file }, makeDeps({ port }));
+      const lines = (await readFile(file, 'utf8')).trim().split('\n');
+      expect(lines[0]).toBe('service,currentUsd,previousUsd,changeUsd,changePercent');
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
   });
 });

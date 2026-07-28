@@ -10,7 +10,7 @@ import { promptRegions } from './region-input.wizard';
 import { promptScannerSelection } from './scanner-selection.wizard';
 import { promptDeadResourceSelection } from './dead-resource-selection.wizard';
 import { promptResourceSecuritySelection } from './resource-security-selection.wizard';
-import { promptWasteOutput, promptDeadResourcesOutput, promptResourceSecurityOutput, promptSimpleOutput } from './output-format.wizard';
+import { promptWasteOutput, promptDeadResourcesOutput, promptResourceSecurityOutput, promptCostTrendOutput } from './output-format.wizard';
 
 /**
  * The interactive entry point: shown when `cloudrift` is run with no
@@ -46,6 +46,7 @@ export async function runEntryWizard(): Promise<void> {
       format: output.format,
       pdf: output.savePdf ? true : undefined,
       json: output.saveJson ? true : undefined,
+      csv: output.saveCsv ? true : undefined,
     });
     return;
   }
@@ -66,6 +67,7 @@ export async function runEntryWizard(): Promise<void> {
       scannerKinds,
       format: output.format,
       pdf: output.savePdf ? true : undefined,
+      csv: output.saveCsv ? true : undefined,
     });
     return;
   }
@@ -86,17 +88,26 @@ export async function runEntryWizard(): Promise<void> {
       scannerKinds,
       format: output.format,
       pdf: output.savePdf ? true : undefined,
+      csv: output.saveCsv ? true : undefined,
     });
     return;
   }
 
-  const format = await promptSimpleOutput();
-  if (format === undefined) return;
+  const output = await promptCostTrendOutput();
+  if (output === undefined) return;
 
   outro('Fetching from AWS Cost Explorer...');
   if (mode === 'cost') {
-    await costCommand({ format });
+    await costCommand({
+      format: output.format,
+      pdf: output.savePdf ? true : undefined,
+      csv: output.saveCsv ? true : undefined,
+    });
   } else {
-    await trendCommand({ format });
+    await trendCommand({
+      format: output.format,
+      pdf: output.savePdf ? true : undefined,
+      csv: output.saveCsv ? true : undefined,
+    });
   }
 }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import chalk from 'chalk';
 import { dirname, resolve } from 'path';
-import { mkdir } from 'fs/promises';
+import { mkdir, writeFile } from 'fs/promises';
 import { CompareCostUseCase } from 'cost-analytics-application';
 import type { CostAnalyticsMeta } from 'cost-analytics-application';
 import { formatCostComparisonAsTable } from '../formatters/cost-comparison.table-formatter';
@@ -24,6 +24,7 @@ export interface CostCommandOptions {
   silent?: boolean;
   yes?: boolean;
   pdf?: string | boolean;
+  csv?: string | boolean;
 }
 
 /**
@@ -90,8 +91,19 @@ export async function costCommand(
     console.log(rendered);
   }
 
+  const day = meta.generatedAt.toISOString().split('T')[0].replaceAll('-', '_');
+
+  if (options.csv !== undefined && options.csv !== false) {
+    const csvPath =
+      typeof options.csv === 'string'
+        ? resolve(process.cwd(), options.csv)
+        : resolve(process.cwd(), 'reports', `cloudrift-cost-${day}.csv`);
+    await mkdir(dirname(csvPath), { recursive: true });
+    await writeFile(csvPath, formatCostComparisonAsCsv(result.value, meta));
+    info(chalk.green(`  CSV report saved to ${csvPath}`));
+  }
+
   if (options.pdf !== undefined && options.pdf !== false) {
-    const day = meta.generatedAt.toISOString().split('T')[0].replaceAll('-', '_');
     const outputPath =
       typeof options.pdf === 'string'
         ? resolve(process.cwd(), options.pdf)

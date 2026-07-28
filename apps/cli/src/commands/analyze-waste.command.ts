@@ -35,6 +35,7 @@ export interface AnalyzeWasteOptions {
   livePricing?: boolean;
   pdf?: string | boolean;
   json?: string | boolean;
+  csv?: string | boolean;
   minAgeDays?: string;
   ignoreTag?: string;
   silent?: boolean;
