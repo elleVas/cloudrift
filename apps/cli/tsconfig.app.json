@@ -13,31 +13,7 @@
       "path": "../../libs/shared/kernel/tsconfig.lib.json"
     },
     {
-      "path": "../../libs/dead-resources/infrastructure/aws-adapter/tsconfig.lib.json"
-    },
-    {
-      "path": "../../libs/dead-resources/domain/tsconfig.lib.json"
-    },
-    {
-      "path": "../../libs/dead-resources/application/tsconfig.lib.json"
-    },
-    {
-      "path": "../../libs/cloud-cost/infrastructure/aws-adapter/tsconfig.lib.json"
-    },
-    {
-      "path": "../../libs/cloud-cost/domain/tsconfig.lib.json"
-    },
-    {
-      "path": "../../libs/cloud-cost/application/tsconfig.lib.json"
-    },
-    {
-      "path": "../../libs/cost-analytics/infrastructure/aws-adapter/tsconfig.lib.json"
-    },
-    {
-      "path": "../../libs/cost-analytics/domain/tsconfig.lib.json"
-    },
-    {
-      "path": "../../libs/cost-analytics/application/tsconfig.lib.json"
+      "path": "../../libs/shared/aws-infra-utils/tsconfig.lib.json"
     },
     {
       "path": "../../libs/resource-security/infrastructure/aws-adapter/tsconfig.lib.json"
@@ -50,6 +26,33 @@
     },
     {
       "path": "../../libs/mcp-server/application/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/dead-resources/infrastructure/aws-adapter/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/dead-resources/domain/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/dead-resources/application/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/cost-analytics/infrastructure/aws-adapter/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/cost-analytics/domain/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/cost-analytics/application/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/cloud-cost/infrastructure/aws-adapter/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/cloud-cost/domain/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/cloud-cost/application/tsconfig.lib.json"
     }
   ]
 }

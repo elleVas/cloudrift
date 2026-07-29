@@ -4,6 +4,7 @@ import {
   GetProductsCommand,
   type Filter,
 } from '@aws-sdk/client-pricing';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { Result } from 'shared-kernel';
 import type { AwsRegion } from 'cloud-cost-domain';
 import { AwsAdapterError, createAwsClientConfig, mapWithConcurrency } from 'shared-aws-infra-utils';
@@ -166,8 +167,9 @@ const PRICE_SPECS: readonly PriceSpec[] = [
  */
 export class AwsPricingApiAdapter {
   constructor(
+    credentials?: AwsCredentialIdentityProvider,
     private readonly client = new PricingClient({
-      ...createAwsClientConfig(),
+      ...createAwsClientConfig(credentials),
       region: PRICING_API_REGION,
     }),
   ) {}

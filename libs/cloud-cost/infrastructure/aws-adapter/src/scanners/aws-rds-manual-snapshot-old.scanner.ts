@@ -4,6 +4,7 @@ import {
   DescribeDBSnapshotsCommand,
   type DBSnapshot,
 } from '@aws-sdk/client-rds';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { Result, createLogger } from 'shared-kernel';
 import type { AwsRegion, PricingPort, WasteScannerPort, WastedResource } from 'cloud-cost-domain';
 import { RdsManualSnapshotOld, RdsManualSnapshotOldPolicy } from 'cloud-cost-domain';
@@ -19,11 +20,12 @@ export class AwsRdsManualSnapshotOldScanner implements WasteScannerPort {
   constructor(
     private readonly pricing: PricingPort,
     private readonly accountId = 'unknown',
+    private readonly credentials?: AwsCredentialIdentityProvider,
     private readonly policy = new RdsManualSnapshotOldPolicy(),
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
-    const client = new RDSClient({ ...createAwsClientConfig(), region: region.code });
+    const client = new RDSClient({ ...createAwsClientConfig(this.credentials), region: region.code });
     try {
       const rawSnapshots = await paginate<DBSnapshot>(async (cursor) => {
         const r = await client.send(

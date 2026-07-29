@@ -2,8 +2,26 @@
 import { Result } from 'shared-kernel';
 import { AwsRegion, DEFAULT_MIN_AGE_DAYS, RESOURCE_KINDS } from 'cloud-cost-domain';
 import type { ResourceKind } from 'cloud-cost-domain';
+import { assumeRole } from 'shared-aws-infra-utils';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import type { CloudriftConfig } from '../config/cloudrift.config';
 import type { AnalyzeWasteOptions } from './analyze-waste.command';
+
+/**
+ * --assume-role-arn: resolved once per command invocation, before any AWS
+ * call. Hard-fails (never silently falls back to ambient credentials) so a
+ * bad role ARN/trust policy/external ID can't result in silently scanning
+ * the wrong account.
+ */
+export async function resolveCredentials(options: {
+  assumeRoleArn?: string;
+  externalId?: string;
+}): Promise<Result<AwsCredentialIdentityProvider | undefined, Error>> {
+  if (!options.assumeRoleArn) return Result.ok(undefined);
+  const result = await assumeRole(options.assumeRoleArn, options.externalId);
+  if (!result.ok) return Result.fail(result.error);
+  return Result.ok(result.value);
+}
 
 /** Grace period: CLI > config > default. */
 export function resolveMinAgeDays(

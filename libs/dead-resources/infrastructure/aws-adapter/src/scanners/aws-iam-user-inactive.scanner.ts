@@ -6,6 +6,7 @@ import {
   GetAccessKeyLastUsedCommand,
   type User,
 } from '@aws-sdk/client-iam';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { Result } from 'shared-kernel';
 import type { AwsRegion, DeadResourceScannerPort, DeadResource } from 'dead-resources-domain';
 import { IamUserInactive, IamUserInactivePolicy } from 'dead-resources-domain';
@@ -48,11 +49,12 @@ export class AwsIamUserInactiveScanner implements DeadResourceScannerPort {
 
   constructor(
     private readonly accountId = 'unknown',
+    private readonly credentials?: AwsCredentialIdentityProvider,
     private readonly policy = new IamUserInactivePolicy(),
   ) {}
 
   async scan(_region: AwsRegion): Promise<Result<DeadResource[]>> {
-    const client = new IAMClient({ ...createAwsClientConfig(), region: IAM_ENDPOINT_REGION });
+    const client = new IAMClient({ ...createAwsClientConfig(this.credentials), region: IAM_ENDPOINT_REGION });
     try {
       const rawUsers = await paginate<User>(async (cursor) => {
         const r = await client.send(new ListUsersCommand({ Marker: cursor }));

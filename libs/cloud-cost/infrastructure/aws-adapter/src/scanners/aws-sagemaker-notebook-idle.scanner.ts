@@ -5,6 +5,7 @@ import {
   type NotebookInstanceSummary,
 } from '@aws-sdk/client-sagemaker';
 import type { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { createLogger } from 'shared-kernel';
 import type { AwsRegion } from 'cloud-cost-domain';
 import { SageMakerNotebookIdle, SageMakerNotebookIdlePolicy, type WastePolicy } from 'cloud-cost-domain';
@@ -43,12 +44,13 @@ export class AwsSageMakerNotebookIdleScanner extends CloudWatchIdleScanner<
     private readonly accountId = 'unknown',
     policy: WastePolicy<SageMakerNotebookIdle> = new SageMakerNotebookIdlePolicy(),
     windowHours = DEFAULT_LOOKBACK_HOURS,
+    credentials?: AwsCredentialIdentityProvider,
   ) {
-    super(policy, windowHours);
+    super(policy, windowHours, undefined, credentials);
   }
 
   protected createPrimaryClient(region: AwsRegion): SageMakerClient {
-    return new SageMakerClient({ ...createAwsClientConfig(), region: region.code });
+    return new SageMakerClient({ ...createAwsClientConfig(this.credentials), region: region.code });
   }
 
   protected destroyPrimaryClient(client: SageMakerClient): void {

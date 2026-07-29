@@ -4,6 +4,7 @@ import {
   DescribeLogGroupsCommand,
   type LogGroup as AwsLogGroup,
 } from '@aws-sdk/client-cloudwatch-logs';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { Result, createLogger } from 'shared-kernel';
 import type { AwsRegion, PricingPort, WasteScannerPort, WastedResource } from 'cloud-cost-domain';
 import { LogGroup, LogGroupWastePolicy } from 'cloud-cost-domain';
@@ -19,11 +20,12 @@ export class AwsLogGroupScanner implements WasteScannerPort {
   constructor(
     private readonly pricing: PricingPort,
     private readonly accountId = 'unknown',
+    private readonly credentials?: AwsCredentialIdentityProvider,
     private readonly policy = new LogGroupWastePolicy(),
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
-    const client = new CloudWatchLogsClient({ ...createAwsClientConfig(), region: region.code });
+    const client = new CloudWatchLogsClient({ ...createAwsClientConfig(this.credentials), region: region.code });
     try {
       const pricePerGb = this.pricing.getPrice(region, 'cw-logs');
       const now = new Date();

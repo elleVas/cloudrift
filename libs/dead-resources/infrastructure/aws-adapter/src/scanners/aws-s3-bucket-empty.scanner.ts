@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { S3Client, ListBucketsCommand, ListObjectsV2Command, type Bucket } from '@aws-sdk/client-s3';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { Result, createLogger } from 'shared-kernel';
 import type { AwsRegion, DeadResourceScannerPort, DeadResource } from 'dead-resources-domain';
 import { S3BucketEmpty, S3BucketEmptyPolicy } from 'dead-resources-domain';
@@ -31,12 +32,13 @@ export class AwsS3BucketEmptyScanner implements DeadResourceScannerPort {
 
   constructor(
     private readonly accountId = 'unknown',
+    private readonly credentials?: AwsCredentialIdentityProvider,
     private readonly policy = new S3BucketEmptyPolicy(),
   ) {}
 
   async scan(_region: AwsRegion): Promise<Result<DeadResource[]>> {
     const client = new S3Client({
-      ...createAwsClientConfig(),
+      ...createAwsClientConfig(this.credentials),
       region: S3_ENDPOINT_REGION,
       followRegionRedirects: true,
     });

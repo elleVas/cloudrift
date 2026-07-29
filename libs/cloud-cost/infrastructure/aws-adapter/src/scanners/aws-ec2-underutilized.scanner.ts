@@ -6,6 +6,7 @@ import {
   type Reservation,
 } from '@aws-sdk/client-ec2';
 import type { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { createLogger } from 'shared-kernel';
 import type { AwsRegion } from 'cloud-cost-domain';
 import { UnderutilizedEc2Instance, Ec2UnderutilizedPolicy, type WastePolicy } from 'cloud-cost-domain';
@@ -53,12 +54,13 @@ export class AwsEc2UnderutilizedScanner extends CloudWatchIdleScanner<
     private readonly accountId = 'unknown',
     policy: WastePolicy<UnderutilizedEc2Instance> = new Ec2UnderutilizedPolicy(),
     windowHours = DEFAULT_WINDOW_HOURS,
+    credentials?: AwsCredentialIdentityProvider,
   ) {
-    super(policy, windowHours);
+    super(policy, windowHours, undefined, credentials);
   }
 
   protected createPrimaryClient(region: AwsRegion): EC2Client {
-    return new EC2Client({ ...createAwsClientConfig(), region: region.code });
+    return new EC2Client({ ...createAwsClientConfig(this.credentials), region: region.code });
   }
 
   protected destroyPrimaryClient(client: EC2Client): void {

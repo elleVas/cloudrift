@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { RedshiftClient, DescribeClustersCommand, type Cluster } from '@aws-sdk/client-redshift';
 import type { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { createLogger } from 'shared-kernel';
 import type { AwsRegion } from 'cloud-cost-domain';
 import { RedshiftCluster, RedshiftIdleClusterPolicy, type WastePolicy } from 'cloud-cost-domain';
@@ -27,12 +28,13 @@ export class AwsRedshiftIdleScanner extends CloudWatchIdleScanner<RedshiftClient
     private readonly accountId = 'unknown',
     policy: WastePolicy<RedshiftCluster> = new RedshiftIdleClusterPolicy(),
     windowHours = DEFAULT_LOOKBACK_HOURS,
+    credentials?: AwsCredentialIdentityProvider,
   ) {
-    super(policy, windowHours);
+    super(policy, windowHours, undefined, credentials);
   }
 
   protected createPrimaryClient(region: AwsRegion): RedshiftClient {
-    return new RedshiftClient({ ...createAwsClientConfig(), region: region.code });
+    return new RedshiftClient({ ...createAwsClientConfig(this.credentials), region: region.code });
   }
 
   protected destroyPrimaryClient(client: RedshiftClient): void {

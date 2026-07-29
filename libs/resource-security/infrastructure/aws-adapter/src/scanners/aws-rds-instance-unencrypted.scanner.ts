@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { RDSClient, DescribeDBInstancesCommand, type DBInstance } from '@aws-sdk/client-rds';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { Result } from 'shared-kernel';
 import type { AwsRegion, ResourceSecurityScannerPort, SecurityFinding } from 'resource-security-domain';
 import { RdsInstanceUnencrypted, RdsInstanceUnencryptedPolicy } from 'resource-security-domain';
@@ -13,11 +14,12 @@ export class AwsRdsInstanceUnencryptedScanner implements ResourceSecurityScanner
 
   constructor(
     private readonly accountId = 'unknown',
+    private readonly credentials?: AwsCredentialIdentityProvider,
     private readonly policy = new RdsInstanceUnencryptedPolicy(),
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<SecurityFinding[]>> {
-    const client = new RDSClient({ ...createAwsClientConfig(), region: region.code });
+    const client = new RDSClient({ ...createAwsClientConfig(this.credentials), region: region.code });
     try {
       const rawInstances = await paginate<DBInstance>(async (cursor) => {
         const r = await client.send(new DescribeDBInstancesCommand({ Marker: cursor }));

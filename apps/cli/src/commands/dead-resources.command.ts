@@ -13,12 +13,15 @@ import { startScanSpinner } from '../wizard/scan-spinner';
 import { defaultDeadResourcesDeps, type DeadResourcesDeps } from './dead-resources.composition';
 import { reportCliError as fail } from './report-cli-error';
 import { OUTPUT_FORMATS, isOutputFormat } from '../output-format';
+import { resolveCredentials } from './resolve-options';
 
 export type { DeadResourcesDeps };
 
 export interface DeadResourcesCommandOptions {
   regions: string[];
   accountId?: string;
+  assumeRoleArn?: string;
+  externalId?: string;
   format?: string;
   minAgeDays?: string;
   ignoreTag?: string;
@@ -90,7 +93,11 @@ export async function deadResourcesCommand(
     console.log(`\n${renderBrandMark()}\n`);
   }
 
-  const accountId = options.accountId ?? (await deps.resolveAccountId()) ?? 'unknown';
+  const credentialsResult = await resolveCredentials(options);
+  if (!credentialsResult.ok) return fail(credentialsResult.error.message);
+  const credentials = credentialsResult.value;
+
+  const accountId = options.accountId ?? (await deps.resolveAccountId(credentials)) ?? 'unknown';
   if (accountId === 'unknown') {
     info(chalk.dim('  Could not resolve the AWS account ID via STS — pass --account-id to set it explicitly.'));
   }
@@ -108,7 +115,7 @@ export async function deadResourcesCommand(
     ignoreTag: options.ignoreTag ?? DEFAULT_IGNORE_TAG,
   };
 
-  const { useCase } = await deps.createAnalysis({ regions, accountId, policyOptions, scannerKinds });
+  const { useCase } = await deps.createAnalysis({ regions, accountId, credentials, policyOptions, scannerKinds });
 
   const spinner = quietStdout ? undefined : await startScanSpinner('  Rolling through your account...');
   const result = await useCase.execute({ regions });

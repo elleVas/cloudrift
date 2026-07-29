@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { FSxClient, DescribeFileSystemsCommand, type FileSystem } from '@aws-sdk/client-fsx';
 import type { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { createLogger } from 'shared-kernel';
 import type { AwsRegion, PricingPort } from 'cloud-cost-domain';
 import { FsxFileSystem, FsxIdleFilesystemPolicy, type WastePolicy } from 'cloud-cost-domain';
@@ -28,12 +29,13 @@ export class AwsFsxIdleScanner extends CloudWatchIdleScanner<FSxClient, FileSyst
     private readonly accountId = 'unknown',
     policy: WastePolicy<FsxFileSystem> = new FsxIdleFilesystemPolicy(),
     windowHours = DEFAULT_LOOKBACK_HOURS,
+    credentials?: AwsCredentialIdentityProvider,
   ) {
-    super(policy, windowHours);
+    super(policy, windowHours, undefined, credentials);
   }
 
   protected createPrimaryClient(region: AwsRegion): FSxClient {
-    return new FSxClient({ ...createAwsClientConfig(), region: region.code });
+    return new FSxClient({ ...createAwsClientConfig(this.credentials), region: region.code });
   }
 
   protected destroyPrimaryClient(client: FSxClient): void {

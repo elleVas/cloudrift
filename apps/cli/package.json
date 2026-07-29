@@ -196,6 +196,7 @@
     "@clack/prompts": "^1.7.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@smithy/node-http-handler": "^4.9.11",
+    "@smithy/types": "^4.9.0",
     "chalk": "^4.1.2",
     "cli-table3": "^0.6.5",
     "cloud-cost-application": "workspace:*",
@@ -213,6 +214,7 @@
     "resource-security-application": "workspace:*",
     "resource-security-domain": "workspace:*",
     "resource-security-infrastructure-aws-adapter": "workspace:*",
+    "shared-aws-infra-utils": "workspace:*",
     "shared-kernel": "workspace:*",
     "zod": "^4.4.3"
   }

@@ -8,6 +8,7 @@ import type {
 } from 'cloud-cost-domain';
 import { AnalyzeCloudWasteUseCase } from 'cloud-cost-application';
 import { resolveAwsAccountId } from 'cloud-cost-infrastructure-aws-adapter';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { loadConfig, type CloudriftConfig, type ConfigError } from '../config/cloudrift.config';
 import { buildPricing } from './pricing.factory';
 import { buildScanners } from './scanner-registry';
@@ -17,6 +18,8 @@ export interface AnalysisContext {
   regions: AwsRegion[];
   config: CloudriftConfig;
   accountId: string;
+  /** Set only when scanning cross-account via --assume-role-arn; undefined uses the ambient credential chain. */
+  credentials?: AwsCredentialIdentityProvider;
   livePricing: boolean;
   policyOptions: WastePolicyOptions;
   cloudwatchWindowHours: number;
@@ -40,7 +43,7 @@ export interface Analysis {
  */
 export interface AnalyzeDeps {
   loadConfig(cwd: string, explicitPath?: string): Promise<Result<CloudriftConfig, ConfigError>>;
-  resolveAccountId(): Promise<string | undefined>;
+  resolveAccountId(credentials?: AwsCredentialIdentityProvider): Promise<string | undefined>;
   createAnalysis(ctx: AnalysisContext): Promise<Analysis>;
 }
 
@@ -64,6 +67,7 @@ async function defaultCreateAnalysis(ctx: AnalysisContext): Promise<Analysis> {
     {
       pricing,
       accountId: ctx.accountId,
+      credentials: ctx.credentials,
       policyOptions: ctx.policyOptions,
       cloudwatchWindowHours: ctx.cloudwatchWindowHours,
       utilizationWindowHours: ctx.utilizationWindowHours,

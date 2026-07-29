@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { SNSClient, ListTopicsCommand, ListSubscriptionsByTopicCommand, type Topic } from '@aws-sdk/client-sns';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { Result } from 'shared-kernel';
 import type { AwsRegion, DeadResourceScannerPort, DeadResource } from 'dead-resources-domain';
 import { SnsTopicUnsubscribed, SnsTopicUnsubscribedPolicy } from 'dead-resources-domain';
@@ -23,11 +24,12 @@ export class AwsSnsTopicUnsubscribedScanner implements DeadResourceScannerPort {
 
   constructor(
     private readonly accountId = 'unknown',
+    private readonly credentials?: AwsCredentialIdentityProvider,
     private readonly policy = new SnsTopicUnsubscribedPolicy(),
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<DeadResource[]>> {
-    const client = new SNSClient({ ...createAwsClientConfig(), region: region.code });
+    const client = new SNSClient({ ...createAwsClientConfig(this.credentials), region: region.code });
     try {
       const rawTopics = await paginate<Topic>(async (cursor) => {
         const r = await client.send(new ListTopicsCommand({ NextToken: cursor }));

@@ -7,6 +7,7 @@ import {
   type LoadBalancer as AwsLoadBalancer,
   type TargetGroup,
 } from '@aws-sdk/client-elastic-load-balancing-v2';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { Result, createLogger } from 'shared-kernel';
 import type {
   AwsRegion,
@@ -28,11 +29,12 @@ export class AwsLoadBalancerScanner implements WasteScannerPort {
   constructor(
     private readonly pricing: PricingPort,
     private readonly accountId = 'unknown',
+    private readonly credentials?: AwsCredentialIdentityProvider,
     private readonly policy = new LoadBalancerWastePolicy(),
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
-    const client = new ElasticLoadBalancingV2Client({ ...createAwsClientConfig(), region: region.code });
+    const client = new ElasticLoadBalancingV2Client({ ...createAwsClientConfig(this.credentials), region: region.code });
     try {
       const allLbs = await paginate<AwsLoadBalancer>(async (cursor) => {
         const r = await client.send(new DescribeLoadBalancersCommand({ Marker: cursor }));

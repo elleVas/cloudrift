@@ -4,6 +4,7 @@ import {
   ListSecretsCommand,
   type SecretListEntry,
 } from '@aws-sdk/client-secrets-manager';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { Result, createLogger } from 'shared-kernel';
 import type { AwsRegion, PricingPort, WasteScannerPort, WastedResource } from 'cloud-cost-domain';
 import { SecretsManagerUnused, SecretsManagerUnusedPolicy } from 'cloud-cost-domain';
@@ -19,11 +20,12 @@ export class AwsSecretsManagerUnusedScanner implements WasteScannerPort {
   constructor(
     private readonly pricing: PricingPort,
     private readonly accountId = 'unknown',
+    private readonly credentials?: AwsCredentialIdentityProvider,
     private readonly policy = new SecretsManagerUnusedPolicy(),
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
-    const client = new SecretsManagerClient({ ...createAwsClientConfig(), region: region.code });
+    const client = new SecretsManagerClient({ ...createAwsClientConfig(this.credentials), region: region.code });
     try {
       const rawSecrets = await paginate<SecretListEntry>(async (cursor) => {
         const r = await client.send(new ListSecretsCommand({ NextToken: cursor }));

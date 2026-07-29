@@ -108,6 +108,7 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 | [0071](0071-unified-entry-wizard-bare-invocation.md) | Bare `cloudrift` (no subcommand, real terminal) launches a unified mode-picker wizard | Accepted |
 | [0073](0073-brand-mark-pixel-art-pipeline.md) | Brand mark generated from the real logo via an offline pixel-art sampling pipeline | Accepted |
 | [0087](0087-precommit-hooks-eslint-only-no-prettier.md) | Pre-commit hooks via husky + lint-staged, `eslint --fix` only — no `prettier --write` | Accepted |
+| [0096](0096-cross-account-scanning-assume-role.md) | Cross-account scanning via `--assume-role-arn` (STS AssumeRole) | Accepted |
 
 ## Reporting
 

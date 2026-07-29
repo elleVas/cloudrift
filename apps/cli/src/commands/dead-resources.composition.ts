@@ -27,6 +27,7 @@ import {
   StepfunctionsStatemachineUnusedPolicy,
 } from 'dead-resources-domain';
 import { FindDeadResourcesUseCase } from 'dead-resources-application';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import {
   AwsEc2KeyPairUnusedScanner,
   AwsEc2RiExpiringSoonScanner,
@@ -52,6 +53,8 @@ import { resolveAwsAccountId } from 'cloud-cost-infrastructure-aws-adapter';
 /** Everything a dead-resource scanner factory may need to build its instance. */
 export interface DeadResourceScanContext {
   accountId: string;
+  /** Set only when scanning cross-account via --assume-role-arn; undefined uses the ambient credential chain. */
+  credentials?: AwsCredentialIdentityProvider;
   policyOptions: DeadResourcePolicyOptions;
 }
 
@@ -64,6 +67,7 @@ export interface DeadResourceScanContext {
 export interface DeadResourceAnalysisContext {
   regions: AwsRegion[];
   accountId: string;
+  credentials?: AwsCredentialIdentityProvider;
   policyOptions: DeadResourcePolicyOptions;
   /** Restrict the scan to these kinds (from the wizard). Undefined runs every check. */
   scannerKinds?: DeadResourceKind[];
@@ -74,7 +78,7 @@ export interface DeadResourceAnalysis {
 }
 
 export interface DeadResourcesDeps {
-  resolveAccountId(): Promise<string | undefined>;
+  resolveAccountId(credentials?: AwsCredentialIdentityProvider): Promise<string | undefined>;
   createAnalysis(ctx: DeadResourceAnalysisContext): Promise<DeadResourceAnalysis>;
 }
 
@@ -87,29 +91,29 @@ export interface DeadResourcesDeps {
  */
 function buildScanners(ctx: DeadResourceScanContext): DeadResourceScannerPort[] {
   return [
-    new AwsEc2KeyPairUnusedScanner(ctx.accountId, new Ec2KeyPairUnusedPolicy(ctx.policyOptions)),
-    new AwsEc2RiExpiringSoonScanner(ctx.accountId, new Ec2RiExpiringSoonPolicy(ctx.policyOptions)),
-    new AwsIamUserInactiveScanner(ctx.accountId, new IamUserInactivePolicy(ctx.policyOptions)),
-    new AwsIamPolicyUnattachedScanner(ctx.accountId, new IamPolicyUnattachedPolicy(ctx.policyOptions)),
-    new AwsIamRoleUnusedScanner(ctx.accountId, new IamRoleUnusedPolicy(ctx.policyOptions)),
-    new AwsIamAccessKeyStaleScanner(ctx.accountId, new IamAccessKeyStalePolicy(ctx.policyOptions)),
-    new AwsEc2SecurityGroupUnusedScanner(ctx.accountId, new Ec2SecurityGroupUnusedPolicy(ctx.policyOptions)),
-    new AwsLogsLogGroupEmptyScanner(ctx.accountId, new LogsLogGroupEmptyPolicy(ctx.policyOptions)),
-    new AwsAcmCertificateUnusedScanner(ctx.accountId, new AcmCertificateUnusedPolicy(ctx.policyOptions)),
-    new AwsRoute53HostedZoneEmptyScanner(ctx.accountId, new Route53HostedZoneEmptyPolicy(ctx.policyOptions)),
-    new AwsCloudformationStackStuckScanner(ctx.accountId, new CloudformationStackStuckPolicy(ctx.policyOptions)),
-    new AwsS3BucketEmptyScanner(ctx.accountId, new S3BucketEmptyPolicy(ctx.policyOptions)),
-    new AwsCloudwatchAlarmOrphanedScanner(ctx.accountId, new CloudwatchAlarmOrphanedPolicy(ctx.policyOptions)),
-    new AwsSnsTopicUnsubscribedScanner(ctx.accountId, new SnsTopicUnsubscribedPolicy(ctx.policyOptions)),
-    new AwsIamInstanceProfileUnattachedScanner(ctx.accountId, new IamInstanceProfileUnattachedPolicy(ctx.policyOptions)),
-    new AwsEventbridgeRuleNoTargetsScanner(ctx.accountId, new EventbridgeRuleNoTargetsPolicy(ctx.policyOptions)),
-    new AwsEcrRepositoryEmptyScanner(ctx.accountId, new EcrRepositoryEmptyPolicy(ctx.policyOptions)),
-    new AwsStepfunctionsStatemachineUnusedScanner(ctx.accountId, new StepfunctionsStatemachineUnusedPolicy(ctx.policyOptions)),
+    new AwsEc2KeyPairUnusedScanner(ctx.accountId, ctx.credentials, new Ec2KeyPairUnusedPolicy(ctx.policyOptions)),
+    new AwsEc2RiExpiringSoonScanner(ctx.accountId, ctx.credentials, new Ec2RiExpiringSoonPolicy(ctx.policyOptions)),
+    new AwsIamUserInactiveScanner(ctx.accountId, ctx.credentials, new IamUserInactivePolicy(ctx.policyOptions)),
+    new AwsIamPolicyUnattachedScanner(ctx.accountId, ctx.credentials, new IamPolicyUnattachedPolicy(ctx.policyOptions)),
+    new AwsIamRoleUnusedScanner(ctx.accountId, ctx.credentials, new IamRoleUnusedPolicy(ctx.policyOptions)),
+    new AwsIamAccessKeyStaleScanner(ctx.accountId, ctx.credentials, new IamAccessKeyStalePolicy(ctx.policyOptions)),
+    new AwsEc2SecurityGroupUnusedScanner(ctx.accountId, ctx.credentials, new Ec2SecurityGroupUnusedPolicy(ctx.policyOptions)),
+    new AwsLogsLogGroupEmptyScanner(ctx.accountId, ctx.credentials, new LogsLogGroupEmptyPolicy(ctx.policyOptions)),
+    new AwsAcmCertificateUnusedScanner(ctx.accountId, ctx.credentials, new AcmCertificateUnusedPolicy(ctx.policyOptions)),
+    new AwsRoute53HostedZoneEmptyScanner(ctx.accountId, ctx.credentials, new Route53HostedZoneEmptyPolicy(ctx.policyOptions)),
+    new AwsCloudformationStackStuckScanner(ctx.accountId, ctx.credentials, new CloudformationStackStuckPolicy(ctx.policyOptions)),
+    new AwsS3BucketEmptyScanner(ctx.accountId, ctx.credentials, new S3BucketEmptyPolicy(ctx.policyOptions)),
+    new AwsCloudwatchAlarmOrphanedScanner(ctx.accountId, ctx.credentials, new CloudwatchAlarmOrphanedPolicy(ctx.policyOptions)),
+    new AwsSnsTopicUnsubscribedScanner(ctx.accountId, ctx.credentials, new SnsTopicUnsubscribedPolicy(ctx.policyOptions)),
+    new AwsIamInstanceProfileUnattachedScanner(ctx.accountId, ctx.credentials, new IamInstanceProfileUnattachedPolicy(ctx.policyOptions)),
+    new AwsEventbridgeRuleNoTargetsScanner(ctx.accountId, ctx.credentials, new EventbridgeRuleNoTargetsPolicy(ctx.policyOptions)),
+    new AwsEcrRepositoryEmptyScanner(ctx.accountId, ctx.credentials, new EcrRepositoryEmptyPolicy(ctx.policyOptions)),
+    new AwsStepfunctionsStatemachineUnusedScanner(ctx.accountId, ctx.credentials, new StepfunctionsStatemachineUnusedPolicy(ctx.policyOptions)),
   ];
 }
 
 async function defaultCreateAnalysis(ctx: DeadResourceAnalysisContext): Promise<DeadResourceAnalysis> {
-  const scanners = buildScanners({ accountId: ctx.accountId, policyOptions: ctx.policyOptions });
+  const scanners = buildScanners({ accountId: ctx.accountId, credentials: ctx.credentials, policyOptions: ctx.policyOptions });
   const kindFilter = ctx.scannerKinds ? new Set(ctx.scannerKinds) : undefined;
   const selected = kindFilter ? scanners.filter((scanner) => kindFilter.has(scanner.kind)) : scanners;
   return { useCase: new FindDeadResourcesUseCase(selected) };

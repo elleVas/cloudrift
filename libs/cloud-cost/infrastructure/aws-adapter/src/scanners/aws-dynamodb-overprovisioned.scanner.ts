@@ -6,6 +6,7 @@ import {
   type TableDescription,
 } from '@aws-sdk/client-dynamodb';
 import type { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { createLogger } from 'shared-kernel';
 import type { AwsRegion, PricingPort } from 'cloud-cost-domain';
 import { OverprovisionedDynamoDbTable, DynamoDbOverprovisionedPolicy, type WastePolicy } from 'cloud-cost-domain';
@@ -53,12 +54,13 @@ export class AwsDynamoDbOverprovisionedScanner extends CloudWatchIdleScanner<
     private readonly accountId = 'unknown',
     policy: WastePolicy<OverprovisionedDynamoDbTable> = new DynamoDbOverprovisionedPolicy(),
     windowHours = DEFAULT_WINDOW_HOURS,
+    credentials?: AwsCredentialIdentityProvider,
   ) {
-    super(policy, windowHours);
+    super(policy, windowHours, undefined, credentials);
   }
 
   protected createPrimaryClient(region: AwsRegion): DynamoDBClient {
-    return new DynamoDBClient({ ...createAwsClientConfig(), region: region.code });
+    return new DynamoDBClient({ ...createAwsClientConfig(this.credentials), region: region.code });
   }
 
   protected destroyPrimaryClient(client: DynamoDBClient): void {

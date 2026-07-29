@@ -6,6 +6,7 @@ import {
   type StreamDescriptionSummary,
 } from '@aws-sdk/client-kinesis';
 import type { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { createLogger } from 'shared-kernel';
 import type { AwsRegion, PricingPort } from 'cloud-cost-domain';
 import { KinesisStream, KinesisProvisionedIdleStreamPolicy, type WastePolicy } from 'cloud-cost-domain';
@@ -39,12 +40,13 @@ export class AwsKinesisIdleScanner extends CloudWatchIdleScanner<
     private readonly accountId = 'unknown',
     policy: WastePolicy<KinesisStream> = new KinesisProvisionedIdleStreamPolicy(),
     windowHours = DEFAULT_LOOKBACK_HOURS,
+    credentials?: AwsCredentialIdentityProvider,
   ) {
-    super(policy, windowHours, DESCRIBE_CONCURRENCY);
+    super(policy, windowHours, DESCRIBE_CONCURRENCY, credentials);
   }
 
   protected createPrimaryClient(region: AwsRegion): KinesisClient {
-    return new KinesisClient({ ...createAwsClientConfig(), region: region.code });
+    return new KinesisClient({ ...createAwsClientConfig(this.credentials), region: region.code });
   }
 
   protected destroyPrimaryClient(client: KinesisClient): void {

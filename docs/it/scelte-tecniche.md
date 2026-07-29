@@ -101,6 +101,14 @@ try {
 
 ---
 
+## Scansione cross-account via STS AssumeRole, risolta in modo eager
+
+**Scelta:** `--assume-role-arn <arn>` (con opzionale `--external-id <id>`) assume un ruolo via `fromTemporaryCredentials`, invocando subito il provider risultante invece di passarlo non risolto. Omettere il flag mantiene ogni scanner sulla catena di credenziali di default dell'SDK, invariata.
+
+**Perché:** un role ARN errato, una trust policy che nega l'accesso, o un external ID sbagliato devono fallire rumorosamente in testa al comando — mai scansionando silenziosamente l'account del chiamante, e mai come un errore confuso che emerge in profondità dentro il primo scanner eseguito. Vedi [ADR-0096](../adr/0096-cross-account-scanning-assume-role.md) (in inglese).
+
+---
+
 ## Waste policy parametriche invece di euristiche hardcoded
 
 **Scelta:** le condizioni di spreco vivono in policy di dominio (`WastePolicy<T>`) con due parametri trasversali esposti dalla CLI: `--min-age-days` (default 7) e `--ignore-tag` (default `cloudrift:ignore`).

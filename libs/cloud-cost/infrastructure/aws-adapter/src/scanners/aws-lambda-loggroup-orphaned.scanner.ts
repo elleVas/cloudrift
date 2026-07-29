@@ -6,6 +6,7 @@ import {
   type LogGroup as AwsLogGroup,
 } from '@aws-sdk/client-cloudwatch-logs';
 import { LambdaClient, ListFunctionsCommand, type FunctionConfiguration } from '@aws-sdk/client-lambda';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { Result, createLogger } from 'shared-kernel';
 import type { AwsRegion, PricingPort, WasteScannerPort, WastedResource } from 'cloud-cost-domain';
 import { LambdaLogGroupOrphaned, LambdaLogGroupOrphanedPolicy } from 'cloud-cost-domain';
@@ -30,12 +31,13 @@ export class AwsLambdaLogGroupOrphanedScanner implements WasteScannerPort {
   constructor(
     private readonly pricing: PricingPort,
     private readonly accountId = 'unknown',
+    private readonly credentials?: AwsCredentialIdentityProvider,
     private readonly policy = new LambdaLogGroupOrphanedPolicy(),
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
-    const logsClient = new CloudWatchLogsClient({ ...createAwsClientConfig(), region: region.code });
-    const lambdaClient = new LambdaClient({ ...createAwsClientConfig(), region: region.code });
+    const logsClient = new CloudWatchLogsClient({ ...createAwsClientConfig(this.credentials), region: region.code });
+    const lambdaClient = new LambdaClient({ ...createAwsClientConfig(this.credentials), region: region.code });
     try {
       const [rawLogGroups, functions] = await Promise.all([
         paginate<AwsLogGroup>(async (cursor) => {

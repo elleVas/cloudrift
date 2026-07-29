@@ -4,6 +4,7 @@ import {
   DescribeDBInstancesCommand,
   type DBInstance,
 } from '@aws-sdk/client-rds';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { Result, createLogger } from 'shared-kernel';
 import type {
   AwsRegion,
@@ -26,11 +27,12 @@ export class AwsRdsInstanceScanner implements WasteScannerPort {
   constructor(
     private readonly pricing: PricingPort,
     private readonly accountId = 'unknown',
+    private readonly credentials?: AwsCredentialIdentityProvider,
     private readonly policy = new RdsInstanceWastePolicy(),
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
-    const client = new RDSClient({ ...createAwsClientConfig(), region: region.code });
+    const client = new RDSClient({ ...createAwsClientConfig(this.credentials), region: region.code });
     try {
       // `db-instance-status` is not a recognized DescribeDBInstances filter
       // name; RdsInstanceWastePolicy.judge() re-checks db.isStopped() below.

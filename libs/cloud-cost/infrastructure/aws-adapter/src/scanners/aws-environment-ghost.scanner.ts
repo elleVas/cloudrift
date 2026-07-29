@@ -16,6 +16,7 @@ import {
   type TargetGroup,
 } from '@aws-sdk/client-elastic-load-balancing-v2';
 import { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { Result } from 'shared-kernel';
 import type { AwsRegion, WasteScannerPort, WastedResource } from 'cloud-cost-domain';
 import { EnvironmentGhost, EnvironmentGhostPolicy, type WastePolicy } from 'cloud-cost-domain';
@@ -111,6 +112,7 @@ export class AwsEnvironmentGhostScanner implements WasteScannerPort {
 
   constructor(
     private readonly accountId = 'unknown',
+    private readonly credentials?: AwsCredentialIdentityProvider,
     private readonly policy: WastePolicy<EnvironmentGhost> = new EnvironmentGhostPolicy(),
     private readonly tagKeys: string[] = DEFAULT_TAG_KEYS,
     private readonly namingPatterns: string[] = DEFAULT_NAMING_PATTERNS,
@@ -118,12 +120,12 @@ export class AwsEnvironmentGhostScanner implements WasteScannerPort {
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
-    const taggingClient = new ResourceGroupsTaggingAPIClient({ ...createAwsClientConfig(), region: region.code });
-    const ec2Client = new EC2Client({ ...createAwsClientConfig(), region: region.code });
-    const rdsClient = new RDSClient({ ...createAwsClientConfig(), region: region.code });
-    const lambdaClient = new LambdaClient({ ...createAwsClientConfig(), region: region.code });
-    const elbClient = new ElasticLoadBalancingV2Client({ ...createAwsClientConfig(), region: region.code });
-    const cwClient = new CloudWatchClient({ ...createAwsClientConfig(), region: region.code });
+    const taggingClient = new ResourceGroupsTaggingAPIClient({ ...createAwsClientConfig(this.credentials), region: region.code });
+    const ec2Client = new EC2Client({ ...createAwsClientConfig(this.credentials), region: region.code });
+    const rdsClient = new RDSClient({ ...createAwsClientConfig(this.credentials), region: region.code });
+    const lambdaClient = new LambdaClient({ ...createAwsClientConfig(this.credentials), region: region.code });
+    const elbClient = new ElasticLoadBalancingV2Client({ ...createAwsClientConfig(this.credentials), region: region.code });
+    const cwClient = new CloudWatchClient({ ...createAwsClientConfig(this.credentials), region: region.code });
 
     try {
       const [ec2Instances, dbInstances, functions, loadBalancers] = await Promise.all([

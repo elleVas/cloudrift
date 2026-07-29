@@ -14,12 +14,15 @@ import { startScanSpinner } from '../wizard/scan-spinner';
 import { defaultCostAnalyticsDeps, type CostAnalyticsDeps } from './cost-analytics.composition';
 import { reportCliError as fail } from './report-cli-error';
 import { OUTPUT_FORMATS, isOutputFormat } from '../output-format';
+import { resolveCredentials } from './resolve-options';
 
 const DEFAULT_MONTHS = 6;
 const MAX_MONTHS = 36;
 
 export interface TrendCommandOptions {
   accountId?: string;
+  assumeRoleArn?: string;
+  externalId?: string;
   config?: string;
   format?: string;
   months?: string;
@@ -70,12 +73,16 @@ export async function trendCommand(
   const proceed = await confirmCostExplorerCharge({ yes: options.yes === true, silent });
   if (!proceed) return;
 
-  const accountId = options.accountId ?? (await deps.resolveAccountId()) ?? 'unknown';
+  const credentialsResult = await resolveCredentials(options);
+  if (!credentialsResult.ok) return fail(credentialsResult.error.message);
+  const credentials = credentialsResult.value;
+
+  const accountId = options.accountId ?? (await deps.resolveAccountId(credentials)) ?? 'unknown';
   if (accountId === 'unknown') {
     info(chalk.dim('  Could not resolve the AWS account ID via STS — pass --account-id to set it explicitly.'));
   }
 
-  const costExplorer = deps.createCostExplorer(accountId, options.refreshCache === true);
+  const costExplorer = deps.createCostExplorer(accountId, options.refreshCache === true, credentials);
   const spinner = quietStdout ? undefined : await startScanSpinner('  Fetching from Cost Explorer...');
   const result = await new CostTrendUseCase(costExplorer).execute({ months, services });
   spinner?.stop(chalk.dim('  Done.'));

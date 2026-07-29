@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { KafkaClient, ListClustersV2Command, type Cluster } from '@aws-sdk/client-kafka';
 import type { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { createLogger } from 'shared-kernel';
 import type { AwsRegion } from 'cloud-cost-domain';
 import { MskCluster, MskIdleClusterPolicy, type WastePolicy } from 'cloud-cost-domain';
@@ -33,12 +34,13 @@ export class AwsMskIdleScanner extends CloudWatchIdleScanner<KafkaClient, Cluste
     private readonly accountId = 'unknown',
     policy: WastePolicy<MskCluster> = new MskIdleClusterPolicy(),
     windowHours = DEFAULT_LOOKBACK_HOURS,
+    credentials?: AwsCredentialIdentityProvider,
   ) {
-    super(policy, windowHours);
+    super(policy, windowHours, undefined, credentials);
   }
 
   protected createPrimaryClient(region: AwsRegion): KafkaClient {
-    return new KafkaClient({ ...createAwsClientConfig(), region: region.code });
+    return new KafkaClient({ ...createAwsClientConfig(this.credentials), region: region.code });
   }
 
   protected destroyPrimaryClient(client: KafkaClient): void {

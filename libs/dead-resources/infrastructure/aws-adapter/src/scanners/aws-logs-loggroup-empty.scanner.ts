@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { CloudWatchLogsClient, DescribeLogGroupsCommand, type LogGroup } from '@aws-sdk/client-cloudwatch-logs';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { Result } from 'shared-kernel';
 import type { AwsRegion, DeadResourceScannerPort, DeadResource } from 'dead-resources-domain';
 import { LogsLogGroupEmpty, LogsLogGroupEmptyPolicy } from 'dead-resources-domain';
@@ -18,11 +19,12 @@ export class AwsLogsLogGroupEmptyScanner implements DeadResourceScannerPort {
 
   constructor(
     private readonly accountId = 'unknown',
+    private readonly credentials?: AwsCredentialIdentityProvider,
     private readonly policy = new LogsLogGroupEmptyPolicy(),
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<DeadResource[]>> {
-    const client = new CloudWatchLogsClient({ ...createAwsClientConfig(), region: region.code });
+    const client = new CloudWatchLogsClient({ ...createAwsClientConfig(this.credentials), region: region.code });
     try {
       const rawGroups = await paginate<LogGroup>(async (cursor) => {
         const r = await client.send(new DescribeLogGroupsCommand({ nextToken: cursor }));

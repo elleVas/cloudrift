@@ -8,6 +8,7 @@ import {
   type Snapshot,
   type Volume,
 } from '@aws-sdk/client-ec2';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { Result, createLogger } from 'shared-kernel';
 import type {
   AwsRegion,
@@ -28,11 +29,12 @@ export class AwsEbsSnapshotScanner implements WasteScannerPort {
   constructor(
     private readonly pricing: PricingPort,
     private readonly accountId = 'unknown',
+    private readonly credentials?: AwsCredentialIdentityProvider,
     private readonly policy = new EbsSnapshotWastePolicy(),
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
-    const client = new EC2Client({ ...createAwsClientConfig(), region: region.code });
+    const client = new EC2Client({ ...createAwsClientConfig(this.credentials), region: region.code });
     try {
       // Volumes and images are correlation sets: a snapshot can only be judged
       // "orphaned" once we know for certain no volume/AMI references it anywhere

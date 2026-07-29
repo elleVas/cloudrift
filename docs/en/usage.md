@@ -6,6 +6,20 @@ Flags, examples, the PDF report, partial-failure handling, and per-region pricin
 
 **Interactive wizard:** running `cloudrift` with **no subcommand** in a real terminal (outside CI) launches a mode-picker wizard — choose "Find wasted resources" / "Compare spend vs. last month" / "View monthly spend trend" / "Find dead/unused resources" / "Scan for security-posture risks", then answer a few prompts (regions, which scanners, output format). It calls the exact same `analyze`/`cost`/`trend`/`dead-resources`/`resource-security` code the flags below drive, so it's never out of sync with them. Any explicit subcommand, any flag, CI, or non-interactive stdout skips the wizard entirely — scripts and pipelines are unaffected. See [ADR-0071](../adr/0071-unified-entry-wizard-bare-invocation.md).
 
+**Cross-account scanning:** every command below (`analyze`, `cost`, `trend`, `dead-resources`, `resource-security`) accepts `--assume-role-arn <arn>` (optionally with `--external-id <id>`) to scan an account other than the one your ambient credentials belong to — cloudrift assumes that role via STS before making any AWS call, and the whole command fails immediately if the role can't be assumed, rather than silently falling back to your own credentials. There is no built-in "scan my whole organization" mode: to cover several accounts, invoke cloudrift once per role ARN (a shell loop or a CI matrix), each run producing its own independent report. See [ADR-0096](../adr/0096-cross-account-scanning-assume-role.md) and the "Cross-account scanning" section of [docs/en/iam-permissions.md](iam-permissions.md) for the required trust policy on the target role.
+
+```sh
+# Scan a different account by assuming a role into it
+node apps/cli/dist/main.js analyze --assume-role-arn arn:aws:iam::222222222222:role/cloudrift-scanner --external-id my-shared-secret
+
+# Sweep several accounts from a shell loop, one independent report each
+for account in 111111111111 222222222222; do
+  node apps/cli/dist/main.js dead-resources \
+    --assume-role-arn "arn:aws:iam::${account}:role/cloudrift-scanner" \
+    --format json > "report-${account}.json"
+done
+```
+
 ## `analyze` — find wasted resources
 
 ```sh
@@ -21,6 +35,8 @@ node apps/cli/dist/main.js analyze [options]
 | `--scanners <kinds...>`      | Only run these services (space-separated resource kinds, e.g. `ebs-volume elastic-ip`); skips the interactive picker | — |
 | `--all-services`             | Run every scanner without the interactive picker                                                               | on in CI / non-TTY |
 | `--account-id <id>`          | AWS account ID override (auto-detected via `sts:GetCallerIdentity` when omitted)                               | auto-detected      |
+| `--assume-role-arn <arn>`    | Assume this IAM role via STS before scanning, for cross-account access                                        | —                  |
+| `--external-id <id>`        | External ID to pass when assuming `--assume-role-arn` (only needed if the role trust policy requires one)     | —                  |
 | `--min-age-days <days>`      | Grace period: resources younger than this many days are not reported (overrides config)                       | `7`                |
 | `--ignore-tag <tag>`         | Resources carrying this tag are excluded from the report (overrides config)                                   | `cloudrift:ignore` |
 | `--pdf [filename]`           | Also write a PDF report to disk (defaults to `cloudrift-report-YYYY-MM-DD.pdf`)                                | —                  |
@@ -119,6 +135,8 @@ node apps/cli/dist/main.js trend [options]
 | Option | Description | Default |
 | --- | --- | --- |
 | `--account-id <id>` | AWS account ID override (auto-detected via STS when omitted) | auto-detected |
+| `--assume-role-arn <arn>` | Assume this IAM role via STS before scanning, for cross-account access | — |
+| `--external-id <id>` | External ID to pass when assuming `--assume-role-arn` (only needed if the role trust policy requires one) | — |
 | `--config <path>` | Path to a config file | auto-discovered |
 | `--format <format>` | stdout format: `table`, `json`, or `csv` | `table` |
 | `--fail-on-increase <pct>` | Exit with code 2 if spend increased more than this percent vs. the previous period (overrides `config.costIncreaseAlertPercent`) | off |
@@ -132,6 +150,8 @@ node apps/cli/dist/main.js trend [options]
 | Option | Description | Default |
 | --- | --- | --- |
 | `--account-id <id>` | AWS account ID override | auto-detected |
+| `--assume-role-arn <arn>` | Assume this IAM role via STS before scanning, for cross-account access | — |
+| `--external-id <id>` | External ID to pass when assuming `--assume-role-arn` (only needed if the role trust policy requires one) | — |
 | `--config <path>` | Path to a config file | auto-discovered |
 | `--months <n>` | Number of calendar months to show (1–36) | `6` |
 | `--services <names...>` | Restrict to these services (shorthand like `ec2 s3 rds`, or the exact Cost Explorer service name) | all services |
@@ -171,6 +191,8 @@ node apps/cli/dist/main.js dead-resources [options]
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
 | `-r, --regions <regions...>` | AWS regions to scan (ignored by the global-scope checks — see below)                                           | `us-east-1`        |
 | `--account-id <id>`          | AWS account ID override (auto-detected via `sts:GetCallerIdentity` when omitted)                               | auto-detected      |
+| `--assume-role-arn <arn>`    | Assume this IAM role via STS before scanning, for cross-account access                                        | —                  |
+| `--external-id <id>`        | External ID to pass when assuming `--assume-role-arn` (only needed if the role trust policy requires one)     | —                  |
 | `--min-age-days <days>`      | Grace period: resources younger than this many days are not reported (`ec2-ri-expiring-soon` doesn't use this — see below) | `7`     |
 | `--ignore-tag <tag>`         | Resources carrying this tag are excluded from the report                                                       | `cloudrift:ignore` |
 | `--scanners <kinds...>`      | Only run these checks (space-separated, e.g. `ec2-keypair-unused iam-user-inactive`)                           | all checks          |
@@ -234,6 +256,8 @@ node apps/cli/dist/main.js resource-security [options]
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
 | `-r, --regions <regions...>` | AWS regions to scan (ignored by the global-scope checks — see below)                                           | `us-east-1`        |
 | `--account-id <id>`          | AWS account ID override (auto-detected via `sts:GetCallerIdentity` when omitted)                               | auto-detected      |
+| `--assume-role-arn <arn>`    | Assume this IAM role via STS before scanning, for cross-account access                                        | —                  |
+| `--external-id <id>`        | External ID to pass when assuming `--assume-role-arn` (only needed if the role trust policy requires one)     | —                  |
 | `--ignore-tag <tag>`         | Resources carrying this tag are excluded from the report                                                       | `cloudrift:ignore` |
 | `--scanners <kinds...>`      | Only run these checks (space-separated, e.g. `iam-root-mfa-disabled s3-bucket-public`)                         | all checks          |
 | `--format <format>`          | stdout output format: `table`, `json`, or `csv`                                                                | `table`            |
