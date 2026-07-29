@@ -20,6 +20,8 @@ module.exports = {
     '^shared-kernel/(.*)$': '<rootDir>/../../libs/shared/kernel/src/$1',
     '^shared-aws-infra-utils$': '<rootDir>/../../libs/shared/aws-infra-utils/src/index.ts',
     '^shared-aws-infra-utils/(.*)$': '<rootDir>/../../libs/shared/aws-infra-utils/src/$1',
+    '^shared-scan-coordination$': '<rootDir>/../../libs/shared/scan-coordination/src/index.ts',
+    '^shared-scan-coordination/(.*)$': '<rootDir>/../../libs/shared/scan-coordination/src/$1',
     '^cloud-cost-domain$': '<rootDir>/../../libs/cloud-cost/domain/src/index.ts',
     '^cloud-cost-domain/(.*)$': '<rootDir>/../../libs/cloud-cost/domain/src/$1',
     '^cloud-cost-application$': '<rootDir>/../../libs/cloud-cost/application/src/index.ts',

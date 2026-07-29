@@ -351,6 +351,23 @@ export function measureTableHeight(
   return total;
 }
 
+/** Small diagonal "external link" arrow (↗), drawn as vector paths centered
+ * on (cx, cy) — pdfkit's base-14 Helvetica (WinAnsi encoding) has no glyph
+ * for U+2197, so a real unicode/text arrow isn't an option here. */
+function drawLinkIcon(doc: PDFKit.PDFDocument, cx: number, cy: number): void {
+  const r = 4;
+  const x0 = cx - r, y0 = cy + r;
+  const x1 = cx + r, y1 = cy - r;
+  doc.save()
+    .lineWidth(1.1)
+    .strokeColor(C.primary)
+    .lineCap('round')
+    .moveTo(x0, y0).lineTo(x1, y1)
+    .moveTo(x1 - 3.5, y1).lineTo(x1, y1).lineTo(x1, y1 + 3.5)
+    .stroke()
+    .restore();
+}
+
 export function drawTable(
   doc: PDFKit.PDFDocument,
   headers: string[],
@@ -359,9 +376,8 @@ export function drawTable(
   startY: number,
   contentBottom: number,
   // Parallel to `rows`: when present for a row, an invisible clickable
-  // hotspot is layered over that row's *last* column (the visible cell text
-  // is still whatever `rows` put there, e.g. a short "Open ->" label — this
-  // only adds the link annotation, it doesn't draw anything itself).
+  // hotspot plus a small arrow icon are drawn over that row's *last*
+  // column — callers leave that cell's text empty (see drawLinkIcon).
   links?: (string | undefined)[],
 ): number {
   const totalW = colWidths.reduce((a, b) => a + b, 0);
@@ -403,7 +419,10 @@ export function drawTable(
     doc.rect(MARGIN, y, totalW, h).fill(i % 2 === 0 ? '#ffffff' : C.rowAlt);
     renderWrappedRow(doc, wrapped, colWidths, y, false);
     const link = links?.[i];
-    if (link) doc.link(lastColX, y, lastColW, h, link);
+    if (link) {
+      doc.link(lastColX, y, lastColW, h, link);
+      drawLinkIcon(doc, lastColX + lastColW / 2, y + h / 2);
+    }
     y += h;
     segmentH += h;
   }

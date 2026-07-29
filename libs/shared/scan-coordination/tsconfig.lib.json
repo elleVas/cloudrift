@@ -12,13 +12,10 @@
   "exclude": ["src/**/*.spec.ts", "src/**/*.test.ts"],
   "references": [
     {
-      "path": "../../shared/scan-coordination/tsconfig.lib.json"
+      "path": "../aws-infra-utils/tsconfig.lib.json"
     },
     {
-      "path": "../../shared/kernel/tsconfig.lib.json"
-    },
-    {
-      "path": "../domain/tsconfig.lib.json"
+      "path": "../kernel/tsconfig.lib.json"
     }
   ]
 }

@@ -210,12 +210,10 @@ function drawDetailPages(
     const links = findings.map((finding) =>
       buildConsoleUrl({ kind: finding.kind, id: finding.id, region: finding.region.code }),
     );
-    const rows = findings.map((finding, i) => [
+    const rows = findings.map((finding) => [
       ...rowFor(finding),
       `$${finding.costEstimate.monthlyCostUsd.toFixed(2)}/mo`,
-      // Plain ASCII, not '↗': the base-14 Helvetica font (WinAnsi encoding)
-      // has no glyph for U+2197, which rendered as a broken/missing-glyph box.
-      links[i] ? 'Open ->' : '',
+      '',
     ]);
     const headers = [...presenter.head, 'Cost/mo', 'Link'];
     const colWidths = computeColumnWidths(doc, headers, rows, CONTENT_W);

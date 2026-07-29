@@ -1,16 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 import { AnalyzeCloudWasteUseCase } from './analyze-cloud-waste.use-case';
-import {
-  AwsRegion,
-  EbsVolume,
-  ElasticIp,
-  Gp2Volume,
-} from 'cloud-cost-domain';
+import { AwsRegion, EbsVolume, ElasticIp, Gp2Volume } from 'cloud-cost-domain';
 import type { ResourceKind, WastedResource, WasteScannerPort } from 'cloud-cost-domain';
 import { Result } from 'shared-kernel';
 
 const usEast = AwsRegion.create('us-east-1');
-const euWest = AwsRegion.create('eu-west-1');
 
 function makeEbsVolume(id: string, region = usEast): EbsVolume {
   return new EbsVolume({
@@ -55,10 +49,7 @@ function makeGp2Volume(id: string): Gp2Volume {
 }
 
 /** Fake scanner: one response per region, in call order. */
-function makeScanner(
-  kind: ResourceKind,
-  responses: Array<Result<WastedResource[]>>,
-): WasteScannerPort {
+function makeScanner(kind: ResourceKind, responses: Array<Result<WastedResource[]>>): WasteScannerPort {
   let call = 0;
   return {
     kind,
@@ -66,6 +57,9 @@ function makeScanner(
   };
 }
 
+// Job scheduling, concurrency, and per-(scanner,region) error collection are
+// covered generically by shared-scan-coordination's own spec. These tests
+// only exercise the aggregation logic specific to this use case.
 describe('AnalyzeCloudWasteUseCase', () => {
   it('returns an empty summary when all scanners find nothing', async () => {
     const useCase = new AnalyzeCloudWasteUseCase([
@@ -113,42 +107,6 @@ describe('AnalyzeCloudWasteUseCase', () => {
     expect(result.value.totalOptimizationMonthlyUsd).toBeCloseTo(4, 2);
   });
 
-  it('records a scanError with kind and region when a scanner fails, preserving other results', async () => {
-    const err = new Error('EBS failed');
-    const useCase = new AnalyzeCloudWasteUseCase([
-      makeScanner('ebs-volume', [Result.fail(err)]),
-      makeScanner('elastic-ip', [Result.ok([makeElasticIp('eipalloc-1')])]),
-    ]);
-
-    const result = await useCase.execute({ regions: [usEast] });
-
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.value.findings).toHaveLength(1);
-    expect(result.value.scanErrors).toEqual([
-      { kind: 'ebs-volume', region: 'us-east-1', error: err },
-    ]);
-  });
-
-  it('keeps results from healthy regions when one region fails', async () => {
-    const err = new Error('eu-west-1 not enabled');
-    const useCase = new AnalyzeCloudWasteUseCase([
-      makeScanner('ebs-volume', [
-        Result.ok([makeEbsVolume('vol-us')]),
-        Result.fail(err),
-      ]),
-    ]);
-
-    const result = await useCase.execute({ regions: [usEast, euWest] });
-
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.value.findings.map((f) => f.id)).toEqual(['vol-us']);
-    expect(result.value.scanErrors).toEqual([
-      { kind: 'ebs-volume', region: 'eu-west-1', error: err },
-    ]);
-  });
-
   it('excludes failed scans from the total cost', async () => {
     const useCase = new AnalyzeCloudWasteUseCase([
       makeScanner('ebs-volume', [Result.fail(new Error('boom'))]),
@@ -162,66 +120,18 @@ describe('AnalyzeCloudWasteUseCase', () => {
     expect(result.value.totalWasteMonthlyUsd).toBeCloseTo(3.6, 2);
   });
 
-  it('scans every region with every scanner', async () => {
-    const calls: string[] = [];
-    const tracking: WasteScannerPort = {
-      kind: 'ebs-volume',
-      scan: async (region) => {
-        calls.push(region.code);
-        return Result.ok([]);
-      },
-    };
+  it('records a scanError with the real ResourceKind and region when a scanner fails', async () => {
+    const err = new Error('EBS failed');
+    const useCase = new AnalyzeCloudWasteUseCase([
+      makeScanner('ebs-volume', [Result.fail(err)]),
+      makeScanner('elastic-ip', [Result.ok([makeElasticIp('eipalloc-1')])]),
+    ]);
 
-    const useCase = new AnalyzeCloudWasteUseCase([tracking]);
-    await useCase.execute({ regions: [usEast, euWest] });
-
-    expect(calls).toEqual(['us-east-1', 'eu-west-1']);
-  });
-
-  it('bounds in-flight scans to the configured concurrency, across any scanner×region mix', async () => {
-    let inFlight = 0;
-    let peak = 0;
-    const slowScanner = (kind: ResourceKind): WasteScannerPort => ({
-      kind,
-      scan: async () => {
-        inFlight++;
-        peak = Math.max(peak, inFlight);
-        await new Promise((resolve) => setTimeout(resolve, 0));
-        inFlight--;
-        return Result.ok([]);
-      },
-    });
-
-    // 3 scanner × 2 regioni = 6 job, pool da 2 worker
-    const useCase = new AnalyzeCloudWasteUseCase(
-      [slowScanner('ebs-volume'), slowScanner('elastic-ip'), slowScanner('log-group')],
-      2,
-    );
-    await useCase.execute({ regions: [usEast, euWest] });
-
-    expect(peak).toBe(2);
-  });
-
-  it('scans regions of the same scanner concurrently when a worker is free', async () => {
-    // us-east-1 only unblocks once eu-west-1 starts: with the old
-    // sequential per-region loop this test would time out.
-    let releaseFirst!: () => void;
-    const firstBlocked = new Promise<void>((resolve) => (releaseFirst = resolve));
-    const scanner: WasteScannerPort = {
-      kind: 'ebs-volume',
-      scan: async (region) => {
-        if (region.code === 'us-east-1') {
-          await firstBlocked;
-        } else {
-          releaseFirst();
-        }
-        return Result.ok([]);
-      },
-    };
-
-    const useCase = new AnalyzeCloudWasteUseCase([scanner], 2);
-    const result = await useCase.execute({ regions: [usEast, euWest] });
+    const result = await useCase.execute({ regions: [usEast] });
 
     expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.findings).toHaveLength(1);
+    expect(result.value.scanErrors).toEqual([{ kind: 'ebs-volume', region: 'us-east-1', error: err }]);
   });
 });
