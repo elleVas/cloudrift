@@ -50,6 +50,9 @@
     },
     {
       "path": "./libs/mcp-server/application"
+    },
+    {
+      "path": "./libs/shared/scan-coordination"
     }
   ]
 }

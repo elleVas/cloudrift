@@ -1,5 +1,5 @@
 {
-  "name": "resource-security-application",
+  "name": "shared-scan-coordination",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -17,7 +17,7 @@
   },
   "nx": {
     "tags": [
-      "scope:application"
+      "scope:shared"
     ],
     "targets": {
       "test": {
@@ -26,16 +26,15 @@
           "{workspaceRoot}/coverage/{projectRoot}"
         ],
         "options": {
-          "jestConfig": "libs/resource-security/application/jest.config.cjs",
+          "jestConfig": "libs/shared/scan-coordination/jest.config.cjs",
           "passWithNoTests": true
         }
       }
     }
   },
   "dependencies": {
-    "resource-security-domain": "workspace:*",
     "shared-kernel": "workspace:*",
-    "shared-scan-coordination": "workspace:*",
+    "shared-aws-infra-utils": "workspace:*",
     "tslib": "^2.8.1"
   }
 }

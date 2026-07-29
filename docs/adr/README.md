@@ -77,6 +77,7 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 | [0084](0084-typescript-as-cast-cleanup.md) | TypeScript `as` cast cleanup: mechanical fixes, deferred fallback decisions, legitimate exceptions | Accepted |
 | [0086](0086-mcp-tool-handlers-error-boundary.md) | MCP tool handlers wrapped in a shared error boundary | Accepted |
 | [0094](0094-wastereason-derived-from-policy-verdict.md) | `wasteReason` derived from the policy's `WasteVerdict`, not hardcoded on the entity | Accepted |
+| [0095](0095-scan-coordinator-use-case-shared-base-class.md) | `ScanCoordinatorUseCase` — shared base class for scan orchestration across cloud-cost/dead-resources/resource-security | Accepted |
 
 ## Stack
 

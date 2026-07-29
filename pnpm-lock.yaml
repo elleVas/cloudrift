@@ -302,6 +302,9 @@ importers:
       shared-kernel:
         specifier: workspace:*
         version: link:../../shared/kernel
+      shared-scan-coordination:
+        specifier: workspace:*
+        version: link:../../shared/scan-coordination
       tslib:
         specifier: ^2.8.1
         version: 2.8.1
@@ -461,6 +464,9 @@ importers:
       shared-kernel:
         specifier: workspace:*
         version: link:../../shared/kernel
+      shared-scan-coordination:
+        specifier: workspace:*
+        version: link:../../shared/scan-coordination
       tslib:
         specifier: ^2.8.1
         version: 2.8.1
@@ -557,6 +563,9 @@ importers:
       shared-kernel:
         specifier: workspace:*
         version: link:../../shared/kernel
+      shared-scan-coordination:
+        specifier: workspace:*
+        version: link:../../shared/scan-coordination
       tslib:
         specifier: ^2.8.1
         version: 2.8.1
@@ -623,6 +632,18 @@ importers:
 
   libs/shared/kernel:
     dependencies:
+      tslib:
+        specifier: ^2.8.1
+        version: 2.8.1
+
+  libs/shared/scan-coordination:
+    dependencies:
+      shared-aws-infra-utils:
+        specifier: workspace:*
+        version: link:../aws-infra-utils
+      shared-kernel:
+        specifier: workspace:*
+        version: link:../kernel
       tslib:
         specifier: ^2.8.1
         version: 2.8.1

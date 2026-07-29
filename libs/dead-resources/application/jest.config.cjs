@@ -18,6 +18,8 @@ module.exports = {
   moduleNameMapper: {
     '^shared-kernel$': '<rootDir>/../../shared/kernel/src/index.ts',
     '^shared-kernel/(.*)$': '<rootDir>/../../shared/kernel/src/$1',
+    '^shared-aws-infra-utils$': '<rootDir>/../../shared/aws-infra-utils/src/index.ts',
+    '^shared-aws-infra-utils/(.*)$': '<rootDir>/../../shared/aws-infra-utils/src/$1',
     // dead-resources-domain re-exports AwsRegion from cloud-cost-domain, so
     // that source also needs to resolve here, not just in the domain lib's
     // own jest config.
@@ -25,6 +27,8 @@ module.exports = {
     '^cloud-cost-domain/(.*)$': '<rootDir>/../../cloud-cost/domain/src/$1',
     '^dead-resources-domain$': '<rootDir>/../domain/src/index.ts',
     '^dead-resources-domain/(.*)$': '<rootDir>/../domain/src/$1',
+    '^shared-scan-coordination$': '<rootDir>/../../shared/scan-coordination/src/index.ts',
+    '^shared-scan-coordination/(.*)$': '<rootDir>/../../shared/scan-coordination/src/$1',
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
 };

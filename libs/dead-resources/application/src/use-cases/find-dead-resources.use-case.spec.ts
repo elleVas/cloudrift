@@ -5,7 +5,6 @@ import type { DeadResourceKind, DeadResource, DeadResourceScannerPort } from 'de
 import { Result } from 'shared-kernel';
 
 const usEast = AwsRegion.create('us-east-1');
-const euWest = AwsRegion.create('eu-west-1');
 
 function makeKeyPair(id: string): Ec2KeyPairUnused {
   return new Ec2KeyPairUnused({
@@ -28,6 +27,9 @@ function makeScanner(kind: DeadResourceKind, responses: Array<Result<DeadResourc
   };
 }
 
+// Job scheduling, concurrency, and per-(scanner,region) error collection are
+// covered generically by shared-scan-coordination's own spec. These tests
+// only exercise the aggregation logic specific to this use case.
 describe('FindDeadResourcesUseCase', () => {
   it('returns an empty summary when all scanners find nothing', async () => {
     const useCase = new FindDeadResourcesUseCase([makeScanner('ec2-keypair-unused', [Result.ok([])])]);
@@ -54,7 +56,7 @@ describe('FindDeadResourcesUseCase', () => {
     expect(result.value.countBySeverity).toEqual({ info: 2, warning: 0, critical: 0 });
   });
 
-  it('records a scanError with kind and region when a scanner fails, preserving other results', async () => {
+  it('records a scanError with the real DeadResourceKind and region when a scanner fails', async () => {
     const err = new Error('EC2 failed');
     const useCase = new FindDeadResourcesUseCase([makeScanner('ec2-keypair-unused', [Result.fail(err)])]);
 
@@ -64,100 +66,5 @@ describe('FindDeadResourcesUseCase', () => {
     if (!result.ok) return;
     expect(result.value.findings).toHaveLength(0);
     expect(result.value.scanErrors).toEqual([{ kind: 'ec2-keypair-unused', region: 'us-east-1', error: err }]);
-  });
-
-  it('keeps results from healthy regions when one region fails', async () => {
-    const err = new Error('eu-west-1 not enabled');
-    const useCase = new FindDeadResourcesUseCase([
-      makeScanner('ec2-keypair-unused', [Result.ok([makeKeyPair('key-us')]), Result.fail(err)]),
-    ]);
-
-    const result = await useCase.execute({ regions: [usEast, euWest] });
-
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.value.findings.map((f) => f.id)).toEqual(['key-us']);
-    expect(result.value.scanErrors).toEqual([{ kind: 'ec2-keypair-unused', region: 'eu-west-1', error: err }]);
-  });
-
-  it('calls a global-scope scanner exactly once, regardless of how many regions were requested', async () => {
-    const calls: string[] = [];
-    const globalScanner: DeadResourceScannerPort = {
-      kind: 'iam-user-inactive',
-      scope: 'global',
-      scan: async (region) => {
-        calls.push(region.code);
-        return Result.ok([]);
-      },
-    };
-
-    const useCase = new FindDeadResourcesUseCase([globalScanner]);
-    await useCase.execute({ regions: [usEast, euWest] });
-
-    expect(calls).toHaveLength(1);
-  });
-
-  it('still calls a regional scanner once per region alongside a global one', async () => {
-    const regionalCalls: string[] = [];
-    let globalCalls = 0;
-    const scanners: DeadResourceScannerPort[] = [
-      {
-        kind: 'ec2-keypair-unused',
-        scan: async (region) => {
-          regionalCalls.push(region.code);
-          return Result.ok([]);
-        },
-      },
-      {
-        kind: 'iam-user-inactive',
-        scope: 'global',
-        scan: async () => {
-          globalCalls++;
-          return Result.ok([]);
-        },
-      },
-    ];
-
-    const useCase = new FindDeadResourcesUseCase(scanners);
-    await useCase.execute({ regions: [usEast, euWest] });
-
-    expect(regionalCalls.sort()).toEqual(['eu-west-1', 'us-east-1']);
-    expect(globalCalls).toBe(1);
-  });
-
-  it('labels a global scanner scanError as "global", not a real region', async () => {
-    const err = new Error('AccessDenied');
-    const globalScanner: DeadResourceScannerPort = {
-      kind: 'iam-user-inactive',
-      scope: 'global',
-      scan: async () => Result.fail(err),
-    };
-
-    const useCase = new FindDeadResourcesUseCase([globalScanner]);
-    const result = await useCase.execute({ regions: [usEast, euWest] });
-
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.value.scanErrors).toEqual([{ kind: 'iam-user-inactive', region: 'global', error: err }]);
-  });
-
-  it('bounds in-flight scans to the configured concurrency, across any scanner×region mix', async () => {
-    let inFlight = 0;
-    let peak = 0;
-    const slowScanner = (kind: DeadResourceKind): DeadResourceScannerPort => ({
-      kind,
-      scan: async () => {
-        inFlight++;
-        peak = Math.max(peak, inFlight);
-        await new Promise((resolve) => setTimeout(resolve, 0));
-        inFlight--;
-        return Result.ok([]);
-      },
-    });
-
-    const useCase = new FindDeadResourcesUseCase([slowScanner('ec2-keypair-unused')], 1);
-    await useCase.execute({ regions: [usEast, euWest] });
-
-    expect(peak).toBe(1);
   });
 });
