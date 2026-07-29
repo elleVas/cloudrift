@@ -32,7 +32,7 @@ export async function buildPricing(ctx: AnalysisContext): Promise<BuiltPricing> 
 
   if (ctx.livePricing) {
     ctx.info(chalk.dim('  Fetching current prices from the AWS Pricing API...'));
-    livePricingAdapter = new AwsPricingApiAdapter();
+    livePricingAdapter = new AwsPricingApiAdapter(ctx.credentials);
     const live = await livePricingAdapter.warmUp(ctx.regions);
     if (live.ok) {
       priceTable = mergePriceTables(priceTable, live.value);

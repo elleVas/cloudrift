@@ -6,6 +6,7 @@ import {
   type DomainStatus,
 } from '@aws-sdk/client-opensearch';
 import type { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { createLogger } from 'shared-kernel';
 import type { AwsRegion } from 'cloud-cost-domain';
 import { OpenSearchDomain, OpenSearchIdleDomainPolicy, type WastePolicy } from 'cloud-cost-domain';
@@ -46,12 +47,13 @@ export class AwsOpenSearchIdleScanner extends CloudWatchIdleScanner<
     private readonly accountId = 'unknown',
     policy: WastePolicy<OpenSearchDomain> = new OpenSearchIdleDomainPolicy(),
     windowHours = DEFAULT_LOOKBACK_HOURS,
+    credentials?: AwsCredentialIdentityProvider,
   ) {
-    super(policy, windowHours);
+    super(policy, windowHours, undefined, credentials);
   }
 
   protected createPrimaryClient(region: AwsRegion): OpenSearchClient {
-    return new OpenSearchClient({ ...createAwsClientConfig(), region: region.code });
+    return new OpenSearchClient({ ...createAwsClientConfig(this.credentials), region: region.code });
   }
 
   protected destroyPrimaryClient(client: OpenSearchClient): void {

@@ -148,25 +148,28 @@ const ACCOUNT = '000000000000';
 // ("global" for the two IAM kinds), never parsed or passed to `scan()`.
 const region = AwsRegion.create('us-east-1');
 
+// The `undefined` right after ACCOUNT below is the new `credentials?` param
+// (for --assume-role-arn, see assumeRole()/createAwsClientConfig) — every
+// scanner in this domain is the "flat" shape, so it sits before `policy`.
 const scannerFactories: Record<DeadResourceKind, () => DeadResourceScannerPort> = {
-  'ec2-keypair-unused': () => new AwsEc2KeyPairUnusedScanner(ACCOUNT, new Ec2KeyPairUnusedPolicy(po)),
-  'ec2-ri-expiring-soon': () => new AwsEc2RiExpiringSoonScanner(ACCOUNT, new Ec2RiExpiringSoonPolicy(po, 999_999)),
-  'iam-user-inactive': () => new AwsIamUserInactiveScanner(ACCOUNT, new IamUserInactivePolicy(po, 0)),
-  'iam-policy-unattached': () => new AwsIamPolicyUnattachedScanner(ACCOUNT, new IamPolicyUnattachedPolicy(po)),
-  'iam-role-unused': () => new AwsIamRoleUnusedScanner(ACCOUNT, new IamRoleUnusedPolicy(po, 0)),
-  'iam-access-key-stale': () => new AwsIamAccessKeyStaleScanner(ACCOUNT, new IamAccessKeyStalePolicy(po)),
-  'ec2-security-group-unused': () => new AwsEc2SecurityGroupUnusedScanner(ACCOUNT, new Ec2SecurityGroupUnusedPolicy(po)),
-  'logs-loggroup-empty': () => new AwsLogsLogGroupEmptyScanner(ACCOUNT, new LogsLogGroupEmptyPolicy(po)),
-  'acm-certificate-unused': () => new AwsAcmCertificateUnusedScanner(ACCOUNT, new AcmCertificateUnusedPolicy(po)),
-  'route53-hostedzone-empty': () => new AwsRoute53HostedZoneEmptyScanner(ACCOUNT, new Route53HostedZoneEmptyPolicy(po)),
-  'cloudformation-stack-stuck': () => new AwsCloudformationStackStuckScanner(ACCOUNT, new CloudformationStackStuckPolicy(po)),
-  's3-bucket-empty': () => new AwsS3BucketEmptyScanner(ACCOUNT, new S3BucketEmptyPolicy(po)),
-  'cloudwatch-alarm-orphaned': () => new AwsCloudwatchAlarmOrphanedScanner(ACCOUNT, new CloudwatchAlarmOrphanedPolicy(po)),
-  'sns-topic-unsubscribed': () => new AwsSnsTopicUnsubscribedScanner(ACCOUNT, new SnsTopicUnsubscribedPolicy(po)),
-  'iam-instance-profile-unattached': () => new AwsIamInstanceProfileUnattachedScanner(ACCOUNT, new IamInstanceProfileUnattachedPolicy(po)),
-  'eventbridge-rule-no-targets': () => new AwsEventbridgeRuleNoTargetsScanner(ACCOUNT, new EventbridgeRuleNoTargetsPolicy(po)),
-  'ecr-repository-empty': () => new AwsEcrRepositoryEmptyScanner(ACCOUNT, new EcrRepositoryEmptyPolicy(po)),
-  'stepfunctions-statemachine-unused': () => new AwsStepfunctionsStatemachineUnusedScanner(ACCOUNT, new StepfunctionsStatemachineUnusedPolicy(po)),
+  'ec2-keypair-unused': () => new AwsEc2KeyPairUnusedScanner(ACCOUNT, undefined, new Ec2KeyPairUnusedPolicy(po)),
+  'ec2-ri-expiring-soon': () => new AwsEc2RiExpiringSoonScanner(ACCOUNT, undefined, new Ec2RiExpiringSoonPolicy(po, 999_999)),
+  'iam-user-inactive': () => new AwsIamUserInactiveScanner(ACCOUNT, undefined, new IamUserInactivePolicy(po, 0)),
+  'iam-policy-unattached': () => new AwsIamPolicyUnattachedScanner(ACCOUNT, undefined, new IamPolicyUnattachedPolicy(po)),
+  'iam-role-unused': () => new AwsIamRoleUnusedScanner(ACCOUNT, undefined, new IamRoleUnusedPolicy(po, 0)),
+  'iam-access-key-stale': () => new AwsIamAccessKeyStaleScanner(ACCOUNT, undefined, new IamAccessKeyStalePolicy(po)),
+  'ec2-security-group-unused': () => new AwsEc2SecurityGroupUnusedScanner(ACCOUNT, undefined, new Ec2SecurityGroupUnusedPolicy(po)),
+  'logs-loggroup-empty': () => new AwsLogsLogGroupEmptyScanner(ACCOUNT, undefined, new LogsLogGroupEmptyPolicy(po)),
+  'acm-certificate-unused': () => new AwsAcmCertificateUnusedScanner(ACCOUNT, undefined, new AcmCertificateUnusedPolicy(po)),
+  'route53-hostedzone-empty': () => new AwsRoute53HostedZoneEmptyScanner(ACCOUNT, undefined, new Route53HostedZoneEmptyPolicy(po)),
+  'cloudformation-stack-stuck': () => new AwsCloudformationStackStuckScanner(ACCOUNT, undefined, new CloudformationStackStuckPolicy(po)),
+  's3-bucket-empty': () => new AwsS3BucketEmptyScanner(ACCOUNT, undefined, new S3BucketEmptyPolicy(po)),
+  'cloudwatch-alarm-orphaned': () => new AwsCloudwatchAlarmOrphanedScanner(ACCOUNT, undefined, new CloudwatchAlarmOrphanedPolicy(po)),
+  'sns-topic-unsubscribed': () => new AwsSnsTopicUnsubscribedScanner(ACCOUNT, undefined, new SnsTopicUnsubscribedPolicy(po)),
+  'iam-instance-profile-unattached': () => new AwsIamInstanceProfileUnattachedScanner(ACCOUNT, undefined, new IamInstanceProfileUnattachedPolicy(po)),
+  'eventbridge-rule-no-targets': () => new AwsEventbridgeRuleNoTargetsScanner(ACCOUNT, undefined, new EventbridgeRuleNoTargetsPolicy(po)),
+  'ecr-repository-empty': () => new AwsEcrRepositoryEmptyScanner(ACCOUNT, undefined, new EcrRepositoryEmptyPolicy(po)),
+  'stepfunctions-statemachine-unused': () => new AwsStepfunctionsStatemachineUnusedScanner(ACCOUNT, undefined, new StepfunctionsStatemachineUnusedPolicy(po)),
 };
 
 const byId = (a: { id: string }, b: { id: string }) => a.id.localeCompare(b.id);

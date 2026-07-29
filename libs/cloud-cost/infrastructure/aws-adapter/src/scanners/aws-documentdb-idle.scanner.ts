@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { DocDBClient, DescribeDBInstancesCommand, type DBInstance } from '@aws-sdk/client-docdb';
 import type { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { createLogger } from 'shared-kernel';
 import type { AwsRegion } from 'cloud-cost-domain';
 import { DocumentDbInstance, DocumentDbIdleInstancePolicy, type WastePolicy } from 'cloud-cost-domain';
@@ -32,12 +33,13 @@ export class AwsDocumentDbIdleScanner extends CloudWatchIdleScanner<
     private readonly accountId = 'unknown',
     policy: WastePolicy<DocumentDbInstance> = new DocumentDbIdleInstancePolicy(),
     windowHours = DEFAULT_LOOKBACK_HOURS,
+    credentials?: AwsCredentialIdentityProvider,
   ) {
-    super(policy, windowHours);
+    super(policy, windowHours, undefined, credentials);
   }
 
   protected createPrimaryClient(region: AwsRegion): DocDBClient {
-    return new DocDBClient({ ...createAwsClientConfig(), region: region.code });
+    return new DocDBClient({ ...createAwsClientConfig(this.credentials), region: region.code });
   }
 
   protected destroyPrimaryClient(client: DocDBClient): void {

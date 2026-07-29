@@ -18,7 +18,7 @@ import {
   defaultAnalyzeDeps,
   type AnalyzeDeps,
 } from './analyze-waste.composition';
-import { resolveMinAgeDays, resolveExplicitScanners, resolveRegions } from './resolve-options';
+import { resolveMinAgeDays, resolveExplicitScanners, resolveRegions, resolveCredentials } from './resolve-options';
 import { writeArtifacts, applyCostGate } from './post-analysis';
 import { reportCliError as fail } from './report-cli-error';
 
@@ -30,6 +30,8 @@ const DEFAULT_UTILIZATION_WINDOW_HOURS = 168;
 export interface AnalyzeWasteOptions {
   regions: string[];
   accountId?: string;
+  assumeRoleArn?: string;
+  externalId?: string;
   config?: string;
   format?: string;
   livePricing?: boolean;
@@ -117,8 +119,12 @@ export async function analyzeWasteCommand(
   if (!regionsResult.ok) return fail(regionsResult.error.message);
   const { regions, skipped } = regionsResult.value;
 
+  const credentialsResult = await resolveCredentials(options);
+  if (!credentialsResult.ok) return fail(credentialsResult.error.message);
+  const credentials = credentialsResult.value;
+
   const accountId =
-    options.accountId ?? (await deps.resolveAccountId()) ?? 'unknown';
+    options.accountId ?? (await deps.resolveAccountId(credentials)) ?? 'unknown';
   // accountId is only ever 'unknown' when both --account-id was omitted and
   // STS GetCallerIdentity failed (e.g. credentials lack that permission) —
   // surfaced here so the omission in the report isn't silent, with the
@@ -150,6 +156,7 @@ export async function analyzeWasteCommand(
     regions,
     config,
     accountId,
+    credentials,
     livePricing: options.livePricing === true,
     policyOptions,
     cloudwatchWindowHours,

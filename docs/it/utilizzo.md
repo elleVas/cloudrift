@@ -6,6 +6,20 @@ Flag, esempi, report PDF, gestione errori parziali, e prezzi per regione per `cl
 
 **Wizard interattivo:** lanciando `cloudrift` senza **nessun sottocomando** in un vero terminale (fuori da CI) parte un wizard che ti fa scegliere cosa fare — "Trova risorse sprecate" / "Confronta la spesa col mese scorso" / "Vedi il trend mensile di spesa" / "Trova risorse morte/inutilizzate" / "Scansiona rischi di postura di sicurezza" — e poi pochi prompt (regioni, quali scanner, formato di output). Richiama esattamente lo stesso codice di `analyze`/`cost`/`trend`/`dead-resources`/`resource-security` guidato dai flag qui sotto, quindi non va mai fuori sincrono con loro. Qualunque sottocomando esplicito, qualunque flag, CI, o stdout non interattivo saltano del tutto il wizard — script e pipeline non ne sono toccati. Vedi [ADR-0071](../adr/0071-unified-entry-wizard-bare-invocation.md).
 
+**Scansione cross-account:** ogni comando qui sotto (`analyze`, `cost`, `trend`, `dead-resources`, `resource-security`) accetta `--assume-role-arn <arn>` (opzionalmente con `--external-id <id>`) per scansionare un account diverso da quello a cui appartengono le tue credenziali correnti — cloudrift assume quel ruolo via STS prima di fare qualsiasi chiamata AWS, e l'intero comando fallisce subito se il ruolo non può essere assunto, invece di ricadere silenziosamente sulle tue credenziali. Non esiste una modalità integrata "scansiona tutta la mia organizzazione": per coprire più account, lancia cloudrift una volta per ogni role ARN (un loop di shell o una matrice CI), ogni esecuzione produce un report indipendente. Vedi [ADR-0096](../adr/0096-cross-account-scanning-assume-role.md) (in inglese) e la sezione "Scansione cross-account" di [docs/it/permessi-iam.md](permessi-iam.md) per la trust policy richiesta sul ruolo target.
+
+```sh
+# Scansiona un account diverso assumendo un ruolo al suo interno
+node apps/cli/dist/main.js analyze --assume-role-arn arn:aws:iam::222222222222:role/cloudrift-scanner --external-id il-mio-secret-condiviso
+
+# Scansiona più account da un loop di shell, un report indipendente per ciascuno
+for account in 111111111111 222222222222; do
+  node apps/cli/dist/main.js dead-resources \
+    --assume-role-arn "arn:aws:iam::${account}:role/cloudrift-scanner" \
+    --format json > "report-${account}.json"
+done
+```
+
 ## `analyze` — trova risorse sprecate
 
 ```sh
@@ -21,6 +35,8 @@ node apps/cli/dist/main.js analyze [opzioni]
 | `--scanners <kinds...>`      | Esegue solo questi servizi (elenco di resource kind separati da spazio, es. `ebs-volume elastic-ip`); salta il picker interattivo | — |
 | `--all-services`             | Esegue tutti gli scanner senza il picker interattivo                                                                  | on in CI / non-TTY |
 | `--account-id <id>`          | Override dell'account ID (rilevato automaticamente via `sts:GetCallerIdentity` se omesso)                            | auto-rilevato      |
+| `--assume-role-arn <arn>`    | Assume questo ruolo IAM via STS prima di scansionare, per l'accesso cross-account                                   | —                  |
+| `--external-id <id>`        | External ID da passare quando si assume `--assume-role-arn` (serve solo se la trust policy del ruolo lo richiede)   | —                  |
 | `--min-age-days <giorni>`    | Periodo di grazia: le risorse più giovani di N giorni non vengono segnalate (ha precedenza sul config)              | `7`                |
 | `--ignore-tag <tag>`         | Le risorse con questo tag vengono escluse dal report (ha precedenza sul config)                                     | `cloudrift:ignore` |
 | `--pdf [filename]`           | Scrive anche un report PDF su disco (default `cloudrift-report-YYYY-MM-DD.pdf`)                                      | —                  |
@@ -134,6 +150,8 @@ node apps/cli/dist/main.js trend [opzioni]
 | Opzione | Descrizione | Default |
 | --- | --- | --- |
 | `--account-id <id>` | Override dell'account ID (auto-rilevato via STS se omesso) | auto-rilevato |
+| `--assume-role-arn <arn>` | Assume questo ruolo IAM via STS prima di scansionare, per l'accesso cross-account | — |
+| `--external-id <id>` | External ID da passare quando si assume `--assume-role-arn` (serve solo se la trust policy del ruolo lo richiede) | — |
 | `--config <path>` | Percorso del file di config | auto-rilevato |
 | `--format <format>` | Formato di stdout: `table` o `json` | `table` |
 | `--fail-on-increase <pct>` | Esce con codice 2 se la spesa è aumentata più di questa percentuale rispetto al periodo precedente (ha precedenza su `config.costIncreaseAlertPercent`) | off |
@@ -147,6 +165,8 @@ node apps/cli/dist/main.js trend [opzioni]
 | Opzione | Descrizione | Default |
 | --- | --- | --- |
 | `--account-id <id>` | Override dell'account ID | auto-rilevato |
+| `--assume-role-arn <arn>` | Assume questo ruolo IAM via STS prima di scansionare, per l'accesso cross-account | — |
+| `--external-id <id>` | External ID da passare quando si assume `--assume-role-arn` (serve solo se la trust policy del ruolo lo richiede) | — |
 | `--config <path>` | Percorso del file di config | auto-rilevato |
 | `--months <n>` | Numero di mesi solari da mostrare (1–36) | `6` |
 | `--services <nomi...>` | Limita a questi servizi (scorciatoie tipo `ec2 s3 rds`, oppure il nome esatto usato da Cost Explorer) | tutti i servizi |
@@ -186,6 +206,8 @@ node apps/cli/dist/main.js dead-resources [opzioni]
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
 | `-r, --regions <regioni...>` | Regioni AWS da scansionare (ignorato dai check a scope globale — vedi sotto)                                    | `us-east-1`        |
 | `--account-id <id>`          | Override dell'account ID (rilevato automaticamente via `sts:GetCallerIdentity` se omesso)                      | auto-rilevato      |
+| `--assume-role-arn <arn>`    | Assume questo ruolo IAM via STS prima di scansionare, per l'accesso cross-account                             | —                  |
+| `--external-id <id>`        | External ID da passare quando si assume `--assume-role-arn` (serve solo se la trust policy del ruolo lo richiede) | — |
 | `--min-age-days <giorni>`    | Periodo di grazia: le risorse più giovani di N giorni non vengono segnalate (`ec2-ri-expiring-soon` non lo usa — vedi sotto) | `7` |
 | `--ignore-tag <tag>`         | Le risorse con questo tag vengono escluse dal report                                                            | `cloudrift:ignore` |
 | `--scanners <kinds...>`      | Esegue solo questi check (separati da spazio, es. `ec2-keypair-unused iam-user-inactive`)                       | tutti i check       |
@@ -249,6 +271,8 @@ node apps/cli/dist/main.js resource-security [opzioni]
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
 | `-r, --regions <regions...>` | Regioni AWS da scansionare (ignorato dai check a scope globale — vedi sotto)                                   | `us-east-1`        |
 | `--account-id <id>`          | Override dell'account ID AWS (auto-rilevato via `sts:GetCallerIdentity` se omesso)                             | auto-rilevato      |
+| `--assume-role-arn <arn>`    | Assume questo ruolo IAM via STS prima di scansionare, per l'accesso cross-account                             | —                  |
+| `--external-id <id>`        | External ID da passare quando si assume `--assume-role-arn` (serve solo se la trust policy del ruolo lo richiede) | — |
 | `--ignore-tag <tag>`         | Le risorse con questo tag sono escluse dal report                                                              | `cloudrift:ignore` |
 | `--scanners <kinds...>`      | Esegue solo questi check (separati da spazio, es. `iam-root-mfa-disabled s3-bucket-public`)                    | tutti i check       |
 | `--format <format>`          | Formato di output su stdout: `table` o `json`                                                                  | `table`            |

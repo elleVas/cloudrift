@@ -8,6 +8,7 @@ import {
   type MultipartUpload,
   type Part,
 } from '@aws-sdk/client-s3';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { Result, createLogger } from 'shared-kernel';
 import type { AwsRegion, PricingPort, WasteScannerPort, WastedResource } from 'cloud-cost-domain';
 import { S3MultipartUploadAbandoned, S3MultipartUploadAbandonedPolicy } from 'cloud-cost-domain';
@@ -39,12 +40,13 @@ export class AwsS3MultipartUploadAbandonedScanner implements WasteScannerPort {
   constructor(
     private readonly pricing: PricingPort,
     private readonly accountId = 'unknown',
+    private readonly credentials?: AwsCredentialIdentityProvider,
     private readonly policy = new S3MultipartUploadAbandonedPolicy(),
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
     const s3 = new S3Client({
-      ...createAwsClientConfig(),
+      ...createAwsClientConfig(this.credentials),
       region: region.code,
       forcePathStyle: !!process.env.AWS_ENDPOINT_URL,
     });

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { RDSClient, DescribeDBClustersCommand, type DBCluster } from '@aws-sdk/client-rds';
 import type { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { createLogger } from 'shared-kernel';
 import type { AwsRegion, PricingPort, WastePolicy } from 'cloud-cost-domain';
 import { AuroraServerlessOverprovisioned, AuroraServerlessOverprovisionedPolicy } from 'cloud-cost-domain';
@@ -56,12 +57,13 @@ export class AwsAuroraServerlessIdleScanner extends CloudWatchIdleScanner<
     private readonly accountId = 'unknown',
     policy: WastePolicy<AuroraServerlessOverprovisioned> = new AuroraServerlessOverprovisionedPolicy(),
     windowHours = DEFAULT_LOOKBACK_HOURS,
+    credentials?: AwsCredentialIdentityProvider,
   ) {
-    super(policy, windowHours, METRIC_CONCURRENCY);
+    super(policy, windowHours, METRIC_CONCURRENCY, credentials);
   }
 
   protected createPrimaryClient(region: AwsRegion): RDSClient {
-    return new RDSClient({ ...createAwsClientConfig(), region: region.code });
+    return new RDSClient({ ...createAwsClientConfig(this.credentials), region: region.code });
   }
 
   protected destroyPrimaryClient(client: RDSClient): void {

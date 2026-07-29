@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { Result } from 'shared-kernel';
 import type { AwsRegion, ResourceKind, WasteScannerPort, WastedResource, WastePolicy } from 'cloud-cost-domain';
 import { AwsAdapterError, mapWithConcurrency, createAwsClientConfig } from 'shared-aws-infra-utils';
@@ -29,11 +30,12 @@ export abstract class CloudWatchIdleScanner<TPrimaryClient, TRaw, TMetric, TEnti
     protected readonly policy: WastePolicy<TEntity>,
     protected readonly windowHours: number,
     protected readonly metricConcurrency = 5,
+    protected readonly credentials?: AwsCredentialIdentityProvider,
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
     const primary = this.createPrimaryClient(region);
-    const cw = new CloudWatchClient({ ...createAwsClientConfig(), region: region.code });
+    const cw = new CloudWatchClient({ ...createAwsClientConfig(this.credentials), region: region.code });
     try {
       const raw = await this.listResources(primary, region);
       if (raw.length === 0) return Result.ok([]);

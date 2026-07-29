@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { CloudFormationClient, DescribeStacksCommand, type Stack } from '@aws-sdk/client-cloudformation';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { Result } from 'shared-kernel';
 import type { AwsRegion, DeadResourceScannerPort, DeadResource } from 'dead-resources-domain';
 import { CloudformationStackStuck, CloudformationStackStuckPolicy } from 'dead-resources-domain';
@@ -21,11 +22,12 @@ export class AwsCloudformationStackStuckScanner implements DeadResourceScannerPo
 
   constructor(
     private readonly accountId = 'unknown',
+    private readonly credentials?: AwsCredentialIdentityProvider,
     private readonly policy = new CloudformationStackStuckPolicy(),
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<DeadResource[]>> {
-    const client = new CloudFormationClient({ ...createAwsClientConfig(), region: region.code });
+    const client = new CloudFormationClient({ ...createAwsClientConfig(this.credentials), region: region.code });
     try {
       const rawStacks = await paginate<Stack>(async (cursor) => {
         const r = await client.send(new DescribeStacksCommand({ NextToken: cursor }));

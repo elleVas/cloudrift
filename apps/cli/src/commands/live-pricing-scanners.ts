@@ -38,6 +38,10 @@ import type { LivePricingScannerBuildContext, ScannerRegistration } from './scan
 // known, but it's still gated on the same resource). See
 // {@link ALWAYS_ON_SCANNERS} in `./always-on-scanners` for the statically
 // priced counterpart.
+// Same `ctx.credentials` placement rule as `always-on-scanners.ts`: every
+// scanner in this file extends `CloudWatchIdleScanner` (except
+// `workspaces-idle`), so it's appended as the LAST arg; `workspaces-idle`
+// is a "flat" scanner and takes it right after `ctx.accountId` instead.
 export const LIVE_PRICING_SCANNERS: ScannerRegistration<LivePricingScannerBuildContext>[] = [
   {
     kind: 'ec2-underutilized',
@@ -47,6 +51,7 @@ export const LIVE_PRICING_SCANNERS: ScannerRegistration<LivePricingScannerBuildC
         ctx.accountId,
         new Ec2UnderutilizedPolicy(ctx.policyOptions, ctx.config.thresholds?.ec2CpuPercent ?? 5),
         ctx.utilizationWindowHours,
+        ctx.credentials,
       ),
   },
   {
@@ -57,6 +62,7 @@ export const LIVE_PRICING_SCANNERS: ScannerRegistration<LivePricingScannerBuildC
         ctx.accountId,
         new RdsUnderutilizedPolicy(ctx.policyOptions, ctx.config.thresholds?.rdsCpuPercent ?? 5),
         ctx.utilizationWindowHours,
+        ctx.credentials,
       ),
   },
   {
@@ -67,6 +73,7 @@ export const LIVE_PRICING_SCANNERS: ScannerRegistration<LivePricingScannerBuildC
         ctx.accountId,
         new ElastiCacheIdlePolicy(ctx.policyOptions),
         ctx.cloudwatchWindowHours,
+        ctx.credentials,
       ),
   },
   // Phase 5.5 (ADR-0038): per-instance/node/broker-type pricing, same
@@ -79,6 +86,7 @@ export const LIVE_PRICING_SCANNERS: ScannerRegistration<LivePricingScannerBuildC
         ctx.accountId,
         new RedshiftIdleClusterPolicy(ctx.policyOptions),
         ctx.cloudwatchWindowHours,
+        ctx.credentials,
       ),
   },
   {
@@ -89,6 +97,7 @@ export const LIVE_PRICING_SCANNERS: ScannerRegistration<LivePricingScannerBuildC
         ctx.accountId,
         new OpenSearchIdleDomainPolicy(ctx.policyOptions),
         ctx.cloudwatchWindowHours,
+        ctx.credentials,
       ),
   },
   {
@@ -99,6 +108,7 @@ export const LIVE_PRICING_SCANNERS: ScannerRegistration<LivePricingScannerBuildC
         ctx.accountId,
         new MskIdleClusterPolicy(ctx.policyOptions),
         ctx.cloudwatchWindowHours,
+        ctx.credentials,
       ),
   },
   {
@@ -109,6 +119,7 @@ export const LIVE_PRICING_SCANNERS: ScannerRegistration<LivePricingScannerBuildC
         ctx.accountId,
         new DocumentDbIdleInstancePolicy(ctx.policyOptions),
         ctx.cloudwatchWindowHours,
+        ctx.credentials,
       ),
   },
   {
@@ -119,6 +130,7 @@ export const LIVE_PRICING_SCANNERS: ScannerRegistration<LivePricingScannerBuildC
         ctx.accountId,
         new NeptuneIdleInstancePolicy(ctx.policyOptions),
         ctx.cloudwatchWindowHours,
+        ctx.credentials,
       ),
   },
   {
@@ -129,12 +141,18 @@ export const LIVE_PRICING_SCANNERS: ScannerRegistration<LivePricingScannerBuildC
         ctx.accountId,
         new MqIdleBrokerPolicy(ctx.policyOptions),
         ctx.cloudwatchWindowHours,
+        ctx.credentials,
       ),
   },
   {
     kind: 'workspaces-idle',
     create: (ctx) =>
-      new AwsWorkspacesIdleScanner(ctx.livePricingAdapter, ctx.accountId, new WorkspacesIdlePolicy(ctx.policyOptions)),
+      new AwsWorkspacesIdleScanner(
+        ctx.livePricingAdapter,
+        ctx.accountId,
+        ctx.credentials,
+        new WorkspacesIdlePolicy(ctx.policyOptions),
+      ),
   },
   // Phase 6.3 (ADR-0065): SageMaker vertical. Per-instance-type pricing, same
   // reasoning as EC2/RDS/ElastiCache above (ADR-0037).
@@ -146,6 +164,7 @@ export const LIVE_PRICING_SCANNERS: ScannerRegistration<LivePricingScannerBuildC
         ctx.accountId,
         new SageMakerNotebookIdlePolicy(ctx.policyOptions, ctx.config.thresholds?.sagemakerNotebookCpuPercent ?? 2),
         ctx.utilizationWindowHours,
+        ctx.credentials,
       ),
   },
   {
@@ -156,6 +175,7 @@ export const LIVE_PRICING_SCANNERS: ScannerRegistration<LivePricingScannerBuildC
         ctx.accountId,
         new SageMakerEndpointIdlePolicy(ctx.policyOptions),
         ctx.cloudwatchWindowHours,
+        ctx.credentials,
       ),
   },
   // Phase 6.5 (ADR-0065/ADR-0066): EKS cost visibility vertical. Per-instance-
@@ -168,6 +188,7 @@ export const LIVE_PRICING_SCANNERS: ScannerRegistration<LivePricingScannerBuildC
         ctx.accountId,
         new EksNodeOverprovisionedPolicy(ctx.policyOptions, ctx.config.thresholds?.eksNodeUtilizationPercent ?? 30),
         ctx.utilizationWindowHours,
+        ctx.credentials,
       ),
   },
 ];

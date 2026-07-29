@@ -124,3 +124,25 @@ The `resource-security` command (security-posture checks — IAM/account hygiene
 ```
 
 `iam:ListUsers`, `iam:ListAccessKeys`, `ec2:DescribeSecurityGroups`, `ec2:DescribeVolumes`, `ec2:DescribeSnapshots`, `s3:ListAllMyBuckets`, and `rds:DescribeDBInstances` (all already in the main policy or the `dead-resources` block above) are reused — this command adds no new hygiene/inventory calls, only the read-only checks (`Get*`/`DescribeSnapshotAttribute`/`DescribeTrails`) needed to evaluate each resource's security configuration. `cloudtrail:DescribeTrails` is the one action from a service not otherwise used by cloudrift. None of these actions are needed for `analyze` or `dead-resources` — only for `resource-security`.
+
+## Cross-account scanning (`--assume-role-arn`)
+
+Scanning a different AWS account by assuming a role into it (`--assume-role-arn <arn>`, optionally `--external-id <id>`) needs `sts:AssumeRole` on the **calling** principal — already included in the main policy above. The **target** role (in the account being scanned) needs its own trust policy granting the calling principal permission to assume it, plus the same read-only permissions as this document (matching whichever commands you intend to run against that account):
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": { "AWS": "arn:aws:iam::<calling-account-id>:role/<calling-role-name>" },
+      "Action": "sts:AssumeRole",
+      "Condition": {
+        "StringEquals": { "sts:ExternalId": "<your-external-id>" }
+      }
+    }
+  ]
+}
+```
+
+The `Condition`/`sts:ExternalId` block is only required if you pass `--external-id` — omit both if the trust relationship doesn't need one (e.g. within a single AWS Organization you already control).

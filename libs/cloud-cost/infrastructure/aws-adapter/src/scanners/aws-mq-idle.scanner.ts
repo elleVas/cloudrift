@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { MqClient, ListBrokersCommand, type BrokerSummary } from '@aws-sdk/client-mq';
 import type { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { createLogger } from 'shared-kernel';
 import type { AwsRegion } from 'cloud-cost-domain';
 import { MqBroker, MqIdleBrokerPolicy, type WastePolicy } from 'cloud-cost-domain';
@@ -61,12 +62,13 @@ export class AwsMqIdleScanner extends CloudWatchIdleScanner<MqClient, BrokerWith
     private readonly accountId = 'unknown',
     policy: WastePolicy<MqBroker> = new MqIdleBrokerPolicy(),
     windowHours = DEFAULT_LOOKBACK_HOURS,
+    credentials?: AwsCredentialIdentityProvider,
   ) {
-    super(policy, windowHours);
+    super(policy, windowHours, undefined, credentials);
   }
 
   protected createPrimaryClient(region: AwsRegion): MqClient {
-    return new MqClient({ ...createAwsClientConfig(), region: region.code });
+    return new MqClient({ ...createAwsClientConfig(this.credentials), region: region.code });
   }
 
   protected destroyPrimaryClient(client: MqClient): void {

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { IAMClient, ListInstanceProfilesCommand, type InstanceProfile } from '@aws-sdk/client-iam';
 import { EC2Client, DescribeRegionsCommand, DescribeInstancesCommand, type Reservation, type Instance } from '@aws-sdk/client-ec2';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { Result, createLogger } from 'shared-kernel';
 import type { AwsRegion, DeadResourceScannerPort, DeadResource } from 'dead-resources-domain';
 import { IamInstanceProfileUnattached, IamInstanceProfileUnattachedPolicy } from 'dead-resources-domain';
@@ -44,12 +45,13 @@ export class AwsIamInstanceProfileUnattachedScanner implements DeadResourceScann
 
   constructor(
     private readonly accountId = 'unknown',
+    private readonly credentials?: AwsCredentialIdentityProvider,
     private readonly policy = new IamInstanceProfileUnattachedPolicy(),
   ) {}
 
   async scan(_region: AwsRegion): Promise<Result<DeadResource[]>> {
-    const iamClient = new IAMClient({ ...createAwsClientConfig(), region: IAM_ENDPOINT_REGION });
-    const regionDiscoveryClient = new EC2Client({ ...createAwsClientConfig(), region: IAM_ENDPOINT_REGION });
+    const iamClient = new IAMClient({ ...createAwsClientConfig(this.credentials), region: IAM_ENDPOINT_REGION });
+    const regionDiscoveryClient = new EC2Client({ ...createAwsClientConfig(this.credentials), region: IAM_ENDPOINT_REGION });
     try {
       const [rawProfiles, regionsResponse] = await Promise.all([
         paginate<InstanceProfile>(async (cursor) => {
@@ -63,7 +65,7 @@ export class AwsIamInstanceProfileUnattachedScanner implements DeadResourceScann
 
       const inUseArns = new Set<string>();
       await mapWithConcurrency(enabledRegionCodes, REGION_SCAN_CONCURRENCY, async (regionCode) => {
-        const client = new EC2Client({ ...createAwsClientConfig(), region: regionCode });
+        const client = new EC2Client({ ...createAwsClientConfig(this.credentials), region: regionCode });
         try {
           const instances = await paginate<Reservation, Instance>(
             async (cursor) => {

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { ACMClient, ListCertificatesCommand, type CertificateSummary } from '@aws-sdk/client-acm';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { Result } from 'shared-kernel';
 import type { AwsRegion, DeadResourceScannerPort, DeadResource } from 'dead-resources-domain';
 import { AcmCertificateUnused, AcmCertificateUnusedPolicy } from 'dead-resources-domain';
@@ -19,11 +20,12 @@ export class AwsAcmCertificateUnusedScanner implements DeadResourceScannerPort {
 
   constructor(
     private readonly accountId = 'unknown',
+    private readonly credentials?: AwsCredentialIdentityProvider,
     private readonly policy = new AcmCertificateUnusedPolicy(),
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<DeadResource[]>> {
-    const client = new ACMClient({ ...createAwsClientConfig(), region: region.code });
+    const client = new ACMClient({ ...createAwsClientConfig(this.credentials), region: region.code });
     try {
       const rawCerts = await paginate<CertificateSummary>(async (cursor) => {
         const r = await client.send(new ListCertificatesCommand({ NextToken: cursor }));

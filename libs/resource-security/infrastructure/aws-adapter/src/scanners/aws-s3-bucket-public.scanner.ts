@@ -6,6 +6,7 @@ import {
   GetBucketPolicyStatusCommand,
   GetBucketAclCommand,
 } from '@aws-sdk/client-s3';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { Result, createLogger } from 'shared-kernel';
 import type { AwsRegion, ResourceSecurityScannerPort, SecurityFinding } from 'resource-security-domain';
 import { S3BucketPublic, S3BucketPublicPolicy } from 'resource-security-domain';
@@ -57,11 +58,12 @@ export class AwsS3BucketPublicScanner implements ResourceSecurityScannerPort {
 
   constructor(
     private readonly accountId = 'unknown',
+    private readonly credentials?: AwsCredentialIdentityProvider,
     private readonly policy = new S3BucketPublicPolicy(),
   ) {}
 
   async scan(_region: AwsRegion): Promise<Result<SecurityFinding[]>> {
-    const client = new S3Client({ ...createAwsClientConfig(), region: 'us-east-1' });
+    const client = new S3Client({ ...createAwsClientConfig(this.credentials), region: 'us-east-1' });
     try {
       const { Buckets } = await client.send(new ListBucketsCommand({}));
       const bucketNames = (Buckets ?? []).map((b) => b.Name).filter((n): n is string => !!n);

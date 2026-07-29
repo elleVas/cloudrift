@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { Route53Client, ListHostedZonesCommand, type HostedZone } from '@aws-sdk/client-route-53';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { Result } from 'shared-kernel';
 import type { AwsRegion, DeadResourceScannerPort, DeadResource } from 'dead-resources-domain';
 import { Route53HostedZoneEmpty, Route53HostedZoneEmptyPolicy } from 'dead-resources-domain';
@@ -26,11 +27,12 @@ export class AwsRoute53HostedZoneEmptyScanner implements DeadResourceScannerPort
 
   constructor(
     private readonly accountId = 'unknown',
+    private readonly credentials?: AwsCredentialIdentityProvider,
     private readonly policy = new Route53HostedZoneEmptyPolicy(),
   ) {}
 
   async scan(_region: AwsRegion): Promise<Result<DeadResource[]>> {
-    const client = new Route53Client({ ...createAwsClientConfig(), region: ROUTE53_ENDPOINT_REGION });
+    const client = new Route53Client({ ...createAwsClientConfig(this.credentials), region: ROUTE53_ENDPOINT_REGION });
     try {
       const rawZones = await paginate<HostedZone>(async (cursor) => {
         const r = await client.send(new ListHostedZonesCommand({ Marker: cursor }));

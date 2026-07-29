@@ -7,6 +7,7 @@ import {
   ListQueueTagsCommand,
 } from '@aws-sdk/client-sqs';
 import type { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import type { AwsRegion } from 'cloud-cost-domain';
 import { SqsDlqAbandoned, SqsDlqAbandonedWastePolicy, type WastePolicy } from 'cloud-cost-domain';
 import { paginate, mapWithConcurrency, createAwsClientConfig } from 'shared-aws-infra-utils';
@@ -56,12 +57,13 @@ export class AwsSqsDlqAbandonedScanner extends CloudWatchIdleScanner<SQSClient, 
     private readonly accountId = 'unknown',
     policy: WastePolicy<SqsDlqAbandoned> = new SqsDlqAbandonedWastePolicy(),
     windowHours = DEFAULT_LOOKBACK_HOURS,
+    credentials?: AwsCredentialIdentityProvider,
   ) {
-    super(policy, windowHours);
+    super(policy, windowHours, undefined, credentials);
   }
 
   protected createPrimaryClient(region: AwsRegion): SQSClient {
-    return new SQSClient({ ...createAwsClientConfig(), region: region.code });
+    return new SQSClient({ ...createAwsClientConfig(this.credentials), region: region.code });
   }
 
   protected destroyPrimaryClient(client: SQSClient): void {

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { ElastiCacheClient, DescribeCacheClustersCommand, type CacheCluster } from '@aws-sdk/client-elasticache';
 import type { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { createLogger } from 'shared-kernel';
 import type { AwsRegion } from 'cloud-cost-domain';
 import { IdleElastiCacheCluster, ElastiCacheIdlePolicy, type WastePolicy } from 'cloud-cost-domain';
@@ -32,12 +33,13 @@ export class AwsElastiCacheIdleScanner extends CloudWatchIdleScanner<
     private readonly accountId = 'unknown',
     policy: WastePolicy<IdleElastiCacheCluster> = new ElastiCacheIdlePolicy(),
     windowHours = DEFAULT_LOOKBACK_HOURS,
+    credentials?: AwsCredentialIdentityProvider,
   ) {
-    super(policy, windowHours);
+    super(policy, windowHours, undefined, credentials);
   }
 
   protected createPrimaryClient(region: AwsRegion): ElastiCacheClient {
-    return new ElastiCacheClient({ ...createAwsClientConfig(), region: region.code });
+    return new ElastiCacheClient({ ...createAwsClientConfig(this.credentials), region: region.code });
   }
 
   protected destroyPrimaryClient(client: ElastiCacheClient): void {

@@ -7,6 +7,7 @@ import {
   type Nodegroup,
 } from '@aws-sdk/client-eks';
 import type { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { createLogger } from 'shared-kernel';
 import type { AwsRegion, WastePolicy } from 'cloud-cost-domain';
 import { EksNodeOverprovisioned, EksNodeOverprovisionedPolicy } from 'cloud-cost-domain';
@@ -80,12 +81,13 @@ export class AwsEksNodeOverprovisionedScanner extends CloudWatchIdleScanner<
     private readonly accountId = 'unknown',
     policy: WastePolicy<EksNodeOverprovisioned> = new EksNodeOverprovisionedPolicy(),
     windowHours = DEFAULT_LOOKBACK_HOURS,
+    credentials?: AwsCredentialIdentityProvider,
   ) {
-    super(policy, windowHours);
+    super(policy, windowHours, undefined, credentials);
   }
 
   protected createPrimaryClient(region: AwsRegion): EKSClient {
-    return new EKSClient({ ...createAwsClientConfig(), region: region.code });
+    return new EKSClient({ ...createAwsClientConfig(this.credentials), region: region.code });
   }
 
   protected destroyPrimaryClient(client: EKSClient): void {

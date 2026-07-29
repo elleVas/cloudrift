@@ -4,6 +4,7 @@ import {
   DescribeVolumesCommand,
   type Volume,
 } from '@aws-sdk/client-ec2';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { Result, createLogger } from 'shared-kernel';
 import type {
   AwsRegion,
@@ -25,11 +26,12 @@ export class AwsEbsVolumeScanner implements WasteScannerPort {
   constructor(
     private readonly pricing: PricingPort,
     private readonly accountId = 'unknown',
+    private readonly credentials?: AwsCredentialIdentityProvider,
     private readonly policy = new EbsVolumeWastePolicy(),
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
-    const client = new EC2Client({ ...createAwsClientConfig(), region: region.code });
+    const client = new EC2Client({ ...createAwsClientConfig(this.credentials), region: region.code });
     try {
       // Server-side prefilter: 'available' volumes are the superset of
       // candidates; the final decision (grace period, tag) is up to the policy.

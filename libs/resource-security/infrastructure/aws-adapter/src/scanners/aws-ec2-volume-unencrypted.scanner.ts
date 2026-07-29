@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { EC2Client, DescribeVolumesCommand, type Volume } from '@aws-sdk/client-ec2';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { Result } from 'shared-kernel';
 import type { AwsRegion, ResourceSecurityScannerPort, SecurityFinding } from 'resource-security-domain';
 import { Ec2VolumeUnencrypted, Ec2VolumeUnencryptedPolicy } from 'resource-security-domain';
@@ -13,11 +14,12 @@ export class AwsEc2VolumeUnencryptedScanner implements ResourceSecurityScannerPo
 
   constructor(
     private readonly accountId = 'unknown',
+    private readonly credentials?: AwsCredentialIdentityProvider,
     private readonly policy = new Ec2VolumeUnencryptedPolicy(),
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<SecurityFinding[]>> {
-    const client = new EC2Client({ ...createAwsClientConfig(), region: region.code });
+    const client = new EC2Client({ ...createAwsClientConfig(this.credentials), region: region.code });
     try {
       const rawVolumes = await paginate<Volume>(async (cursor) => {
         const r = await client.send(new DescribeVolumesCommand({ NextToken: cursor }));

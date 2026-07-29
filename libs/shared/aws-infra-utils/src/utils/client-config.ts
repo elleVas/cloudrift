@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { NodeHttpHandler } from '@smithy/node-http-handler';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { createLogger } from 'shared-kernel';
 
 const httpLog = createLogger('cloudrift:http');
@@ -64,12 +65,17 @@ const keepAlive = process.env.CLOUDRIFT_HTTP_KEEPALIVE !== 'false';
  * a normal SDK error, retried up to `maxAttempts` like any other failure, and
  * ultimately caught by each scanner's existing `try/catch` → `Result.fail`.
  *
+ * `credentials` is omitted whenever the caller doesn't pass one, so every
+ * existing call site keeps relying on the SDK's own default provider chain
+ * exactly as before — this parameter only matters for `--assume-role-arn`
+ * cross-account scanning (see `assumeRole()` in this same package).
+ *
  * Usage:
  * ```ts
  * const ec2 = new EC2Client({ ...createAwsClientConfig(), region: region.code });
  * ```
  */
-export function createAwsClientConfig() {
+export function createAwsClientConfig(credentials?: AwsCredentialIdentityProvider) {
   return {
     maxAttempts: 3,
     requestHandler: new NodeHttpHandler({
@@ -88,5 +94,6 @@ export function createAwsClientConfig() {
       logger: smithyLogger,
       httpsAgent: { keepAlive },
     }),
-  } as const;
+    ...(credentials ? { credentials } : {}),
+  };
 }

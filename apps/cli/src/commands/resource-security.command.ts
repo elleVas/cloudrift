@@ -13,12 +13,15 @@ import { startScanSpinner } from '../wizard/scan-spinner';
 import { defaultResourceSecurityDeps, type ResourceSecurityDeps } from './resource-security.composition';
 import { reportCliError as fail } from './report-cli-error';
 import { OUTPUT_FORMATS, isOutputFormat } from '../output-format';
+import { resolveCredentials } from './resolve-options';
 
 export type { ResourceSecurityDeps };
 
 export interface ResourceSecurityCommandOptions {
   regions: string[];
   accountId?: string;
+  assumeRoleArn?: string;
+  externalId?: string;
   format?: string;
   ignoreTag?: string;
   silent?: boolean;
@@ -81,7 +84,11 @@ export async function resourceSecurityCommand(
     console.log(`\n${renderBrandMark()}\n`);
   }
 
-  const accountId = options.accountId ?? (await deps.resolveAccountId()) ?? 'unknown';
+  const credentialsResult = await resolveCredentials(options);
+  if (!credentialsResult.ok) return fail(credentialsResult.error.message);
+  const credentials = credentialsResult.value;
+
+  const accountId = options.accountId ?? (await deps.resolveAccountId(credentials)) ?? 'unknown';
   if (accountId === 'unknown') {
     info(chalk.dim('  Could not resolve the AWS account ID via STS — pass --account-id to set it explicitly.'));
   }
@@ -96,7 +103,7 @@ export async function resourceSecurityCommand(
     ignoreTag: options.ignoreTag ?? DEFAULT_IGNORE_TAG,
   };
 
-  const { useCase } = await deps.createAnalysis({ regions, accountId, policyOptions, scannerKinds });
+  const { useCase } = await deps.createAnalysis({ regions, accountId, credentials, policyOptions, scannerKinds });
 
   const spinner = quietStdout ? undefined : await startScanSpinner('  Rolling through your account...');
   const result = await useCase.execute({ regions });

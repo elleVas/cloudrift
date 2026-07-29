@@ -5,6 +5,7 @@ import {
   DescribeWorkspacesConnectionStatusCommand,
   type Workspace as SdkWorkspace,
 } from '@aws-sdk/client-workspaces';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { Result, createLogger } from 'shared-kernel';
 import type { AwsRegion, WasteScannerPort, WastedResource } from 'cloud-cost-domain';
 import { Workspace, WorkspacesIdlePolicy } from 'cloud-cost-domain';
@@ -36,11 +37,12 @@ export class AwsWorkspacesIdleScanner implements WasteScannerPort {
   constructor(
     private readonly pricing: WorkSpacesBundlePricingSource,
     private readonly accountId = 'unknown',
+    private readonly credentials?: AwsCredentialIdentityProvider,
     private readonly policy = new WorkspacesIdlePolicy(),
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
-    const workspaces = new WorkSpacesClient({ ...createAwsClientConfig(), region: region.code });
+    const workspaces = new WorkSpacesClient({ ...createAwsClientConfig(this.credentials), region: region.code });
     try {
       const rawWorkspaces = await paginate<SdkWorkspace>(async (cursor) => {
         const r = await workspaces.send(new DescribeWorkspacesCommand({ NextToken: cursor }));

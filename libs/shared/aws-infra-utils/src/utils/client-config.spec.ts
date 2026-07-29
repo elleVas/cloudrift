@@ -58,6 +58,15 @@ describe('createAwsClientConfig', () => {
     expect(a.requestHandler).not.toBe(b.requestHandler);
     expect((NodeHttpHandler as jest.Mock).mock.calls.length).toBe(before + 2);
   });
+
+  it('omits the credentials key entirely when none is passed, preserving the SDK default provider chain', () => {
+    expect(createAwsClientConfig()).not.toHaveProperty('credentials');
+  });
+
+  it('passes through a given credentials provider (--assume-role-arn cross-account scanning)', () => {
+    const credentials = jest.fn();
+    expect(createAwsClientConfig(credentials).credentials).toBe(credentials);
+  });
 });
 
 describe('createAwsClientConfig with CLOUDRIFT_HTTP_KEEPALIVE=false', () => {

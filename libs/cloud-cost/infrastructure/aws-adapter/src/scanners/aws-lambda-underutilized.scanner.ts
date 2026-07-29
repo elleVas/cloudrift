@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { LambdaClient, ListFunctionsCommand, type FunctionConfiguration } from '@aws-sdk/client-lambda';
 import type { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { createLogger } from 'shared-kernel';
 import type { AwsRegion } from 'cloud-cost-domain';
 import { UnderutilizedLambdaFunction, LambdaUnderutilizedPolicy, type WastePolicy } from 'cloud-cost-domain';
@@ -26,12 +27,13 @@ export class AwsLambdaUnderutilizedScanner extends CloudWatchIdleScanner<
     private readonly accountId = 'unknown',
     policy: WastePolicy<UnderutilizedLambdaFunction> = new LambdaUnderutilizedPolicy(),
     windowHours = DEFAULT_WINDOW_HOURS,
+    credentials?: AwsCredentialIdentityProvider,
   ) {
-    super(policy, windowHours);
+    super(policy, windowHours, undefined, credentials);
   }
 
   protected createPrimaryClient(region: AwsRegion): LambdaClient {
-    return new LambdaClient({ ...createAwsClientConfig(), region: region.code });
+    return new LambdaClient({ ...createAwsClientConfig(this.credentials), region: region.code });
   }
 
   protected destroyPrimaryClient(client: LambdaClient): void {

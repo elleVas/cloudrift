@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { IAMClient, GetAccountPasswordPolicyCommand } from '@aws-sdk/client-iam';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { Result } from 'shared-kernel';
 import type { AwsRegion, ResourceSecurityScannerPort, SecurityFinding } from 'resource-security-domain';
 import { IamPasswordPolicyWeak, IamPasswordPolicyWeakPolicy } from 'resource-security-domain';
@@ -17,11 +18,12 @@ export class AwsIamPasswordPolicyWeakScanner implements ResourceSecurityScannerP
 
   constructor(
     private readonly accountId = 'unknown',
+    private readonly credentials?: AwsCredentialIdentityProvider,
     private readonly policy = new IamPasswordPolicyWeakPolicy(),
   ) {}
 
   async scan(_region: AwsRegion): Promise<Result<SecurityFinding[]>> {
-    const client = new IAMClient({ ...createAwsClientConfig(), region: IAM_ENDPOINT_REGION });
+    const client = new IAMClient({ ...createAwsClientConfig(this.credentials), region: IAM_ENDPOINT_REGION });
     try {
       const now = new Date();
       let finding: IamPasswordPolicyWeak;

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { IAMClient, ListUsersCommand, ListAccessKeysCommand, type User, type AccessKeyMetadata } from '@aws-sdk/client-iam';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { Result } from 'shared-kernel';
 import type { AwsRegion, DeadResourceScannerPort, DeadResource } from 'dead-resources-domain';
 import { IamAccessKeyStale, IamAccessKeyStalePolicy } from 'dead-resources-domain';
@@ -27,11 +28,12 @@ export class AwsIamAccessKeyStaleScanner implements DeadResourceScannerPort {
 
   constructor(
     private readonly accountId = 'unknown',
+    private readonly credentials?: AwsCredentialIdentityProvider,
     private readonly policy = new IamAccessKeyStalePolicy(),
   ) {}
 
   async scan(_region: AwsRegion): Promise<Result<DeadResource[]>> {
-    const client = new IAMClient({ ...createAwsClientConfig(), region: IAM_ENDPOINT_REGION });
+    const client = new IAMClient({ ...createAwsClientConfig(this.credentials), region: IAM_ENDPOINT_REGION });
     try {
       const rawUsers = await paginate<User>(async (cursor) => {
         const r = await client.send(new ListUsersCommand({ Marker: cursor }));

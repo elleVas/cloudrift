@@ -101,6 +101,14 @@ try {
 
 ---
 
+## Cross-account scanning via STS AssumeRole, resolved eagerly
+
+**Choice:** `--assume-role-arn <arn>` (plus optional `--external-id <id>`) assumes a role via `fromTemporaryCredentials`, invoking the resulting provider once immediately rather than passing it through unresolved. Omitting the flag keeps every scanner on the SDK's own default credential chain, unchanged.
+
+**Why:** a bad role ARN, a denied trust policy, or a wrong external ID must fail loudly at the top of the command — never by silently scanning the caller's own account instead, and never as a confusing error surfacing deep inside whichever scanner happens to run first. See [ADR-0096](../adr/0096-cross-account-scanning-assume-role.md).
+
+---
+
 ## Parametric waste policies instead of hardcoded heuristics
 
 **Choice:** waste conditions live in domain policies (`WastePolicy<T>`) with two cross-cutting parameters exposed by the CLI: `--min-age-days` (default 7) and `--ignore-tag` (default `cloudrift:ignore`).

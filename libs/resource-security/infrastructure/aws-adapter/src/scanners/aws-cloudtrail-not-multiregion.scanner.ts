@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { CloudTrailClient, DescribeTrailsCommand } from '@aws-sdk/client-cloudtrail';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { Result } from 'shared-kernel';
 import type { AwsRegion, ResourceSecurityScannerPort, SecurityFinding } from 'resource-security-domain';
 import { CloudtrailNotMultiregion, CloudtrailNotMultiregionPolicy } from 'resource-security-domain';
@@ -15,11 +16,12 @@ export class AwsCloudtrailNotMultiregionScanner implements ResourceSecurityScann
 
   constructor(
     private readonly accountId = 'unknown',
+    private readonly credentials?: AwsCredentialIdentityProvider,
     private readonly policy = new CloudtrailNotMultiregionPolicy(),
   ) {}
 
   async scan(_region: AwsRegion): Promise<Result<SecurityFinding[]>> {
-    const client = new CloudTrailClient({ ...createAwsClientConfig(), region: CLOUDTRAIL_ENDPOINT_REGION });
+    const client = new CloudTrailClient({ ...createAwsClientConfig(this.credentials), region: CLOUDTRAIL_ENDPOINT_REGION });
     try {
       const { trailList } = await client.send(new DescribeTrailsCommand({ includeShadowTrails: true }));
       const now = new Date();

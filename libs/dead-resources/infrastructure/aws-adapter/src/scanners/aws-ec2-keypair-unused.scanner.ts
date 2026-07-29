@@ -7,6 +7,7 @@ import {
   type Instance,
   type Reservation,
 } from '@aws-sdk/client-ec2';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { Result, createLogger } from 'shared-kernel';
 import type { AwsRegion, DeadResourceScannerPort, DeadResource } from 'dead-resources-domain';
 import { Ec2KeyPairUnused, Ec2KeyPairUnusedPolicy } from 'dead-resources-domain';
@@ -28,11 +29,12 @@ export class AwsEc2KeyPairUnusedScanner implements DeadResourceScannerPort {
 
   constructor(
     private readonly accountId = 'unknown',
+    private readonly credentials?: AwsCredentialIdentityProvider,
     private readonly policy = new Ec2KeyPairUnusedPolicy(),
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<DeadResource[]>> {
-    const client = new EC2Client({ ...createAwsClientConfig(), region: region.code });
+    const client = new EC2Client({ ...createAwsClientConfig(this.credentials), region: region.code });
     try {
       const [keyPairsResponse, instances] = await Promise.all([
         client.send(new DescribeKeyPairsCommand({})),

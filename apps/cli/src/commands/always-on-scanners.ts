@@ -72,33 +72,41 @@ import type { ScannerBuildContext, ScannerRegistration } from './scanner-registr
  * that never need `--live-pricing`. See {@link LIVE_PRICING_SCANNERS} in
  * `./live-pricing-scanners` for the per-instance-type-priced counterpart.
  */
+// `ctx.credentials` (set only for --assume-role-arn cross-account scans)
+// slots in at a different position per scanner: "flat" scanners take it
+// right after `ctx.accountId` (before the policy); `CloudWatchIdleScanner`
+// subclasses take it as their own LAST constructor param (forwarded to the
+// shared base class), so it's appended after their other args instead.
 export const ALWAYS_ON_SCANNERS: ScannerRegistration<ScannerBuildContext>[] = [
   {
     kind: 'ebs-volume',
-    create: (ctx) => new AwsEbsVolumeScanner(ctx.pricing, ctx.accountId, new EbsVolumeWastePolicy(ctx.policyOptions)),
+    create: (ctx) =>
+      new AwsEbsVolumeScanner(ctx.pricing, ctx.accountId, ctx.credentials, new EbsVolumeWastePolicy(ctx.policyOptions)),
   },
   {
     kind: 'elastic-ip',
-    create: (ctx) => new AwsElasticIpScanner(ctx.pricing, ctx.accountId, new ElasticIpWastePolicy(ctx.policyOptions)),
+    create: (ctx) =>
+      new AwsElasticIpScanner(ctx.pricing, ctx.accountId, ctx.credentials, new ElasticIpWastePolicy(ctx.policyOptions)),
   },
   {
     kind: 'rds-instance',
     create: (ctx) =>
-      new AwsRdsInstanceScanner(ctx.pricing, ctx.accountId, new RdsInstanceWastePolicy(ctx.policyOptions)),
+      new AwsRdsInstanceScanner(ctx.pricing, ctx.accountId, ctx.credentials, new RdsInstanceWastePolicy(ctx.policyOptions)),
   },
   {
     kind: 'load-balancer',
     create: (ctx) =>
-      new AwsLoadBalancerScanner(ctx.pricing, ctx.accountId, new LoadBalancerWastePolicy(ctx.policyOptions)),
+      new AwsLoadBalancerScanner(ctx.pricing, ctx.accountId, ctx.credentials, new LoadBalancerWastePolicy(ctx.policyOptions)),
   },
   {
     kind: 'ec2-instance',
-    create: (ctx) => new AwsEc2InstanceScanner(ctx.pricing, ctx.accountId, new Ec2InstanceWastePolicy(ctx.policyOptions)),
+    create: (ctx) =>
+      new AwsEc2InstanceScanner(ctx.pricing, ctx.accountId, ctx.credentials, new Ec2InstanceWastePolicy(ctx.policyOptions)),
   },
   {
     kind: 'ebs-snapshot',
     create: (ctx) =>
-      new AwsEbsSnapshotScanner(ctx.pricing, ctx.accountId, new EbsSnapshotWastePolicy(ctx.policyOptions)),
+      new AwsEbsSnapshotScanner(ctx.pricing, ctx.accountId, ctx.credentials, new EbsSnapshotWastePolicy(ctx.policyOptions)),
   },
   {
     kind: 'nat-gateway',
@@ -108,11 +116,13 @@ export const ALWAYS_ON_SCANNERS: ScannerRegistration<ScannerBuildContext>[] = [
         ctx.accountId,
         new NatGatewayWastePolicy(ctx.policyOptions),
         ctx.cloudwatchWindowHours,
+        ctx.credentials,
       ),
   },
   {
     kind: 'ebs-gp2-upgrade',
-    create: (ctx) => new AwsGp2UpgradeScanner(ctx.pricing, ctx.accountId, new EbsGp2UpgradePolicy(ctx.policyOptions)),
+    create: (ctx) =>
+      new AwsGp2UpgradeScanner(ctx.pricing, ctx.accountId, ctx.credentials, new EbsGp2UpgradePolicy(ctx.policyOptions)),
   },
   {
     kind: 'ebs-idle',
@@ -122,20 +132,22 @@ export const ALWAYS_ON_SCANNERS: ScannerRegistration<ScannerBuildContext>[] = [
         ctx.accountId,
         new EbsIdlePolicy(ctx.policyOptions, ctx.config.thresholds?.ebsIdleMaxOps ?? 0),
         ctx.cloudwatchWindowHours,
+        ctx.credentials,
       ),
   },
   {
     kind: 'log-group',
-    create: (ctx) => new AwsLogGroupScanner(ctx.pricing, ctx.accountId, new LogGroupWastePolicy(ctx.policyOptions)),
+    create: (ctx) =>
+      new AwsLogGroupScanner(ctx.pricing, ctx.accountId, ctx.credentials, new LogGroupWastePolicy(ctx.policyOptions)),
   },
   {
     kind: 'eni-orphaned',
-    create: (ctx) => new AwsEniOrphanedScanner(ctx.accountId, new OrphanedEniWastePolicy(ctx.policyOptions)),
+    create: (ctx) => new AwsEniOrphanedScanner(ctx.accountId, ctx.credentials, new OrphanedEniWastePolicy(ctx.policyOptions)),
   },
   {
     kind: 's3-no-lifecycle',
     create: (ctx) =>
-      new AwsS3NoLifecycleScanner(ctx.pricing, ctx.accountId, new S3NoLifecyclePolicy(ctx.policyOptions)),
+      new AwsS3NoLifecycleScanner(ctx.pricing, ctx.accountId, ctx.credentials, new S3NoLifecyclePolicy(ctx.policyOptions)),
   },
   {
     kind: 'lambda-underutilized',
@@ -144,6 +156,7 @@ export const ALWAYS_ON_SCANNERS: ScannerRegistration<ScannerBuildContext>[] = [
         ctx.accountId,
         new LambdaUnderutilizedPolicy(ctx.policyOptions, ctx.config.thresholds?.lambdaInvocationsMin ?? 0),
         ctx.utilizationWindowHours,
+        ctx.credentials,
       ),
   },
   {
@@ -154,6 +167,7 @@ export const ALWAYS_ON_SCANNERS: ScannerRegistration<ScannerBuildContext>[] = [
         ctx.accountId,
         new EfsUnusedPolicy(ctx.policyOptions, ctx.config.thresholds?.efsIoBytesMin ?? 0),
         ctx.cloudwatchWindowHours,
+        ctx.credentials,
       ),
   },
   {
@@ -167,6 +181,7 @@ export const ALWAYS_ON_SCANNERS: ScannerRegistration<ScannerBuildContext>[] = [
           ctx.config.thresholds?.dynamoCapacityUtilizationPercent ?? 10,
         ),
         ctx.utilizationWindowHours,
+        ctx.credentials,
       ),
   },
   // Phase 5.5 (ADR-0038): low-cardinality fixed-SKU prices, always-on like
@@ -174,7 +189,13 @@ export const ALWAYS_ON_SCANNERS: ScannerRegistration<ScannerBuildContext>[] = [
   {
     kind: 'fsx-idle-filesystem',
     create: (ctx) =>
-      new AwsFsxIdleScanner(ctx.pricing, ctx.accountId, new FsxIdleFilesystemPolicy(ctx.policyOptions), ctx.cloudwatchWindowHours),
+      new AwsFsxIdleScanner(
+        ctx.pricing,
+        ctx.accountId,
+        new FsxIdleFilesystemPolicy(ctx.policyOptions),
+        ctx.cloudwatchWindowHours,
+        ctx.credentials,
+      ),
   },
   {
     kind: 'vpn-connection-idle',
@@ -184,6 +205,7 @@ export const ALWAYS_ON_SCANNERS: ScannerRegistration<ScannerBuildContext>[] = [
         ctx.accountId,
         new VpnConnectionIdlePolicy(ctx.policyOptions),
         ctx.cloudwatchWindowHours,
+        ctx.credentials,
       ),
   },
   {
@@ -194,6 +216,7 @@ export const ALWAYS_ON_SCANNERS: ScannerRegistration<ScannerBuildContext>[] = [
         ctx.accountId,
         new TransitGatewayIdleAttachmentPolicy(ctx.policyOptions),
         ctx.cloudwatchWindowHours,
+        ctx.credentials,
       ),
   },
   {
@@ -204,12 +227,19 @@ export const ALWAYS_ON_SCANNERS: ScannerRegistration<ScannerBuildContext>[] = [
         ctx.accountId,
         new KinesisProvisionedIdleStreamPolicy(ctx.policyOptions),
         ctx.cloudwatchWindowHours,
+        ctx.credentials,
       ),
   },
   // Phase 6.1 (ADR-0065): serverless orphans vertical.
   {
     kind: 'sqs-dlq-abandoned',
-    create: (ctx) => new AwsSqsDlqAbandonedScanner(ctx.accountId, new SqsDlqAbandonedWastePolicy(ctx.policyOptions)),
+    create: (ctx) =>
+      new AwsSqsDlqAbandonedScanner(
+        ctx.accountId,
+        new SqsDlqAbandonedWastePolicy(ctx.policyOptions),
+        undefined,
+        ctx.credentials,
+      ),
   },
   {
     kind: 'lambda-loggroup-orphaned',
@@ -217,6 +247,7 @@ export const ALWAYS_ON_SCANNERS: ScannerRegistration<ScannerBuildContext>[] = [
       new AwsLambdaLogGroupOrphanedScanner(
         ctx.pricing,
         ctx.accountId,
+        ctx.credentials,
         new LambdaLogGroupOrphanedPolicy(ctx.policyOptions),
       ),
   },
@@ -234,6 +265,7 @@ export const ALWAYS_ON_SCANNERS: ScannerRegistration<ScannerBuildContext>[] = [
           ctx.config.thresholds?.auroraMinAcuUtilizationPercent ?? 50,
         ),
         ctx.utilizationWindowHours,
+        ctx.credentials,
       ),
   },
   // Phase 6.3 (ADR-0065): SageMaker vertical. A model's own cost is $0; the
@@ -241,7 +273,12 @@ export const ALWAYS_ON_SCANNERS: ScannerRegistration<ScannerBuildContext>[] = [
   {
     kind: 'sagemaker-training-orphaned',
     create: (ctx) =>
-      new AwsSageMakerTrainingOrphanedScanner(ctx.pricing, ctx.accountId, new SageMakerTrainingOrphanedPolicy(ctx.policyOptions)),
+      new AwsSageMakerTrainingOrphanedScanner(
+        ctx.pricing,
+        ctx.accountId,
+        ctx.credentials,
+        new SageMakerTrainingOrphanedPolicy(ctx.policyOptions),
+      ),
   },
   // Phase 6.4 (ADR-0065): Dev/PR ghost environments. $0 hygiene flag (see
   // EnvironmentGhost), so always-on like sqs-dlq-abandoned/eni-orphaned.
@@ -251,6 +288,7 @@ export const ALWAYS_ON_SCANNERS: ScannerRegistration<ScannerBuildContext>[] = [
       const inactivityDays = ctx.config.environmentDetection?.inactivityDays ?? 7;
       return new AwsEnvironmentGhostScanner(
         ctx.accountId,
+        ctx.credentials,
         new EnvironmentGhostPolicy(ctx.policyOptions, inactivityDays),
         ctx.config.environmentDetection?.tagKeys,
         ctx.config.environmentDetection?.namingPatterns,
@@ -262,18 +300,20 @@ export const ALWAYS_ON_SCANNERS: ScannerRegistration<ScannerBuildContext>[] = [
   // pricing, so always-on (ADR-0037) — pairs with eks-node-overprovisioned above.
   {
     kind: 'eks-orphan-pvc',
-    create: (ctx) => new AwsEksOrphanPvcScanner(ctx.pricing, ctx.accountId, new EksOrphanPvcPolicy(ctx.policyOptions)),
+    create: (ctx) =>
+      new AwsEksOrphanPvcScanner(ctx.pricing, ctx.accountId, ctx.credentials, new EksOrphanPvcPolicy(ctx.policyOptions)),
   },
   // Added 2026-07-22: all fixed at-rest cost, always-on like the rest of
   // the EC2/S3/RDS scanners above.
   {
     kind: 'ami-unused',
-    create: (ctx) => new AwsAmiUnusedScanner(ctx.pricing, ctx.accountId, new AmiUnusedPolicy(ctx.policyOptions)),
+    create: (ctx) =>
+      new AwsAmiUnusedScanner(ctx.pricing, ctx.accountId, ctx.credentials, new AmiUnusedPolicy(ctx.policyOptions)),
   },
   {
     kind: 'ecr-image-untagged',
     create: (ctx) =>
-      new AwsEcrImageUntaggedScanner(ctx.pricing, ctx.accountId, new EcrImageUntaggedPolicy(ctx.policyOptions)),
+      new AwsEcrImageUntaggedScanner(ctx.pricing, ctx.accountId, ctx.credentials, new EcrImageUntaggedPolicy(ctx.policyOptions)),
   },
   {
     kind: 's3-multipart-upload-abandoned',
@@ -281,18 +321,29 @@ export const ALWAYS_ON_SCANNERS: ScannerRegistration<ScannerBuildContext>[] = [
       new AwsS3MultipartUploadAbandonedScanner(
         ctx.pricing,
         ctx.accountId,
+        ctx.credentials,
         new S3MultipartUploadAbandonedPolicy(ctx.policyOptions),
       ),
   },
   {
     kind: 'rds-manual-snapshot-old',
     create: (ctx) =>
-      new AwsRdsManualSnapshotOldScanner(ctx.pricing, ctx.accountId, new RdsManualSnapshotOldPolicy(ctx.policyOptions)),
+      new AwsRdsManualSnapshotOldScanner(
+        ctx.pricing,
+        ctx.accountId,
+        ctx.credentials,
+        new RdsManualSnapshotOldPolicy(ctx.policyOptions),
+      ),
   },
   {
     kind: 'secretsmanager-unused',
     create: (ctx) =>
-      new AwsSecretsManagerUnusedScanner(ctx.pricing, ctx.accountId, new SecretsManagerUnusedPolicy(ctx.policyOptions)),
+      new AwsSecretsManagerUnusedScanner(
+        ctx.pricing,
+        ctx.accountId,
+        ctx.credentials,
+        new SecretsManagerUnusedPolicy(ctx.policyOptions),
+      ),
   },
   // Added 2026-07-23: flat $1/mo-per-pipeline fixed cost (ADR-0037 criteria),
   // moved here from the dead-resources candidate list — see wasted-resource.ts.
@@ -302,6 +353,7 @@ export const ALWAYS_ON_SCANNERS: ScannerRegistration<ScannerBuildContext>[] = [
       new AwsCodepipelinePipelineStaleScanner(
         ctx.pricing,
         ctx.accountId,
+        ctx.credentials,
         new CodepipelinePipelineStalePolicy(ctx.policyOptions),
       ),
   },

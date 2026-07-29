@@ -92,6 +92,12 @@ export const REQUIRED_IAM_POLICY = {
         'cloudtrail:DescribeTrails',
         'ce:GetCostAndUsage',
         'sts:GetCallerIdentity',
+        // Only needed when scanning with --assume-role-arn: this grants the
+        // CALLING principal permission to assume a role elsewhere. The
+        // TARGET role (in the account being scanned) needs its own trust
+        // policy granting this principal — that trust relationship isn't
+        // expressible here, see docs/en/iam-permissions.md for a sample.
+        'sts:AssumeRole',
       ],
       Resource: '*',
     },

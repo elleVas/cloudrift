@@ -2,6 +2,7 @@
 import { RESOURCE_KINDS } from 'cloud-cost-domain';
 import type { PricingPort, ResourceKind, WastePolicyOptions, WasteScannerPort } from 'cloud-cost-domain';
 import type { AwsPricingApiAdapter } from 'cloud-cost-infrastructure-aws-adapter';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import type { CloudriftConfig } from '../config/cloudrift.config';
 import { ALWAYS_ON_SCANNERS } from './always-on-scanners';
 import { LIVE_PRICING_SCANNERS } from './live-pricing-scanners';
@@ -13,6 +14,8 @@ export { LIVE_PRICING_SCANNERS } from './live-pricing-scanners';
 export interface ScannerBuildContext {
   pricing: PricingPort;
   accountId: string;
+  /** Set only when scanning cross-account via --assume-role-arn; undefined uses the ambient credential chain. */
+  credentials?: AwsCredentialIdentityProvider;
   policyOptions: WastePolicyOptions;
   cloudwatchWindowHours: number;
   utilizationWindowHours: number;

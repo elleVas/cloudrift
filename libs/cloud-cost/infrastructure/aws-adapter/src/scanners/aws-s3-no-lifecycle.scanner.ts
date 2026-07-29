@@ -6,6 +6,7 @@ import {
   type Bucket,
 } from '@aws-sdk/client-s3';
 import { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { Result, createLogger } from 'shared-kernel';
 import type { AwsRegion, PricingPort, WasteScannerPort, WastedResource } from 'cloud-cost-domain';
 import { S3Bucket, S3NoLifecyclePolicy } from 'cloud-cost-domain';
@@ -31,16 +32,17 @@ export class AwsS3NoLifecycleScanner implements WasteScannerPort {
   constructor(
     private readonly pricing: PricingPort,
     private readonly accountId = 'unknown',
+    private readonly credentials?: AwsCredentialIdentityProvider,
     private readonly policy = new S3NoLifecyclePolicy(),
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
     const s3 = new S3Client({
-      ...createAwsClientConfig(),
+      ...createAwsClientConfig(this.credentials),
       region: region.code,
       forcePathStyle: !!process.env.AWS_ENDPOINT_URL,
     });
-    const cw = new CloudWatchClient({ ...createAwsClientConfig(), region: region.code });
+    const cw = new CloudWatchClient({ ...createAwsClientConfig(this.credentials), region: region.code });
     try {
       const allBuckets = await paginate<Bucket>(async (cursor) => {
         const r = await s3.send(

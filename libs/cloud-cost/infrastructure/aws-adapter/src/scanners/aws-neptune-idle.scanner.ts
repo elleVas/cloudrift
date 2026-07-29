@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { NeptuneClient, DescribeDBInstancesCommand, type DBInstance } from '@aws-sdk/client-neptune';
 import type { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { createLogger } from 'shared-kernel';
 import type { AwsRegion } from 'cloud-cost-domain';
 import { NeptuneInstance, NeptuneIdleInstancePolicy, type WastePolicy } from 'cloud-cost-domain';
@@ -27,12 +28,13 @@ export class AwsNeptuneIdleScanner extends CloudWatchIdleScanner<NeptuneClient, 
     private readonly accountId = 'unknown',
     policy: WastePolicy<NeptuneInstance> = new NeptuneIdleInstancePolicy(),
     windowHours = DEFAULT_LOOKBACK_HOURS,
+    credentials?: AwsCredentialIdentityProvider,
   ) {
-    super(policy, windowHours);
+    super(policy, windowHours, undefined, credentials);
   }
 
   protected createPrimaryClient(region: AwsRegion): NeptuneClient {
-    return new NeptuneClient({ ...createAwsClientConfig(), region: region.code });
+    return new NeptuneClient({ ...createAwsClientConfig(this.credentials), region: region.code });
   }
 
   protected destroyPrimaryClient(client: NeptuneClient): void {

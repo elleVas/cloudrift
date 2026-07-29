@@ -8,6 +8,7 @@ import {
   type ModelSummary,
   type EndpointConfigSummary,
 } from '@aws-sdk/client-sagemaker';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { Result, createLogger } from 'shared-kernel';
 import type { AwsRegion, PricingPort, WasteScannerPort, WastedResource } from 'cloud-cost-domain';
 import { SageMakerTrainingOrphaned, SageMakerTrainingOrphanedPolicy } from 'cloud-cost-domain';
@@ -44,11 +45,12 @@ export class AwsSageMakerTrainingOrphanedScanner implements WasteScannerPort {
   constructor(
     private readonly pricing: PricingPort,
     private readonly accountId = 'unknown',
+    private readonly credentials?: AwsCredentialIdentityProvider,
     private readonly policy = new SageMakerTrainingOrphanedPolicy(),
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
-    const client = new SageMakerClient({ ...createAwsClientConfig(), region: region.code });
+    const client = new SageMakerClient({ ...createAwsClientConfig(this.credentials), region: region.code });
     try {
       const [rawModels, rawConfigs] = await Promise.all([
         paginate<ModelSummary>(async (cursor) => {

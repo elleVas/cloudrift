@@ -10,6 +10,7 @@ import {
   type LaunchTemplate,
   type Reservation,
 } from '@aws-sdk/client-ec2';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { Result, createLogger } from 'shared-kernel';
 import type { AwsRegion, PricingPort, WasteScannerPort, WastedResource } from 'cloud-cost-domain';
 import { AmiUnused, AmiUnusedPolicy } from 'cloud-cost-domain';
@@ -32,11 +33,12 @@ export class AwsAmiUnusedScanner implements WasteScannerPort {
   constructor(
     private readonly pricing: PricingPort,
     private readonly accountId = 'unknown',
+    private readonly credentials?: AwsCredentialIdentityProvider,
     private readonly policy = new AmiUnusedPolicy(),
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
-    const client = new EC2Client({ ...createAwsClientConfig(), region: region.code });
+    const client = new EC2Client({ ...createAwsClientConfig(this.credentials), region: region.code });
     try {
       const [images, instances, templates] = await Promise.all([
         paginate<Image>(async (cursor) => {

@@ -3,6 +3,7 @@ import type { Result } from 'shared-kernel';
 import type { CostExplorerPort } from 'cost-analytics-domain';
 import { resolveAwsAccountId } from 'cloud-cost-infrastructure-aws-adapter';
 import { AwsCostExplorerAdapter, CachedCostExplorerAdapter } from 'cost-analytics-infrastructure-aws-adapter';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { loadConfig, type CloudriftConfig, type ConfigError } from '../config/cloudrift.config';
 
 /**
@@ -13,13 +14,13 @@ import { loadConfig, type CloudriftConfig, type ConfigError } from '../config/cl
  */
 export interface CostAnalyticsDeps {
   loadConfig(cwd: string, explicitPath?: string): Promise<Result<CloudriftConfig, ConfigError>>;
-  resolveAccountId(): Promise<string | undefined>;
-  createCostExplorer(accountId: string, refreshCache: boolean): CostExplorerPort;
+  resolveAccountId(credentials?: AwsCredentialIdentityProvider): Promise<string | undefined>;
+  createCostExplorer(accountId: string, refreshCache: boolean, credentials?: AwsCredentialIdentityProvider): CostExplorerPort;
 }
 
 export const defaultCostAnalyticsDeps: CostAnalyticsDeps = {
   loadConfig,
   resolveAccountId: resolveAwsAccountId,
-  createCostExplorer: (accountId, refreshCache) =>
-    new CachedCostExplorerAdapter(new AwsCostExplorerAdapter(), accountId, { refresh: refreshCache }),
+  createCostExplorer: (accountId, refreshCache, credentials) =>
+    new CachedCostExplorerAdapter(new AwsCostExplorerAdapter(credentials), accountId, { refresh: refreshCache }),
 };

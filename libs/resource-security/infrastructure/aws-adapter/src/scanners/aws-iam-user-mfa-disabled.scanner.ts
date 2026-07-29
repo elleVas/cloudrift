@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { IAMClient, ListUsersCommand, ListMFADevicesCommand, type User } from '@aws-sdk/client-iam';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { Result } from 'shared-kernel';
 import type { AwsRegion, ResourceSecurityScannerPort, SecurityFinding } from 'resource-security-domain';
 import { IamUserMfaDisabled, IamUserMfaDisabledPolicy } from 'resource-security-domain';
@@ -18,11 +19,12 @@ export class AwsIamUserMfaDisabledScanner implements ResourceSecurityScannerPort
 
   constructor(
     private readonly accountId = 'unknown',
+    private readonly credentials?: AwsCredentialIdentityProvider,
     private readonly policy = new IamUserMfaDisabledPolicy(),
   ) {}
 
   async scan(_region: AwsRegion): Promise<Result<SecurityFinding[]>> {
-    const client = new IAMClient({ ...createAwsClientConfig(), region: IAM_ENDPOINT_REGION });
+    const client = new IAMClient({ ...createAwsClientConfig(this.credentials), region: IAM_ENDPOINT_REGION });
     try {
       const rawUsers = await paginate<User>(async (cursor) => {
         const r = await client.send(new ListUsersCommand({ Marker: cursor }));

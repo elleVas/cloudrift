@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { EFSClient, DescribeFileSystemsCommand, type FileSystemDescription } from '@aws-sdk/client-efs';
 import type { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { createLogger } from 'shared-kernel';
 import type { AwsRegion, PricingPort } from 'cloud-cost-domain';
 import { EfsFileSystem, EfsUnusedPolicy, type WastePolicy } from 'cloud-cost-domain';
@@ -33,12 +34,13 @@ export class AwsEfsUnusedScanner extends CloudWatchIdleScanner<
     private readonly accountId = 'unknown',
     policy: WastePolicy<EfsFileSystem> = new EfsUnusedPolicy(),
     windowHours = DEFAULT_LOOKBACK_HOURS,
+    credentials?: AwsCredentialIdentityProvider,
   ) {
-    super(policy, windowHours);
+    super(policy, windowHours, undefined, credentials);
   }
 
   protected createPrimaryClient(region: AwsRegion): EFSClient {
-    return new EFSClient({ ...createAwsClientConfig(), region: region.code });
+    return new EFSClient({ ...createAwsClientConfig(this.credentials), region: region.code });
   }
 
   protected destroyPrimaryClient(client: EFSClient): void {

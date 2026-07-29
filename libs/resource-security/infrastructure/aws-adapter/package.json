@@ -38,6 +38,7 @@
     "@aws-sdk/client-iam": "^3.1095.0",
     "@aws-sdk/client-rds": "^3.1095.0",
     "@aws-sdk/client-s3": "^3.1095.0",
+    "@smithy/types": "^4.9.0",
     "resource-security-domain": "workspace:*",
     "shared-aws-infra-utils": "workspace:*",
     "shared-kernel": "workspace:*",

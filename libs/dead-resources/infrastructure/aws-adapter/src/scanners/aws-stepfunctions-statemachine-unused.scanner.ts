@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { SFNClient, ListStateMachinesCommand, ListExecutionsCommand, type StateMachineListItem } from '@aws-sdk/client-sfn';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { Result } from 'shared-kernel';
 import type { AwsRegion, DeadResourceScannerPort, DeadResource } from 'dead-resources-domain';
 import { StepfunctionsStatemachineUnused, StepfunctionsStatemachineUnusedPolicy } from 'dead-resources-domain';
@@ -23,11 +24,12 @@ export class AwsStepfunctionsStatemachineUnusedScanner implements DeadResourceSc
 
   constructor(
     private readonly accountId = 'unknown',
+    private readonly credentials?: AwsCredentialIdentityProvider,
     private readonly policy = new StepfunctionsStatemachineUnusedPolicy(),
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<DeadResource[]>> {
-    const client = new SFNClient({ ...createAwsClientConfig(), region: region.code });
+    const client = new SFNClient({ ...createAwsClientConfig(this.credentials), region: region.code });
     try {
       const rawMachines = await paginate<StateMachineListItem>(async (cursor) => {
         const r = await client.send(new ListStateMachinesCommand({ nextToken: cursor }));

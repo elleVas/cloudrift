@@ -6,6 +6,7 @@ import {
   type ImageDetail,
   type Repository,
 } from '@aws-sdk/client-ecr';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { Result, createLogger } from 'shared-kernel';
 import type { AwsRegion, PricingPort, WasteScannerPort, WastedResource } from 'cloud-cost-domain';
 import { EcrImageUntagged, EcrImageUntaggedPolicy } from 'cloud-cost-domain';
@@ -28,11 +29,12 @@ export class AwsEcrImageUntaggedScanner implements WasteScannerPort {
   constructor(
     private readonly pricing: PricingPort,
     private readonly accountId = 'unknown',
+    private readonly credentials?: AwsCredentialIdentityProvider,
     private readonly policy = new EcrImageUntaggedPolicy(),
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
-    const client = new ECRClient({ ...createAwsClientConfig(), region: region.code });
+    const client = new ECRClient({ ...createAwsClientConfig(this.credentials), region: region.code });
     try {
       const repositories = await paginate<Repository>(async (cursor) => {
         const r = await client.send(new DescribeRepositoriesCommand({ nextToken: cursor }));

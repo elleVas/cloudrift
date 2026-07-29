@@ -5,6 +5,7 @@ import {
   ListPipelineExecutionsCommand,
   type PipelineSummary,
 } from '@aws-sdk/client-codepipeline';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { Result } from 'shared-kernel';
 import type { AwsRegion, PricingPort, WasteScannerPort, WastedResource } from 'cloud-cost-domain';
 import { CodepipelinePipelineStale, CodepipelinePipelineStalePolicy } from 'cloud-cost-domain';
@@ -21,11 +22,12 @@ export class AwsCodepipelinePipelineStaleScanner implements WasteScannerPort {
   constructor(
     private readonly pricing: PricingPort,
     private readonly accountId = 'unknown',
+    private readonly credentials?: AwsCredentialIdentityProvider,
     private readonly policy = new CodepipelinePipelineStalePolicy(),
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
-    const client = new CodePipelineClient({ ...createAwsClientConfig(), region: region.code });
+    const client = new CodePipelineClient({ ...createAwsClientConfig(this.credentials), region: region.code });
     try {
       const rawPipelines = await paginate<PipelineSummary>(async (cursor) => {
         const r = await client.send(new ListPipelinesCommand({ nextToken: cursor }));

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { CostExplorerClient, GetCostAndUsageCommand, type ResultByTime } from '@aws-sdk/client-cost-explorer';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { Result } from 'shared-kernel';
 import type { CostByService, CostExplorerPort, CostPeriodBucket } from 'cost-analytics-domain';
 import { AwsAdapterError, createAwsClientConfig } from 'shared-aws-infra-utils';
@@ -14,12 +15,14 @@ const METRIC = 'UnblendedCost';
 const COST_EXPLORER_REGION = 'us-east-1';
 
 export class AwsCostExplorerAdapter implements CostExplorerPort {
+  constructor(private readonly credentials?: AwsCredentialIdentityProvider) {}
+
   async getCostAndUsage(params: {
     startDate: string;
     endDate: string;
     granularity: 'DAILY' | 'MONTHLY';
   }): Promise<Result<CostPeriodBucket[]>> {
-    const client = new CostExplorerClient({ ...createAwsClientConfig(), region: COST_EXPLORER_REGION });
+    const client = new CostExplorerClient({ ...createAwsClientConfig(this.credentials), region: COST_EXPLORER_REGION });
     try {
       const results: ResultByTime[] = [];
       let nextPageToken: string | undefined;

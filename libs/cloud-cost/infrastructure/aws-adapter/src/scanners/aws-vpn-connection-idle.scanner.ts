@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { EC2Client, DescribeVpnConnectionsCommand, type VpnConnection as SdkVpnConnection } from '@aws-sdk/client-ec2';
 import type { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { createLogger } from 'shared-kernel';
 import type { AwsRegion, PricingPort } from 'cloud-cost-domain';
 import { VpnConnection, VpnConnectionIdlePolicy, type WastePolicy } from 'cloud-cost-domain';
@@ -28,12 +29,13 @@ export class AwsVpnConnectionIdleScanner extends CloudWatchIdleScanner<EC2Client
     private readonly accountId = 'unknown',
     policy: WastePolicy<VpnConnection> = new VpnConnectionIdlePolicy(),
     windowHours = DEFAULT_LOOKBACK_HOURS,
+    credentials?: AwsCredentialIdentityProvider,
   ) {
-    super(policy, windowHours);
+    super(policy, windowHours, undefined, credentials);
   }
 
   protected createPrimaryClient(region: AwsRegion): EC2Client {
-    return new EC2Client({ ...createAwsClientConfig(), region: region.code });
+    return new EC2Client({ ...createAwsClientConfig(this.credentials), region: region.code });
   }
 
   protected destroyPrimaryClient(client: EC2Client): void {

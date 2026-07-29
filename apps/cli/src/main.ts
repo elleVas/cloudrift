@@ -30,6 +30,14 @@ program
     'AWS account ID override (auto-detected via STS when omitted)',
   )
   .option(
+    '--assume-role-arn <arn>',
+    'assume this IAM role via STS before scanning, for cross-account access',
+  )
+  .option(
+    '--external-id <id>',
+    'external ID to pass when assuming --assume-role-arn (only needed if the role trust policy requires one)',
+  )
+  .option(
     '--config <path>',
     'path to a cloudrift config file (defaults to cloudrift.config.json / .cloudriftrc in the cwd)',
   )
@@ -84,6 +92,11 @@ program
   .command('cost')
   .description('Compare current spend against the same period last month, broken down by service')
   .option('--account-id <id>', 'AWS account ID override (auto-detected via STS when omitted)')
+  .option('--assume-role-arn <arn>', 'assume this IAM role via STS before scanning, for cross-account access')
+  .option(
+    '--external-id <id>',
+    'external ID to pass when assuming --assume-role-arn (only needed if the role trust policy requires one)',
+  )
   .option(
     '--config <path>',
     'path to a cloudrift config file (defaults to cloudrift.config.json / .cloudriftrc in the cwd)',
@@ -106,6 +119,11 @@ program
   .command('trend')
   .description('Monthly spend over the last N months, optionally filtered to specific services')
   .option('--account-id <id>', 'AWS account ID override (auto-detected via STS when omitted)')
+  .option('--assume-role-arn <arn>', 'assume this IAM role via STS before scanning, for cross-account access')
+  .option(
+    '--external-id <id>',
+    'external ID to pass when assuming --assume-role-arn (only needed if the role trust policy requires one)',
+  )
   .option(
     '--config <path>',
     'path to a cloudrift config file (defaults to cloudrift.config.json / .cloudriftrc in the cwd)',
@@ -132,6 +150,11 @@ program
     ['us-east-1'],
   )
   .option('--account-id <id>', 'AWS account ID override (auto-detected via STS when omitted)')
+  .option('--assume-role-arn <arn>', 'assume this IAM role via STS before scanning, for cross-account access')
+  .option(
+    '--external-id <id>',
+    'external ID to pass when assuming --assume-role-arn (only needed if the role trust policy requires one)',
+  )
   .option(
     '--min-age-days <days>',
     'grace period: resources younger than this many days are not reported (default 7)',
@@ -167,6 +190,11 @@ program
     ['us-east-1'],
   )
   .option('--account-id <id>', 'AWS account ID override (auto-detected via STS when omitted)')
+  .option('--assume-role-arn <arn>', 'assume this IAM role via STS before scanning, for cross-account access')
+  .option(
+    '--external-id <id>',
+    'external ID to pass when assuming --assume-role-arn (only needed if the role trust policy requires one)',
+  )
   .option(
     '--ignore-tag <tag>',
     'resources carrying this tag are excluded from the report (default cloudrift:ignore)',

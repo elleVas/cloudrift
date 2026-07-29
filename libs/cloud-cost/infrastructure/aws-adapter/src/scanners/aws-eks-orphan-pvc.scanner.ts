@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { EC2Client, DescribeVolumesCommand, type Volume } from '@aws-sdk/client-ec2';
 import { EKSClient, ListClustersCommand } from '@aws-sdk/client-eks';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { Result, createLogger } from 'shared-kernel';
 import type { AwsRegion, PricingPort, WasteScannerPort, WastedResource } from 'cloud-cost-domain';
 import { EksOrphanPvc, EksOrphanPvcPolicy } from 'cloud-cost-domain';
@@ -34,12 +35,13 @@ export class AwsEksOrphanPvcScanner implements WasteScannerPort {
   constructor(
     private readonly pricing: PricingPort,
     private readonly accountId = 'unknown',
+    private readonly credentials?: AwsCredentialIdentityProvider,
     private readonly policy = new EksOrphanPvcPolicy(),
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<WastedResource[]>> {
-    const ec2 = new EC2Client({ ...createAwsClientConfig(), region: region.code });
-    const eks = new EKSClient({ ...createAwsClientConfig(), region: region.code });
+    const ec2 = new EC2Client({ ...createAwsClientConfig(this.credentials), region: region.code });
+    const eks = new EKSClient({ ...createAwsClientConfig(this.credentials), region: region.code });
     try {
       const [rawVolumes, clusterNames] = await Promise.all([
         paginate<Volume>(async (cursor) => {

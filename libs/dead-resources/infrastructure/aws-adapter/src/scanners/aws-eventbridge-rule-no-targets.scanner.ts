@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { EventBridgeClient, ListRulesCommand, ListTargetsByRuleCommand, type Rule } from '@aws-sdk/client-eventbridge';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { Result } from 'shared-kernel';
 import type { AwsRegion, DeadResourceScannerPort, DeadResource } from 'dead-resources-domain';
 import { EventbridgeRuleNoTargets, EventbridgeRuleNoTargetsPolicy } from 'dead-resources-domain';
@@ -23,11 +24,12 @@ export class AwsEventbridgeRuleNoTargetsScanner implements DeadResourceScannerPo
 
   constructor(
     private readonly accountId = 'unknown',
+    private readonly credentials?: AwsCredentialIdentityProvider,
     private readonly policy = new EventbridgeRuleNoTargetsPolicy(),
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<DeadResource[]>> {
-    const client = new EventBridgeClient({ ...createAwsClientConfig(), region: region.code });
+    const client = new EventBridgeClient({ ...createAwsClientConfig(this.credentials), region: region.code });
     try {
       const rawRules = await paginate<Rule>(async (cursor) => {
         const r = await client.send(new ListRulesCommand({ NextToken: cursor }));

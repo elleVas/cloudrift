@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { CloudWatchClient, DescribeAlarmsCommand, type MetricAlarm } from '@aws-sdk/client-cloudwatch';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { Result } from 'shared-kernel';
 import type { AwsRegion, DeadResourceScannerPort, DeadResource } from 'dead-resources-domain';
 import { CloudwatchAlarmOrphaned, CloudwatchAlarmOrphanedPolicy } from 'dead-resources-domain';
@@ -21,11 +22,12 @@ export class AwsCloudwatchAlarmOrphanedScanner implements DeadResourceScannerPor
 
   constructor(
     private readonly accountId = 'unknown',
+    private readonly credentials?: AwsCredentialIdentityProvider,
     private readonly policy = new CloudwatchAlarmOrphanedPolicy(),
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<DeadResource[]>> {
-    const client = new CloudWatchClient({ ...createAwsClientConfig(), region: region.code });
+    const client = new CloudWatchClient({ ...createAwsClientConfig(this.credentials), region: region.code });
     try {
       const rawAlarms = await paginate<MetricAlarm>(async (cursor) => {
         const r = await client.send(new DescribeAlarmsCommand({ StateValue: 'INSUFFICIENT_DATA', NextToken: cursor }));

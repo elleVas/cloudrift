@@ -61,6 +61,7 @@
     "@aws-sdk/client-sqs": "~3.1095.0",
     "@aws-sdk/client-sts": "^3.1095.0",
     "@aws-sdk/client-workspaces": "^3.1095.0",
+    "@smithy/types": "^4.9.0",
     "cloud-cost-domain": "workspace:*",
     "shared-aws-infra-utils": "workspace:*",
     "shared-kernel": "workspace:*",

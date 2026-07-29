@@ -200,19 +200,24 @@ const ACCOUNT = '000000000000';
 const region = AwsRegion.create('us-east-1');
 
 /** Mirrors the registry's wiring (thresholds included), one factory per kind. */
+// Rule of thumb for the `undefined` slots below (the new `credentials?`
+// param added for --assume-role-arn, see assumeRole()/createAwsClientConfig):
+// "flat" scanners take it right after `accountId` (before `policy`);
+// `CloudWatchIdleScanner` subclasses take it as their own LAST param
+// (forwarded to the base class), so their existing calls are unaffected.
 const scannerFactories: Record<ResourceKind, () => WasteScannerPort> = {
-  'ebs-volume': () => new AwsEbsVolumeScanner(pricing, ACCOUNT, new EbsVolumeWastePolicy(po)),
-  'elastic-ip': () => new AwsElasticIpScanner(pricing, ACCOUNT, new ElasticIpWastePolicy(po)),
-  'rds-instance': () => new AwsRdsInstanceScanner(pricing, ACCOUNT, new RdsInstanceWastePolicy(po)),
-  'load-balancer': () => new AwsLoadBalancerScanner(pricing, ACCOUNT, new LoadBalancerWastePolicy(po)),
-  'ec2-instance': () => new AwsEc2InstanceScanner(pricing, ACCOUNT, new Ec2InstanceWastePolicy(po)),
-  'ebs-snapshot': () => new AwsEbsSnapshotScanner(pricing, ACCOUNT, new EbsSnapshotWastePolicy(po)),
+  'ebs-volume': () => new AwsEbsVolumeScanner(pricing, ACCOUNT, undefined, new EbsVolumeWastePolicy(po)),
+  'elastic-ip': () => new AwsElasticIpScanner(pricing, ACCOUNT, undefined, new ElasticIpWastePolicy(po)),
+  'rds-instance': () => new AwsRdsInstanceScanner(pricing, ACCOUNT, undefined, new RdsInstanceWastePolicy(po)),
+  'load-balancer': () => new AwsLoadBalancerScanner(pricing, ACCOUNT, undefined, new LoadBalancerWastePolicy(po)),
+  'ec2-instance': () => new AwsEc2InstanceScanner(pricing, ACCOUNT, undefined, new Ec2InstanceWastePolicy(po)),
+  'ebs-snapshot': () => new AwsEbsSnapshotScanner(pricing, ACCOUNT, undefined, new EbsSnapshotWastePolicy(po)),
   'nat-gateway': () => new AwsNatGatewayScanner(pricing, ACCOUNT, new NatGatewayWastePolicy(po)),
-  'ebs-gp2-upgrade': () => new AwsGp2UpgradeScanner(pricing, ACCOUNT, new EbsGp2UpgradePolicy(po)),
+  'ebs-gp2-upgrade': () => new AwsGp2UpgradeScanner(pricing, ACCOUNT, undefined, new EbsGp2UpgradePolicy(po)),
   'ebs-idle': () => new AwsEbsIdleScanner(pricing, ACCOUNT, new EbsIdlePolicy(po, 0)),
-  'log-group': () => new AwsLogGroupScanner(pricing, ACCOUNT, new LogGroupWastePolicy(po)),
-  'eni-orphaned': () => new AwsEniOrphanedScanner(ACCOUNT, new OrphanedEniWastePolicy(po)),
-  's3-no-lifecycle': () => new AwsS3NoLifecycleScanner(pricing, ACCOUNT, new S3NoLifecyclePolicy(po)),
+  'log-group': () => new AwsLogGroupScanner(pricing, ACCOUNT, undefined, new LogGroupWastePolicy(po)),
+  'eni-orphaned': () => new AwsEniOrphanedScanner(ACCOUNT, undefined, new OrphanedEniWastePolicy(po)),
+  's3-no-lifecycle': () => new AwsS3NoLifecycleScanner(pricing, ACCOUNT, undefined, new S3NoLifecyclePolicy(po)),
   'lambda-underutilized': () => new AwsLambdaUnderutilizedScanner(ACCOUNT, new LambdaUnderutilizedPolicy(po, 0)),
   'efs-unused': () => new AwsEfsUnusedScanner(pricing, ACCOUNT, new EfsUnusedPolicy(po, 0)),
   'dynamodb-overprovisioned': () =>
@@ -225,7 +230,7 @@ const scannerFactories: Record<ResourceKind, () => WasteScannerPort> = {
     new AwsKinesisIdleScanner(pricing, ACCOUNT, new KinesisProvisionedIdleStreamPolicy(po)),
   'sqs-dlq-abandoned': () => new AwsSqsDlqAbandonedScanner(ACCOUNT, new SqsDlqAbandonedWastePolicy(po)),
   'lambda-loggroup-orphaned': () =>
-    new AwsLambdaLogGroupOrphanedScanner(pricing, ACCOUNT, new LambdaLogGroupOrphanedPolicy(po)),
+    new AwsLambdaLogGroupOrphanedScanner(pricing, ACCOUNT, undefined, new LambdaLogGroupOrphanedPolicy(po)),
   'aurora-serverless-overprovisioned': () =>
     new AwsAuroraServerlessIdleScanner(pricing, ACCOUNT, new AuroraServerlessOverprovisionedPolicy(po, 50)),
   'ec2-underutilized': () => new AwsEc2UnderutilizedScanner(livePrices, ACCOUNT, new Ec2UnderutilizedPolicy(po, 5)),
@@ -238,28 +243,28 @@ const scannerFactories: Record<ResourceKind, () => WasteScannerPort> = {
     new AwsDocumentDbIdleScanner(livePrices, ACCOUNT, new DocumentDbIdleInstancePolicy(po)),
   'neptune-idle-instance': () => new AwsNeptuneIdleScanner(livePrices, ACCOUNT, new NeptuneIdleInstancePolicy(po)),
   'mq-idle-broker': () => new AwsMqIdleScanner(livePrices, ACCOUNT, new MqIdleBrokerPolicy(po)),
-  'workspaces-idle': () => new AwsWorkspacesIdleScanner(livePrices, ACCOUNT, new WorkspacesIdlePolicy(po)),
+  'workspaces-idle': () => new AwsWorkspacesIdleScanner(livePrices, ACCOUNT, undefined, new WorkspacesIdlePolicy(po)),
   'sagemaker-notebook-idle': () =>
     new AwsSageMakerNotebookIdleScanner(livePrices, ACCOUNT, new SageMakerNotebookIdlePolicy(po, 2)),
   'sagemaker-endpoint-idle': () =>
     new AwsSageMakerEndpointIdleScanner(livePrices, ACCOUNT, new SageMakerEndpointIdlePolicy(po)),
   'sagemaker-training-orphaned': () =>
-    new AwsSageMakerTrainingOrphanedScanner(pricing, ACCOUNT, new SageMakerTrainingOrphanedPolicy(po)),
+    new AwsSageMakerTrainingOrphanedScanner(pricing, ACCOUNT, undefined, new SageMakerTrainingOrphanedPolicy(po)),
   'environment-ghost': () =>
-    new AwsEnvironmentGhostScanner(ACCOUNT, new EnvironmentGhostPolicy(po, 7), undefined, undefined, 7),
+    new AwsEnvironmentGhostScanner(ACCOUNT, undefined, new EnvironmentGhostPolicy(po, 7), undefined, undefined, 7),
   'eks-node-overprovisioned': () =>
     new AwsEksNodeOverprovisionedScanner(livePrices, ACCOUNT, new EksNodeOverprovisionedPolicy(po, 30)),
-  'eks-orphan-pvc': () => new AwsEksOrphanPvcScanner(pricing, ACCOUNT, new EksOrphanPvcPolicy(po)),
-  'ami-unused': () => new AwsAmiUnusedScanner(pricing, ACCOUNT, new AmiUnusedPolicy(po)),
-  'ecr-image-untagged': () => new AwsEcrImageUntaggedScanner(pricing, ACCOUNT, new EcrImageUntaggedPolicy(po)),
+  'eks-orphan-pvc': () => new AwsEksOrphanPvcScanner(pricing, ACCOUNT, undefined, new EksOrphanPvcPolicy(po)),
+  'ami-unused': () => new AwsAmiUnusedScanner(pricing, ACCOUNT, undefined, new AmiUnusedPolicy(po)),
+  'ecr-image-untagged': () => new AwsEcrImageUntaggedScanner(pricing, ACCOUNT, undefined, new EcrImageUntaggedPolicy(po)),
   's3-multipart-upload-abandoned': () =>
-    new AwsS3MultipartUploadAbandonedScanner(pricing, ACCOUNT, new S3MultipartUploadAbandonedPolicy(po)),
+    new AwsS3MultipartUploadAbandonedScanner(pricing, ACCOUNT, undefined, new S3MultipartUploadAbandonedPolicy(po)),
   'rds-manual-snapshot-old': () =>
-    new AwsRdsManualSnapshotOldScanner(pricing, ACCOUNT, new RdsManualSnapshotOldPolicy(po)),
+    new AwsRdsManualSnapshotOldScanner(pricing, ACCOUNT, undefined, new RdsManualSnapshotOldPolicy(po)),
   'secretsmanager-unused': () =>
-    new AwsSecretsManagerUnusedScanner(pricing, ACCOUNT, new SecretsManagerUnusedPolicy(po)),
+    new AwsSecretsManagerUnusedScanner(pricing, ACCOUNT, undefined, new SecretsManagerUnusedPolicy(po)),
   'codepipeline-pipeline-stale': () =>
-    new AwsCodepipelinePipelineStaleScanner(pricing, ACCOUNT, new CodepipelinePipelineStalePolicy(po)),
+    new AwsCodepipelinePipelineStaleScanner(pricing, ACCOUNT, undefined, new CodepipelinePipelineStalePolicy(po)),
 };
 
 const byId = (a: { id: string }, b: { id: string }) => a.id.localeCompare(b.id);

@@ -5,6 +5,7 @@ import {
   type NatGateway as AwsNatGateway,
 } from '@aws-sdk/client-ec2';
 import type { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { createLogger } from 'shared-kernel';
 import type { AwsRegion, PricingPort } from 'cloud-cost-domain';
 import { NatGateway, NatGatewayWastePolicy, type WastePolicy } from 'cloud-cost-domain';
@@ -27,12 +28,13 @@ export class AwsNatGatewayScanner extends CloudWatchIdleScanner<EC2Client, NatGa
     private readonly accountId = 'unknown',
     policy: WastePolicy<NatGateway> = new NatGatewayWastePolicy(),
     windowHours = DEFAULT_LOOKBACK_HOURS,
+    credentials?: AwsCredentialIdentityProvider,
   ) {
-    super(policy, windowHours);
+    super(policy, windowHours, undefined, credentials);
   }
 
   protected createPrimaryClient(region: AwsRegion): EC2Client {
-    return new EC2Client({ ...createAwsClientConfig(), region: region.code });
+    return new EC2Client({ ...createAwsClientConfig(this.credentials), region: region.code });
   }
 
   protected destroyPrimaryClient(client: EC2Client): void {

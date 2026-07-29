@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { EC2Client, DescribeSnapshotsCommand, DescribeSnapshotAttributeCommand, type Snapshot } from '@aws-sdk/client-ec2';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { Result } from 'shared-kernel';
 import type { AwsRegion, ResourceSecurityScannerPort, SecurityFinding } from 'resource-security-domain';
 import { Ec2SnapshotPublic, Ec2SnapshotPublicPolicy } from 'resource-security-domain';
@@ -17,11 +18,12 @@ export class AwsEc2SnapshotPublicScanner implements ResourceSecurityScannerPort 
 
   constructor(
     private readonly accountId = 'unknown',
+    private readonly credentials?: AwsCredentialIdentityProvider,
     private readonly policy = new Ec2SnapshotPublicPolicy(),
   ) {}
 
   async scan(region: AwsRegion): Promise<Result<SecurityFinding[]>> {
-    const client = new EC2Client({ ...createAwsClientConfig(), region: region.code });
+    const client = new EC2Client({ ...createAwsClientConfig(this.credentials), region: region.code });
     try {
       const rawSnapshots = await paginate<Snapshot>(async (cursor) => {
         const r = await client.send(new DescribeSnapshotsCommand({ OwnerIds: ['self'], NextToken: cursor }));

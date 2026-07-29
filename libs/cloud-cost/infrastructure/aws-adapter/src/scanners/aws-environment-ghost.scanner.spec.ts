@@ -53,6 +53,7 @@ const OLD_TRANSITION = 'User initiated (2020-01-15 08:00:00 GMT)';
 function scanner(inactivityDays = 0, tagKeys = ['Environment']) {
   return new AwsEnvironmentGhostScanner(
     '000000000000',
+    undefined,
     new EnvironmentGhostPolicy({}, inactivityDays),
     tagKeys,
     undefined,
