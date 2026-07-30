@@ -223,6 +223,14 @@ if (!parsed.ok) return fail(parsed.error.message); // clean message, exit 1, no 
 
 ---
 
+## `node:sqlite` for the local trend store
+
+**Choice:** Node's built-in `node:sqlite` module (`DatabaseSync`), not `better-sqlite3` or `sql.js`, for `history`'s per-account trend store.
+
+**Why:** the repo's dev/CI Node version is already pinned to 24 (`.nvmrc`), and a native `node-gyp` addon (`better-sqlite3`) would reintroduce exactly the cross-platform prebuilt-binary complexity the Homebrew bottle pipeline and npm/GH Marketplace distribution already have to account for — `node:sqlite` needs none of that. `sql.js` (wasm) avoids native binaries too, but is in-memory-first: every write means loading/serializing the whole DB buffer, awkward for a store meant to grow indefinitely. One consequence: `apps/cli`'s published `engines.node` is `>=20`, but `node:sqlite` needs Node ≥22.5 — a static import would crash the whole CLI for anyone on Node 20/21, so `shared-trend-store` loads it via a lazy `await import('node:sqlite')`, always inside the same best-effort try/catch that guards every write. See [ADR-0099](../adr/0099-local-trend-store.md).
+
+---
+
 ## jimp for the brand-mark generation pipeline
 
 **Choice:** `jimp`, a devDependency used only by three offline codegen scripts (`scripts/generate-brand-mark-icon.mjs`, `generate-brand-mark-title.mjs`, and indirectly related `generate-pdf-logo-data.mjs`, which is jimp-free) — never imported by CLI runtime code, never shipped in the published bundle.

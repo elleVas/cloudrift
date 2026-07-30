@@ -14,6 +14,7 @@ import { defaultDeadResourcesDeps, type DeadResourcesDeps } from './dead-resourc
 import { reportCliError as fail } from './report-cli-error';
 import { OUTPUT_FORMATS, isOutputFormat } from '../output-format';
 import { resolveCredentials } from './resolve-options';
+import { persistTrendSnapshot } from 'shared-trend-store';
 
 export type { DeadResourcesDeps };
 
@@ -157,4 +158,10 @@ export async function deadResourcesCommand(
     await generateDeadResourcesReportPdf(result.value, meta, outputPath);
     info(chalk.green(`  PDF report saved to ${outputPath}`));
   }
+
+  await persistTrendSnapshot(accountId, {
+    domain: 'dead-resources',
+    generatedAt: meta.generatedAt.toISOString(),
+    payload: formatDeadResourcesReportAsJson(result.value, meta),
+  });
 }

@@ -39,6 +39,7 @@ See [docs/en/usage.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/us
 - [Quick Start](#quick-start)
 - [What it detects](#what-it-detects)
 - [Spend comparison and trend](#spend-comparison-and-trend-cost--trend)
+- [Local scan history](#local-scan-history-history)
 - [Documentation](#documentation)
 - [License](#license)
 
@@ -269,6 +270,19 @@ cloudrift resource-security --scanners iam-root-mfa-disabled    # only one check
 | **CloudTrail (no multi-region trail)** | No trail with multi-region logging | warning |
 
 **IAM, S3 (bucket listing), and CloudTrail are global for this command**: those eight checks run once per scan regardless of how many `--regions` you pass, never once per region — the other six checks are genuinely regional. `--format json`/`csv`/`--pdf` for machine-readable/shareable output, no `--min-age-days` (a security misconfiguration is a risk from the moment it exists). See [docs/en/usage.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/usage.md#resource-security--security-posture-scan) for the full flag reference.
+
+---
+
+### Local scan history (`history`)
+
+`analyze`, `dead-resources`, and `resource-security` each append a full snapshot of their own report to a local per-account SQLite file (`~/.cloudrift/trends/<account-id>.db`) every time they run — best-effort, never blocking the scan, never uploaded anywhere. `history` reads it back:
+
+```sh
+cloudrift history                              # every snapshot on record, most recent first
+cloudrift history --domain cloud-cost --limit 10
+```
+
+See [ADR-0099](https://github.com/elleVas/cloudrift/blob/main/docs/adr/0099-local-trend-store.md) and [docs/en/usage.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/usage.md#history--local-scan-history) for the full flag reference.
 
 ---
 

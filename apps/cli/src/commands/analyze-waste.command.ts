@@ -21,6 +21,7 @@ import {
 import { resolveMinAgeDays, resolveExplicitScanners, resolveRegions, resolveCredentials } from './resolve-options';
 import { writeArtifacts, applyCostGate } from './post-analysis';
 import { reportCliError as fail } from './report-cli-error';
+import { persistTrendSnapshot } from 'shared-trend-store';
 
 export type { AnalyzeDeps };
 
@@ -198,5 +199,10 @@ export async function analyzeWasteCommand(
   }
 
   await writeArtifacts(result.value, meta, options, info);
+  await persistTrendSnapshot(accountId, {
+    domain: 'cloud-cost',
+    generatedAt: meta.generatedAt.toISOString(),
+    payload: formatWasteReportAsJson(result.value, meta),
+  });
   applyCostGate(result.value, config);
 }

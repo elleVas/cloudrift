@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
-export type WizardMode = 'waste' | 'cost' | 'trend' | 'dead-resources' | 'resource-security' | 'terraform';
+export type WizardMode = 'waste' | 'cost' | 'trend' | 'dead-resources' | 'resource-security' | 'history' | 'terraform';
 
 /**
  * Top-level "what do you want to do" choice — the entry point for the
  * wizard shown when `cloudrift` is run with no subcommand. Explicit
  * subcommands (`cloudrift analyze`/`cost`/`trend`/`dead-resources`/
- * `resource-security`, with flags) are unaffected and keep working exactly
- * as before for CI/scripts.
+ * `resource-security`/`history`, with flags) are unaffected and keep working
+ * exactly as before for CI/scripts.
  *
  * `terraform` is the odd one out: it doesn't call a command function in
  * this package at all, it hands off to the separate, proprietary
@@ -43,6 +43,11 @@ export async function promptMode(): Promise<WizardMode | undefined> {
         value: 'resource-security',
         label: 'Scan for security-posture risks',
         hint: 'free — IAM/MFA, open ingress, public storage, encryption, audit',
+      },
+      {
+        value: 'history',
+        label: 'View local scan history',
+        hint: 'free — reads ~/.cloudrift/trends, no AWS calls except account ID resolution',
       },
       {
         value: 'terraform',

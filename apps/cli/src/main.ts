@@ -8,6 +8,7 @@ import { deadResourcesCommand } from './commands/dead-resources.command';
 import { resourceSecurityCommand } from './commands/resource-security.command';
 import { mcpCommand } from './commands/mcp.command';
 import { iamPolicyCommand } from './commands/iam-policy.command';
+import { historyCommand } from './commands/history.command';
 import { runEntryWizard } from './wizard/entry.wizard';
 import { isInteractiveTty } from './wizard/tty';
 import { cliVersion } from './cli-version';
@@ -214,6 +215,20 @@ program
   )
   .option('--silent', 'suppress all stdout output (banner, report). Errors still surface.')
   .action((options) => resourceSecurityCommand(options));
+
+program
+  .command('history')
+  .description('Show the local scan history built up by analyze/dead-resources/resource-security (never uploaded anywhere)')
+  .option('--account-id <id>', 'AWS account ID override (auto-detected via STS when omitted)')
+  .option('--assume-role-arn <arn>', 'assume this IAM role via STS before resolving the account ID, for cross-account access')
+  .option(
+    '--external-id <id>',
+    'external ID to pass when assuming --assume-role-arn (only needed if the role trust policy requires one)',
+  )
+  .option('--domain <domain>', 'only show snapshots from this domain: cloud-cost, dead-resources, or resource-security')
+  .option('--limit <n>', 'max snapshots to show, most recent first (default 100)')
+  .option('--format <format>', 'stdout output format: table (default) or json', 'table')
+  .action((options) => historyCommand(options));
 
 program
   .command('mcp')

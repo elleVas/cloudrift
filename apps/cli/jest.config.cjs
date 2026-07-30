@@ -22,6 +22,8 @@ module.exports = {
     '^shared-aws-infra-utils/(.*)$': '<rootDir>/../../libs/shared/aws-infra-utils/src/$1',
     '^shared-scan-coordination$': '<rootDir>/../../libs/shared/scan-coordination/src/index.ts',
     '^shared-scan-coordination/(.*)$': '<rootDir>/../../libs/shared/scan-coordination/src/$1',
+    '^shared-trend-store$': '<rootDir>/../../libs/shared/trend-store/src/index.ts',
+    '^shared-trend-store/(.*)$': '<rootDir>/../../libs/shared/trend-store/src/$1',
     '^cloud-cost-domain$': '<rootDir>/../../libs/cloud-cost/domain/src/index.ts',
     '^cloud-cost-domain/(.*)$': '<rootDir>/../../libs/cloud-cost/domain/src/$1',
     '^cloud-cost-pricing$': '<rootDir>/../../libs/shared/cloud-cost-pricing/src/index.ts',

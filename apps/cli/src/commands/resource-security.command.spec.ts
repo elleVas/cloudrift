@@ -5,8 +5,13 @@ import { join } from 'path';
 import { Result } from 'shared-kernel';
 import { IamRootMfaDisabled } from 'resource-security-domain';
 import type { ResourceSecuritySummary, FindResourceSecurityFindingsUseCasePort } from 'resource-security-domain';
+import { persistTrendSnapshot } from 'shared-trend-store';
 import { resourceSecurityCommand, type ResourceSecurityCommandOptions } from './resource-security.command';
 import type { ResourceSecurityDeps, ResourceSecurityAnalysisContext } from './resource-security.composition';
+
+// The real implementation writes to `~/.cloudrift/trends/<account-id>.db` —
+// never touch the developer's actual home directory from a test.
+jest.mock('shared-trend-store', () => ({ persistTrendSnapshot: jest.fn().mockResolvedValue(undefined) }));
 
 function makeFinding(accountId: string): IamRootMfaDisabled {
   return new IamRootMfaDisabled({ accountId, mfaEnabled: false, detectedAt: new Date('2026-07-23'), tags: {} });
@@ -86,6 +91,24 @@ describe('resourceSecurityCommand (CLI end-to-end)', () => {
     );
     expect(stdout).toContain('123456789012');
     expect(stdout).toContain('1 critical, 0 warning, 0 info');
+  });
+
+  it('persists a trend snapshot after the scan, keyed by the resolved account ID', async () => {
+    await run(
+      { format: 'table', accountId: '111122223333' },
+      makeDeps({
+        summary: {
+          findings: [makeFinding('123456789012')],
+          countBySeverity: { info: 0, warning: 0, critical: 1 },
+          scanErrors: [],
+        },
+      }),
+    );
+
+    expect(persistTrendSnapshot).toHaveBeenCalledWith(
+      '111122223333',
+      expect.objectContaining({ domain: 'resource-security', generatedAt: expect.any(String), payload: expect.any(String) }),
+    );
   });
 
   it('json format: stdout is pure parseable JSON', async () => {

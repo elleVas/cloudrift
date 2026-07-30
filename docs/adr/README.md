@@ -27,6 +27,12 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 | [0083](0083-dedicated-mcp-client-config-doc.md) | Dedicated MCP client-configuration doc, with Claude Code added | Accepted |
 | [0089](0089-empty-packages-directory-removed.md) | Empty `packages/` directory removed | Accepted |
 
+## Historical trends
+
+| ADR | Title | Status |
+|---|---|---|
+| [0099](0099-local-trend-store.md) | Local historical trend store (SQLite, per-account, full snapshot forever) | Accepted |
+
 ## Cost analytics (`cost` / `trend`)
 
 | ADR | Title | Status |
