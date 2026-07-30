@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-export type WizardMode = 'waste' | 'cost' | 'trend' | 'dead-resources' | 'resource-security';
+export type WizardMode = 'waste' | 'cost' | 'trend' | 'dead-resources' | 'resource-security' | 'terraform';
 
 /**
  * Top-level "what do you want to do" choice — the entry point for the
@@ -8,6 +8,12 @@ export type WizardMode = 'waste' | 'cost' | 'trend' | 'dead-resources' | 'resour
  * subcommands (`cloudrift analyze`/`cost`/`trend`/`dead-resources`/
  * `resource-security`, with flags) are unaffected and keep working exactly
  * as before for CI/scripts.
+ *
+ * `terraform` is the odd one out: it doesn't call a command function in
+ * this package at all, it hands off to the separate, proprietary
+ * `cloudrift-iac-detector` binary (see ADR-0097 and
+ * `terraform-handoff.wizard.ts`) — the only mode here that can be missing
+ * from the user's machine entirely.
  *
  * Returns `undefined` if the user cancels (Ctrl+C).
  */
@@ -37,6 +43,11 @@ export async function promptMode(): Promise<WizardMode | undefined> {
         value: 'resource-security',
         label: 'Scan for security-posture risks',
         hint: 'free — IAM/MFA, open ingress, public storage, encryption, audit',
+      },
+      {
+        value: 'terraform',
+        label: 'Terraform source analysis',
+        hint: 'Pro — separate cloudrift-iac-detector package: orphans, duplicates, dead code, auto-fix',
       },
     ],
   });
