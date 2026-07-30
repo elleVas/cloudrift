@@ -53,6 +53,9 @@
     },
     {
       "path": "./libs/shared/scan-coordination"
+    },
+    {
+      "path": "./libs/shared/cloud-cost-pricing"
     }
   ]
 }

@@ -63,6 +63,7 @@
     "@aws-sdk/client-workspaces": "^3.1095.0",
     "@smithy/types": "^4.9.0",
     "cloud-cost-domain": "workspace:*",
+    "cloud-cost-pricing": "workspace:*",
     "shared-aws-infra-utils": "workspace:*",
     "shared-kernel": "workspace:*",
     "tslib": "^2.8.1"

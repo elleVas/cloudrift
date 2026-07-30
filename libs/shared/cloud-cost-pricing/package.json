@@ -1,0 +1,77 @@
+{
+  "name": "cloud-cost-pricing",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@cloudrift/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "nx": {
+    "tags": [
+      "scope:shared"
+    ],
+    "targets": {
+      "test": {
+        "executor": "@nx/jest:jest",
+        "outputs": [
+          "{workspaceRoot}/coverage/{projectRoot}"
+        ],
+        "options": {
+          "jestConfig": "libs/shared/cloud-cost-pricing/jest.config.cjs",
+          "passWithNoTests": true
+        }
+      },
+      "build-pkg": {
+        "executor": "@nx/esbuild:esbuild",
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "options": {
+          "platform": "node",
+          "outputPath": "libs/shared/cloud-cost-pricing/dist-pkg",
+          "format": [
+            "esm"
+          ],
+          "bundle": true,
+          "thirdParty": false,
+          "declaration": true,
+          "declarationRootDir": "libs/shared/cloud-cost-pricing/src",
+          "main": "libs/shared/cloud-cost-pricing/src/index.ts",
+          "tsConfig": "libs/shared/cloud-cost-pricing/tsconfig.lib.json",
+          "esbuildOptions": {
+            "sourcemap": false,
+            "outExtension": {
+              ".js": ".js"
+            }
+          }
+        }
+      },
+      "publish-pkg": {
+        "dependsOn": [
+          "build-pkg"
+        ],
+        "cache": true,
+        "outputs": [
+          "{projectRoot}/dist-pkg/package.json"
+        ],
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "node libs/shared/cloud-cost-pricing/scripts/make-publish-package.mjs"
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "shared-kernel": "workspace:*",
+    "tslib": "^2.8.1"
+  }
+}

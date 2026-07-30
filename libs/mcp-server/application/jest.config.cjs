@@ -20,6 +20,8 @@ module.exports = {
     '^shared-kernel/(.*)$': '<rootDir>/../../shared/kernel/src/$1',
     '^cloud-cost-domain$': '<rootDir>/../../cloud-cost/domain/src/index.ts',
     '^cloud-cost-domain/(.*)$': '<rootDir>/../../cloud-cost/domain/src/$1',
+    '^cloud-cost-pricing$': '<rootDir>/../../shared/cloud-cost-pricing/src/index.ts',
+    '^cloud-cost-pricing/(.*)$': '<rootDir>/../../shared/cloud-cost-pricing/src/$1',
     '^cost-analytics-domain$': '<rootDir>/../../cost-analytics/domain/src/index.ts',
     '^cost-analytics-domain/(.*)$': '<rootDir>/../../cost-analytics/domain/src/$1',
     '^dead-resources-domain$': '<rootDir>/../../dead-resources/domain/src/index.ts',

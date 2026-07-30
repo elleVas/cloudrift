@@ -6,16 +6,14 @@
     "tsBuildInfoFile": "dist/tsconfig.lib.tsbuildinfo",
     "emitDeclarationOnly": false,
     "forceConsistentCasingInFileNames": true,
-    "types": ["node"]
+    "types": ["node"],
+    "resolveJsonModule": true
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "src/**/*.json"],
   "exclude": ["src/**/*.spec.ts", "src/**/*.test.ts"],
   "references": [
     {
-      "path": "../../shared/kernel/tsconfig.lib.json"
-    },
-    {
-      "path": "../../shared/cloud-cost-pricing/tsconfig.lib.json"
+      "path": "../kernel/tsconfig.lib.json"
     }
   ]
 }

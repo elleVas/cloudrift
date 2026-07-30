@@ -24,6 +24,8 @@ module.exports = {
     // that source also needs to resolve here.
     '^cloud-cost-domain$': '<rootDir>/../../../cloud-cost/domain/src/index.ts',
     '^cloud-cost-domain/(.*)$': '<rootDir>/../../../cloud-cost/domain/src/$1',
+    '^cloud-cost-pricing$': '<rootDir>/../../../shared/cloud-cost-pricing/src/index.ts',
+    '^cloud-cost-pricing/(.*)$': '<rootDir>/../../../shared/cloud-cost-pricing/src/$1',
     '^dead-resources-domain$': '<rootDir>/../../domain/src/index.ts',
     '^dead-resources-domain/(.*)$': '<rootDir>/../../domain/src/$1',
     '^(\\.{1,2}/.*)\\.js$': '$1',
