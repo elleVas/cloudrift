@@ -22,6 +22,8 @@ module.exports = {
     '^shared-aws-infra-utils/(.*)$': '<rootDir>/../../../shared/aws-infra-utils/src/$1',
     '^cloud-cost-domain$': '<rootDir>/../../../cloud-cost/domain/src/index.ts',
     '^cloud-cost-domain/(.*)$': '<rootDir>/../../../cloud-cost/domain/src/$1',
+    '^cloud-cost-pricing$': '<rootDir>/../../../shared/cloud-cost-pricing/src/index.ts',
+    '^cloud-cost-pricing/(.*)$': '<rootDir>/../../../shared/cloud-cost-pricing/src/$1',
     '^resource-security-domain$': '<rootDir>/../../domain/src/index.ts',
     '^resource-security-domain/(.*)$': '<rootDir>/../../domain/src/$1',
     '^(\\.{1,2}/.*)\\.js$': '$1',

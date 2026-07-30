@@ -24,6 +24,8 @@ module.exports = {
     '^shared-scan-coordination/(.*)$': '<rootDir>/../../libs/shared/scan-coordination/src/$1',
     '^cloud-cost-domain$': '<rootDir>/../../libs/cloud-cost/domain/src/index.ts',
     '^cloud-cost-domain/(.*)$': '<rootDir>/../../libs/cloud-cost/domain/src/$1',
+    '^cloud-cost-pricing$': '<rootDir>/../../libs/shared/cloud-cost-pricing/src/index.ts',
+    '^cloud-cost-pricing/(.*)$': '<rootDir>/../../libs/shared/cloud-cost-pricing/src/$1',
     '^cloud-cost-application$': '<rootDir>/../../libs/cloud-cost/application/src/index.ts',
     '^cloud-cost-application/(.*)$': '<rootDir>/../../libs/cloud-cost/application/src/$1',
     '^cloud-cost-infrastructure-aws-adapter$': '<rootDir>/../../libs/cloud-cost/infrastructure/aws-adapter/src/index.ts',

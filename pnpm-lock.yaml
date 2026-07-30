@@ -317,6 +317,9 @@ importers:
 
   libs/cloud-cost/domain:
     dependencies:
+      cloud-cost-pricing:
+        specifier: workspace:*
+        version: link:../../shared/cloud-cost-pricing
       shared-kernel:
         specifier: workspace:*
         version: link:../../shared/kernel
@@ -416,6 +419,9 @@ importers:
       cloud-cost-domain:
         specifier: workspace:*
         version: link:../../domain
+      cloud-cost-pricing:
+        specifier: workspace:*
+        version: link:../../../shared/cloud-cost-pricing
       shared-aws-infra-utils:
         specifier: workspace:*
         version: link:../../../shared/aws-infra-utils
@@ -653,6 +659,15 @@ importers:
       '@smithy/node-http-handler':
         specifier: ^4.9.11
         version: 4.9.11
+
+  libs/shared/cloud-cost-pricing:
+    dependencies:
+      shared-kernel:
+        specifier: workspace:*
+        version: link:../kernel
+      tslib:
+        specifier: ^2.8.1
+        version: 2.8.1
 
   libs/shared/kernel:
     dependencies:

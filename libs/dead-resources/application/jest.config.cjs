@@ -25,6 +25,8 @@ module.exports = {
     // own jest config.
     '^cloud-cost-domain$': '<rootDir>/../../cloud-cost/domain/src/index.ts',
     '^cloud-cost-domain/(.*)$': '<rootDir>/../../cloud-cost/domain/src/$1',
+    '^cloud-cost-pricing$': '<rootDir>/../../shared/cloud-cost-pricing/src/index.ts',
+    '^cloud-cost-pricing/(.*)$': '<rootDir>/../../shared/cloud-cost-pricing/src/$1',
     '^dead-resources-domain$': '<rootDir>/../domain/src/index.ts',
     '^dead-resources-domain/(.*)$': '<rootDir>/../domain/src/$1',
     '^shared-scan-coordination$': '<rootDir>/../../shared/scan-coordination/src/index.ts',

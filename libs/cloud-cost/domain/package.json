@@ -33,6 +33,7 @@
     }
   },
   "dependencies": {
+    "cloud-cost-pricing": "workspace:*",
     "shared-kernel": "workspace:*",
     "tslib": "^2.8.1"
   }

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { StaticPriceTableAdapter } from './static-price-table.adapter';
-import { AwsRegion } from 'cloud-cost-domain';
+import { AwsRegion } from './aws-region.value-object';
 
 const adapter = new StaticPriceTableAdapter();
 const usEast1 = AwsRegion.create('us-east-1');

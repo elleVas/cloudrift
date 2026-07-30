@@ -20,6 +20,9 @@
     },
     {
       "path": "../../../shared/aws-infra-utils/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../shared/cloud-cost-pricing/tsconfig.lib.json"
     }
   ]
 }

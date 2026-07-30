@@ -1,6 +1,6 @@
 /** @type {import('@jest/types').Config.InitialOptions} */
 module.exports = {
-  displayName: 'cloud-cost-domain',
+  displayName: 'cloud-cost-pricing',
   preset: 'ts-jest',
   testEnvironment: 'node',
   transform: {
@@ -16,10 +16,8 @@ module.exports = {
     global: { statements: 80, branches: 80, functions: 80, lines: 80 },
   },
   moduleNameMapper: {
-    '^shared-kernel$': '<rootDir>/../../shared/kernel/src/index.ts',
-    '^shared-kernel/(.*)$': '<rootDir>/../../shared/kernel/src/$1',
-    '^cloud-cost-pricing$': '<rootDir>/../../shared/cloud-cost-pricing/src/index.ts',
-    '^cloud-cost-pricing/(.*)$': '<rootDir>/../../shared/cloud-cost-pricing/src/$1',
+    '^shared-kernel$': '<rootDir>/../kernel/src/index.ts',
+    '^shared-kernel/(.*)$': '<rootDir>/../kernel/src/$1',
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
 };
