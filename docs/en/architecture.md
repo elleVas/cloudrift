@@ -334,6 +334,33 @@ See [ADR-0082](../adr/0082-mcp-server-second-input-adapter.md) for this section'
 
 ---
 
+## Local trend store: `history`
+
+A new `scope:shared` package, `shared-trend-store` (`libs/shared/trend-store`), not a fifth bounded context and not part of any domain — it knows only `{ domain, generatedAt, payload }`, no domain-specific DTO types, the same reasoning `shared-scan-coordination` (ADR-0095) is built around.
+
+```
+analyzeWasteCommand / deadResourcesCommand / resourceSecurityCommand   (apps/cli)
+    │ after producing the report (same JSON already used for --format json / --json)
+    ▼
+persistTrendSnapshot(accountId, { domain, generatedAt, payload })       (shared-trend-store)
+    │ best-effort: try/catch, a write failure never fails the command
+    ▼
+~/.cloudrift/trends/<account-id>.db                                    (node:sqlite, lazy-loaded)
+
+historyCommand                                                         (apps/cli)
+    ▼
+readTrendSnapshots(accountId, { domain?, limit? })                     (shared-trend-store)
+```
+
+- **The persist call lives in each CLI command, not inside `ScanCoordinatorUseCase`.** The coordinator is `scope:shared` and only knows `ScannableRegion`/`TFinding`/`TSummary` — it has no concept of `accountId` at all (that's resolved separately, via STS, in each command). The command layer is the first point that has both the finished report and the resolved account ID.
+- **The stored payload is exactly each domain's own `--format json` output** (`formatWasteReportAsJson`/`formatDeadResourcesReportAsJson`/`formatResourceSecurityReportAsJson`), reused rather than re-derived — the DTO is already the one correct JSON-safe serialization of a summary (see the `cloud-cost/application` section above).
+- **`node:sqlite` is loaded via a lazy `await import('node:sqlite')`, never a static import.** It needs Node ≥22.5, but `apps/cli`'s published `engines.node` is `>=20`; a static import of a nonexistent core module throws at load time, which would crash the whole CLI (every command) for anyone still on Node 20/21. Lazy-loading means the trend store simply never persists anything on old Node, and nothing else is affected.
+- **One SQLite file per AWS account**, not one shared file with an `account_id` column — matches the fact that scans are already account-scoped, and keeps one account's write from ever contending with another's.
+
+See [ADR-0099](../adr/0099-local-trend-store.md) for the full decision (including the granularity/retention tradeoffs) and [usage.md](usage.md#history--local-scan-history) for the `history` command's flags.
+
+---
+
 ## Error handling
 
 The project uses `Result<T, E>` for expected errors, **with no exceptions across layer boundaries** — including user input: `AwsRegion.parse()` returns `Result<AwsRegion, InvalidAwsRegionError>` and the CLI handles it by printing a clean message and exiting with code 1 (a throwing `AwsRegion.create()` also exists, reserved for codes known at compile time, e.g. test fixtures).

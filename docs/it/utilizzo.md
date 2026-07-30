@@ -2,9 +2,9 @@
 
 > 🇬🇧 [English version](../en/usage.md)
 
-Flag, esempi, report PDF, gestione errori parziali, e prezzi per regione per `cloudrift analyze`, più i comandi `cost`/`trend`/`dead-resources`/`resource-security` e il wizard interattivo.
+Flag, esempi, report PDF, gestione errori parziali, e prezzi per regione per `cloudrift analyze`, più i comandi `cost`/`trend`/`dead-resources`/`resource-security`/`history` e il wizard interattivo.
 
-**Wizard interattivo:** lanciando `cloudrift` senza **nessun sottocomando** in un vero terminale (fuori da CI) parte un wizard che ti fa scegliere cosa fare — "Trova risorse sprecate" / "Confronta la spesa col mese scorso" / "Vedi il trend mensile di spesa" / "Trova risorse morte/inutilizzate" / "Scansiona rischi di postura di sicurezza" — e poi pochi prompt (regioni, quali scanner, formato di output). Richiama esattamente lo stesso codice di `analyze`/`cost`/`trend`/`dead-resources`/`resource-security` guidato dai flag qui sotto, quindi non va mai fuori sincrono con loro. Qualunque sottocomando esplicito, qualunque flag, CI, o stdout non interattivo saltano del tutto il wizard — script e pipeline non ne sono toccati. Vedi [ADR-0071](../adr/0071-unified-entry-wizard-bare-invocation.md).
+**Wizard interattivo:** lanciando `cloudrift` senza **nessun sottocomando** in un vero terminale (fuori da CI) parte un wizard che ti fa scegliere cosa fare — "Trova risorse sprecate" / "Confronta la spesa col mese scorso" / "Vedi il trend mensile di spesa" / "Trova risorse morte/inutilizzate" / "Scansiona rischi di postura di sicurezza" / "Vedi lo storico locale delle scansioni" — e poi pochi prompt (regioni, quali scanner, formato di output). Richiama esattamente lo stesso codice di `analyze`/`cost`/`trend`/`dead-resources`/`resource-security`/`history` guidato dai flag qui sotto, quindi non va mai fuori sincrono con loro. Qualunque sottocomando esplicito, qualunque flag, CI, o stdout non interattivo saltano del tutto il wizard — script e pipeline non ne sono toccati. Vedi [ADR-0071](../adr/0071-unified-entry-wizard-bare-invocation.md).
 
 **Scansione cross-account:** ogni comando qui sotto (`analyze`, `cost`, `trend`, `dead-resources`, `resource-security`) accetta `--assume-role-arn <arn>` (opzionalmente con `--external-id <id>`) per scansionare un account diverso da quello a cui appartengono le tue credenziali correnti — cloudrift assume quel ruolo via STS prima di fare qualsiasi chiamata AWS, e l'intero comando fallisce subito se il ruolo non può essere assunto, invece di ricadere silenziosamente sulle tue credenziali. Non esiste una modalità integrata "scansiona tutta la mia organizzazione": per coprire più account, lancia cloudrift una volta per ogni role ARN (un loop di shell o una matrice CI), ogni esecuzione produce un report indipendente. Vedi [ADR-0096](../adr/0096-cross-account-scanning-assume-role.md) (in inglese) e la sezione "Scansione cross-account" di [docs/it/permessi-iam.md](permessi-iam.md) per la trust policy richiesta sul ruolo target.
 
@@ -343,6 +343,41 @@ Questo è indipendente da `cloudrift.config.json` di proposito: `cloudrift mcp` 
 ### Collegare un client MCP
 
 Vedi [docs/it/server-mcp.md](server-mcp.md) per i tool esposti da questo server e come collegare Kiro, VS Code (GitHub Copilot Chat) e Claude Code — ognuno usa un formato di configurazione diverso, un file copiato 1:1 dall'uno all'altro non funzionerà.
+
+## `history` — storico locale delle scansioni
+
+Rilegge il trend store locale: `analyze`, `dead-resources` e `resource-security` aggiungono ciascuno uno snapshot completo del proprio report a un file SQLite per-account (`~/.cloudrift/trends/<account-id>.db`) ad ogni esecuzione, in modalità best-effort e senza mai bloccare la scansione stessa — vedi [ADR-0099](../adr/0099-local-trend-store.md) (in inglese). `history` è il comando read-only che lo interroga. Niente viene mai caricato da nessuna parte: il file non lascia mai la tua macchina.
+
+```sh
+node apps/cli/dist/main.js history [options]
+```
+
+| Opzione                   | Descrizione                                                                        | Default        |
+| -------------------------- | ----------------------------------------------------------------------------------- | --------------- |
+| `--account-id <id>`       | Override dell'ID account AWS (auto-rilevato via `sts:GetCallerIdentity` se omesso) — seleziona quale file `.db` locale leggere | auto-rilevato   |
+| `--assume-role-arn <arn>` | Assumi questo ruolo IAM via STS prima di risolvere l'ID account, per accesso cross-account | —               |
+| `--external-id <id>`     | External ID da passare quando si usa `--assume-role-arn` (serve solo se la trust policy del ruolo lo richiede) | —               |
+| `--domain <domain>`      | Mostra solo gli snapshot di questo dominio: `cloud-cost`, `dead-resources`, o `resource-security` | tutti i domini  |
+| `--limit <n>`             | Numero massimo di snapshot da mostrare, dal più recente                            | `100`           |
+| `--format <format>`      | Formato di output su stdout: `table` o `json`                                       | `table`         |
+| `-h, --help`              | Mostra l'help                                                                       | —               |
+
+**Esempi:**
+
+```sh
+# Ogni snapshot registrato per l'account auto-rilevato, dal più recente
+node apps/cli/dist/main.js history
+
+# Solo lo storico cost-waste, ultime 10 esecuzioni
+node apps/cli/dist/main.js history --domain cloud-cost --limit 10
+
+# Output machine-readable, payload completo del report per ogni snapshot espanso in JSON
+node apps/cli/dist/main.js history --format json | jq '.[0].payload'
+```
+
+**Nessun nuovo permesso AWS necessario:** `history` fa la stessa chiamata `sts:GetCallerIdentity` di ogni altro comando per risolvere l'ID account (saltata del tutto se passi `--account-id` esplicitamente) — il resto è solo lettura di un file locale, nessuna chiamata API AWS.
+
+**Retention:** ogni esecuzione viene conservata per sempre, di proposito — non esiste ancora una pulizia automatica. È una scelta deliberata di semplicità, da rivedere quando esisteranno dati reali sulla crescita del database (vedi le Conseguenze dell'ADR-0099).
 
 ## `iam-policy` — stampa la policy IAM richiesta
 

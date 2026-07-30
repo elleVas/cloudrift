@@ -5,12 +5,17 @@ import { join } from 'path';
 import { Result } from 'shared-kernel';
 import { AwsRegion, EbsVolume } from 'cloud-cost-domain';
 import type { WastedResource, WastedResourcesSummary } from 'cloud-cost-domain';
+import { persistTrendSnapshot } from 'shared-trend-store';
 import { ConfigError, type CloudriftConfig } from '../config/cloudrift.config';
 import {
   analyzeWasteCommand,
   type AnalyzeDeps,
   type AnalyzeWasteOptions,
 } from './analyze-waste.command';
+
+// The real implementation writes to `~/.cloudrift/trends/<account-id>.db` —
+// never touch the developer's actual home directory from a test.
+jest.mock('shared-trend-store', () => ({ persistTrendSnapshot: jest.fn().mockResolvedValue(undefined) }));
 
 const region = AwsRegion.create('us-east-1');
 
@@ -94,6 +99,21 @@ describe('analyzeWasteCommand (CLI end-to-end)', () => {
     expect(stdout).toContain('Scanning us-east-1');
     expect(stdout).toContain('Total waste:');
     expect(stdout).toContain('$8.00/month');
+  });
+
+  it('persists a trend snapshot after the scan, keyed by the resolved account ID', async () => {
+    await run({ format: 'table', accountId: '111122223333' }, makeDeps({
+      summary: summaryOf([wasteVolume('vol-1', 8)], 8),
+    }));
+
+    expect(persistTrendSnapshot).toHaveBeenCalledWith(
+      '111122223333',
+      expect.objectContaining({
+        domain: 'cloud-cost',
+        generatedAt: expect.any(String),
+        payload: expect.stringContaining('"totalWasteMonthlyUsd": 8'),
+      }),
+    );
   });
 
   it('json format: stdout is pure parseable JSON, no human chrome', async () => {

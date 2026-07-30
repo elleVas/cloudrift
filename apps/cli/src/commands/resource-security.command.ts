@@ -14,6 +14,7 @@ import { defaultResourceSecurityDeps, type ResourceSecurityDeps } from './resour
 import { reportCliError as fail } from './report-cli-error';
 import { OUTPUT_FORMATS, isOutputFormat } from '../output-format';
 import { resolveCredentials } from './resolve-options';
+import { persistTrendSnapshot } from 'shared-trend-store';
 
 export type { ResourceSecurityDeps };
 
@@ -145,4 +146,10 @@ export async function resourceSecurityCommand(
     await generateResourceSecurityReportPdf(result.value, meta, outputPath);
     info(chalk.green(`  PDF report saved to ${outputPath}`));
   }
+
+  await persistTrendSnapshot(accountId, {
+    domain: 'resource-security',
+    generatedAt: meta.generatedAt.toISOString(),
+    payload: formatResourceSecurityReportAsJson(result.value, meta),
+  });
 }

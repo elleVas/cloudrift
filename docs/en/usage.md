@@ -2,9 +2,9 @@
 
 > 🇮🇹 [Versione italiana](../it/utilizzo.md)
 
-Flags, examples, the PDF report, partial-failure handling, and per-region pricing for `cloudrift analyze`, plus the `cost`/`trend`/`dead-resources`/`resource-security` commands and the interactive wizard.
+Flags, examples, the PDF report, partial-failure handling, and per-region pricing for `cloudrift analyze`, plus the `cost`/`trend`/`dead-resources`/`resource-security`/`history` commands and the interactive wizard.
 
-**Interactive wizard:** running `cloudrift` with **no subcommand** in a real terminal (outside CI) launches a mode-picker wizard — choose "Find wasted resources" / "Compare spend vs. last month" / "View monthly spend trend" / "Find dead/unused resources" / "Scan for security-posture risks", then answer a few prompts (regions, which scanners, output format). It calls the exact same `analyze`/`cost`/`trend`/`dead-resources`/`resource-security` code the flags below drive, so it's never out of sync with them. Any explicit subcommand, any flag, CI, or non-interactive stdout skips the wizard entirely — scripts and pipelines are unaffected. See [ADR-0071](../adr/0071-unified-entry-wizard-bare-invocation.md).
+**Interactive wizard:** running `cloudrift` with **no subcommand** in a real terminal (outside CI) launches a mode-picker wizard — choose "Find wasted resources" / "Compare spend vs. last month" / "View monthly spend trend" / "Find dead/unused resources" / "Scan for security-posture risks" / "View local scan history", then answer a few prompts (regions, which scanners, output format). It calls the exact same `analyze`/`cost`/`trend`/`dead-resources`/`resource-security`/`history` code the flags below drive, so it's never out of sync with them. Any explicit subcommand, any flag, CI, or non-interactive stdout skips the wizard entirely — scripts and pipelines are unaffected. See [ADR-0071](../adr/0071-unified-entry-wizard-bare-invocation.md).
 
 **Cross-account scanning:** every command below (`analyze`, `cost`, `trend`, `dead-resources`, `resource-security`) accepts `--assume-role-arn <arn>` (optionally with `--external-id <id>`) to scan an account other than the one your ambient credentials belong to — cloudrift assumes that role via STS before making any AWS call, and the whole command fails immediately if the role can't be assumed, rather than silently falling back to your own credentials. There is no built-in "scan my whole organization" mode: to cover several accounts, invoke cloudrift once per role ARN (a shell loop or a CI matrix), each run producing its own independent report. See [ADR-0096](../adr/0096-cross-account-scanning-assume-role.md) and the "Cross-account scanning" section of [docs/en/iam-permissions.md](iam-permissions.md) for the required trust policy on the target role.
 
@@ -328,6 +328,41 @@ This is independent of `cloudrift.config.json` on purpose: `cloudrift mcp` works
 ### Connecting an MCP client
 
 See [docs/en/mcp-server.md](mcp-server.md) for the tools this server exposes and how to connect Kiro, VS Code (GitHub Copilot Chat), and Claude Code — each uses a different config format, so a file copied 1:1 from one to another will not work.
+
+## `history` — local scan history
+
+Reads back the local trend store: `analyze`, `dead-resources`, and `resource-security` each append a full snapshot of their own report to a per-AWS-account SQLite file (`~/.cloudrift/trends/<account-id>.db`) every time they run, best-effort and never blocking the scan itself — see [ADR-0099](../adr/0099-local-trend-store.md). `history` is the read-only command that queries it back. Nothing is ever uploaded anywhere: the file never leaves your machine.
+
+```sh
+node apps/cli/dist/main.js history [options]
+```
+
+| Option                    | Description                                                                       | Default        |
+| -------------------------- | ----------------------------------------------------------------------------------- | --------------- |
+| `--account-id <id>`       | AWS account ID override (auto-detected via `sts:GetCallerIdentity` when omitted) — selects which local `.db` file to read | auto-detected   |
+| `--assume-role-arn <arn>` | Assume this IAM role via STS before resolving the account ID, for cross-account access | —               |
+| `--external-id <id>`     | External ID to pass when assuming `--assume-role-arn` (only needed if the role trust policy requires one) | —               |
+| `--domain <domain>`      | Only show snapshots from this domain: `cloud-cost`, `dead-resources`, or `resource-security` | all domains     |
+| `--limit <n>`             | Max snapshots to show, most recent first                                          | `100`           |
+| `--format <format>`      | stdout output format: `table` or `json`                                            | `table`         |
+| `-h, --help`              | Show help                                                                          | —               |
+
+**Examples:**
+
+```sh
+# Every snapshot on record for the auto-detected account, most recent first
+node apps/cli/dist/main.js history
+
+# Only the cost-waste history, last 10 runs
+node apps/cli/dist/main.js history --domain cloud-cost --limit 10
+
+# Machine-readable output, full report payload per snapshot expanded back to JSON
+node apps/cli/dist/main.js history --format json | jq '.[0].payload'
+```
+
+**No new AWS permission needed:** `history` makes the same `sts:GetCallerIdentity` call every other command already makes to resolve the account ID (skipped entirely if `--account-id` is passed explicitly) — everything else is a local file read, no AWS API call.
+
+**Retention:** every run is kept forever, by design — there is no pruning yet. This is a deliberate simplicity choice, revisited once real-world database growth data exists (see ADR-0099's Consequences).
 
 ## `iam-policy` — print the required IAM policy
 

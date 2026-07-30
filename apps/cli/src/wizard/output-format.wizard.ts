@@ -100,6 +100,40 @@ export async function promptCostTrendOutput(): Promise<CostTrendOutputChoice | u
   return { format, savePdf, saveCsv };
 }
 
+export interface HistoryOutputChoice {
+  domain?: 'cloud-cost' | 'dead-resources' | 'resource-security';
+  format: 'table' | 'json';
+}
+
+/** Domain filter + output format for the `history` wizard flow — no PDF/CSV, `history` doesn't support file artifacts. */
+export async function promptHistoryOutput(): Promise<HistoryOutputChoice | undefined> {
+  const { select, isCancel, cancel } = await import('@clack/prompts');
+
+  const domain = await select<HistoryOutputChoice['domain'] | 'all'>({
+    message: 'Which scan history do you want to see?',
+    options: [
+      { value: 'all', label: 'Every domain' },
+      { value: 'cloud-cost', label: 'Wasted resources (analyze)' },
+      { value: 'dead-resources', label: 'Dead/unused resources' },
+      { value: 'resource-security', label: 'Security-posture risks' },
+    ],
+    initialValue: 'all',
+  });
+  if (isCancel(domain)) return bail(cancel);
+
+  const format = await select<HistoryOutputChoice['format']>({
+    message: 'How should it be shown?',
+    options: [
+      { value: 'table', label: 'Table (default)' },
+      { value: 'json', label: 'JSON' },
+    ],
+    initialValue: 'table',
+  });
+  if (isCancel(format)) return bail(cancel);
+
+  return { domain: domain === 'all' ? undefined : domain, format };
+}
+
 function bail(cancelFn: (message?: string) => void): undefined {
   cancelFn('Cancelled — no scan was run.');
   return undefined;

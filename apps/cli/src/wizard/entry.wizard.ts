@@ -4,13 +4,20 @@ import { costCommand } from '../commands/cost.command';
 import { trendCommand } from '../commands/trend.command';
 import { deadResourcesCommand } from '../commands/dead-resources.command';
 import { resourceSecurityCommand } from '../commands/resource-security.command';
+import { historyCommand } from '../commands/history.command';
 import { renderBrandMark } from '../brand-mark';
 import { promptMode } from './mode-picker.wizard';
 import { promptRegions } from './region-input.wizard';
 import { promptScannerSelection } from './scanner-selection.wizard';
 import { promptDeadResourceSelection } from './dead-resource-selection.wizard';
 import { promptResourceSecuritySelection } from './resource-security-selection.wizard';
-import { promptWasteOutput, promptDeadResourcesOutput, promptResourceSecurityOutput, promptCostTrendOutput } from './output-format.wizard';
+import {
+  promptWasteOutput,
+  promptDeadResourcesOutput,
+  promptResourceSecurityOutput,
+  promptCostTrendOutput,
+  promptHistoryOutput,
+} from './output-format.wizard';
 import {
   resolveCloudriftIacDetectorBinary,
   playHandoffTransition,
@@ -30,7 +37,7 @@ type Outro = (message?: string) => void;
  * A thin dispatcher: each mode's own input-gathering + command call lives in
  * its own `run*Mode()` function below, so this function stays a flat
  * mode → handler mapping instead of one long if-chain growing a branch per
- * mode (six now, more later) — kept it that way once six modes made the
+ * mode (seven now, more later) — kept it that way once six modes made the
  * single function noticeably harder to scan in one pass.
  */
 export async function runEntryWizard(): Promise<void> {
@@ -49,6 +56,8 @@ export async function runEntryWizard(): Promise<void> {
       return runDeadResourcesMode(outro);
     case 'resource-security':
       return runResourceSecurityMode(outro);
+    case 'history':
+      return runHistoryMode(outro);
     case 'terraform':
       return runTerraformMode(outro);
     case 'cost':
@@ -116,6 +125,14 @@ async function runResourceSecurityMode(outro: Outro): Promise<void> {
     pdf: output.savePdf ? true : undefined,
     csv: output.saveCsv ? true : undefined,
   });
+}
+
+async function runHistoryMode(outro: Outro): Promise<void> {
+  const output = await promptHistoryOutput();
+  if (output === undefined) return;
+
+  outro('Reading local scan history...');
+  await historyCommand({ domain: output.domain, format: output.format });
 }
 
 async function runTerraformMode(outro: Outro): Promise<void> {

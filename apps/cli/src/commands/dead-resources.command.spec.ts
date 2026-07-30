@@ -5,8 +5,13 @@ import { join } from 'path';
 import { Result } from 'shared-kernel';
 import { AwsRegion, Ec2KeyPairUnused } from 'dead-resources-domain';
 import type { DeadResourcesSummary, FindDeadResourcesUseCasePort } from 'dead-resources-domain';
+import { persistTrendSnapshot } from 'shared-trend-store';
 import { deadResourcesCommand, type DeadResourcesCommandOptions } from './dead-resources.command';
 import type { DeadResourcesDeps, DeadResourceAnalysisContext } from './dead-resources.composition';
+
+// The real implementation writes to `~/.cloudrift/trends/<account-id>.db` —
+// never touch the developer's actual home directory from a test.
+jest.mock('shared-trend-store', () => ({ persistTrendSnapshot: jest.fn().mockResolvedValue(undefined) }));
 
 const region = AwsRegion.create('us-east-1');
 
@@ -102,6 +107,24 @@ describe('deadResourcesCommand (CLI end-to-end)', () => {
     );
     expect(stdout).toContain('key-key-1');
     expect(stdout).toContain('0 critical, 0 warning, 1 info');
+  });
+
+  it('persists a trend snapshot after the scan, keyed by the resolved account ID', async () => {
+    await run(
+      { format: 'table', accountId: '111122223333' },
+      makeDeps({
+        summary: {
+          findings: [makeKeyPair('key-1')],
+          countBySeverity: { info: 1, warning: 0, critical: 0 },
+          scanErrors: [],
+        },
+      }),
+    );
+
+    expect(persistTrendSnapshot).toHaveBeenCalledWith(
+      '111122223333',
+      expect.objectContaining({ domain: 'dead-resources', generatedAt: expect.any(String), payload: expect.any(String) }),
+    );
   });
 
   it('json format: stdout is pure parseable JSON', async () => {
