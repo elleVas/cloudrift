@@ -55,6 +55,13 @@ function sleep(ms: number): Promise<void> {
  * intentional transition between two products, not a stall. Renders with
  * `\r` in-place redraws (classic terminal progress-bar technique), so it
  * leaves a single settled line behind rather than a scroll of frames.
+ *
+ * The final write is awaited via its flush callback rather than fired and
+ * forgotten: when stdout isn't a raw TTY (e.g. piped through a terminal
+ * emulator), `write()` can queue the bytes asynchronously. The caller spawns
+ * the next process with `stdio: 'inherit'` right after this resolves — if
+ * that write were still in flight, the child's own first prompt render
+ * could interleave with these bytes on the shared fd, corrupting its input.
  */
 export async function playHandoffTransition(): Promise<void> {
   for (let filled = 0; filled <= BAR_WIDTH; filled++) {
@@ -63,7 +70,9 @@ export async function playHandoffTransition(): Promise<void> {
     process.stdout.write(`\r  ${chalk.bold('cloudrift')} ${chalk.dim('→')} ${chalk.bold('cloudrift-iac-detector')}  [${bar}]`);
     await sleep(FRAME_MS);
   }
-  process.stdout.write(`\n\n  ${chalk.green('▸')} Handing off to the Terraform Pro engine...\n\n`);
+  await new Promise<void>((resolve) => {
+    process.stdout.write(`\n\n  ${chalk.green('▸')} Handing off to the Terraform Pro engine...\n\n`, () => resolve());
+  });
 }
 
 /**
