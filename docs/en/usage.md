@@ -344,6 +344,8 @@ node apps/cli/dist/main.js history [options]
 | `--external-id <id>`     | External ID to pass when assuming `--assume-role-arn` (only needed if the role trust policy requires one) | —               |
 | `--domain <domain>`      | Only show snapshots from this domain: `cloud-cost`, `dead-resources`, or `resource-security` | all domains     |
 | `--limit <n>`             | Max snapshots to show, most recent first                                          | `100`           |
+| `--compare <n>`           | Compare the latest run against the one `n` runs back instead of listing (requires `--domain`) | —               |
+| `--html [filename]`       | Also write a self-contained HTML report with a trend chart (requires `--domain`; defaults to `reports/cloudrift-history-<domain>-YYYY_MM_DD.html`) | —               |
 | `--format <format>`      | stdout output format: `table` or `json`                                            | `table`         |
 | `-h, --help`              | Show help                                                                          | —               |
 
@@ -358,11 +360,19 @@ node apps/cli/dist/main.js history --domain cloud-cost --limit 10
 
 # Machine-readable output, full report payload per snapshot expanded back to JSON
 node apps/cli/dist/main.js history --format json | jq '.[0].payload'
+
+# What was I spending 5 runs ago vs. now, including a "presumed resolved" $/month figure
+node apps/cli/dist/main.js history --domain cloud-cost --compare 5
+
+# Self-contained HTML report with a line chart of waste over time
+node apps/cli/dist/main.js history --domain cloud-cost --html
 ```
 
 **No new AWS permission needed:** `history` makes the same `sts:GetCallerIdentity` call every other command already makes to resolve the account ID (skipped entirely if `--account-id` is passed explicitly) — everything else is a local file read, no AWS API call.
 
 **Retention:** every run is kept forever, by design — there is no pruning yet. This is a deliberate simplicity choice, revisited once real-world database growth data exists (see ADR-0099's Consequences).
+
+**`--compare`'s "presumed resolved" figure is an inference, not a confirmed saving:** cloudrift is read-only and never remediates anything, so it cannot know *why* a finding disappeared between the two compared runs (fixed by you, deleted for an unrelated reason, or simply out of this run's `--regions`/`--scanners` scope) — see [ADR-0100](../adr/0100-history-comparison-and-html-report.md).
 
 ## `iam-policy` — print the required IAM policy
 
