@@ -109,6 +109,7 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 | [0073](0073-brand-mark-pixel-art-pipeline.md) | Brand mark generated from the real logo via an offline pixel-art sampling pipeline | Accepted |
 | [0087](0087-precommit-hooks-eslint-only-no-prettier.md) | Pre-commit hooks via husky + lint-staged, `eslint --fix` only — no `prettier --write` | Accepted |
 | [0096](0096-cross-account-scanning-assume-role.md) | Cross-account scanning via `--assume-role-arn` (STS AssumeRole) | Accepted |
+| [0097](0097-terraform-analysis-wizard-handoff.md) | Wizard mode delegating to the separate `cloudrift-iac-detector` Pro package | Accepted |
 
 ## Reporting
 
