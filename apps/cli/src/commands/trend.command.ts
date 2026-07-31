@@ -108,7 +108,7 @@ export async function trendCommand(
     const csvPath =
       typeof options.csv === 'string'
         ? resolve(process.cwd(), options.csv)
-        : resolve(process.cwd(), 'reports', `cloudrift-trend-${day}.csv`);
+        : resolve(process.cwd(), 'cloudrift-reports', `cloudrift-trend-${day}.csv`);
     await mkdir(dirname(csvPath), { recursive: true });
     await writeFile(csvPath, formatCostTrendAsCsv(result.value, meta));
     info(chalk.green(`  CSV report saved to ${csvPath}`));
@@ -118,7 +118,7 @@ export async function trendCommand(
     const outputPath =
       typeof options.pdf === 'string'
         ? resolve(process.cwd(), options.pdf)
-        : resolve(process.cwd(), 'reports', `cloudrift-trend-${day}.pdf`);
+        : resolve(process.cwd(), 'cloudrift-reports', `cloudrift-trend-${day}.pdf`);
     await mkdir(dirname(outputPath), { recursive: true });
     await generateCostTrendPdf(result.value, meta, outputPath);
     info(chalk.green(`  PDF report saved to ${outputPath}`));

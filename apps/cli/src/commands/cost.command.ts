@@ -104,7 +104,7 @@ export async function costCommand(
     const csvPath =
       typeof options.csv === 'string'
         ? resolve(process.cwd(), options.csv)
-        : resolve(process.cwd(), 'reports', `cloudrift-cost-${day}.csv`);
+        : resolve(process.cwd(), 'cloudrift-reports', `cloudrift-cost-${day}.csv`);
     await mkdir(dirname(csvPath), { recursive: true });
     await writeFile(csvPath, formatCostComparisonAsCsv(result.value, meta));
     info(chalk.green(`  CSV report saved to ${csvPath}`));
@@ -114,7 +114,7 @@ export async function costCommand(
     const outputPath =
       typeof options.pdf === 'string'
         ? resolve(process.cwd(), options.pdf)
-        : resolve(process.cwd(), 'reports', `cloudrift-cost-${day}.pdf`);
+        : resolve(process.cwd(), 'cloudrift-reports', `cloudrift-cost-${day}.pdf`);
     await mkdir(dirname(outputPath), { recursive: true });
     await generateCostComparisonPdf(result.value, meta, outputPath);
     info(chalk.green(`  PDF report saved to ${outputPath}`));

@@ -7,7 +7,7 @@
 [![🇮🇹 Italiano](https://img.shields.io/badge/🇮🇹-Italiano-lightgrey.svg)](https://github.com/elleVas/cloudrift/blob/main/docs/it/leggimi.md)
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/elleVas/cloudrift/main/docs/assets/banner-readme.png" alt="cloudrift's interactive wizard scanning an AWS account for wasted resources" width="850" />
+  <img src="https://raw.githubusercontent.com/elleVas/cloudrift/main/docs/assets/install-wizard.gif" alt="cloudrift's interactive wizard scanning an AWS account for wasted resources" width="850" />
 </p>
 
 <p align="center"><strong>Scans AWS accounts for wasted resources and estimates the monthly cost of that waste.</strong><br />Read-only. No telemetry. Never deletes, modifies, or stops anything — reports only.</p>

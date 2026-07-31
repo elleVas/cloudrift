@@ -39,9 +39,9 @@ node apps/cli/dist/main.js analyze [options]
 | `--external-id <id>`        | External ID to pass when assuming `--assume-role-arn` (only needed if the role trust policy requires one)     | —                  |
 | `--min-age-days <days>`      | Grace period: resources younger than this many days are not reported (overrides config)                       | `7`                |
 | `--ignore-tag <tag>`         | Resources carrying this tag are excluded from the report (overrides config)                                   | `cloudrift:ignore` |
-| `--pdf [filename]`           | Also write a PDF report to disk (defaults to `reports/AWS_report_YYYY_MM_DD.pdf`)                              | —                  |
-| `--json [filename]`          | Also write a JSON report to disk (defaults to `reports/AWS_report_YYYY_MM_DD.json`)                            | —                  |
-| `--csv [filename]`           | Also write a CSV report to disk (defaults to `reports/AWS_report_YYYY_MM_DD.csv`)                              | —                  |
+| `--pdf [filename]`           | Also write a PDF report to disk (defaults to `cloudrift-reports/AWS_report_YYYY_MM_DD.pdf`)                              | —                  |
+| `--json [filename]`          | Also write a JSON report to disk (defaults to `cloudrift-reports/AWS_report_YYYY_MM_DD.json`)                            | —                  |
+| `--csv [filename]`           | Also write a CSV report to disk (defaults to `cloudrift-reports/AWS_report_YYYY_MM_DD.csv`)                              | —                  |
 | `--silent`                   | Suppress all stdout output (banner, report, confirmations) — use with `--pdf`/`--json`/`--csv` for file-only output | off                |
 | `-h, --help`                 | Show help                                                                                                      | —                  |
 
@@ -69,7 +69,7 @@ node apps/cli/dist/main.js analyze --scanners ebs-volume elastic-ip
 # Scan everything without the interactive picker (e.g. in a script run from a terminal)
 node apps/cli/dist/main.js analyze --all-services
 
-# Export a PDF report with an auto-generated filename (reports/AWS_report_YYYY_MM_DD.pdf)
+# Export a PDF report with an auto-generated filename (cloudrift-reports/AWS_report_YYYY_MM_DD.pdf)
 node apps/cli/dist/main.js analyze --pdf
 
 # Same, but with nothing printed to the terminal — just the file
@@ -99,7 +99,7 @@ The `--pdf` flag generates a PDF alongside the normal console output (add `--sil
 
 ```sh
 # After running with --pdf you will see:
-#   Generating PDF report... saved to /path/to/reports/AWS_report_2026_06_09.pdf
+#   Generating PDF report... saved to /path/to/cloudrift-reports/AWS_report_2026_06_09.pdf
 ```
 
 **Partial failure handling:**
@@ -146,8 +146,8 @@ node apps/cli/dist/main.js trend [options]
 | `--fail-on-increase <pct>` | Exit with code 2 if spend increased more than this percent vs. the previous period (overrides `config.costIncreaseAlertPercent`) | off |
 | `--refresh-cache` | Bypass the local Cost Explorer cache and re-fetch closed periods from AWS | off |
 | `-y, --yes` | Skip the "this costs $0.01" confirmation | — |
-| `--pdf [filename]` | Also write a PDF report (defaults to `reports/cloudrift-cost-YYYY_MM_DD.pdf`) | — |
-| `--csv [filename]` | Also write a CSV report (defaults to `reports/cloudrift-cost-YYYY_MM_DD.csv`) | — |
+| `--pdf [filename]` | Also write a PDF report (defaults to `cloudrift-reports/cloudrift-cost-YYYY_MM_DD.pdf`) | — |
+| `--csv [filename]` | Also write a CSV report (defaults to `cloudrift-reports/cloudrift-cost-YYYY_MM_DD.csv`) | — |
 | `--silent` | Suppress all stdout output | off |
 
 **`trend`** — monthly spend over the last N calendar months (including the current partial one), rendered as an ANSI bar chart by default.
@@ -163,8 +163,8 @@ node apps/cli/dist/main.js trend [options]
 | `--format <format>` | stdout format: `table` (ANSI bar chart), `json`, or `csv` | `table` |
 | `--refresh-cache` | Bypass the local Cost Explorer cache | off |
 | `-y, --yes` | Skip the billing confirmation | — |
-| `--pdf [filename]` | Also write a PDF report (defaults to `reports/cloudrift-trend-YYYY_MM_DD.pdf`) | — |
-| `--csv [filename]` | Also write a CSV report (defaults to `reports/cloudrift-trend-YYYY_MM_DD.csv`) | — |
+| `--pdf [filename]` | Also write a PDF report (defaults to `cloudrift-reports/cloudrift-trend-YYYY_MM_DD.pdf`) | — |
+| `--csv [filename]` | Also write a CSV report (defaults to `cloudrift-reports/cloudrift-trend-YYYY_MM_DD.csv`) | — |
 | `--silent` | Suppress all stdout output | off |
 
 **Examples:**
@@ -203,8 +203,8 @@ node apps/cli/dist/main.js dead-resources [options]
 | `--ignore-tag <tag>`         | Resources carrying this tag are excluded from the report                                                       | `cloudrift:ignore` |
 | `--scanners <kinds...>`      | Only run these checks (space-separated, e.g. `ec2-keypair-unused iam-user-inactive`)                           | all checks          |
 | `--format <format>`          | stdout output format: `table`, `json`, or `csv`                                                                | `table`            |
-| `--pdf [filename]`           | Also write a PDF report to disk (defaults to `reports/cloudrift-dead-resources-YYYY_MM_DD.pdf`)                | —                  |
-| `--csv [filename]`           | Also write a CSV report to disk (defaults to `reports/cloudrift-dead-resources-YYYY_MM_DD.csv`)                | —                  |
+| `--pdf [filename]`           | Also write a PDF report to disk (defaults to `cloudrift-reports/cloudrift-dead-resources-YYYY_MM_DD.pdf`)                | —                  |
+| `--csv [filename]`           | Also write a CSV report to disk (defaults to `cloudrift-reports/cloudrift-dead-resources-YYYY_MM_DD.csv`)                | —                  |
 | `--silent`                   | Suppress all stdout output (banner, report). Errors still surface.                                              | off                |
 | `-h, --help`                 | Show help                                                                                                       | —                  |
 
@@ -271,8 +271,8 @@ node apps/cli/dist/main.js resource-security [options]
 | `--ignore-tag <tag>`         | Resources carrying this tag are excluded from the report                                                       | `cloudrift:ignore` |
 | `--scanners <kinds...>`      | Only run these checks (space-separated, e.g. `iam-root-mfa-disabled s3-bucket-public`)                         | all checks          |
 | `--format <format>`          | stdout output format: `table`, `json`, or `csv`                                                                | `table`            |
-| `--pdf [filename]`           | Also write a PDF report to disk (defaults to `reports/cloudrift-resource-security-YYYY_MM_DD.pdf`)             | —                  |
-| `--csv [filename]`           | Also write a CSV report to disk (defaults to `reports/cloudrift-resource-security-YYYY_MM_DD.csv`)             | —                  |
+| `--pdf [filename]`           | Also write a PDF report to disk (defaults to `cloudrift-reports/cloudrift-resource-security-YYYY_MM_DD.pdf`)             | —                  |
+| `--csv [filename]`           | Also write a CSV report to disk (defaults to `cloudrift-reports/cloudrift-resource-security-YYYY_MM_DD.csv`)             | —                  |
 | `--silent`                   | Suppress all stdout output (banner, report). Errors still surface.                                              | off                |
 | `-h, --help`                 | Show help                                                                                                       | —                  |
 
@@ -359,7 +359,7 @@ node apps/cli/dist/main.js history [options]
 | `--domain <domain>`      | Only show snapshots from this domain: `cloud-cost`, `dead-resources`, or `resource-security` | all domains     |
 | `--limit <n>`             | Max snapshots to show, most recent first                                          | `100`           |
 | `--compare <n>`           | Compare the latest run against the one `n` runs back instead of listing (requires `--domain`) | —               |
-| `--html [filename]`       | Also write a self-contained HTML report with a trend chart. With `--domain`, charts just that domain (defaults to `reports/cloudrift-history-<domain>-YYYY_MM_DD.html`); without it, stacks all three domains on one page (defaults to `reports/cloudrift-history-YYYY_MM_DD.html`) | —               |
+| `--html [filename]`       | Also write a self-contained HTML report with a trend chart. With `--domain`, charts just that domain (defaults to `cloudrift-reports/cloudrift-history-<domain>-YYYY_MM_DD.html`); without it, stacks all three domains on one page (defaults to `cloudrift-reports/cloudrift-history-YYYY_MM_DD.html`) | —               |
 | `--format <format>`      | stdout output format: `table` or `json`                                            | `table`         |
 | `-h, --help`              | Show help                                                                          | —               |
 

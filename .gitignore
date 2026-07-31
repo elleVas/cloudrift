@@ -8,7 +8,7 @@ out-tsc
 *.tsbuildinfo
 
 # generated reports
-/reports
+/cloudrift-reports
 /report.json
 /report.pdf
 
