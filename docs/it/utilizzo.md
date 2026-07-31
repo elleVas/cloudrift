@@ -29,7 +29,7 @@ node apps/cli/dist/main.js analyze [opzioni]
 | Opzione                      | Descrizione                                                                                                          | Default            |
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
 | `-r, --regions <regioni...>` | Regioni AWS da scansionare                                                                                           | `us-east-1`        |
-| `--format <format>`          | Formato di stdout: `table`, `json` o `markdown` (per CI / commenti PR)                                              | `table`            |
+| `--format <format>`          | Formato di stdout: `table`, `json`, `markdown` (per CI / commenti PR) o `csv`                                       | `table`            |
 | `--config <path>`            | Percorso del file di config (default: `cloudrift.config.json` / `.cloudriftrc` nella cwd)                          | auto-rilevato      |
 | `--live-pricing`             | Recupera i prezzi di listino correnti dall'AWS Pricing API (fallback alla tabella statica; i prezzi del config vincono) | off (tabella statica) |
 | `--scanners <kinds...>`      | Esegue solo questi servizi (elenco di resource kind separati da spazio, es. `ebs-volume elastic-ip`); salta il picker interattivo | — |
@@ -39,14 +39,15 @@ node apps/cli/dist/main.js analyze [opzioni]
 | `--external-id <id>`        | External ID da passare quando si assume `--assume-role-arn` (serve solo se la trust policy del ruolo lo richiede)   | —                  |
 | `--min-age-days <giorni>`    | Periodo di grazia: le risorse più giovani di N giorni non vengono segnalate (ha precedenza sul config)              | `7`                |
 | `--ignore-tag <tag>`         | Le risorse con questo tag vengono escluse dal report (ha precedenza sul config)                                     | `cloudrift:ignore` |
-| `--pdf [filename]`           | Scrive anche un report PDF su disco (default `cloudrift-report-YYYY-MM-DD.pdf`)                                      | —                  |
-| `--json [filename]`          | Scrive anche un report JSON su disco (default `cloudrift-report-YYYY-MM-DD.json`)                                   | —                  |
-| `--silent`                   | Sopprime tutto l'output su stdout (banner, report, conferme) — usalo con `--pdf`/`--json` per ottenere solo il file | off                |
+| `--pdf [filename]`           | Scrive anche un report PDF su disco (default `reports/AWS_report_YYYY_MM_DD.pdf`)                                    | —                  |
+| `--json [filename]`          | Scrive anche un report JSON su disco (default `reports/AWS_report_YYYY_MM_DD.json`)                                 | —                  |
+| `--csv [filename]`           | Scrive anche un report CSV su disco (default `reports/AWS_report_YYYY_MM_DD.csv`)                                   | —                  |
+| `--silent`                   | Sopprime tutto l'output su stdout (banner, report, conferme) — usalo con `--pdf`/`--json`/`--csv` per ottenere solo il file | off                |
 | `-h, --help`                 | Mostra l'help                                                                                                        | —                  |
 
-> **stdout vs. file:** `--format` controlla cosa va su **stdout** (il report). `--json` / `--pdf` scrivono **file aggiuntivi** su disco, indipendenti da `--format` — di default il `--format` scelto continua comunque a essere stampato su stdout *in aggiunta* alla scrittura di quei file (quindi es. `--pdf` da solo mostra comunque la tabella). Aggiungi `--silent` per ottenere solo il file, senza nulla stampato a terminale. Nei formati machine-readable (`json`, `markdown`) tutti i messaggi umani vanno su stderr, così su stdout resta solo il report — ideale per il piping. Errori e l'alert della soglia di costo vanno sempre su stderr, anche con `--silent`.
+> **stdout vs. file:** `--format` controlla cosa va su **stdout** (il report). `--json` / `--pdf` / `--csv` scrivono **file aggiuntivi** su disco, indipendenti da `--format` — di default il `--format` scelto continua comunque a essere stampato su stdout *in aggiunta* alla scrittura di quei file (quindi es. `--pdf` da solo mostra comunque la tabella). Aggiungi `--silent` per ottenere solo il file, senza nulla stampato a terminale. Nei formati machine-readable (`json`, `markdown`, `csv`) tutti i messaggi umani vanno su stderr, così su stdout resta solo il report — ideale per il piping. Errori e l'alert della soglia di costo vanno sempre su stderr, anche con `--silent`.
 >
-> **Ordine dei flag con `--pdf`/`--json`:** il filename è un valore *opzionale* (`--pdf [filename]`), quindi viene raccolto solo se segue immediatamente il flag — `--pdf --silent ./report.pdf` fallisce ("too many arguments") perché `--silent` impedisce a `--pdf` di vedere il filename, lasciando `./report.pdf` senza nulla a cui agganciarsi. Tieni il filename subito dopo il flag (`--pdf ./report.pdf --silent`), oppure usa `=` per rendere l'ordine irrilevante: `--pdf=./report.pdf --silent --format json`.
+> **Ordine dei flag con `--pdf`/`--json`/`--csv`:** il filename è un valore *opzionale* (`--pdf [filename]`), quindi viene raccolto solo se segue immediatamente il flag — `--pdf --silent ./report.pdf` fallisce ("too many arguments") perché `--silent` impedisce a `--pdf` di vedere il filename, lasciando `./report.pdf` senza nulla a cui agganciarsi. Tieni il filename subito dopo il flag (`--pdf ./report.pdf --silent`), oppure usa `=` per rendere l'ordine irrilevante: `--pdf=./report.pdf --silent --format json`.
 >
 > **Scegliere quali servizi scansionare:** lanciando `analyze` in un vero terminale (e fuori da CI) appare un picker interattivo — una checklist di tutti gli scanner, tutti pre-selezionati, così premere Invio scansiona tutto come prima. Deseleziona quello che non ti serve, oppure salta del tutto il picker con `--scanners <kinds...>` (elenco esplicito) o `--all-services` (scansiona tutto, nessun prompt). In CI o ogni volta che stdout non è un terminale, il picker non appare mai e viene eseguito ogni scanner di default — l'automazione non resta mai bloccata in attesa di input.
 
@@ -73,6 +74,9 @@ node apps/cli/dist/main.js analyze --pdf
 
 # Come sopra, ma senza nulla stampato a terminale — solo il file
 node apps/cli/dist/main.js analyze --pdf ./report.pdf --silent
+
+# Esporta un report CSV (es. da aprire in un foglio di calcolo)
+node apps/cli/dist/main.js analyze --csv ./report.csv --silent
 
 # Output machine-readable (es. per una dashboard o un check CI)
 node apps/cli/dist/main.js analyze --format json | jq '.totalWasteMonthlyUsd'
@@ -153,11 +157,12 @@ node apps/cli/dist/main.js trend [opzioni]
 | `--assume-role-arn <arn>` | Assume questo ruolo IAM via STS prima di scansionare, per l'accesso cross-account | — |
 | `--external-id <id>` | External ID da passare quando si assume `--assume-role-arn` (serve solo se la trust policy del ruolo lo richiede) | — |
 | `--config <path>` | Percorso del file di config | auto-rilevato |
-| `--format <format>` | Formato di stdout: `table` o `json` | `table` |
+| `--format <format>` | Formato di stdout: `table`, `json` o `csv` | `table` |
 | `--fail-on-increase <pct>` | Esce con codice 2 se la spesa è aumentata più di questa percentuale rispetto al periodo precedente (ha precedenza su `config.costIncreaseAlertPercent`) | off |
 | `--refresh-cache` | Ignora la cache locale di Cost Explorer e rifà il fetch dei periodi chiusi da AWS | off |
 | `-y, --yes` | Salta la conferma "questo costa $0.01" | — |
 | `--pdf [filename]` | Scrive anche un report PDF (default `reports/cloudrift-cost-YYYY_MM_DD.pdf`) | — |
+| `--csv [filename]` | Scrive anche un report CSV (default `reports/cloudrift-cost-YYYY_MM_DD.csv`) | — |
 | `--silent` | Sopprime tutto l'output su stdout | off |
 
 **`trend`** — spesa mensile negli ultimi N mesi solari (incluso quello corrente, parziale), mostrata come grafico a barre ANSI di default.
@@ -170,10 +175,11 @@ node apps/cli/dist/main.js trend [opzioni]
 | `--config <path>` | Percorso del file di config | auto-rilevato |
 | `--months <n>` | Numero di mesi solari da mostrare (1–36) | `6` |
 | `--services <nomi...>` | Limita a questi servizi (scorciatoie tipo `ec2 s3 rds`, oppure il nome esatto usato da Cost Explorer) | tutti i servizi |
-| `--format <format>` | Formato di stdout: `table` (grafico a barre ANSI) o `json` | `table` |
+| `--format <format>` | Formato di stdout: `table` (grafico a barre ANSI), `json` o `csv` | `table` |
 | `--refresh-cache` | Ignora la cache locale di Cost Explorer | off |
 | `-y, --yes` | Salta la conferma di fatturazione | — |
 | `--pdf [filename]` | Scrive anche un report PDF (default `reports/cloudrift-trend-YYYY_MM_DD.pdf`) | — |
+| `--csv [filename]` | Scrive anche un report CSV (default `reports/cloudrift-trend-YYYY_MM_DD.csv`) | — |
 | `--silent` | Sopprime tutto l'output su stdout | off |
 
 **Esempi:**
@@ -211,8 +217,9 @@ node apps/cli/dist/main.js dead-resources [opzioni]
 | `--min-age-days <giorni>`    | Periodo di grazia: le risorse più giovani di N giorni non vengono segnalate (`ec2-ri-expiring-soon` non lo usa — vedi sotto) | `7` |
 | `--ignore-tag <tag>`         | Le risorse con questo tag vengono escluse dal report                                                            | `cloudrift:ignore` |
 | `--scanners <kinds...>`      | Esegue solo questi check (separati da spazio, es. `ec2-keypair-unused iam-user-inactive`)                       | tutti i check       |
-| `--format <format>`          | Formato di stdout: `table` o `json`                                                                             | `table`            |
+| `--format <format>`          | Formato di stdout: `table`, `json` o `csv`                                                                       | `table`            |
 | `--pdf [filename]`           | Scrive anche un report PDF su disco (default `reports/cloudrift-dead-resources-YYYY_MM_DD.pdf`)                | —                  |
+| `--csv [filename]`           | Scrive anche un report CSV su disco (default `reports/cloudrift-dead-resources-YYYY_MM_DD.csv`)                | —                  |
 | `--silent`                   | Sopprime tutto l'output su stdout (banner, report). Gli errori restano visibili.                                | off                |
 | `-h, --help`                 | Mostra l'help                                                                                                    | —                  |
 
@@ -253,6 +260,9 @@ node apps/cli/dist/main.js dead-resources --format json | jq '.findings[] | sele
 
 # Report PDF, nulla stampato a terminale
 node apps/cli/dist/main.js dead-resources --pdf ./hygiene.pdf --silent
+
+# Report CSV, es. da aprire in un foglio di calcolo
+node apps/cli/dist/main.js dead-resources --csv ./hygiene.csv --silent
 ```
 
 **Permessi IAM:** questo comando richiede `ec2:DescribeKeyPairs`, `ec2:DescribeReservedInstances`, `ec2:DescribeSecurityGroups`, `iam:ListUsers`, `iam:ListAccessKeys`, `iam:GetAccessKeyLastUsed`, `iam:ListPolicies`, `iam:ListRoles`, `logs:DescribeLogGroups`, `acm:ListCertificates`, `route53:ListHostedZones`, `cloudformation:DescribeStacks`, `s3:ListAllMyBuckets`, `s3:ListBucket`, `cloudwatch:DescribeAlarms` in aggiunta alla policy di `analyze` — vedi [docs/it/permessi-iam.md](permessi-iam.md).
@@ -275,8 +285,9 @@ node apps/cli/dist/main.js resource-security [opzioni]
 | `--external-id <id>`        | External ID da passare quando si assume `--assume-role-arn` (serve solo se la trust policy del ruolo lo richiede) | — |
 | `--ignore-tag <tag>`         | Le risorse con questo tag sono escluse dal report                                                              | `cloudrift:ignore` |
 | `--scanners <kinds...>`      | Esegue solo questi check (separati da spazio, es. `iam-root-mfa-disabled s3-bucket-public`)                    | tutti i check       |
-| `--format <format>`          | Formato di output su stdout: `table` o `json`                                                                  | `table`            |
+| `--format <format>`          | Formato di output su stdout: `table`, `json` o `csv`                                                             | `table`            |
 | `--pdf [filename]`           | Scrive anche un report PDF su disco (default `reports/cloudrift-resource-security-YYYY_MM_DD.pdf`)             | —                  |
+| `--csv [filename]`           | Scrive anche un report CSV su disco (default `reports/cloudrift-resource-security-YYYY_MM_DD.csv`)             | —                  |
 | `--silent`                   | Sopprime tutto l'output stdout (banner, report). Gli errori restano visibili.                                   | off                |
 | `-h, --help`                 | Mostra l'help                                                                                                   | —                  |
 
@@ -318,6 +329,9 @@ node apps/cli/dist/main.js resource-security --format json | jq '.findings[] | s
 
 # Report PDF, niente stampato a terminale
 node apps/cli/dist/main.js resource-security --pdf ./sicurezza.pdf --silent
+
+# Report CSV, es. da aprire in un foglio di calcolo
+node apps/cli/dist/main.js resource-security --csv ./sicurezza.csv --silent
 ```
 
 **Permessi IAM:** questo comando richiede `iam:GetAccountSummary`, `iam:ListMFADevices`, `iam:GetAccountPasswordPolicy`, `s3:GetBucketAcl`, `s3:GetBucketPolicyStatus`, `s3:GetPublicAccessBlock`, `s3:GetBucketEncryption`, `ec2:DescribeSnapshotAttribute`, `cloudtrail:DescribeTrails` in aggiunta alla policy di `analyze` (altri check riusano action già concesse per `analyze`/`dead-resources`) — vedi [docs/it/permessi-iam.md](permessi-iam.md).
@@ -360,7 +374,7 @@ node apps/cli/dist/main.js history [options]
 | `--domain <domain>`      | Mostra solo gli snapshot di questo dominio: `cloud-cost`, `dead-resources`, o `resource-security` | tutti i domini  |
 | `--limit <n>`             | Numero massimo di snapshot da mostrare, dal più recente                            | `100`           |
 | `--compare <n>`           | Confronta l'ultima esecuzione con quella di `n` esecuzioni fa invece di elencare (richiede `--domain`) | —               |
-| `--html [filename]`       | Scrive anche un report HTML autocontenuto con un grafico del trend (richiede `--domain`; default `reports/cloudrift-history-<domain>-YYYY_MM_DD.html`) | —               |
+| `--html [filename]`       | Scrive anche un report HTML autocontenuto con un grafico del trend. Con `--domain` grafica solo quel dominio (default `reports/cloudrift-history-<domain>-YYYY_MM_DD.html`); senza, impila tutti e tre i domini su un'unica pagina (default `reports/cloudrift-history-YYYY_MM_DD.html`) | —               |
 | `--format <format>`      | Formato di output su stdout: `table` o `json`                                       | `table`         |
 | `-h, --help`              | Mostra l'help                                                                       | —               |
 
@@ -381,6 +395,9 @@ node apps/cli/dist/main.js history --domain cloud-cost --compare 5
 
 # Report HTML autocontenuto con un grafico a linee dello spreco nel tempo
 node apps/cli/dist/main.js history --domain cloud-cost --html
+
+# Report HTML combinato: tutti e tre i domini impilati su una pagina, un grafico ciascuno
+node apps/cli/dist/main.js history --html
 ```
 
 **Nessun nuovo permesso AWS necessario:** `history` fa la stessa chiamata `sts:GetCallerIdentity` di ogni altro comando per risolvere l'ID account (saltata del tutto se passi `--account-id` esplicitamente) — il resto è solo lettura di un file locale, nessuna chiamata API AWS.
@@ -388,6 +405,8 @@ node apps/cli/dist/main.js history --domain cloud-cost --html
 **Retention:** ogni esecuzione viene conservata per sempre, di proposito — non esiste ancora una pulizia automatica. È una scelta deliberata di semplicità, da rivedere quando esisteranno dati reali sulla crescita del database (vedi le Conseguenze dell'ADR-0099).
 
 **Lo "spreco presumibilmente risolto" di `--compare` è un'inferenza, non un risparmio confermato:** cloudrift è read-only e non rimedia mai nulla, quindi non può sapere *perché* un finding è sparito tra le due esecuzioni confrontate (l'hai sistemato tu, la risorsa è stata eliminata per un motivo non collegato, o era semplicemente fuori dallo scope di `--regions`/`--scanners` di questa run) — vedi [ADR-0100](../adr/0100-history-comparison-and-html-report.md) (in inglese).
+
+**Il grafico di `--html` cambia in base al dominio:** `cloud-cost` mostra una singola linea (spreco mensile in USD), con un punto di previsione lineare tratteggiato una run oltre l'ultima reale ("se il trend continua", non una garanzia — servono almeno 2 run), e una lista "top resource type per spreco" dall'ultima run. `dead-resources`/`resource-security` mostrano invece tre linee — critical/warning/info, la stessa scomposizione per severity e gli stessi colori dei report PDF/tabella — con legenda e una tabella a 3 colonne corrispondente, invece di un unico totale aggregato di "findings"; `resource-security` include anche una narrativa di rischio in linguaggio semplice (nessuna cifra in $ — non esiste un modo onesto di quantificare un finding di sicurezza come invece esistono i prezzi di listino AWS per lo spreco). Il report combinato (senza `--domain`) apre inoltre con 3 stat tile esecutivi (spreco mensile + delta, rischio security, trend dead-resources) pensati per un pubblico CTO/CEO che vuole il titolo prima di scendere nel dettaglio di un singolo dominio.
 
 ## `iam-policy` — stampa la policy IAM richiesta
 

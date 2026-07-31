@@ -25,9 +25,12 @@ function makeDeps(opts: { resolvedAccountId?: string; records?: TrendSnapshotRec
   const htmlCalls: Array<[string, string]> = [];
   return {
     resolveAccountId: async () => opts.resolvedAccountId,
-    readSnapshots: (async (accountId: string, options?: unknown) => {
+    readSnapshots: (async (accountId: string, options?: { domain?: string; limit?: number }) => {
       calls.push([accountId, options]);
-      return opts.records ?? SAMPLE_RECORDS;
+      const records = opts.records ?? SAMPLE_RECORDS;
+      // Mirrors `readTrendSnapshots`' own `WHERE domain = ?` filtering — needed once a
+      // caller (e.g. the combined HTML report) queries more than one domain per test.
+      return options?.domain ? records.filter((r) => r.domain === options.domain) : records;
     }) as HistoryDeps['readSnapshots'],
     // Never touch the real filesystem in a unit test — same reasoning as
     // mocking `shared-trend-store` in the scan commands' specs.
@@ -166,11 +169,18 @@ describe('historyCommand', () => {
   });
 
   describe('--html', () => {
-    it('rejects --html without --domain', async () => {
+    it('generates a combined report across all domains when --domain is omitted', async () => {
       const deps = makeDeps({ resolvedAccountId: '123456789012' });
       await historyCommand({ html: true }, deps);
-      expect(stderr).toContain('--html requires --domain');
-      expect(deps.writeHtmlReportArgs).toHaveLength(0);
+
+      expect(deps.writeHtmlReportArgs).toHaveLength(1);
+      const [path, html] = deps.writeHtmlReportArgs[0];
+      expect(path).toContain('cloudrift-history-');
+      expect(path).not.toContain('cloudrift-history-cloud-cost-');
+      expect(html).toContain('<!doctype html>');
+      expect(html).toContain('cloud-cost');
+      expect(html).toContain('dead-resources');
+      expect(html).toContain('resource-security');
     });
 
     it('writes an HTML report to the default path when no filename is given', async () => {

@@ -280,9 +280,12 @@ cloudrift resource-security --scanners iam-root-mfa-disabled    # only one check
 ```sh
 cloudrift history                              # every snapshot on record, most recent first
 cloudrift history --domain cloud-cost --limit 10
+cloudrift history --html                       # self-contained HTML trend report, all 3 domains stacked on one page
 ```
 
-See [ADR-0099](https://github.com/elleVas/cloudrift/blob/main/docs/adr/0099-local-trend-store.md) and [docs/en/usage.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/usage.md#history--local-scan-history) for the full flag reference.
+The `--html` chart differs by domain: `cloud-cost` is a single dollar-waste line (plus a linear projection and a "top resource types by waste" list); `dead-resources`/`resource-security` chart critical/warning/info as three separate lines with a legend, matching the PDF/table severity breakdown (`resource-security` also gets a plain-language risk narrative, deliberately no dollar figure). The combined report leads with a 3-tile executive summary for a CTO/CEO audience.
+
+See [ADR-0099](https://github.com/elleVas/cloudrift/blob/main/docs/adr/0099-local-trend-store.md)/[ADR-0100](https://github.com/elleVas/cloudrift/blob/main/docs/adr/0100-history-comparison-and-html-report.md) and [docs/en/usage.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/usage.md#history--local-scan-history) for the full flag reference (including `--compare` and single-domain `--html`).
 
 ---
 

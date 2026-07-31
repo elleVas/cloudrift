@@ -103,11 +103,17 @@ export async function promptCostTrendOutput(): Promise<CostTrendOutputChoice | u
 export interface HistoryOutputChoice {
   domain?: 'cloud-cost' | 'dead-resources' | 'resource-security';
   format: 'table' | 'json';
+  saveHtml: boolean;
 }
 
-/** Domain filter + output format for the `history` wizard flow — no PDF/CSV, `history` doesn't support file artifacts. */
+/**
+ * Domain filter + output format for the `history` wizard flow — no PDF/CSV,
+ * `history` doesn't support those file artifacts. HTML is always offered:
+ * with a single domain it charts just that metric, with "Every domain" it
+ * charts all three stacked on one page (see `generateCombinedHistoryReportHtml`).
+ */
 export async function promptHistoryOutput(): Promise<HistoryOutputChoice | undefined> {
-  const { select, isCancel, cancel } = await import('@clack/prompts');
+  const { select, confirm, isCancel, cancel } = await import('@clack/prompts');
 
   const domain = await select<HistoryOutputChoice['domain'] | 'all'>({
     message: 'Which scan history do you want to see?',
@@ -131,7 +137,13 @@ export async function promptHistoryOutput(): Promise<HistoryOutputChoice | undef
   });
   if (isCancel(format)) return bail(cancel);
 
-  return { domain: domain === 'all' ? undefined : domain, format };
+  const saveHtml = await confirm({
+    message: domain === 'all' ? 'Also save a combined HTML report (all 3 domains, one chart each) to disk?' : 'Also save an HTML trend report to disk?',
+    initialValue: false,
+  });
+  if (isCancel(saveHtml)) return bail(cancel);
+
+  return { domain: domain === 'all' ? undefined : domain, format, saveHtml };
 }
 
 function bail(cancelFn: (message?: string) => void): undefined {

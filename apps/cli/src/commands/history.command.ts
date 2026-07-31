@@ -12,7 +12,7 @@ import { formatTrendHistoryAsTable } from '../formatters/trend-history.table-for
 import { formatTrendHistoryAsJson } from '../formatters/trend-history.json-formatter';
 import { formatHistoryComparisonAsTable } from '../formatters/history-comparison.table-formatter';
 import { formatHistoryComparisonAsJson } from '../formatters/history-comparison.json-formatter';
-import { generateHistoryReportHtml } from '../formatters/history-report.html-formatter';
+import { generateHistoryReportHtml, generateCombinedHistoryReportHtml } from '../formatters/history-report.html-formatter';
 import { compareCloudCostSnapshots, compareHygieneSnapshots, type HistoryComparison } from './history-comparison';
 import { isOutputFormat } from '../output-format';
 import { resolveCredentials } from './resolve-options';
@@ -23,6 +23,31 @@ const HISTORY_DOMAINS = ['cloud-cost', 'dead-resources', 'resource-security'] as
 
 function isTrendDomain(value: string): value is TrendDomain {
   return (HISTORY_DOMAINS as readonly string[]).includes(value);
+}
+
+type ParsedOption = { ok: true; value: number | undefined } | { ok: false; message: string };
+
+/** Flattened out of `historyCommand` — a nested `if` per option adds more to cognitive complexity than a sibling early-return per option. */
+function parseLimitOption(options: HistoryCommandOptions): ParsedOption {
+  if (options.limit === undefined) return { ok: true, value: undefined };
+  const parsed = Number(options.limit);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    return { ok: false, message: `--limit must be a positive integer, got "${options.limit}".` };
+  }
+  return { ok: true, value: parsed };
+}
+
+/** See `parseLimitOption` — same flattening reason. */
+function parseCompareOption(options: HistoryCommandOptions): ParsedOption {
+  if (options.compare === undefined) return { ok: true, value: undefined };
+  if (options.domain === undefined || !isTrendDomain(options.domain)) {
+    return { ok: false, message: '--compare requires --domain (cloud-cost, dead-resources, or resource-security) to know which report shape to compare.' };
+  }
+  const parsed = Number(options.compare);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    return { ok: false, message: `--compare must be a positive integer (how many runs back to compare against), got "${options.compare}".` };
+  }
+  return { ok: true, value: parsed };
 }
 
 /**
@@ -77,6 +102,40 @@ export const defaultHistoryDeps: HistoryDeps = {
 };
 
 /**
+ * Split out of `historyCommand` to keep that function's cognitive complexity
+ * down — this owns the single-domain-vs-combined branch and the resulting
+ * default filename, `historyCommand` just decides whether to call it.
+ */
+async function writeHistoryHtmlReport(
+  htmlOption: string | boolean,
+  domainOption: string | undefined,
+  accountId: string,
+  limit: number | undefined,
+  deps: HistoryDeps,
+): Promise<void> {
+  const day = new Date().toISOString().split('T')[0].replaceAll('-', '_');
+  let html: string;
+  let defaultFilename: string;
+
+  if (domainOption !== undefined) {
+    const domain = domainOption as TrendDomain;
+    const records = await deps.readSnapshots(accountId, { domain, limit: limit ?? 100 });
+    html = generateHistoryReportHtml(records, domain, accountId);
+    defaultFilename = `cloudrift-history-${domain}-${day}.html`;
+  } else {
+    const recordsByDomain = Object.fromEntries(
+      await Promise.all(HISTORY_DOMAINS.map(async (domain) => [domain, await deps.readSnapshots(accountId, { domain, limit: limit ?? 100 })] as const)),
+    ) as Record<TrendDomain, TrendSnapshotRecord[]>;
+    html = generateCombinedHistoryReportHtml(recordsByDomain, accountId);
+    defaultFilename = `cloudrift-history-${day}.html`;
+  }
+
+  const outputPath = typeof htmlOption === 'string' ? resolve(process.cwd(), htmlOption) : resolve(process.cwd(), 'reports', defaultFilename);
+  await deps.writeHtmlReport(outputPath, html);
+  console.error(chalk.green(`  HTML report saved to ${outputPath}`));
+}
+
+/**
  * `history`: reads back the local trend store
  * (`~/.cloudrift/trends/<account-id>.db`) that `analyze` / `dead-resources` /
  * `resource-security` each append a full snapshot to on every run — a local
@@ -90,9 +149,11 @@ export const defaultHistoryDeps: HistoryDeps = {
  * since cloudrift never remediates anything itself (see `history-comparison.ts`).
  *
  * `--html [filename]` additionally writes a self-contained HTML report (inline
- * SVG line chart + table view, no chart-library dependency) of one domain's
- * metric over every stored run — independent of `--compare`/stdout `--format`,
- * same "additional file artifact" convention as `--pdf`/`--csv` elsewhere.
+ * SVG line chart + table view, no chart-library dependency) over every stored
+ * run — independent of `--compare`/stdout `--format`, same "additional file
+ * artifact" convention as `--pdf`/`--csv` elsewhere. With `--domain`, charts
+ * just that one metric; without it, stacks all three tracked domains as
+ * separate cards on one page (see `generateCombinedHistoryReportHtml`).
  */
 export async function historyCommand(
   options: HistoryCommandOptions,
@@ -107,26 +168,13 @@ export async function historyCommand(
     return fail(`--domain must be one of: ${HISTORY_DOMAINS.join(', ')}. Got "${options.domain}".`);
   }
 
-  let limit: number | undefined;
-  if (options.limit !== undefined) {
-    const parsed = Number(options.limit);
-    if (!Number.isInteger(parsed) || parsed <= 0) {
-      return fail(`--limit must be a positive integer, got "${options.limit}".`);
-    }
-    limit = parsed;
-  }
+  const limitResult = parseLimitOption(options);
+  if (!limitResult.ok) return fail(limitResult.message);
+  const limit = limitResult.value;
 
-  let compareN: number | undefined;
-  if (options.compare !== undefined) {
-    if (options.domain === undefined || !isTrendDomain(options.domain)) {
-      return fail('--compare requires --domain (cloud-cost, dead-resources, or resource-security) to know which report shape to compare.');
-    }
-    const parsed = Number(options.compare);
-    if (!Number.isInteger(parsed) || parsed <= 0) {
-      return fail(`--compare must be a positive integer (how many runs back to compare against), got "${options.compare}".`);
-    }
-    compareN = parsed;
-  }
+  const compareResult = parseCompareOption(options);
+  if (!compareResult.ok) return fail(compareResult.message);
+  const compareN = compareResult.value;
 
   const credentialsResult = await resolveCredentials(options);
   if (!credentialsResult.ok) return fail(credentialsResult.error.message);
@@ -135,10 +183,6 @@ export async function historyCommand(
   const accountId = options.accountId ?? (await deps.resolveAccountId(credentials)) ?? 'unknown';
   if (accountId === 'unknown') {
     console.error(chalk.dim('  Could not resolve the AWS account ID via STS — pass --account-id to set it explicitly.'));
-  }
-
-  if (options.html !== undefined && options.html !== false && (options.domain === undefined || !isTrendDomain(options.domain))) {
-    return fail('--html requires --domain (cloud-cost, dead-resources, or resource-security) to know which metric to chart.');
   }
 
   if (compareN !== undefined) {
@@ -158,13 +202,6 @@ export async function historyCommand(
   }
 
   if (options.html !== undefined && options.html !== false) {
-    const domain = options.domain as TrendDomain;
-    const htmlRecords = await deps.readSnapshots(accountId, { domain, limit: limit ?? 100 });
-    const html = generateHistoryReportHtml(htmlRecords, domain, accountId);
-    const day = new Date().toISOString().split('T')[0].replaceAll('-', '_');
-    const outputPath =
-      typeof options.html === 'string' ? resolve(process.cwd(), options.html) : resolve(process.cwd(), 'reports', `cloudrift-history-${domain}-${day}.html`);
-    await deps.writeHtmlReport(outputPath, html);
-    console.error(chalk.green(`  HTML report saved to ${outputPath}`));
+    await writeHistoryHtmlReport(options.html, options.domain, accountId, limit, deps);
   }
 }
