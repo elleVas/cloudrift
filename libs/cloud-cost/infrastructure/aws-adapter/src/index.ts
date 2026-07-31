@@ -67,8 +67,5 @@ export {
   mergePriceTables,
 } from './pricing/table-pricing.adapter';
 export type { PriceTable, RegionPrices } from './pricing/table-pricing.adapter';
-export {
-  AwsPricingApiAdapter,
-  extractOnDemandUsd,
-} from './pricing/aws-pricing-api.adapter';
+export { AwsPricingApiAdapter } from './pricing/aws-pricing-api.adapter';
 export { resolveAwsAccountId } from './account/aws-account-id.resolver';

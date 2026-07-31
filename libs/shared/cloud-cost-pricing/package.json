@@ -72,6 +72,11 @@
   },
   "dependencies": {
     "shared-kernel": "workspace:*",
+    "shared-aws-infra-utils": "workspace:*",
+    "@aws-sdk/client-pricing": "^3.1095.0",
     "tslib": "^2.8.1"
+  },
+  "devDependencies": {
+    "@smithy/types": "^4.9.0"
   }
 }
