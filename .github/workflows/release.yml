@@ -183,6 +183,18 @@ jobs:
       - name: Install formula into tap checkout
         run: mv bare-formula.rb Formula/cloudrift.rb
 
+      # `brew tap NAME "$PWD"` below does a real `git clone` of this checkout
+      # — it only ever sees committed history, so without this commit it
+      # would clone the *previous* release's formula (still on `main`) and
+      # merge the bottle specs onto that instead of the version we're
+      # releasing. Local-only: never pushed, just makes the clone see the bump.
+      - name: Commit the formula locally so the tap clone sees it
+        run: |
+          git config user.name "cloudrift-release-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add Formula/cloudrift.rb
+          git commit -m "cloudrift ${GITHUB_REF_NAME}"
+
       - name: Download bottle artifacts
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
@@ -203,6 +215,15 @@ jobs:
       - name: Merge bottle specs into the formula
         run: brew bottle --merge --write --no-commit *.bottle.json
 
+      # `--write` edits the formula inside brew's own tap clone
+      # ($(brew --repository elleVas/cloudrift)/Formula/cloudrift.rb), a
+      # separate directory from this checkout — copy the bottled file back
+      # here so it's what actually gets committed/pushed below. Without this,
+      # the PR ships the plain bare formula and the bottle block silently
+      # never leaves the runner.
+      - name: Copy the bottled formula back into this checkout
+        run: cp "$(brew --repository elleVas/cloudrift)/Formula/cloudrift.rb" Formula/cloudrift.rb
+
       # Upload the tarballs before opening the PR so the tap's `brew audit
       # --online` check (required by branch protection) sees a formula whose
       # bottle root_url already resolves.
@@ -222,10 +243,8 @@ jobs:
         run: |
           BRANCH="bump-${GITHUB_REF_NAME}"
           git checkout -b "$BRANCH"
-          git config user.name "cloudrift-release-bot"
-          git config user.email "actions@users.noreply.github.com"
           git add Formula/cloudrift.rb
-          git commit -m "cloudrift ${GITHUB_REF_NAME}"
+          git commit -m "cloudrift ${GITHUB_REF_NAME}: add bottles"
           git push "https://x-access-token:${GH_TOKEN}@github.com/elleVas/homebrew-cloudrift.git" "$BRANCH"
 
           gh pr create --repo elleVas/homebrew-cloudrift \

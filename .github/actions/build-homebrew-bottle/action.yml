@@ -24,6 +24,19 @@ runs:
       shell: bash
       run: mv bare-formula.rb Formula/cloudrift.rb
 
+    # `brew tap NAME "$PWD"` below does a real `git clone` of this checkout —
+    # it only ever sees committed history, so without this commit it would
+    # silently clone the *previous* release's formula (the one still on
+    # `main`) and build/bottle that instead of the version we're releasing.
+    # Local-only: never pushed, just makes the upcoming clone see the bump.
+    - name: Commit the formula locally so the tap clone sees it
+      shell: bash
+      run: |
+        git config user.name "cloudrift-release-bot"
+        git config user.email "actions@users.noreply.github.com"
+        git add Formula/cloudrift.rb
+        git commit -m "cloudrift ${GITHUB_REF_NAME}"
+
     # GitHub's macOS runners ship Homebrew preinstalled; ubuntu-latest doesn't,
     # so install it here to get identical brew commands on every platform.
     - name: Install Homebrew (Linux only)
