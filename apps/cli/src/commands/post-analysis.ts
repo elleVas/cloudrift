@@ -24,7 +24,7 @@ export async function writeArtifacts(
     const jsonPath =
       typeof options.json === 'string'
         ? resolve(process.cwd(), options.json)
-        : resolve(process.cwd(), 'reports', `AWS_report_${day}.json`);
+        : resolve(process.cwd(), 'cloudrift-reports', `AWS_report_${day}.json`);
     await mkdir(dirname(jsonPath), { recursive: true });
     await writeFile(jsonPath, formatWasteReportAsJson(result, meta));
     info(chalk.green(`  JSON report saved to ${jsonPath}`));
@@ -34,7 +34,7 @@ export async function writeArtifacts(
     const csvPath =
       typeof options.csv === 'string'
         ? resolve(process.cwd(), options.csv)
-        : resolve(process.cwd(), 'reports', `AWS_report_${day}.csv`);
+        : resolve(process.cwd(), 'cloudrift-reports', `AWS_report_${day}.csv`);
     await mkdir(dirname(csvPath), { recursive: true });
     await writeFile(csvPath, formatWasteReportAsCsv(result, meta));
     info(chalk.green(`  CSV report saved to ${csvPath}`));
@@ -44,7 +44,7 @@ export async function writeArtifacts(
     const outputPath =
       typeof options.pdf === 'string'
         ? resolve(process.cwd(), options.pdf)
-        : resolve(process.cwd(), 'reports', `AWS_report_${day}.pdf`);
+        : resolve(process.cwd(), 'cloudrift-reports', `AWS_report_${day}.pdf`);
     await mkdir(dirname(outputPath), { recursive: true });
 
     info(chalk.bold('  Generating PDF report...'));

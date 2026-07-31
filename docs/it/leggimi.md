@@ -3,7 +3,7 @@
 > 🇬🇧 [English version](../../README.md)
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/elleVas/cloudrift/main/docs/assets/banner-readme.png" alt="Il wizard interattivo di cloudrift mentre scansiona un account AWS alla ricerca di risorse sprecate" width="850" />
+  <img src="https://raw.githubusercontent.com/elleVas/cloudrift/main/docs/assets/install-wizard.gif" alt="Il wizard interattivo di cloudrift mentre scansiona un account AWS alla ricerca di risorse sprecate" width="850" />
 </p>
 
 <p align="center"><strong>Scansiona account AWS alla ricerca di risorse sprecate e stima il costo mensile di quello spreco.</strong><br />Sola lettura. Nessuna telemetria. Non cancella, modifica o ferma nulla — segnala soltanto.</p>

@@ -144,7 +144,7 @@ node scripts/seed-localstack.mjs
 #    picker, which would otherwise appear here since this runs in a real terminal)...
 node apps/cli/dist/main.js analyze --regions us-east-1 --min-age-days 0 --format table --all-services
 
-# 6. ...or as a PDF — omit a path to get the default reports/AWS_report_<date>.pdf,
+# 6. ...or as a PDF — omit a path to get the default cloudrift-reports/AWS_report_<date>.pdf,
 #    or pass one explicitly to write it wherever you want instead:
 node apps/cli/dist/main.js analyze --regions us-east-1 --min-age-days 0 --pdf --all-services
 node apps/cli/dist/main.js analyze --regions us-east-1 --min-age-days 0 --pdf ./report.pdf --all-services

@@ -130,7 +130,7 @@ async function writeHistoryHtmlReport(
     defaultFilename = `cloudrift-history-${day}.html`;
   }
 
-  const outputPath = typeof htmlOption === 'string' ? resolve(process.cwd(), htmlOption) : resolve(process.cwd(), 'reports', defaultFilename);
+  const outputPath = typeof htmlOption === 'string' ? resolve(process.cwd(), htmlOption) : resolve(process.cwd(), 'cloudrift-reports', defaultFilename);
   await deps.writeHtmlReport(outputPath, html);
   console.error(chalk.green(`  HTML report saved to ${outputPath}`));
 }

@@ -131,7 +131,7 @@ export async function resourceSecurityCommand(
     const csvPath =
       typeof options.csv === 'string'
         ? resolve(process.cwd(), options.csv)
-        : resolve(process.cwd(), 'reports', `cloudrift-resource-security-${day}.csv`);
+        : resolve(process.cwd(), 'cloudrift-reports', `cloudrift-resource-security-${day}.csv`);
     await mkdir(dirname(csvPath), { recursive: true });
     await writeFile(csvPath, formatResourceSecurityReportAsCsv(result.value, meta));
     info(chalk.green(`  CSV report saved to ${csvPath}`));
@@ -141,7 +141,7 @@ export async function resourceSecurityCommand(
     const outputPath =
       typeof options.pdf === 'string'
         ? resolve(process.cwd(), options.pdf)
-        : resolve(process.cwd(), 'reports', `cloudrift-resource-security-${day}.pdf`);
+        : resolve(process.cwd(), 'cloudrift-reports', `cloudrift-resource-security-${day}.pdf`);
     await mkdir(dirname(outputPath), { recursive: true });
     await generateResourceSecurityReportPdf(result.value, meta, outputPath);
     info(chalk.green(`  PDF report saved to ${outputPath}`));
