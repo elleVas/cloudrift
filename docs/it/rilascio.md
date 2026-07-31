@@ -26,7 +26,7 @@ Il workflow di release usa `--provenance`, che richiede `id-token: write` (già 
 
 ## Pubblicare una release
 
-1. Aggiorna la versione in `apps/cli/package.json` **e** la stringa `.version(...)` in `apps/cli/src/main.ts` (devono combaciare; altrimenti il workflow fallisce).
+1. Aggiorna la versione in `apps/cli/package.json` — `apps/cli/src/cli-version.ts` la re-esporta in fase di build (`require('../package.json').version`), quindi l'output di `--version` in `main.ts` combacia sempre senza dover modificare un secondo file.
 2. Mergia su `main`.
 3. Crea il tag e pusha:
 

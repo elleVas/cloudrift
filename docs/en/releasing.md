@@ -26,7 +26,7 @@ The release workflow uses `--provenance`, which requires `id-token: write` (alre
 
 ## Cutting a release
 
-1. Bump the version in `apps/cli/package.json` **and** the `.version(...)` string in `apps/cli/src/main.ts` (they must match; the workflow fails otherwise).
+1. Bump the version in `apps/cli/package.json` — `apps/cli/src/cli-version.ts` re-exports it at build time (`require('../package.json').version`), so `main.ts`'s `--version` output always matches without a second edit.
 2. Merge to `main`.
 3. Tag and push:
 
