@@ -256,7 +256,7 @@ node apps/cli/dist/main.js dead-resources --csv ./hygiene.csv --silent
 
 ## `resource-security` — security-posture scan
 
-A separate domain from both `analyze`'s cost-waste model and `dead-resources`' hygiene model — see [ADR-0081](../adr/0081-resource-security-parallel-domain.md). Finds risky **configuration** on resources that are actively in use (unlike `dead-resources`, which finds abandoned ones): disabled root/user MFA, overdue access-key rotation, active root access keys, a weak or missing account password policy, security groups with ingress open to the internet on sensitive ports, permissive default security groups, public S3 buckets and EBS snapshots, unencrypted EBS volumes and RDS instances, S3 buckets with no default encryption, publicly accessible RDS instances, and accounts with no multi-region CloudTrail trail — 14 checks in total, all backed by read-only `Describe*`/`Get*`/`List*` API calls. Findings carry a `severity` (`info` / `warning` / `critical`), same shape as `dead-resources`; there is no `--min-age-days` grace period — a security misconfiguration is a risk from the moment it exists, not after it ages.
+A separate domain from both `analyze`'s cost-waste model and `dead-resources`' hygiene model — see [ADR-0081](../adr/0081-resource-security-parallel-domain.md). Finds risky **configuration** on resources that are actively in use (unlike `dead-resources`, which finds abandoned ones): disabled root/user MFA, overdue access-key rotation, active root access keys, a weak or missing account password policy, security groups with ingress open to the internet on sensitive ports, permissive default security groups, public S3 buckets and EBS snapshots, unencrypted EBS volumes and RDS instances, S3 buckets with no default encryption, publicly accessible RDS instances, accounts with no multi-region CloudTrail trail, GuardDuty/AWS Config/Security Hub not enabled, VPCs with Flow Logs disabled, KMS keys with rotation disabled, account-level S3 Block Public Access disabled, S3 buckets with versioning or MFA Delete disabled, publicly accessible Redshift clusters, IAM users with a wildcard admin policy attached directly, ACM certificates expiring soon, and public resource policies on Lambda functions, SNS topics, SQS queues, ECR repositories, and Secrets Manager secrets — 29 checks in total, all backed by read-only `Describe*`/`Get*`/`List*` API calls. Findings carry a `severity` (`info` / `warning` / `critical`), same shape as `dead-resources`; there is no `--min-age-days` grace period — a security misconfiguration is a risk from the moment it exists, not after it ages.
 
 ```sh
 node apps/cli/dist/main.js resource-security [options]
@@ -295,7 +295,7 @@ node apps/cli/dist/main.js resource-security [options]
 | `rds-instance-publicly-accessible` | regional | RDS instance reachable from outside its VPC | `critical` |
 | `cloudtrail-not-multiregion` | global | No CloudTrail trail configured with multi-region logging | `warning` |
 
-> **IAM, S3 (bucket listing), and CloudTrail are treated as global for this command.** The eight `global` checks above run **once per scan**, never once per requested region — unlike the six `regional` checks. See [ADR-0081](../adr/0081-resource-security-parallel-domain.md).
+> **IAM, S3 (bucket listing), and CloudTrail are treated as global for this command.** The eleven `global` checks above run **once per scan**, never once per requested region — unlike the eighteen `regional` checks. See [ADR-0081](../adr/0081-resource-security-parallel-domain.md).
 
 **Examples:**
 

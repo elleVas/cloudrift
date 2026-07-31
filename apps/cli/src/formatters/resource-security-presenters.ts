@@ -108,6 +108,98 @@ export const presenters: PresenterMap = {
     row: (f) => [f.accountId],
     recommend: (f) => `Create or update a CloudTrail trail with multi-region logging enabled for account ${f.accountId}`,
   },
+  // v2 (2026-07-31) — no Region column for the global-scope kinds below
+  // (account-wide IAM/S3 checks); the regional ones show it like above.
+  'guardduty-not-enabled': {
+    title: 'GuardDuty — Not Enabled',
+    head: ['Region'],
+    row: (f) => [f.region.code],
+    recommend: (f) => `Enable GuardDuty in ${f.region.code}`,
+  },
+  'config-not-enabled': {
+    title: 'AWS Config — Not Enabled',
+    head: ['Region'],
+    row: (f) => [f.region.code],
+    recommend: (f) => `Enable an actively-recording AWS Config recorder in ${f.region.code}`,
+  },
+  'security-hub-not-enabled': {
+    title: 'Security Hub — Not Enabled',
+    head: ['Region'],
+    row: (f) => [f.region.code],
+    recommend: (f) => `Enable Security Hub in ${f.region.code}`,
+  },
+  'vpc-flow-logs-disabled': {
+    title: 'VPCs — Flow Logs Disabled',
+    head: ['VPC ID', 'Region'],
+    row: (v) => [v.vpcId, v.region.code],
+    recommend: (v) => `Enable a VPC Flow Log for ${v.vpcId} in ${v.region.code}`,
+  },
+  'kms-key-rotation-disabled': {
+    title: 'KMS Keys — Rotation Disabled',
+    head: ['Key ID', 'Region'],
+    row: (k) => [k.keyId, k.region.code],
+    recommend: (k) => `Enable automatic key rotation for KMS key ${k.keyId} in ${k.region.code}`,
+  },
+  's3-account-public-access-block-disabled': {
+    title: 'S3 — Account-Level Block Public Access Disabled',
+    head: ['Account ID'],
+    row: (f) => [f.accountId],
+    recommend: (f) => `Fully enable account-level S3 Block Public Access for account ${f.accountId}`,
+  },
+  's3-bucket-versioning-disabled': {
+    title: 'S3 Buckets — Versioning/MFA-Delete Disabled',
+    head: ['Bucket Name', 'Issue'],
+    row: (b) => [b.bucketName, b.riskReason],
+    recommend: (b) => `Fix S3 bucket "${b.bucketName}" — ${b.riskReason}`,
+  },
+  'redshift-cluster-publicly-accessible': {
+    title: 'Redshift Clusters — Publicly Accessible',
+    head: ['Cluster ID', 'Region'],
+    row: (c) => [c.clusterId, c.region.code],
+    recommend: (c) => `Disable public accessibility for Redshift cluster "${c.clusterId}" in ${c.region.code}`,
+  },
+  'iam-user-policy-wildcard': {
+    title: 'IAM Users — Wildcard Admin Policy',
+    head: ['User Name', 'ARN', 'Policy'],
+    row: (u) => [u.userName, u.arn, u.policyName],
+    recommend: (u) => `Remove or scope down policy "${u.policyName}" on IAM user "${u.userName}" (${u.arn})`,
+  },
+  'acm-certificate-expiring': {
+    title: 'ACM Certificates — Expiring Soon',
+    head: ['Domain', 'Region', 'Status'],
+    row: (c) => [c.domainName, c.region.code, c.riskReason],
+    recommend: (c) => `Renew ACM certificate for "${c.domainName}" in ${c.region.code} — ${c.riskReason}`,
+  },
+  'lambda-function-policy-public': {
+    title: 'Lambda Functions — Public Resource Policy',
+    head: ['Function Name', 'Region'],
+    row: (f) => [f.functionName, f.region.code],
+    recommend: (f) => `Restrict the resource policy on Lambda function "${f.functionName}" in ${f.region.code} to specific principals`,
+  },
+  'sns-topic-policy-public': {
+    title: 'SNS Topics — Public Access Policy',
+    head: ['Topic ARN', 'Region'],
+    row: (t) => [t.topicArn, t.region.code],
+    recommend: (t) => `Restrict the access policy on SNS topic "${t.topicArn}" in ${t.region.code} to specific principals`,
+  },
+  'sqs-queue-policy-public': {
+    title: 'SQS Queues — Public Access Policy',
+    head: ['Queue URL', 'Region'],
+    row: (q) => [q.queueUrl, q.region.code],
+    recommend: (q) => `Restrict the access policy on SQS queue "${q.queueUrl}" in ${q.region.code} to specific principals`,
+  },
+  'ecr-repository-policy-public': {
+    title: 'ECR Repositories — Public Resource Policy',
+    head: ['Repository Name', 'Region'],
+    row: (r) => [r.repositoryName, r.region.code],
+    recommend: (r) => `Restrict the repository policy on ECR repository "${r.repositoryName}" in ${r.region.code} to specific principals`,
+  },
+  'secrets-manager-secret-policy-public': {
+    title: 'Secrets Manager Secrets — Public Resource Policy',
+    head: ['Secret Name', 'Region'],
+    row: (s) => [s.secretName, s.region.code],
+    recommend: (s) => `Restrict the resource policy on secret "${s.secretName}" in ${s.region.code} to specific principals`,
+  },
 };
 
 export function presenterFor(kind: ResourceSecurityKind): Omit<ResourceSecurityPresenter, 'row' | 'recommend'> {
@@ -145,6 +237,36 @@ export function rowFor(finding: ResourceSecurityKindMap[ResourceSecurityKind]): 
       return presenters['rds-instance-publicly-accessible'].row(finding);
     case 'cloudtrail-not-multiregion':
       return presenters['cloudtrail-not-multiregion'].row(finding);
+    case 'guardduty-not-enabled':
+      return presenters['guardduty-not-enabled'].row(finding);
+    case 'config-not-enabled':
+      return presenters['config-not-enabled'].row(finding);
+    case 'security-hub-not-enabled':
+      return presenters['security-hub-not-enabled'].row(finding);
+    case 'vpc-flow-logs-disabled':
+      return presenters['vpc-flow-logs-disabled'].row(finding);
+    case 'kms-key-rotation-disabled':
+      return presenters['kms-key-rotation-disabled'].row(finding);
+    case 's3-account-public-access-block-disabled':
+      return presenters['s3-account-public-access-block-disabled'].row(finding);
+    case 's3-bucket-versioning-disabled':
+      return presenters['s3-bucket-versioning-disabled'].row(finding);
+    case 'redshift-cluster-publicly-accessible':
+      return presenters['redshift-cluster-publicly-accessible'].row(finding);
+    case 'iam-user-policy-wildcard':
+      return presenters['iam-user-policy-wildcard'].row(finding);
+    case 'acm-certificate-expiring':
+      return presenters['acm-certificate-expiring'].row(finding);
+    case 'lambda-function-policy-public':
+      return presenters['lambda-function-policy-public'].row(finding);
+    case 'sns-topic-policy-public':
+      return presenters['sns-topic-policy-public'].row(finding);
+    case 'sqs-queue-policy-public':
+      return presenters['sqs-queue-policy-public'].row(finding);
+    case 'ecr-repository-policy-public':
+      return presenters['ecr-repository-policy-public'].row(finding);
+    case 'secrets-manager-secret-policy-public':
+      return presenters['secrets-manager-secret-policy-public'].row(finding);
   }
 }
 
@@ -178,5 +300,35 @@ export function recommendFor(finding: ResourceSecurityKindMap[ResourceSecurityKi
       return presenters['rds-instance-publicly-accessible'].recommend(finding);
     case 'cloudtrail-not-multiregion':
       return presenters['cloudtrail-not-multiregion'].recommend(finding);
+    case 'guardduty-not-enabled':
+      return presenters['guardduty-not-enabled'].recommend(finding);
+    case 'config-not-enabled':
+      return presenters['config-not-enabled'].recommend(finding);
+    case 'security-hub-not-enabled':
+      return presenters['security-hub-not-enabled'].recommend(finding);
+    case 'vpc-flow-logs-disabled':
+      return presenters['vpc-flow-logs-disabled'].recommend(finding);
+    case 'kms-key-rotation-disabled':
+      return presenters['kms-key-rotation-disabled'].recommend(finding);
+    case 's3-account-public-access-block-disabled':
+      return presenters['s3-account-public-access-block-disabled'].recommend(finding);
+    case 's3-bucket-versioning-disabled':
+      return presenters['s3-bucket-versioning-disabled'].recommend(finding);
+    case 'redshift-cluster-publicly-accessible':
+      return presenters['redshift-cluster-publicly-accessible'].recommend(finding);
+    case 'iam-user-policy-wildcard':
+      return presenters['iam-user-policy-wildcard'].recommend(finding);
+    case 'acm-certificate-expiring':
+      return presenters['acm-certificate-expiring'].recommend(finding);
+    case 'lambda-function-policy-public':
+      return presenters['lambda-function-policy-public'].recommend(finding);
+    case 'sns-topic-policy-public':
+      return presenters['sns-topic-policy-public'].recommend(finding);
+    case 'sqs-queue-policy-public':
+      return presenters['sqs-queue-policy-public'].recommend(finding);
+    case 'ecr-repository-policy-public':
+      return presenters['ecr-repository-policy-public'].recommend(finding);
+    case 'secrets-manager-secret-policy-public':
+      return presenters['secrets-manager-secret-policy-public'].recommend(finding);
   }
 }

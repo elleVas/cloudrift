@@ -117,13 +117,36 @@ The `resource-security` command (security-posture checks — IAM/account hygiene
     "s3:GetPublicAccessBlock",
     "s3:GetBucketEncryption",
     "ec2:DescribeSnapshotAttribute",
-    "cloudtrail:DescribeTrails"
+    "cloudtrail:DescribeTrails",
+    "guardduty:ListDetectors",
+    "config:DescribeConfigurationRecorderStatus",
+    "securityhub:DescribeHub",
+    "ec2:DescribeVpcs",
+    "ec2:DescribeFlowLogs",
+    "kms:ListKeys",
+    "kms:DescribeKey",
+    "kms:GetKeyRotationStatus",
+    "s3:GetAccountPublicAccessBlock",
+    "s3:GetBucketVersioning",
+    "redshift:DescribeClusters",
+    "iam:ListAttachedUserPolicies",
+    "iam:GetPolicy",
+    "iam:GetPolicyVersion",
+    "iam:ListUserPolicies",
+    "iam:GetUserPolicy",
+    "acm:DescribeCertificate",
+    "lambda:GetPolicy",
+    "sns:GetTopicAttributes",
+    "ecr:GetRepositoryPolicy",
+    "secretsmanager:GetResourcePolicy"
   ],
   "Resource": "*"
 }
 ```
 
 `iam:ListUsers`, `iam:ListAccessKeys`, `ec2:DescribeSecurityGroups`, `ec2:DescribeVolumes`, `ec2:DescribeSnapshots`, `s3:ListAllMyBuckets`, and `rds:DescribeDBInstances` (all already in the main policy or the `dead-resources` block above) are reused — this command adds no new hygiene/inventory calls, only the read-only checks (`Get*`/`DescribeSnapshotAttribute`/`DescribeTrails`) needed to evaluate each resource's security configuration. `cloudtrail:DescribeTrails` is the one action from a service not otherwise used by cloudrift. None of these actions are needed for `analyze` or `dead-resources` — only for `resource-security`.
+
+The actions from `guardduty:ListDetectors` onward were added for the v2 scanner rollout (2026-07-31, 15 more checks — GuardDuty/Config/Security Hub enablement, VPC Flow Logs, KMS key rotation, account-level S3 Block Public Access, S3 bucket versioning/MFA-delete, Redshift public accessibility, wildcard IAM admin policies, ACM certificate expiry, and public resource policies on Lambda/SNS/SQS/ECR/Secrets Manager). `sns:ListTopics` and `ecr:DescribeRepositories` (already in the main policy above) are reused rather than duplicated.
 
 ## Cross-account scanning (`--assume-role-arn`)
 

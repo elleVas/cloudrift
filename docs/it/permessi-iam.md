@@ -117,13 +117,36 @@ Il comando `resource-security` (check di postura di sicurezza — hygiene IAM/ac
     "s3:GetPublicAccessBlock",
     "s3:GetBucketEncryption",
     "ec2:DescribeSnapshotAttribute",
-    "cloudtrail:DescribeTrails"
+    "cloudtrail:DescribeTrails",
+    "guardduty:ListDetectors",
+    "config:DescribeConfigurationRecorderStatus",
+    "securityhub:DescribeHub",
+    "ec2:DescribeVpcs",
+    "ec2:DescribeFlowLogs",
+    "kms:ListKeys",
+    "kms:DescribeKey",
+    "kms:GetKeyRotationStatus",
+    "s3:GetAccountPublicAccessBlock",
+    "s3:GetBucketVersioning",
+    "redshift:DescribeClusters",
+    "iam:ListAttachedUserPolicies",
+    "iam:GetPolicy",
+    "iam:GetPolicyVersion",
+    "iam:ListUserPolicies",
+    "iam:GetUserPolicy",
+    "acm:DescribeCertificate",
+    "lambda:GetPolicy",
+    "sns:GetTopicAttributes",
+    "ecr:GetRepositoryPolicy",
+    "secretsmanager:GetResourcePolicy"
   ],
   "Resource": "*"
 }
 ```
 
 `iam:ListUsers`, `iam:ListAccessKeys`, `ec2:DescribeSecurityGroups`, `ec2:DescribeVolumes`, `ec2:DescribeSnapshots`, `s3:ListAllMyBuckets` e `rds:DescribeDBInstances` (già presenti nella policy principale o nel blocco `dead-resources` sopra) vengono riusate — questo comando non aggiunge nuove chiamate di hygiene/inventario, solo le verifiche read-only (`Get*`/`DescribeSnapshotAttribute`/`DescribeTrails`) necessarie per valutare la configurazione di sicurezza di ogni risorsa. `cloudtrail:DescribeTrails` è l'unica action di un servizio non altrimenti usato da cloudrift. Nessuna di queste action serve per `analyze` o `dead-resources` — solo per `resource-security`.
+
+Le action da `guardduty:ListDetectors` in poi sono state aggiunte per il rollout v2 degli scanner (2026-07-31, altri 15 check — abilitazione di GuardDuty/Config/Security Hub, VPC Flow Logs, rotazione chiavi KMS, S3 Block Public Access a livello account, versioning/MFA-delete su S3, accessibilità pubblica di Redshift, policy IAM wildcard, scadenza certificati ACM, e resource policy pubbliche su Lambda/SNS/SQS/ECR/Secrets Manager). `sns:ListTopics` ed `ecr:DescribeRepositories` (già nella policy principale sopra) vengono riusate anziché duplicate.
 
 ## Scansione cross-account (`--assume-role-arn`)
 

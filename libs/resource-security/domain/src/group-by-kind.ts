@@ -14,6 +14,21 @@ import type { RdsInstanceUnencrypted } from './entities/rds-instance-unencrypted
 import type { S3BucketEncryptionMissing } from './entities/s3-bucket-encryption-missing.entity';
 import type { RdsInstancePubliclyAccessible } from './entities/rds-instance-publicly-accessible.entity';
 import type { CloudtrailNotMultiregion } from './entities/cloudtrail-not-multiregion.entity';
+import type { GuarddutyNotEnabled } from './entities/guardduty-not-enabled.entity';
+import type { ConfigNotEnabled } from './entities/config-not-enabled.entity';
+import type { SecurityHubNotEnabled } from './entities/security-hub-not-enabled.entity';
+import type { VpcFlowLogsDisabled } from './entities/vpc-flow-logs-disabled.entity';
+import type { KmsKeyRotationDisabled } from './entities/kms-key-rotation-disabled.entity';
+import type { S3AccountPublicAccessBlockDisabled } from './entities/s3-account-public-access-block-disabled.entity';
+import type { S3BucketVersioningDisabled } from './entities/s3-bucket-versioning-disabled.entity';
+import type { RedshiftClusterPubliclyAccessible } from './entities/redshift-cluster-publicly-accessible.entity';
+import type { IamUserPolicyWildcard } from './entities/iam-user-policy-wildcard.entity';
+import type { AcmCertificateExpiring } from './entities/acm-certificate-expiring.entity';
+import type { LambdaFunctionPolicyPublic } from './entities/lambda-function-policy-public.entity';
+import type { SnsTopicPolicyPublic } from './entities/sns-topic-policy-public.entity';
+import type { SqsQueuePolicyPublic } from './entities/sqs-queue-policy-public.entity';
+import type { EcrRepositoryPolicyPublic } from './entities/ecr-repository-policy-public.entity';
+import type { SecretsManagerSecretPolicyPublic } from './entities/secrets-manager-secret-policy-public.entity';
 
 /**
  * Map kind → concrete entity. Allows consumers (formatters) to retrieve the
@@ -34,6 +49,21 @@ export interface ResourceSecurityKindMap {
   's3-bucket-encryption-missing': S3BucketEncryptionMissing;
   'rds-instance-publicly-accessible': RdsInstancePubliclyAccessible;
   'cloudtrail-not-multiregion': CloudtrailNotMultiregion;
+  'guardduty-not-enabled': GuarddutyNotEnabled;
+  'config-not-enabled': ConfigNotEnabled;
+  'security-hub-not-enabled': SecurityHubNotEnabled;
+  'vpc-flow-logs-disabled': VpcFlowLogsDisabled;
+  'kms-key-rotation-disabled': KmsKeyRotationDisabled;
+  's3-account-public-access-block-disabled': S3AccountPublicAccessBlockDisabled;
+  's3-bucket-versioning-disabled': S3BucketVersioningDisabled;
+  'redshift-cluster-publicly-accessible': RedshiftClusterPubliclyAccessible;
+  'iam-user-policy-wildcard': IamUserPolicyWildcard;
+  'acm-certificate-expiring': AcmCertificateExpiring;
+  'lambda-function-policy-public': LambdaFunctionPolicyPublic;
+  'sns-topic-policy-public': SnsTopicPolicyPublic;
+  'sqs-queue-policy-public': SqsQueuePolicyPublic;
+  'ecr-repository-policy-public': EcrRepositoryPolicyPublic;
+  'secrets-manager-secret-policy-public': SecretsManagerSecretPolicyPublic;
 }
 
 export type SecurityFindingsByKind = {

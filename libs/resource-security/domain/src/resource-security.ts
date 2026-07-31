@@ -25,6 +25,23 @@ export const RESOURCE_SECURITY_KINDS = [
   's3-bucket-encryption-missing',
   'rds-instance-publicly-accessible',
   'cloudtrail-not-multiregion',
+  // v2 (2026-07-31): detection-tooling coverage, network/config exposure
+  // beyond the day-1 14, resource-policy exposure on non-S3 services.
+  'guardduty-not-enabled',
+  'config-not-enabled',
+  'security-hub-not-enabled',
+  'vpc-flow-logs-disabled',
+  'kms-key-rotation-disabled',
+  's3-account-public-access-block-disabled',
+  's3-bucket-versioning-disabled',
+  'redshift-cluster-publicly-accessible',
+  'iam-user-policy-wildcard',
+  'acm-certificate-expiring',
+  'lambda-function-policy-public',
+  'sns-topic-policy-public',
+  'sqs-queue-policy-public',
+  'ecr-repository-policy-public',
+  'secrets-manager-secret-policy-public',
 ] as const;
 export type ResourceSecurityKind = (typeof RESOURCE_SECURITY_KINDS)[number];
 
@@ -54,6 +71,21 @@ export const RESOURCE_SECURITY_KIND_META: Record<ResourceSecurityKind, ResourceS
   's3-bucket-encryption-missing': { label: 'S3 Buckets (default encryption missing)', scope: 'global' },
   'rds-instance-publicly-accessible': { label: 'RDS Instances (publicly accessible)', scope: 'regional' },
   'cloudtrail-not-multiregion': { label: 'CloudTrail (no multi-region trail)', scope: 'global' },
+  'guardduty-not-enabled': { label: 'GuardDuty (not enabled)', scope: 'regional' },
+  'config-not-enabled': { label: 'AWS Config (not enabled)', scope: 'regional' },
+  'security-hub-not-enabled': { label: 'Security Hub (not enabled)', scope: 'regional' },
+  'vpc-flow-logs-disabled': { label: 'VPCs (Flow Logs disabled)', scope: 'regional' },
+  'kms-key-rotation-disabled': { label: 'KMS Keys (rotation disabled)', scope: 'regional' },
+  's3-account-public-access-block-disabled': { label: 'S3 (account-level Block Public Access disabled)', scope: 'global' },
+  's3-bucket-versioning-disabled': { label: 'S3 Buckets (versioning/MFA-delete disabled)', scope: 'global' },
+  'redshift-cluster-publicly-accessible': { label: 'Redshift Clusters (publicly accessible)', scope: 'regional' },
+  'iam-user-policy-wildcard': { label: 'IAM Users (wildcard admin policy)', scope: 'global' },
+  'acm-certificate-expiring': { label: 'ACM Certificates (expiring soon)', scope: 'regional' },
+  'lambda-function-policy-public': { label: 'Lambda Functions (public resource policy)', scope: 'regional' },
+  'sns-topic-policy-public': { label: 'SNS Topics (public resource policy)', scope: 'regional' },
+  'sqs-queue-policy-public': { label: 'SQS Queues (public resource policy)', scope: 'regional' },
+  'ecr-repository-policy-public': { label: 'ECR Repositories (public resource policy)', scope: 'regional' },
+  'secrets-manager-secret-policy-public': { label: 'Secrets Manager Secrets (public resource policy)', scope: 'regional' },
 };
 
 /**
