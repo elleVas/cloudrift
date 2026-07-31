@@ -1,6 +1,6 @@
 {
   "name": "cloud-cost-pricing",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
@@ -74,9 +74,9 @@
     "shared-kernel": "workspace:*",
     "shared-aws-infra-utils": "workspace:*",
     "@aws-sdk/client-pricing": "^3.1095.0",
+    "@aws-sdk/credential-providers": "^3.1095.0",
+    "@smithy/node-http-handler": "^4.9.11",
+    "@smithy/types": "^4.9.0",
     "tslib": "^2.8.1"
-  },
-  "devDependencies": {
-    "@smithy/types": "^4.9.0"
   }
 }
