@@ -391,6 +391,8 @@ node apps/cli/dist/main.js history --html
 
 **`--compare`'s "presumed resolved" figure is an inference, not a confirmed saving:** cloudrift is read-only and never remediates anything, so it cannot know *why* a finding disappeared between the two compared runs (fixed by you, deleted for an unrelated reason, or simply out of this run's `--regions`/`--scanners` scope) — see [ADR-0100](../adr/0100-history-comparison-and-html-report.md).
 
+**`--html`'s chart differs by domain:** `cloud-cost` charts a single line (monthly waste in USD), with a dashed linear-projection point one run past the last real one ("if this trend continues," not a guarantee — needs ≥2 runs), and a "top resource types by waste" list from the latest run's breakdown. `dead-resources`/`resource-security` chart three lines instead — critical/warning/info, the same severity breakdown and colors as the PDF/table reports — with a legend and a matching 3-column table, instead of one aggregate "findings" total; `resource-security` also gets a plain-language risk narrative (no dollar figure — there's no honest way to price a security finding the way AWS list prices exist for waste). The combined report (no `--domain`) additionally leads with a 3-tile executive summary (monthly waste + delta, security risk, dead-resources trend) aimed at a CTO/CEO audience who wants the headline before scrolling into any one domain.
+
 ## `iam-policy` — print the required IAM policy
 
 ```sh

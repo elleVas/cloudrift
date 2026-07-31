@@ -293,6 +293,8 @@ cloudrift history --domain cloud-cost --limit 10
 cloudrift history --html                       # report HTML autocontenuto, tutti e 3 i domini impilati su una pagina
 ```
 
+Il grafico di `--html` cambia in base al dominio: `cloud-cost` è una singola linea di spreco in dollari (più una previsione lineare e una lista "top resource type per spreco"); `dead-resources`/`resource-security` mostrano critical/warning/info come tre linee separate con legenda, la stessa scomposizione per severity di PDF/tabella (`resource-security` include anche una narrativa di rischio in linguaggio semplice, deliberatamente senza cifre in $). Il report combinato apre con 3 stat tile esecutivi pensati per un pubblico CTO/CEO.
+
 Vedi [ADR-0099](../adr/0099-local-trend-store.md)/[ADR-0100](../adr/0100-history-comparison-and-html-report.md) (in inglese) e [utilizzo.md](./utilizzo.md#history--storico-locale-delle-scansioni) per il riferimento completo dei flag (incluso `--compare` e `--html` per singolo dominio).
 
 ---

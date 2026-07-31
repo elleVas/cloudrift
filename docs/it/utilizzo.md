@@ -406,6 +406,8 @@ node apps/cli/dist/main.js history --html
 
 **Lo "spreco presumibilmente risolto" di `--compare` è un'inferenza, non un risparmio confermato:** cloudrift è read-only e non rimedia mai nulla, quindi non può sapere *perché* un finding è sparito tra le due esecuzioni confrontate (l'hai sistemato tu, la risorsa è stata eliminata per un motivo non collegato, o era semplicemente fuori dallo scope di `--regions`/`--scanners` di questa run) — vedi [ADR-0100](../adr/0100-history-comparison-and-html-report.md) (in inglese).
 
+**Il grafico di `--html` cambia in base al dominio:** `cloud-cost` mostra una singola linea (spreco mensile in USD), con un punto di previsione lineare tratteggiato una run oltre l'ultima reale ("se il trend continua", non una garanzia — servono almeno 2 run), e una lista "top resource type per spreco" dall'ultima run. `dead-resources`/`resource-security` mostrano invece tre linee — critical/warning/info, la stessa scomposizione per severity e gli stessi colori dei report PDF/tabella — con legenda e una tabella a 3 colonne corrispondente, invece di un unico totale aggregato di "findings"; `resource-security` include anche una narrativa di rischio in linguaggio semplice (nessuna cifra in $ — non esiste un modo onesto di quantificare un finding di sicurezza come invece esistono i prezzi di listino AWS per lo spreco). Il report combinato (senza `--domain`) apre inoltre con 3 stat tile esecutivi (spreco mensile + delta, rischio security, trend dead-resources) pensati per un pubblico CTO/CEO che vuole il titolo prima di scendere nel dettaglio di un singolo dominio.
+
 ## `iam-policy` — stampa la policy IAM richiesta
 
 ```sh
