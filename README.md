@@ -280,9 +280,10 @@ cloudrift resource-security --scanners iam-root-mfa-disabled    # only one check
 ```sh
 cloudrift history                              # every snapshot on record, most recent first
 cloudrift history --domain cloud-cost --limit 10
+cloudrift history --html                       # self-contained HTML trend report, all 3 domains stacked on one page
 ```
 
-See [ADR-0099](https://github.com/elleVas/cloudrift/blob/main/docs/adr/0099-local-trend-store.md) and [docs/en/usage.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/usage.md#history--local-scan-history) for the full flag reference.
+See [ADR-0099](https://github.com/elleVas/cloudrift/blob/main/docs/adr/0099-local-trend-store.md)/[ADR-0100](https://github.com/elleVas/cloudrift/blob/main/docs/adr/0100-history-comparison-and-html-report.md) and [docs/en/usage.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/usage.md#history--local-scan-history) for the full flag reference (including `--compare` and single-domain `--html`).
 
 ---
 

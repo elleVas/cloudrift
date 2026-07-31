@@ -290,9 +290,10 @@ cloudrift resource-security --scanners iam-root-mfa-disabled    # un solo check
 ```sh
 cloudrift history                              # ogni snapshot registrato, dal più recente
 cloudrift history --domain cloud-cost --limit 10
+cloudrift history --html                       # report HTML autocontenuto, tutti e 3 i domini impilati su una pagina
 ```
 
-Vedi [ADR-0099](../adr/0099-local-trend-store.md) (in inglese) e [utilizzo.md](./utilizzo.md#history--storico-locale-delle-scansioni) per il riferimento completo dei flag.
+Vedi [ADR-0099](../adr/0099-local-trend-store.md)/[ADR-0100](../adr/0100-history-comparison-and-html-report.md) (in inglese) e [utilizzo.md](./utilizzo.md#history--storico-locale-delle-scansioni) per il riferimento completo dei flag (incluso `--compare` e `--html` per singolo dominio).
 
 ---
 
