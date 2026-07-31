@@ -21,6 +21,21 @@ import {
   S3BucketEncryptionMissingPolicy,
   RdsInstancePubliclyAccessiblePolicy,
   CloudtrailNotMultiregionPolicy,
+  GuarddutyNotEnabledPolicy,
+  ConfigNotEnabledPolicy,
+  SecurityHubNotEnabledPolicy,
+  VpcFlowLogsDisabledPolicy,
+  KmsKeyRotationDisabledPolicy,
+  S3AccountPublicAccessBlockDisabledPolicy,
+  S3BucketVersioningDisabledPolicy,
+  RedshiftClusterPubliclyAccessiblePolicy,
+  IamUserPolicyWildcardPolicy,
+  AcmCertificateExpiringPolicy,
+  LambdaFunctionPolicyPublicPolicy,
+  SnsTopicPolicyPublicPolicy,
+  SqsQueuePolicyPublicPolicy,
+  EcrRepositoryPolicyPublicPolicy,
+  SecretsManagerSecretPolicyPublicPolicy,
 } from 'resource-security-domain';
 import { FindResourceSecurityFindingsUseCase } from 'resource-security-application';
 import type { AwsCredentialIdentityProvider } from '@smithy/types';
@@ -39,6 +54,21 @@ import {
   AwsS3BucketEncryptionMissingScanner,
   AwsRdsInstancePubliclyAccessibleScanner,
   AwsCloudtrailNotMultiregionScanner,
+  AwsGuarddutyNotEnabledScanner,
+  AwsConfigNotEnabledScanner,
+  AwsSecurityHubNotEnabledScanner,
+  AwsVpcFlowLogsDisabledScanner,
+  AwsKmsKeyRotationDisabledScanner,
+  AwsS3AccountPublicAccessBlockDisabledScanner,
+  AwsS3BucketVersioningDisabledScanner,
+  AwsRedshiftClusterPubliclyAccessibleScanner,
+  AwsIamUserPolicyWildcardScanner,
+  AwsAcmCertificateExpiringScanner,
+  AwsLambdaFunctionPolicyPublicScanner,
+  AwsSnsTopicPolicyPublicScanner,
+  AwsSqsQueuePolicyPublicScanner,
+  AwsEcrRepositoryPolicyPublicScanner,
+  AwsSecretsManagerSecretPolicyPublicScanner,
 } from 'resource-security-infrastructure-aws-adapter';
 import { resolveAwsAccountId } from 'cloud-cost-infrastructure-aws-adapter';
 
@@ -72,7 +102,7 @@ export interface ResourceSecurityDeps {
   createAnalysis(ctx: ResourceSecurityAnalysisContext): Promise<ResourceSecurityAnalysis>;
 }
 
-/** One entry per resource-security kind — same shape as `dead-resources.composition.ts`'s `buildScanners`, 14 entries doesn't warrant a registry split (ADR-0077's threshold was 43). */
+/** One entry per resource-security kind — same shape as `dead-resources.composition.ts`'s `buildScanners`, 29 entries doesn't warrant a registry split (ADR-0077's threshold was 43). */
 function buildScanners(ctx: ResourceSecurityScanContext): ResourceSecurityScannerPort[] {
   return [
     new AwsIamRootMfaDisabledScanner(ctx.accountId, ctx.credentials, new IamRootMfaDisabledPolicy(ctx.policyOptions)),
@@ -89,6 +119,21 @@ function buildScanners(ctx: ResourceSecurityScanContext): ResourceSecurityScanne
     new AwsS3BucketEncryptionMissingScanner(ctx.accountId, ctx.credentials, new S3BucketEncryptionMissingPolicy(ctx.policyOptions)),
     new AwsRdsInstancePubliclyAccessibleScanner(ctx.accountId, ctx.credentials, new RdsInstancePubliclyAccessiblePolicy(ctx.policyOptions)),
     new AwsCloudtrailNotMultiregionScanner(ctx.accountId, ctx.credentials, new CloudtrailNotMultiregionPolicy(ctx.policyOptions)),
+    new AwsGuarddutyNotEnabledScanner(ctx.accountId, ctx.credentials, new GuarddutyNotEnabledPolicy(ctx.policyOptions)),
+    new AwsConfigNotEnabledScanner(ctx.accountId, ctx.credentials, new ConfigNotEnabledPolicy(ctx.policyOptions)),
+    new AwsSecurityHubNotEnabledScanner(ctx.accountId, ctx.credentials, new SecurityHubNotEnabledPolicy(ctx.policyOptions)),
+    new AwsVpcFlowLogsDisabledScanner(ctx.accountId, ctx.credentials, new VpcFlowLogsDisabledPolicy(ctx.policyOptions)),
+    new AwsKmsKeyRotationDisabledScanner(ctx.accountId, ctx.credentials, new KmsKeyRotationDisabledPolicy(ctx.policyOptions)),
+    new AwsS3AccountPublicAccessBlockDisabledScanner(ctx.accountId, ctx.credentials, new S3AccountPublicAccessBlockDisabledPolicy(ctx.policyOptions)),
+    new AwsS3BucketVersioningDisabledScanner(ctx.accountId, ctx.credentials, new S3BucketVersioningDisabledPolicy(ctx.policyOptions)),
+    new AwsRedshiftClusterPubliclyAccessibleScanner(ctx.accountId, ctx.credentials, new RedshiftClusterPubliclyAccessiblePolicy(ctx.policyOptions)),
+    new AwsIamUserPolicyWildcardScanner(ctx.accountId, ctx.credentials, new IamUserPolicyWildcardPolicy(ctx.policyOptions)),
+    new AwsAcmCertificateExpiringScanner(ctx.accountId, ctx.credentials, new AcmCertificateExpiringPolicy(ctx.policyOptions)),
+    new AwsLambdaFunctionPolicyPublicScanner(ctx.accountId, ctx.credentials, new LambdaFunctionPolicyPublicPolicy(ctx.policyOptions)),
+    new AwsSnsTopicPolicyPublicScanner(ctx.accountId, ctx.credentials, new SnsTopicPolicyPublicPolicy(ctx.policyOptions)),
+    new AwsSqsQueuePolicyPublicScanner(ctx.accountId, ctx.credentials, new SqsQueuePolicyPublicPolicy(ctx.policyOptions)),
+    new AwsEcrRepositoryPolicyPublicScanner(ctx.accountId, ctx.credentials, new EcrRepositoryPolicyPublicPolicy(ctx.policyOptions)),
+    new AwsSecretsManagerSecretPolicyPublicScanner(ctx.accountId, ctx.credentials, new SecretsManagerSecretPolicyPublicPolicy(ctx.policyOptions)),
   ];
 }
 

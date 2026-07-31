@@ -92,6 +92,28 @@ export const REQUIRED_IAM_POLICY = {
         'cloudtrail:DescribeTrails',
         'ce:GetCostAndUsage',
         'sts:GetCallerIdentity',
+        // resource-security v2 (2026-07-31)
+        'guardduty:ListDetectors',
+        'config:DescribeConfigurationRecorderStatus',
+        'securityhub:DescribeHub',
+        'ec2:DescribeVpcs',
+        'ec2:DescribeFlowLogs',
+        'kms:ListKeys',
+        'kms:DescribeKey',
+        'kms:GetKeyRotationStatus',
+        's3:GetAccountPublicAccessBlock',
+        's3:GetBucketVersioning',
+        'redshift:DescribeClusters',
+        'iam:ListAttachedUserPolicies',
+        'iam:GetPolicy',
+        'iam:GetPolicyVersion',
+        'iam:ListUserPolicies',
+        'iam:GetUserPolicy',
+        'acm:DescribeCertificate',
+        'lambda:GetPolicy',
+        'sns:GetTopicAttributes',
+        'ecr:GetRepositoryPolicy',
+        'secretsmanager:GetResourcePolicy',
         // Only needed when scanning with --assume-role-arn: this grants the
         // CALLING principal permission to assume a role elsewhere. The
         // TARGET role (in the account being scanned) needs its own trust

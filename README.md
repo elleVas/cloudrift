@@ -244,7 +244,7 @@ cloudrift dead-resources --scanners iam-user-inactive  # only one check
 
 ### Security posture (`resource-security`)
 
-A third, separate domain: risky **configuration** on resources that are actively in use (unlike `dead-resources` above, which finds abandoned ones) — IAM/account hygiene, network exposure, public storage, encryption at rest, and visibility/audit. All 14 checks are read-only (`Describe*`/`Get*`/`List*` only). See [ADR-0081](https://github.com/elleVas/cloudrift/blob/main/docs/adr/0081-resource-security-parallel-domain.md).
+A third, separate domain: risky **configuration** on resources that are actively in use (unlike `dead-resources` above, which finds abandoned ones) — IAM/account hygiene, network exposure, public storage, encryption at rest, and visibility/audit. All 29 checks are read-only (`Describe*`/`Get*`/`List*` only). See [ADR-0081](https://github.com/elleVas/cloudrift/blob/main/docs/adr/0081-resource-security-parallel-domain.md).
 
 ```sh
 cloudrift resource-security                                    # every check, us-east-1
@@ -269,7 +269,7 @@ cloudrift resource-security --scanners iam-root-mfa-disabled    # only one check
 | **RDS Instances (publicly accessible)** | Reachable from outside its VPC | critical |
 | **CloudTrail (no multi-region trail)** | No trail with multi-region logging | warning |
 
-**IAM, S3 (bucket listing), and CloudTrail are global for this command**: those eight checks run once per scan regardless of how many `--regions` you pass, never once per region — the other six checks are genuinely regional. `--format json`/`csv`/`--pdf` for machine-readable/shareable output, no `--min-age-days` (a security misconfiguration is a risk from the moment it exists). See [docs/en/usage.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/usage.md#resource-security--security-posture-scan) for the full flag reference.
+**IAM, S3 (bucket listing), and CloudTrail are global for this command**: those eleven checks run once per scan regardless of how many `--regions` you pass, never once per region — the other eighteen checks are genuinely regional. `--format json`/`csv`/`--pdf` for machine-readable/shareable output, no `--min-age-days` (a security misconfiguration is a risk from the moment it exists). See [docs/en/usage.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/usage.md#resource-security--security-posture-scan) for the full flag reference.
 
 ---
 

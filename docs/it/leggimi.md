@@ -254,7 +254,7 @@ cloudrift dead-resources --scanners iam-user-inactive  # un solo check
 
 ### Postura di sicurezza (`resource-security`)
 
-Un terzo dominio, separato: configurazioni rischiose su risorse effettivamente in uso (a differenza di `dead-resources` sopra, che trova risorse abbandonate) — igiene IAM/account, esposizione di rete, storage pubblico, cifratura a riposo, visibilità/audit. Tutti e 14 i check sono di sola lettura (`Describe*`/`Get*`/`List*`). Vedi [ADR-0081](../adr/0081-resource-security-parallel-domain.md) (in inglese).
+Un terzo dominio, separato: configurazioni rischiose su risorse effettivamente in uso (a differenza di `dead-resources` sopra, che trova risorse abbandonate) — igiene IAM/account, esposizione di rete, storage pubblico, cifratura a riposo, visibilità/audit. Tutti e 29 i check sono di sola lettura (`Describe*`/`Get*`/`List*`). Vedi [ADR-0081](../adr/0081-resource-security-parallel-domain.md) (in inglese).
 
 ```sh
 cloudrift resource-security                                    # ogni check, us-east-1
@@ -279,7 +279,7 @@ cloudrift resource-security --scanners iam-root-mfa-disabled    # un solo check
 | **Istanze RDS (pubblicamente accessibili)** | Raggiungibili dall'esterno della VPC | critical |
 | **CloudTrail (nessun trail multi-regione)** | Nessun trail con logging multi-regione | warning |
 
-**IAM, S3 (elenco bucket) e CloudTrail sono trattati come globali per questo comando**: quegli otto check girano una sola volta per scansione, indipendentemente da quante `--regions` passi, mai una volta per regione — gli altri sei check sono genuinamente regionali. `--format json`/`csv`/`--pdf` per output machine-readable/condivisibile, nessun `--min-age-days` (una configurazione di sicurezza errata è un rischio dal momento in cui esiste). Vedi [utilizzo.md](./utilizzo.md#resource-security--scansione-della-postura-di-sicurezza) per il riferimento completo dei flag.
+**IAM, S3 (elenco bucket) e CloudTrail sono trattati come globali per questo comando**: quegli undici check girano una sola volta per scansione, indipendentemente da quante `--regions` passi, mai una volta per regione — gli altri diciotto check sono genuinamente regionali. `--format json`/`csv`/`--pdf` per output machine-readable/condivisibile, nessun `--min-age-days` (una configurazione di sicurezza errata è un rischio dal momento in cui esiste). Vedi [utilizzo.md](./utilizzo.md#resource-security--scansione-della-postura-di-sicurezza) per il riferimento completo dei flag.
 
 ---
 

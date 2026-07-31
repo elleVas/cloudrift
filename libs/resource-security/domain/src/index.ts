@@ -45,6 +45,36 @@ export { RdsInstancePubliclyAccessible } from './entities/rds-instance-publicly-
 export type { RdsInstancePubliclyAccessibleProps } from './entities/rds-instance-publicly-accessible.entity';
 export { CloudtrailNotMultiregion } from './entities/cloudtrail-not-multiregion.entity';
 export type { CloudtrailNotMultiregionProps } from './entities/cloudtrail-not-multiregion.entity';
+export { GuarddutyNotEnabled } from './entities/guardduty-not-enabled.entity';
+export type { GuarddutyNotEnabledProps } from './entities/guardduty-not-enabled.entity';
+export { ConfigNotEnabled } from './entities/config-not-enabled.entity';
+export type { ConfigNotEnabledProps } from './entities/config-not-enabled.entity';
+export { SecurityHubNotEnabled } from './entities/security-hub-not-enabled.entity';
+export type { SecurityHubNotEnabledProps } from './entities/security-hub-not-enabled.entity';
+export { VpcFlowLogsDisabled } from './entities/vpc-flow-logs-disabled.entity';
+export type { VpcFlowLogsDisabledProps } from './entities/vpc-flow-logs-disabled.entity';
+export { KmsKeyRotationDisabled } from './entities/kms-key-rotation-disabled.entity';
+export type { KmsKeyRotationDisabledProps } from './entities/kms-key-rotation-disabled.entity';
+export { S3AccountPublicAccessBlockDisabled } from './entities/s3-account-public-access-block-disabled.entity';
+export type { S3AccountPublicAccessBlockDisabledProps } from './entities/s3-account-public-access-block-disabled.entity';
+export { S3BucketVersioningDisabled } from './entities/s3-bucket-versioning-disabled.entity';
+export type { S3BucketVersioningDisabledProps } from './entities/s3-bucket-versioning-disabled.entity';
+export { RedshiftClusterPubliclyAccessible } from './entities/redshift-cluster-publicly-accessible.entity';
+export type { RedshiftClusterPubliclyAccessibleProps } from './entities/redshift-cluster-publicly-accessible.entity';
+export { IamUserPolicyWildcard } from './entities/iam-user-policy-wildcard.entity';
+export type { IamUserPolicyWildcardProps } from './entities/iam-user-policy-wildcard.entity';
+export { AcmCertificateExpiring } from './entities/acm-certificate-expiring.entity';
+export type { AcmCertificateExpiringProps } from './entities/acm-certificate-expiring.entity';
+export { LambdaFunctionPolicyPublic } from './entities/lambda-function-policy-public.entity';
+export type { LambdaFunctionPolicyPublicProps } from './entities/lambda-function-policy-public.entity';
+export { SnsTopicPolicyPublic } from './entities/sns-topic-policy-public.entity';
+export type { SnsTopicPolicyPublicProps } from './entities/sns-topic-policy-public.entity';
+export { SqsQueuePolicyPublic } from './entities/sqs-queue-policy-public.entity';
+export type { SqsQueuePolicyPublicProps } from './entities/sqs-queue-policy-public.entity';
+export { EcrRepositoryPolicyPublic } from './entities/ecr-repository-policy-public.entity';
+export type { EcrRepositoryPolicyPublicProps } from './entities/ecr-repository-policy-public.entity';
+export { SecretsManagerSecretPolicyPublic } from './entities/secrets-manager-secret-policy-public.entity';
+export type { SecretsManagerSecretPolicyPublicProps } from './entities/secrets-manager-secret-policy-public.entity';
 
 // Policies
 export {
@@ -68,6 +98,21 @@ export { RdsInstanceUnencryptedPolicy } from './policies/rds-instance-unencrypte
 export { S3BucketEncryptionMissingPolicy } from './policies/s3-bucket-encryption-missing.policy';
 export { RdsInstancePubliclyAccessiblePolicy } from './policies/rds-instance-publicly-accessible.policy';
 export { CloudtrailNotMultiregionPolicy } from './policies/cloudtrail-not-multiregion.policy';
+export { GuarddutyNotEnabledPolicy } from './policies/guardduty-not-enabled.policy';
+export { ConfigNotEnabledPolicy } from './policies/config-not-enabled.policy';
+export { SecurityHubNotEnabledPolicy } from './policies/security-hub-not-enabled.policy';
+export { VpcFlowLogsDisabledPolicy } from './policies/vpc-flow-logs-disabled.policy';
+export { KmsKeyRotationDisabledPolicy } from './policies/kms-key-rotation-disabled.policy';
+export { S3AccountPublicAccessBlockDisabledPolicy } from './policies/s3-account-public-access-block-disabled.policy';
+export { S3BucketVersioningDisabledPolicy } from './policies/s3-bucket-versioning-disabled.policy';
+export { RedshiftClusterPubliclyAccessiblePolicy } from './policies/redshift-cluster-publicly-accessible.policy';
+export { IamUserPolicyWildcardPolicy } from './policies/iam-user-policy-wildcard.policy';
+export { AcmCertificateExpiringPolicy, DEFAULT_CERT_EXPIRY_WARNING_DAYS } from './policies/acm-certificate-expiring.policy';
+export { LambdaFunctionPolicyPublicPolicy } from './policies/lambda-function-policy-public.policy';
+export { SnsTopicPolicyPublicPolicy } from './policies/sns-topic-policy-public.policy';
+export { SqsQueuePolicyPublicPolicy } from './policies/sqs-queue-policy-public.policy';
+export { EcrRepositoryPolicyPublicPolicy } from './policies/ecr-repository-policy-public.policy';
+export { SecretsManagerSecretPolicyPublicPolicy } from './policies/secrets-manager-secret-policy-public.policy';
 
 // Ports
 export type { ResourceSecurityScannerPort } from './ports/outbound/resource-security-scanner.port';
