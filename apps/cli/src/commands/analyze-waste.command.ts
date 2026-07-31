@@ -22,13 +22,15 @@ import { resolveMinAgeDays, resolveExplicitScanners, resolveRegions, resolveCred
 import { writeArtifacts, applyCostGate } from './post-analysis';
 import { reportCliError as fail } from './report-cli-error';
 import { persistTrendSnapshot } from 'shared-trend-store';
+import { shouldNotifyOnCost } from 'shared-notifications';
+import { dispatchNotifications, type NotifyFlags } from './notifications';
 
 export type { AnalyzeDeps };
 
 const DEFAULT_CLOUDWATCH_WINDOW_HOURS = 48;
 const DEFAULT_UTILIZATION_WINDOW_HOURS = 168;
 
-export interface AnalyzeWasteOptions {
+export interface AnalyzeWasteOptions extends NotifyFlags {
   regions: string[];
   accountId?: string;
   assumeRoleArn?: string;
@@ -204,5 +206,25 @@ export async function analyzeWasteCommand(
     generatedAt: meta.generatedAt.toISOString(),
     payload: formatWasteReportAsJson(result.value, meta),
   });
+
+  const emailBypassesGate = options.notifyEmail !== undefined && options.notifyEmailIgnoresGate === true;
+  if (shouldNotifyOnCost(result.value.totalWasteMonthlyUsd, config.costAlertThresholdUsd) || emailBypassesGate) {
+    const topWaste = [...result.value.findings]
+      .sort((a, b) => b.costEstimate.monthlyCostUsd - a.costEstimate.monthlyCostUsd)
+      .slice(0, 5)
+      .map((f) => `${f.kind}: ${f.wasteReason} ($${f.costEstimate.monthlyCostUsd.toFixed(2)}/mo)`);
+    await dispatchNotifications(
+      options,
+      {
+        title: `cloudrift analyze — $${result.value.totalWasteMonthlyUsd.toFixed(2)}/mo wasted (account ${accountId})`,
+        domain: 'cloud-cost',
+        accountId,
+        generatedAt: meta.generatedAt,
+        lines: topWaste,
+      },
+      info,
+    );
+  }
+
   applyCostGate(result.value, config);
 }

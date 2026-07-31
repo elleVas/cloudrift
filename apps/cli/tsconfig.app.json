@@ -13,6 +13,9 @@
       "path": "../../libs/shared/trend-store/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/shared/notifications/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/shared/kernel/tsconfig.lib.json"
     },
     {

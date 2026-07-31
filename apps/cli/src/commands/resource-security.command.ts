@@ -15,10 +15,12 @@ import { reportCliError as fail } from './report-cli-error';
 import { OUTPUT_FORMATS, isOutputFormat } from '../output-format';
 import { resolveCredentials } from './resolve-options';
 import { persistTrendSnapshot } from 'shared-trend-store';
+import { shouldNotifyOnSeverity } from 'shared-notifications';
+import { dispatchNotifications, topFindingLines, type NotifyFlags } from './notifications';
 
 export type { ResourceSecurityDeps };
 
-export interface ResourceSecurityCommandOptions {
+export interface ResourceSecurityCommandOptions extends NotifyFlags {
   regions: string[];
   accountId?: string;
   assumeRoleArn?: string;
@@ -152,4 +154,21 @@ export async function resourceSecurityCommand(
     generatedAt: meta.generatedAt.toISOString(),
     payload: formatResourceSecurityReportAsJson(result.value, meta),
   });
+
+  const emailBypassesGate = options.notifyEmail !== undefined && options.notifyEmailIgnoresGate === true;
+  if (shouldNotifyOnSeverity(result.value.countBySeverity) || emailBypassesGate) {
+    const { critical, warning, info: infoCount } = result.value.countBySeverity;
+    await dispatchNotifications(
+      options,
+      {
+        title: `cloudrift resource-security — ${critical} critical, ${warning} warning, ${infoCount} info (account ${accountId})`,
+        domain: 'resource-security',
+        accountId,
+        generatedAt: meta.generatedAt,
+        countBySeverity: result.value.countBySeverity,
+        lines: topFindingLines(result.value.findings, (f) => f.riskReason),
+      },
+      info,
+    );
+  }
 }

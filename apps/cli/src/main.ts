@@ -87,6 +87,9 @@ program
     '--silent',
     'suppress all stdout output (banner, report, confirmations) — use with --pdf/--json/--csv for file-only output. Errors and the cost-gate alert still surface.',
   )
+  .option('--notify-slack', 'send a Slack notification if waste exceeds --config\'s costAlertThresholdUsd (or any waste, if unset); reads SLACK_WEBHOOK_URL from env')
+  .option('--notify-webhook', 'POST a JSON summary to a webhook under the same condition as --notify-slack; reads CLOUDRIFT_WEBHOOK_URL from env')
+  .option('--notify-email <address>', 'email a summary to this address under the same condition as --notify-slack; reads CLOUDRIFT_SMTP_HOST/PORT/USER/PASSWORD/FROM from env')
   .action((options) => analyzeWasteCommand(options));
 
 program
@@ -180,6 +183,9 @@ program
     'Also write a CSV report to disk (optional filename, defaults to reports/cloudrift-dead-resources-YYYY_MM_DD.csv)',
   )
   .option('--silent', 'suppress all stdout output (banner, report). Errors still surface.')
+  .option('--notify-slack', 'send a Slack notification if the scan has critical/warning findings; reads SLACK_WEBHOOK_URL from env')
+  .option('--notify-webhook', 'POST a JSON summary to a webhook under the same condition as --notify-slack; reads CLOUDRIFT_WEBHOOK_URL from env')
+  .option('--notify-email <address>', 'email a summary to this address under the same condition as --notify-slack; reads CLOUDRIFT_SMTP_HOST/PORT/USER/PASSWORD/FROM from env')
   .action((options) => deadResourcesCommand(options));
 
 program
@@ -214,6 +220,9 @@ program
     'Also write a CSV report to disk (optional filename, defaults to reports/cloudrift-resource-security-YYYY_MM_DD.csv)',
   )
   .option('--silent', 'suppress all stdout output (banner, report). Errors still surface.')
+  .option('--notify-slack', 'send a Slack notification if the scan has critical/warning findings; reads SLACK_WEBHOOK_URL from env')
+  .option('--notify-webhook', 'POST a JSON summary to a webhook under the same condition as --notify-slack; reads CLOUDRIFT_WEBHOOK_URL from env')
+  .option('--notify-email <address>', 'email a summary to this address under the same condition as --notify-slack; reads CLOUDRIFT_SMTP_HOST/PORT/USER/PASSWORD/FROM from env')
   .action((options) => resourceSecurityCommand(options));
 
 program
@@ -235,6 +244,9 @@ program
     'Also write a self-contained HTML report with a trend chart (optional filename, defaults to reports/cloudrift-history-<domain>-YYYY_MM_DD.html). Without --domain, charts all three domains stacked on one page instead of just one',
   )
   .option('--format <format>', 'stdout output format: table (default) or json', 'table')
+  .option('--notify-slack', 'with --compare, send a Slack notification if the comparison shows a regression (worse trend); reads SLACK_WEBHOOK_URL from env')
+  .option('--notify-webhook', 'with --compare, POST a JSON summary to a webhook under the same condition as --notify-slack; reads CLOUDRIFT_WEBHOOK_URL from env')
+  .option('--notify-email <address>', 'with --compare, email a summary to this address under the same condition as --notify-slack; reads CLOUDRIFT_SMTP_HOST/PORT/USER/PASSWORD/FROM from env')
   .action((options) => historyCommand(options));
 
 program
