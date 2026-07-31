@@ -18,6 +18,8 @@ module.exports = {
   moduleNameMapper: {
     '^shared-kernel$': '<rootDir>/../kernel/src/index.ts',
     '^shared-kernel/(.*)$': '<rootDir>/../kernel/src/$1',
+    '^shared-aws-infra-utils$': '<rootDir>/../aws-infra-utils/src/index.ts',
+    '^shared-aws-infra-utils/(.*)$': '<rootDir>/../aws-infra-utils/src/$1',
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
 };

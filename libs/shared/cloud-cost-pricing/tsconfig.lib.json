@@ -15,6 +15,9 @@
   "references": [
     {
       "path": "../kernel/tsconfig.lib.json"
+    },
+    {
+      "path": "../aws-infra-utils/tsconfig.lib.json"
     }
   ]
 }

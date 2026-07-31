@@ -13,3 +13,5 @@ export type { TaggedResource, WasteVerdict, WastePolicyOptions } from './waste-p
 export { TablePricingAdapter, mergePriceTables } from './table-pricing.adapter';
 export type { PriceTable, RegionPrices } from './table-pricing.adapter';
 export { StaticPriceTableAdapter, BUILTIN_PRICE_TABLE, BUILTIN_PRICES_AS_OF } from './static-price-table.adapter';
+export { AwsPricingApiAdapter, REGION_TO_LOCATION, extractOnDemandUsd } from './aws-pricing-api.adapter';
+export type { PriceSpec, PriceUnit } from './aws-pricing-api.adapter';
