@@ -32,6 +32,7 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 | ADR | Title | Status |
 |---|---|---|
 | [0099](0099-local-trend-store.md) | Local historical trend store (SQLite, per-account, full snapshot forever) | Accepted |
+| [0100](0100-history-comparison-and-html-report.md) | `history --compare` and `history --html` — scan-to-scan comparison and an inline-SVG trend report | Accepted |
 
 ## Cost analytics (`cost` / `trend`)
 

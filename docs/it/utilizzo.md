@@ -359,6 +359,8 @@ node apps/cli/dist/main.js history [options]
 | `--external-id <id>`     | External ID da passare quando si usa `--assume-role-arn` (serve solo se la trust policy del ruolo lo richiede) | —               |
 | `--domain <domain>`      | Mostra solo gli snapshot di questo dominio: `cloud-cost`, `dead-resources`, o `resource-security` | tutti i domini  |
 | `--limit <n>`             | Numero massimo di snapshot da mostrare, dal più recente                            | `100`           |
+| `--compare <n>`           | Confronta l'ultima esecuzione con quella di `n` esecuzioni fa invece di elencare (richiede `--domain`) | —               |
+| `--html [filename]`       | Scrive anche un report HTML autocontenuto con un grafico del trend (richiede `--domain`; default `reports/cloudrift-history-<domain>-YYYY_MM_DD.html`) | —               |
 | `--format <format>`      | Formato di output su stdout: `table` o `json`                                       | `table`         |
 | `-h, --help`              | Mostra l'help                                                                       | —               |
 
@@ -373,11 +375,19 @@ node apps/cli/dist/main.js history --domain cloud-cost --limit 10
 
 # Output machine-readable, payload completo del report per ogni snapshot espanso in JSON
 node apps/cli/dist/main.js history --format json | jq '.[0].payload'
+
+# Quanto spendevo 5 esecuzioni fa rispetto ad ora, incluso uno spreco "presumibilmente risolto" in $/mese
+node apps/cli/dist/main.js history --domain cloud-cost --compare 5
+
+# Report HTML autocontenuto con un grafico a linee dello spreco nel tempo
+node apps/cli/dist/main.js history --domain cloud-cost --html
 ```
 
 **Nessun nuovo permesso AWS necessario:** `history` fa la stessa chiamata `sts:GetCallerIdentity` di ogni altro comando per risolvere l'ID account (saltata del tutto se passi `--account-id` esplicitamente) — il resto è solo lettura di un file locale, nessuna chiamata API AWS.
 
 **Retention:** ogni esecuzione viene conservata per sempre, di proposito — non esiste ancora una pulizia automatica. È una scelta deliberata di semplicità, da rivedere quando esisteranno dati reali sulla crescita del database (vedi le Conseguenze dell'ADR-0099).
+
+**Lo "spreco presumibilmente risolto" di `--compare` è un'inferenza, non un risparmio confermato:** cloudrift è read-only e non rimedia mai nulla, quindi non può sapere *perché* un finding è sparito tra le due esecuzioni confrontate (l'hai sistemato tu, la risorsa è stata eliminata per un motivo non collegato, o era semplicemente fuori dallo scope di `--regions`/`--scanners` di questa run) — vedi [ADR-0100](../adr/0100-history-comparison-and-html-report.md) (in inglese).
 
 ## `iam-policy` — stampa la policy IAM richiesta
 
