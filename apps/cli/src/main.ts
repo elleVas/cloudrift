@@ -230,7 +230,10 @@ program
   .option('--compare <n>', 'compare the latest run against the one n runs back instead of listing (requires --domain)')
   // See the `analyze` command's --pdf option above for why [filename] needs
   // to be written as --html=./path.html when combined with other flags.
-  .option('--html [filename]', 'Also write a self-contained HTML report with a trend chart (optional filename, defaults to reports/cloudrift-history-<domain>-YYYY_MM_DD.html; requires --domain)')
+  .option(
+    '--html [filename]',
+    'Also write a self-contained HTML report with a trend chart (optional filename, defaults to reports/cloudrift-history-<domain>-YYYY_MM_DD.html). Without --domain, charts all three domains stacked on one page instead of just one',
+  )
   .option('--format <format>', 'stdout output format: table (default) or json', 'table')
   .action((options) => historyCommand(options));
 

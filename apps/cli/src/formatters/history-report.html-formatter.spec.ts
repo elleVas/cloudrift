@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import type { TrendSnapshotRecord } from 'shared-trend-store';
-import { generateHistoryReportHtml } from './history-report.html-formatter';
+import { generateHistoryReportHtml, generateCombinedHistoryReportHtml } from './history-report.html-formatter';
 
 function wasteRecord(id: number, generatedAt: string, totalWasteMonthlyUsd: number, findingIds: string[]): TrendSnapshotRecord {
   return {
@@ -81,5 +81,30 @@ describe('generateHistoryReportHtml', () => {
     const html = generateHistoryReportHtml([], 'cloud-cost', '<script>alert(1)</script>');
     expect(html).not.toContain('<script>alert(1)</script>');
     expect(html).toContain('&lt;script&gt;');
+  });
+});
+
+describe('generateCombinedHistoryReportHtml', () => {
+  it('stacks one card per domain on a single page', () => {
+    const recordsByDomain = {
+      'cloud-cost': [wasteRecord(1, '2026-07-30T00:00:00.000Z', 10, ['vol-1'])],
+      'dead-resources': [hygieneRecord(2, '2026-07-30T00:00:00.000Z', { info: 1 })],
+      'resource-security': [{ ...hygieneRecord(3, '2026-07-30T00:00:00.000Z', { critical: 2 }), domain: 'resource-security' as const }],
+    };
+
+    const html = generateCombinedHistoryReportHtml(recordsByDomain, '123456789012');
+
+    expect(html).toContain('<!doctype html>');
+    expect(html).toContain('cloud-cost — local scan history');
+    expect(html).toContain('dead-resources — local scan history');
+    expect(html).toContain('resource-security — local scan history');
+    expect(html.match(/class="viz-chart-wrap"/g) ?? []).toHaveLength(3);
+  });
+
+  it('renders gracefully when a domain has no snapshots on record', () => {
+    const html = generateCombinedHistoryReportHtml({ 'cloud-cost': [], 'dead-resources': [], 'resource-security': [] }, '123456789012');
+
+    expect(html).toContain('<!doctype html>');
+    expect(html.match(/<tbody><\/tbody>/g) ?? []).toHaveLength(3);
   });
 });

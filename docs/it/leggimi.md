@@ -25,7 +25,7 @@ Preferisci i flag al wizard (script, CI)? Stesso tool, stesso output:
 cloudrift analyze -r us-east-1 eu-west-1 --pdf
 ```
 
-Vedi [Utilizzo](#utilizzo) per l'elenco completo dei flag.
+Vedi [utilizzo.md](./utilizzo.md) per l'elenco completo dei flag.
 
 > ⚠️ **Disclaimer:** cloudrift segnala solo spreco stimato e raccomandazioni — non cancella, modifica o ferma alcuna risorsa AWS. Ogni finding deve essere validato dal tuo team infrastrutturale prima di agire. I maintainer non si assumono alcuna responsabilità per le azioni intraprese sulla base di questo report.
 > **Contatti:** [raffaelevasini@gmail.com](mailto:raffaelevasini@gmail.com) · <a href="https://github.com/elleVas" target="_blank" rel="noopener noreferrer">GitHub</a> · <a href="https://www.linkedin.com/in/raffaele-vasini-87937470/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
@@ -35,7 +35,9 @@ Vedi [Utilizzo](#utilizzo) per l'elenco completo dei flag.
 - [Guida rapida](#guida-rapida)
 - [Cosa rileva](#cosa-rileva)
 - [Confronto e trend di spesa](#confronto-e-trend-di-spesa-cost--trend)
-- [Utilizzo](#utilizzo)
+- [Risorse morte/inutilizzate](#risorse-morteinutilizzate-dead-resources)
+- [Postura di sicurezza](#postura-di-sicurezza-resource-security)
+- [Storico locale delle scansioni](#storico-locale-delle-scansioni-history)
 - [File di configurazione](#file-di-configurazione)
 - [Fonti dei prezzi](#fonti-dei-prezzi)
 - [Uso in CI/CD](#uso-in-cicd)
@@ -211,151 +213,100 @@ cloudrift cost                          # questo mese finora vs. gli stessi gior
 cloudrift trend --months 12             # spesa mensile negli ultimi 12 mesi, grafico a barre ANSI
 ```
 
-> ⚠️ A differenza di ogni scanner sopra (chiamate describe/list gratuite), `cost`/`trend` chiamano **AWS Cost Explorer, che fattura $0.01 a richiesta** — gli unici comandi di cloudrift che possono generare un costo AWS. Entrambi chiedono conferma prima della prima chiamata (saltabile con `-y`/`--yes`); i periodi di fatturazione chiusi vengono cachati su disco così rilanciare lo stesso comando per le stesse date non fattura di nuovo. Vedi [Utilizzo](#utilizzo) per il riferimento completo dei flag.
+> ⚠️ A differenza di ogni scanner sopra (chiamate describe/list gratuite), `cost`/`trend` chiamano **AWS Cost Explorer, che fattura $0.01 a richiesta** — gli unici comandi di cloudrift che possono generare un costo AWS. Entrambi chiedono conferma prima della prima chiamata (saltabile con `-y`/`--yes`); i periodi di fatturazione chiusi vengono cachati su disco così rilanciare lo stesso comando per le stesse date non fattura di nuovo. Vedi [utilizzo.md](./utilizzo.md#cost--trend--confronto-e-trend-di-spesa) per il riferimento completo dei flag.
 
 ---
 
-<details>
-<summary><strong>Utilizzo</strong> — flag, esempi, report PDF, gestione errori parziali, prezzi per regione</summary>
+### Risorse morte/inutilizzate (`dead-resources`)
 
-### Utilizzo
-
-```sh
-node apps/cli/dist/main.js analyze [opzioni]
-```
-
-| Opzione                      | Descrizione                                                                                                          | Default            |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------------ |
-| `-r, --regions <regioni...>` | Regioni AWS da scansionare                                                                                           | `us-east-1`        |
-| `--format <format>`          | Formato di stdout: `table`, `json` o `markdown` (per CI / commenti PR)                                              | `table`            |
-| `--config <path>`            | Percorso del file di config (default: `cloudrift.config.json` / `.cloudriftrc` nella cwd)                          | auto-rilevato      |
-| `--live-pricing`             | Recupera i prezzi di listino correnti dall'AWS Pricing API (fallback alla tabella statica; i prezzi del config vincono) | off (tabella statica) |
-| `--scanners <kinds...>`      | Esegue solo questi servizi (elenco di resource kind separati da spazio, es. `ebs-volume elastic-ip`); salta il picker interattivo | — |
-| `--all-services`             | Esegue tutti gli scanner senza il picker interattivo                                                                  | on in CI / non-TTY |
-| `--account-id <id>`          | Override dell'account ID (rilevato automaticamente via `sts:GetCallerIdentity` se omesso)                            | auto-rilevato      |
-| `--min-age-days <giorni>`    | Periodo di grazia: le risorse più giovani di N giorni non vengono segnalate (ha precedenza sul config)              | `7`                |
-| `--ignore-tag <tag>`         | Le risorse con questo tag vengono escluse dal report (ha precedenza sul config)                                     | `cloudrift:ignore` |
-| `--pdf [filename]`           | Scrive anche un report PDF su disco (default `cloudrift-report-YYYY-MM-DD.pdf`)                                      | —                  |
-| `--json [filename]`          | Scrive anche un report JSON su disco (default `cloudrift-report-YYYY-MM-DD.json`)                                   | —                  |
-| `--silent`                   | Sopprime tutto l'output su stdout (banner, report, conferme) — usalo con `--pdf`/`--json` per ottenere solo il file | off                |
-| `-h, --help`                 | Mostra l'help                                                                                                        | —                  |
-
-> **stdout vs. file:** `--format` controlla cosa va su **stdout** (il report). `--json` / `--pdf` scrivono **file aggiuntivi** su disco, indipendenti da `--format` — di default il `--format` scelto continua comunque a essere stampato su stdout *in aggiunta* alla scrittura di quei file (quindi es. `--pdf` da solo mostra comunque la tabella). Aggiungi `--silent` per ottenere solo il file, senza nulla stampato a terminale. Nei formati machine-readable (`json`, `markdown`) tutti i messaggi umani vanno su stderr, così su stdout resta solo il report — ideale per il piping. Errori e l'alert della soglia di costo vanno sempre su stderr, anche con `--silent`.
->
-> **Ordine dei flag con `--pdf`/`--json`:** il filename è un valore *opzionale* (`--pdf [filename]`), quindi viene raccolto solo se segue immediatamente il flag — `--pdf --silent ./report.pdf` fallisce ("too many arguments") perché `--silent` impedisce a `--pdf` di vedere il filename, lasciando `./report.pdf` senza nulla a cui agganciarsi. Tieni il filename subito dopo il flag (`--pdf ./report.pdf --silent`), oppure usa `=` per rendere l'ordine irrilevante: `--pdf=./report.pdf --silent --format json`.
->
-> **Scegliere quali servizi scansionare:** lanciando `analyze` in un vero terminale (e fuori da CI) appare un picker interattivo — una checklist di tutti gli scanner, tutti pre-selezionati, così premere Invio scansiona tutto come prima. Deseleziona quello che non ti serve, oppure salta del tutto il picker con `--scanners <kinds...>` (elenco esplicito) o `--all-services` (scansiona tutto, nessun prompt). In CI o ogni volta che stdout non è un terminale, il picker non appare mai e viene eseguito ogni scanner di default — l'automazione non resta mai bloccata in attesa di input.
-
-**Esempi:**
+Uno scan di hygiene separato, deliberatamente fuori dal modello cost-waste qui sopra: cose lasciate morte o inutilizzate nell'account con **costo $0** (quindi invisibili ai criteri cost-based di `analyze`) ma comunque da ripulire o rivedere.
 
 ```sh
-# Scansione nella regione di default (us-east-1)
-node apps/cli/dist/main.js analyze
-
-# Più regioni contemporaneamente
-node apps/cli/dist/main.js analyze -r us-east-1 eu-west-1 ap-southeast-1
-
-# Disattiva il periodo di grazia (segnala risorse di qualsiasi età)
-node apps/cli/dist/main.js analyze --min-age-days 0
-
-# Scansiona solo EBS volumes ed Elastic IP, saltando il picker interattivo
-node apps/cli/dist/main.js analyze --scanners ebs-volume elastic-ip
-
-# Scansiona tutto senza il picker interattivo (es. in uno script lanciato da terminale)
-node apps/cli/dist/main.js analyze --all-services
-
-# Esporta un report PDF con nome automatico (reports/AWS_report_YYYY_MM_DD.pdf)
-node apps/cli/dist/main.js analyze --pdf
-
-# Come sopra, ma senza nulla stampato a terminale — solo il file
-node apps/cli/dist/main.js analyze --pdf ./report.pdf --silent
-
-# Output machine-readable (es. per una dashboard o un check CI)
-node apps/cli/dist/main.js analyze --format json | jq '.totalWasteMonthlyUsd'
-
-# Filtra i findings con jq (findings è un array flat, componibile)
-node apps/cli/dist/main.js analyze --format json | jq '.findings[] | select(.category=="waste")'
-
-# Report Markdown (es. commento PR / step summary su GitHub Actions)
-node apps/cli/dist/main.js analyze --format markdown >> "$GITHUB_STEP_SUMMARY"
+cloudrift dead-resources                              # ogni check, us-east-1
+cloudrift dead-resources -r us-east-1 eu-west-1        # più regioni (solo i check regionali — vedi sotto)
+cloudrift dead-resources --scanners iam-user-inactive  # un solo check
 ```
 
-**Report PDF:**
+| Check | Cosa viene segnalato | Severity | Soglia di default |
+| --- | --- | --- | --- |
+| **Key pair EC2 (inutilizzate)** | Non referenziata da nessuna istanza running/stopped | info | Periodo di grazia di 7 giorni (`--min-age-days`) |
+| **Reserved Instance EC2 (in scadenza)** | Attiva, termine entro la soglia | warning | 30 giorni |
+| **Security group EC2 (inutilizzati)** | Non referenziato da nessuna network interface (il gruppo `default` è escluso) | info | nessuna — l'API non espone una data di creazione |
+| **Log group CloudWatch (vuoti)** | Non ha mai memorizzato eventi | info | Periodo di grazia di 7 giorni (`--min-age-days`) |
+| **Certificati ACM (inutilizzati)** | Non attaccati a nessuna risorsa AWS | info | Periodo di grazia di 7 giorni (`--min-age-days`) |
+| **Stack CloudFormation (bloccati)** | `CREATE_FAILED`/`ROLLBACK_FAILED`/`DELETE_FAILED`/`UPDATE_ROLLBACK_FAILED` | critical | Periodo di grazia di 7 giorni (`--min-age-days`) |
+| **Alarm CloudWatch (orfani)** | Bloccato in `INSUFFICIENT_DATA` | warning | Periodo di grazia di 7 giorni (`--min-age-days`) |
+| **Utenti IAM (inattivi)** | Nessun login console o uso di access key | warning | 90 giorni (o mai, oltre il periodo di grazia di 7 giorni dalla creazione) |
+| **Policy IAM (non collegate)** | Customer-managed, zero attachment (le policy AWS-managed sono escluse — non si possono comunque eliminare) | info | Periodo di grazia di 7 giorni (`--min-age-days`) |
+| **Ruoli IAM (inutilizzati)** | Mai assunti, o non entro la soglia (i ruoli service-linked sono esclusi) | warning | 90 giorni (o mai, oltre il periodo di grazia di 7 giorni dalla creazione) |
+| **Access key IAM (obsolete)** | Chiave attiva non ruotata entro la soglia | warning | 90 giorni |
+| **Hosted zone Route53 (vuote)** | Nessun record oltre alla coppia NS/SOA di default | info | nessuna — l'API non espone una data di creazione |
+| **Bucket S3 (vuoti)** | Zero oggetti | info | Periodo di grazia di 7 giorni (`--min-age-days`) |
+| **Instance profile IAM (non collegati)** | Non attaccati a nessuna istanza EC2 in nessuna regione AWS | info | Periodo di grazia di 7 giorni (`--min-age-days`) |
+| **Topic SNS (senza subscription)** | Zero subscription | info | nessuna — l'API non espone una data di creazione |
+| **Regole EventBridge (senza target)** | Nessun target configurato (solo default event bus) | info | nessuna — l'API non espone una data di creazione |
+| **Repository ECR (vuoti)** | Zero immagini | info | Periodo di grazia di 7 giorni (`--min-age-days`) |
+| **State machine Step Functions (mai eseguite)** | Tipo STANDARD, zero esecuzioni (EXPRESS escluso) | info | Periodo di grazia di 7 giorni (`--min-age-days`) |
 
-Il flag `--pdf` genera un PDF in aggiunta all'output console (aggiungi `--silent` per sopprimere l'output console e ottenere solo il file). Il report contiene:
+**IAM, Route53 e (per questo comando) S3 sono servizi AWS globali**: quei sette check girano una sola volta per scansione, indipendentemente da quante `--regions` passi, mai una volta per regione — gli altri undici check sono genuinamente regionali. Vedi [ADR-0078](../adr/0078-dead-resources-parallel-domain.md)/[ADR-0079](../adr/0079-dead-resources-global-scope-scanners.md) (in inglese) per il razionale di questa separazione. `--format json`/`csv`/`--pdf` per output machine-readable/condivisibile. Vedi [utilizzo.md](./utilizzo.md#dead-resources--hygiene-per-risorse-morteinutilizzate) per il riferimento completo dei flag.
 
-- **Executive summary** — totale spreco mensile e annuale, numero di risorse, breakdown per tipo
-- **Top raccomandazioni** — fino a 8 voci ordinate per impatto mensile, con risparmio annuale stimato
-- **Pagine di dettaglio** — una tabella per ogni tipo di risorsa trovata (EBS, Elastic IP, RDS, Load Balancer, EC2, Snapshot, NAT Gateway)
-- **Scan warnings** — elencati se alcuni tipi di risorsa non hanno potuto essere scansionati
+---
+
+### Postura di sicurezza (`resource-security`)
+
+Un terzo dominio, separato: configurazioni rischiose su risorse effettivamente in uso (a differenza di `dead-resources` sopra, che trova risorse abbandonate) — igiene IAM/account, esposizione di rete, storage pubblico, cifratura a riposo, visibilità/audit. Tutti e 14 i check sono di sola lettura (`Describe*`/`Get*`/`List*`). Vedi [ADR-0081](../adr/0081-resource-security-parallel-domain.md) (in inglese).
 
 ```sh
-# Dopo aver eseguito con --pdf vedrai:
-#   Generating PDF report... saved to /path/to/reports/AWS_report_2026_06_09.pdf
+cloudrift resource-security                                    # ogni check, us-east-1
+cloudrift resource-security -r us-east-1 eu-west-1              # più regioni (solo i check regionali — vedi sotto)
+cloudrift resource-security --scanners iam-root-mfa-disabled    # un solo check
 ```
 
-**Output di esempio:**
-
-```
-  Scanning us-east-1 (account 123456789012) for wasted cloud resources...
-
-  EBS Volumes — Unattached
-  ┌────────────────────┬───────────┬────────┬──────┬────────────┬────────────┐
-  │ Volume ID          │ Region    │ Size   │ Type │ Created    │ Est. Cost  │
-  ├────────────────────┼───────────┼────────┼──────┼────────────┼────────────┤
-  │ vol-0abc123def456  │ us-east-1 │ 500 GB │ gp3  │ 2025-01-15 │ $40.00/mo  │
-  └────────────────────┴───────────┴────────┴──────┴────────────┴────────────┘
-
-  Total estimated waste: $40.00/month
-```
-
-**Comportamento in caso di errori parziali:**
-
-Se la scansione di un tipo di risorsa fallisce (es. permessi mancanti su CloudWatch per i NAT Gateway), il tool:
-
-- restituisce comunque tutti gli altri risultati disponibili
-- mostra una sezione "Scan Warnings" con i dettagli dell'errore
-- indica il totale come `(incomplete — see warnings above)`
-
-```
-  ⚠ Scan Warnings
-  • NAT Gateways: Access denied to CloudWatch metrics
-
-  Total estimated waste: $56.20/month (incomplete — see warnings above)
-```
-
-**Prezzi per regione:**
-
-I prezzi sono per-regione (file `prices.json` nell'infrastruttura). Regioni supportate con prezzi specifici: `us-east-1`, `us-west-2`, `eu-west-1`, `eu-central-1`, `ap-southeast-1`, `ap-northeast-1`. Per le altre regioni viene usato il prezzo di default (us-east-1).
-
-#### `cost` / `trend` — confronto e trend di spesa
-
-> ⚠️ Chiamano AWS Cost Explorer, che fattura **$0.01 a richiesta** — gli unici comandi di cloudrift che possono generare un costo AWS. Chiedono conferma prima della prima chiamata a meno di `-y`/`--yes`, `--silent`, o esecuzione fuori da un TTY/in CI. I periodi chiusi vengono cachati su disco (`~/.cloudrift/cache/cost-explorer/`). Nessuno dei due comandi ha un flag `--regions` — Cost Explorer è un endpoint globale unico.
-
-| Opzione (`cost`) | Descrizione | Default |
+| Check | Cosa viene segnalato | Severity |
 | --- | --- | --- |
-| `--account-id <id>` | Override account ID | auto-rilevato |
-| `--format <format>` | `table` o `json` | `table` |
-| `--fail-on-increase <pct>` | Esce con codice 2 se la spesa è aumentata più di questa percentuale | off |
-| `--refresh-cache` | Ignora la cache locale | off |
-| `-y, --yes` | Salta la conferma di fatturazione | — |
-| `--pdf [filename]` | Scrive anche un PDF | — |
+| **Account root (MFA disabilitata)** | `iam:GetAccountSummary` → `AccountMFAEnabled` | critical |
+| **Utenti IAM (MFA disabilitata)** | Nessun dispositivo MFA registrato | warning |
+| **Access key IAM (rotazione in ritardo)** | Chiave attiva più vecchia di 90 giorni (CIS 1.14) | warning |
+| **Account root (access key attiva)** | `AccountAccessKeysPresent` | critical |
+| **Password policy dell'account (debole o assente)** | Sotto la baseline CIS, o assente | warning |
+| **Security group EC2 (ingress aperto su porte sensibili)** | `0.0.0.0/0`/`::/0` su porte SSH/RDP/database | critical |
+| **Security group EC2 di default (permissivi)** | Il security group default della VPC ha ancora regole | warning |
+| **Bucket S3 (pubblici)** | Pubblici via ACL e/o bucket policy | critical |
+| **Snapshot EC2 (pubblici)** | `createVolumePermission` concesso a `all` | critical |
+| **Volumi EBS (non cifrati)** | Non cifrati a riposo | warning |
+| **Istanze RDS (non cifrate)** | Storage non cifrato a riposo | warning |
+| **Bucket S3 (senza cifratura di default)** | Nessuna cifratura lato server di default | warning |
+| **Istanze RDS (pubblicamente accessibili)** | Raggiungibili dall'esterno della VPC | critical |
+| **CloudTrail (nessun trail multi-regione)** | Nessun trail con logging multi-regione | warning |
 
-| Opzione (`trend`) | Descrizione | Default |
-| --- | --- | --- |
-| `--months <n>` | Mesi solari da mostrare (1–36) | `6` |
-| `--services <nomi...>` | Limita a questi servizi (es. `ec2 s3`) | tutti |
-| `--format <format>` | `table` (grafico ANSI) o `json` | `table` |
-| `--refresh-cache` / `-y, --yes` / `--pdf [filename]` | Come `cost` | — |
+**IAM, S3 (elenco bucket) e CloudTrail sono trattati come globali per questo comando**: quegli otto check girano una sola volta per scansione, indipendentemente da quante `--regions` passi, mai una volta per regione — gli altri sei check sono genuinamente regionali. `--format json`/`csv`/`--pdf` per output machine-readable/condivisibile, nessun `--min-age-days` (una configurazione di sicurezza errata è un rischio dal momento in cui esiste). Vedi [utilizzo.md](./utilizzo.md#resource-security--scansione-della-postura-di-sicurezza) per il riferimento completo dei flag.
+
+---
+
+### Storico locale delle scansioni (`history`)
+
+`analyze`, `dead-resources` e `resource-security` aggiungono ciascuno uno snapshot completo del proprio report a un file SQLite locale per-account (`~/.cloudrift/trends/<account-id>.db`) ad ogni esecuzione — in modalità best-effort, senza mai bloccare la scansione, niente viene mai caricato da nessuna parte. `history` lo rilegge:
 
 ```sh
-node apps/cli/dist/main.js cost --fail-on-increase 20 --format json
-node apps/cli/dist/main.js trend --months 12 --services ec2 s3 --yes
+cloudrift history                              # ogni snapshot registrato, dal più recente
+cloudrift history --domain cloud-cost --limit 10
 ```
 
-Riferimento completo, comportamento della cache e dettagli sulla conferma di fatturazione: [docs/en/usage.md](../en/usage.md#cost--trend--spend-comparison-and-monthly-trend) (in inglese) o [utilizzo.md](./utilizzo.md#cost--trend--confronto-e-trend-di-spesa).
+Vedi [ADR-0099](../adr/0099-local-trend-store.md) (in inglese) e [utilizzo.md](./utilizzo.md#history--storico-locale-delle-scansioni) per il riferimento completo dei flag.
 
-</details>
+---
+
+### Usalo come server MCP (`mcp`)
+
+Esegui cloudrift come server [MCP](https://modelcontextprotocol.io) locale via stdio, così un agente AI — Claude Code, Kiro, VS Code Copilot Chat (Agent mode) — può chiamare direttamente `analyze_cloudrift`, `get_resource_types` e `get_required_iam_permissions` invece che tu lanci la CLI a mano. Eredita le stesse credenziali AWS di ogni altro comando; vedi [ADR-0082](../adr/0082-mcp-server-second-input-adapter.md).
+
+```sh
+cloudrift mcp
+```
+
+Vedi [server-mcp.md](server-mcp.md) per la configurazione dei client (Kiro, VS Code, Claude Code) e [utilizzo.md](utilizzo.md#mcp--esegui-cloudrift-come-server-mcp-locale) per l'interruttore `CLOUDRIFT_DISABLE_MCP`.
+
+---
 
 <details>
 <summary><strong>File di configurazione</strong> — campi di <code>cloudrift.config.json</code>, override, tuning falsi positivi</summary>
@@ -579,18 +530,6 @@ Il principal AWS deve avere le seguenti permission in sola lettura:
 <details>
 <summary><strong>Sviluppo</strong> — modalità watch, test per libreria, lint, typecheck</summary>
 
-### Usalo come server MCP (`mcp`)
-
-Esegui cloudrift come server [MCP](https://modelcontextprotocol.io) locale via stdio, così un agente AI — Claude Code, Kiro, VS Code Copilot Chat (Agent mode) — può chiamare direttamente `analyze_cloudrift`, `get_resource_types` e `get_required_iam_permissions` invece che tu lanci la CLI a mano. Eredita le stesse credenziali AWS di ogni altro comando; vedi [ADR-0082](../adr/0082-mcp-server-second-input-adapter.md).
-
-```sh
-cloudrift mcp
-```
-
-Vedi [server-mcp.md](server-mcp.md) per la configurazione dei client (Kiro, VS Code, Claude Code) e [utilizzo.md](utilizzo.md#mcp--esegui-cloudrift-come-server-mcp-locale) per l'interruttore `CLOUDRIFT_DISABLE_MCP`.
-
----
-
 ### Sviluppo
 
 ```sh
@@ -631,6 +570,7 @@ Tutta la documentazione è nella cartella [`docs/`](../) — italiano in [`docs/
 
 | File (IT)                                                | Contenuto                                                         |
 | --------------------------------------------------------- | ----------------------------------------------------------------- |
+| [utilizzo.md](utilizzo.md)                                 | Flag CLI, esempi, report PDF, gestione errori parziali            |
 | [architettura.md](architettura.md)                        | Scelte architetturali, layer del sistema, percorso multi-cloud    |
 | [scelte-tecniche.md](scelte-tecniche.md)                   | Nx, pnpm, TypeScript, AWS SDK v3, Result pattern, jest             |
 | [funzionamento.md](funzionamento.md)                       | Flusso di esecuzione end-to-end, spiegazione del codice           |

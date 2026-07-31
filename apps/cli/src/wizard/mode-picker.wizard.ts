@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
+import chalk from 'chalk';
+import { resolveCloudriftIacDetectorBinary } from './terraform-handoff.wizard';
 
 export type WizardMode = 'waste' | 'cost' | 'trend' | 'dead-resources' | 'resource-security' | 'history' | 'terraform';
 
@@ -19,6 +21,8 @@ export type WizardMode = 'waste' | 'cost' | 'trend' | 'dead-resources' | 'resour
  */
 export async function promptMode(): Promise<WizardMode | undefined> {
   const { select, cancel, isCancel } = await import('@clack/prompts');
+
+  const terraformUnlocked = resolveCloudriftIacDetectorBinary() !== undefined;
 
   const mode = await select<WizardMode>({
     message: 'What do you want to do?',
@@ -51,8 +55,10 @@ export async function promptMode(): Promise<WizardMode | undefined> {
       },
       {
         value: 'terraform',
-        label: 'Terraform source analysis',
-        hint: 'Pro — separate cloudrift-iac-detector package: orphans, duplicates, dead code, auto-fix',
+        label: terraformUnlocked ? 'Terraform source analysis (PRO)' : chalk.yellow('🔒 Terraform source analysis (PRO)'),
+        hint: terraformUnlocked
+          ? 'orphans, duplicates, dead code, auto-fix'
+          : 'locked — separate cloudrift-iac-detector Pro package required, not found on PATH',
       },
     ],
   });

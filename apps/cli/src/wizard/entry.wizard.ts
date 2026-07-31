@@ -132,7 +132,7 @@ async function runHistoryMode(outro: Outro): Promise<void> {
   if (output === undefined) return;
 
   outro('Reading local scan history...');
-  await historyCommand({ domain: output.domain, format: output.format });
+  await historyCommand({ domain: output.domain, format: output.format, html: output.saveHtml });
 }
 
 async function runTerraformMode(outro: Outro): Promise<void> {

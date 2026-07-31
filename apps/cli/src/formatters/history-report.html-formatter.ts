@@ -126,27 +126,38 @@ function buildSummary(records: readonly TrendSnapshotRecord[], domain: TrendDoma
 }
 
 /**
- * Self-contained HTML report for one domain's trend history: a single-series
- * line chart (inline SVG, zero chart-library dependency) plus its
- * table-view twin, per the project's dataviz conventions — hand-rolled SVG
- * over a bundled charting library or a CDN script, consistent with why
- * `pdfkit` was chosen over a headless browser (no heavy dependency, fully
- * offline, nothing ever leaves the machine).
+ * One domain's chart + summary + table, as a standalone `<div class="viz-card">`.
+ * Points are embedded as a sibling `application/json` script tag (not a JS
+ * variable) so the page-level script below can support any number of these
+ * cards on one page via `querySelectorAll` instead of a single global chart.
  */
-export function generateHistoryReportHtml(records: readonly TrendSnapshotRecord[], domain: TrendDomain, accountId: string): string {
+function buildDomainSection(records: readonly TrendSnapshotRecord[], domain: TrendDomain): string {
   const points = extractPoints(records, domain);
   const valueLabel = domain === 'cloud-cost' ? 'Monthly waste (USD)' : 'Findings';
   const valuePrefix = domain === 'cloud-cost' ? '$' : '';
   const chartSvg = points.length > 0 ? buildChartSvg(points, valueLabel, valuePrefix) : '';
   const tableRows = buildTableRows(records, domain);
   const summary = buildSummary(records, domain);
+  const pointsJson = JSON.stringify(points).replace(/</g, '\\u003c');
 
-  return `<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8" />
-<title>cloudrift — ${escapeHtml(domain)} history</title>
-<style>
+  return `
+  <div class="viz-card">
+    <h2>${escapeHtml(domain)} — local scan history</h2>
+    <p class="viz-subtitle">${records.length} run(s) on record</p>
+    ${summary}
+    <div class="viz-chart-wrap" data-value-prefix="${escapeHtml(valuePrefix)}">
+      ${chartSvg}
+      <script type="application/json" class="viz-points">${pointsJson}</script>
+      <div class="viz-tooltip"><div class="viz-tooltip-date"></div><div class="viz-tooltip-value"></div></div>
+    </div>
+    <table class="viz-table">
+      <thead><tr><th>Date</th><th>Domain</th><th>Findings</th><th>Monthly waste</th></tr></thead>
+      <tbody>${tableRows}</tbody>
+    </table>
+  </div>`;
+}
+
+const PAGE_STYLE = `
   .viz-root {
     color-scheme: light;
     --surface-1: #fcfcfb;
@@ -180,8 +191,10 @@ export function generateHistoryReportHtml(records: readonly TrendSnapshotRecord[
       --bad: #e66767;
     }
   }
-  .viz-card { background: var(--surface-1); border-radius: 8px; padding: 24px; max-width: 800px; margin: 0 auto 24px; }
-  h1 { font-size: 20px; margin: 0 0 4px; }
+  .viz-page { max-width: 800px; margin: 0 auto; }
+  .viz-card { background: var(--surface-1); border-radius: 8px; padding: 24px; margin: 0 0 24px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 18px; margin: 0 0 4px; }
   .viz-subtitle { color: var(--text-secondary); font-size: 13px; margin: 0 0 20px; }
   .viz-summary { color: var(--text-secondary); font-size: 14px; line-height: 1.5; }
   .viz-summary strong { color: var(--text-primary); }
@@ -207,73 +220,111 @@ export function generateHistoryReportHtml(records: readonly TrendSnapshotRecord[
   table.viz-table th, table.viz-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--gridline); }
   table.viz-table th { color: var(--text-muted); font-weight: 600; }
   table.viz-table td:nth-child(3), table.viz-table td:nth-child(4) { font-variant-numeric: tabular-nums; }
-  .viz-chart-wrap { position: relative; }
+  .viz-chart-wrap { position: relative; }`;
+
+/**
+ * Wires up every `.viz-chart-wrap` on the page independently (one page can
+ * hold one card or several stacked ones — see `generateCombinedHistoryReportHtml`),
+ * reading each chart's own points from its sibling `application/json` script
+ * instead of a single page-wide variable.
+ */
+const PAGE_SCRIPT = `
+    (function () {
+      document.querySelectorAll('.viz-chart-wrap').forEach(function (wrap) {
+        var svg = wrap.querySelector('.viz-svg');
+        var pointsTag = wrap.querySelector('.viz-points');
+        var points = pointsTag ? JSON.parse(pointsTag.textContent) : [];
+        if (!svg || points.length === 0) return;
+        var crosshair = svg.querySelector('.viz-crosshair');
+        var tooltip = wrap.querySelector('.viz-tooltip');
+        var dateEl = tooltip.querySelector('.viz-tooltip-date');
+        var valueEl = tooltip.querySelector('.viz-tooltip-value');
+        var dots = Array.prototype.slice.call(svg.querySelectorAll('.viz-dot'));
+        var valuePrefix = wrap.getAttribute('data-value-prefix') || '';
+
+        function showAt(index) {
+          var dot = dots[index];
+          if (!dot) return;
+          var cx = parseFloat(dot.getAttribute('cx'));
+          var cy = parseFloat(dot.getAttribute('cy'));
+          crosshair.setAttribute('x1', cx);
+          crosshair.setAttribute('x2', cx);
+          crosshair.style.display = 'block';
+          var point = points[index];
+          dateEl.textContent = point.date;
+          valueEl.textContent = valuePrefix + point.value.toLocaleString();
+          var rect = svg.getBoundingClientRect();
+          var scale = rect.width / ${CHART_WIDTH};
+          tooltip.style.left = (cx * scale + 12) + 'px';
+          tooltip.style.top = (cy * scale - 8) + 'px';
+          tooltip.style.display = 'block';
+        }
+
+        function hide() {
+          crosshair.style.display = 'none';
+          tooltip.style.display = 'none';
+        }
+
+        svg.addEventListener('mousemove', function (event) {
+          var rect = svg.getBoundingClientRect();
+          var scale = ${CHART_WIDTH} / rect.width;
+          var localX = (event.clientX - rect.left) * scale;
+          var nearest = 0;
+          var nearestDist = Infinity;
+          dots.forEach(function (dot, i) {
+            var dist = Math.abs(parseFloat(dot.getAttribute('cx')) - localX);
+            if (dist < nearestDist) { nearestDist = dist; nearest = i; }
+          });
+          showAt(nearest);
+        });
+        svg.addEventListener('mouseleave', hide);
+      });
+    })();`;
+
+function buildPage(title: string, subtitle: string, sectionsHtml: string): string {
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>${escapeHtml(title)}</title>
+<style>${PAGE_STYLE}
 </style>
 </head>
 <body class="viz-root">
-  <div class="viz-card">
-    <h1>${escapeHtml(domain)} — local scan history</h1>
-    <p class="viz-subtitle">Account ${escapeHtml(accountId)} · ${records.length} run(s) on record · generated locally, never uploaded anywhere</p>
-    ${summary}
-    <div class="viz-chart-wrap">
-      ${chartSvg}
-      <div class="viz-tooltip"><div class="viz-tooltip-date"></div><div class="viz-tooltip-value"></div></div>
-    </div>
-    <table class="viz-table">
-      <thead><tr><th>Date</th><th>Domain</th><th>Findings</th><th>Monthly waste</th></tr></thead>
-      <tbody>${tableRows}</tbody>
-    </table>
+  <div class="viz-page">
+    <h1>${escapeHtml(title)}</h1>
+    <p class="viz-subtitle">${subtitle}</p>
+    ${sectionsHtml}
   </div>
-  <script>
-    (function () {
-      var points = ${JSON.stringify(points).replace(/</g, '\\u003c')};
-      var svg = document.querySelector('.viz-svg');
-      if (!svg || points.length === 0) return;
-      var crosshair = svg.querySelector('.viz-crosshair');
-      var tooltip = document.querySelector('.viz-tooltip');
-      var dateEl = tooltip.querySelector('.viz-tooltip-date');
-      var valueEl = tooltip.querySelector('.viz-tooltip-value');
-      var dots = Array.prototype.slice.call(svg.querySelectorAll('.viz-dot'));
-      var valuePrefix = ${JSON.stringify(valuePrefix)};
-
-      function showAt(index) {
-        var dot = dots[index];
-        if (!dot) return;
-        var cx = parseFloat(dot.getAttribute('cx'));
-        var cy = parseFloat(dot.getAttribute('cy'));
-        crosshair.setAttribute('x1', cx);
-        crosshair.setAttribute('x2', cx);
-        crosshair.style.display = 'block';
-        var point = points[index];
-        dateEl.textContent = point.date;
-        valueEl.textContent = valuePrefix + point.value.toLocaleString();
-        var rect = svg.getBoundingClientRect();
-        var scale = rect.width / ${CHART_WIDTH};
-        tooltip.style.left = (cx * scale + 12) + 'px';
-        tooltip.style.top = (cy * scale - 8) + 'px';
-        tooltip.style.display = 'block';
-      }
-
-      function hide() {
-        crosshair.style.display = 'none';
-        tooltip.style.display = 'none';
-      }
-
-      svg.addEventListener('mousemove', function (event) {
-        var rect = svg.getBoundingClientRect();
-        var scale = ${CHART_WIDTH} / rect.width;
-        var localX = (event.clientX - rect.left) * scale;
-        var nearest = 0;
-        var nearestDist = Infinity;
-        dots.forEach(function (dot, i) {
-          var dist = Math.abs(parseFloat(dot.getAttribute('cx')) - localX);
-          if (dist < nearestDist) { nearestDist = dist; nearest = i; }
-        });
-        showAt(nearest);
-      });
-      svg.addEventListener('mouseleave', hide);
-    })();
+  <script>${PAGE_SCRIPT}
   </script>
 </body>
 </html>`;
+}
+
+/**
+ * Self-contained HTML report for one domain's trend history: a single-series
+ * line chart (inline SVG, zero chart-library dependency) plus its
+ * table-view twin, per the project's dataviz conventions — hand-rolled SVG
+ * over a bundled charting library or a CDN script, consistent with why
+ * `pdfkit` was chosen over a headless browser (no heavy dependency, fully
+ * offline, nothing ever leaves the machine).
+ */
+export function generateHistoryReportHtml(records: readonly TrendSnapshotRecord[], domain: TrendDomain, accountId: string): string {
+  const title = `cloudrift — ${domain} history`;
+  const subtitle = `Account ${escapeHtml(accountId)} · ${records.length} run(s) on record · generated locally, never uploaded anywhere`;
+  return buildPage(title, subtitle, buildDomainSection(records, domain));
+}
+
+/**
+ * Same report, but stacking all three tracked domains (cloud-cost,
+ * dead-resources, resource-security) as separate cards on one page instead
+ * of writing three files — `history --html` without `--domain` picks this.
+ */
+export function generateCombinedHistoryReportHtml(recordsByDomain: Readonly<Record<TrendDomain, readonly TrendSnapshotRecord[]>>, accountId: string): string {
+  const domains: TrendDomain[] = ['cloud-cost', 'dead-resources', 'resource-security'];
+  const title = 'cloudrift — scan history';
+  const subtitle = `Account ${escapeHtml(accountId)} · generated locally, never uploaded anywhere`;
+  const sections = domains.map((domain) => buildDomainSection(recordsByDomain[domain], domain)).join('\n');
+  return buildPage(title, subtitle, sections);
 }
