@@ -289,6 +289,19 @@ See [ADR-0099](https://github.com/elleVas/cloudrift/blob/main/docs/adr/0099-loca
 
 ---
 
+### Notifications (Slack / webhook / email)
+
+`analyze`, `dead-resources`, `resource-security`, and `history --compare` can send a summary to Slack, a generic webhook, or email — `--notify-slack`, `--notify-webhook`, `--notify-email <address>`. Best-effort and never blocking: a broken webhook logs a warning, the scan itself is unaffected. Fires only when there's something worth reporting (critical/warning findings, waste over `costAlertThresholdUsd`, or a worsening trend on `history --compare`) — a clean run stays quiet. **Slack gets an alert only** (title + counts, e.g. "3 critical, 14 warning, 0 info") — deliberately no per-finding detail, so a scheduled pipeline scanning several accounts never turns the channel into an unreadable wall of text; the webhook and email payloads include the top findings, since a machine consumer or a personal inbox can handle the extra detail without cluttering a shared channel.
+
+```sh
+cloudrift resource-security --notify-slack
+cloudrift analyze --notify-email team@example.com
+```
+
+Every credential (`SLACK_WEBHOOK_URL`, `CLOUDRIFT_WEBHOOK_URL`, `CLOUDRIFT_SMTP_HOST`/`PORT`/`USER`/`PASSWORD`/`FROM`) comes from the environment, never a flag — set it in your shell or as a CI secret, never in a committed file. See [docs/en/usage.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/usage.md#history--local-scan-history) for the full reference.
+
+---
+
 ### Use it as an MCP server (`mcp`)
 
 Run cloudrift as a local [MCP](https://modelcontextprotocol.io) server over stdio, so an AI agent — Claude Code, Kiro, VS Code Copilot Chat (Agent mode) — can call `analyze_cloudrift`, `get_resource_types`, and `get_required_iam_permissions` directly instead of you running the CLI by hand. It inherits the same AWS credentials as every other command; see [ADR-0082](https://github.com/elleVas/cloudrift/blob/main/docs/adr/0082-mcp-server-second-input-adapter.md).

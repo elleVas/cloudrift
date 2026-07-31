@@ -17,6 +17,8 @@ import { compareCloudCostSnapshots, compareHygieneSnapshots, type HistoryCompari
 import { isOutputFormat } from '../output-format';
 import { resolveCredentials } from './resolve-options';
 import { reportCliError as fail } from './report-cli-error';
+import { hasRegressed, type NotificationSummary } from 'shared-notifications';
+import { dispatchNotifications, type NotifyFlags } from './notifications';
 
 export const HISTORY_FORMATS = ['table', 'json'] as const;
 const HISTORY_DOMAINS = ['cloud-cost', 'dead-resources', 'resource-security'] as const;
@@ -39,7 +41,12 @@ function parseLimitOption(options: HistoryCommandOptions): ParsedOption {
 
 /** See `parseLimitOption` — same flattening reason. */
 function parseCompareOption(options: HistoryCommandOptions): ParsedOption {
-  if (options.compare === undefined) return { ok: true, value: undefined };
+  if (options.compare === undefined) {
+    if (options.notifySlack || options.notifyWebhook || options.notifyEmail) {
+      return { ok: false, message: '--notify-slack/--notify-webhook/--notify-email require --compare (they notify on a regression, which only a comparison can detect).' };
+    }
+    return { ok: true, value: undefined };
+  }
   if (options.domain === undefined || !isTrendDomain(options.domain)) {
     return { ok: false, message: '--compare requires --domain (cloud-cost, dead-resources, or resource-security) to know which report shape to compare.' };
   }
@@ -73,7 +80,35 @@ function buildComparison(domain: TrendDomain, older: TrendSnapshotRecord, newer:
   }
 }
 
-export interface HistoryCommandOptions {
+/**
+ * `undefined` when the comparison shows no regression — a still-present
+ * critical finding that hasn't gotten any worse isn't worth paging anyone
+ * every scheduled run, only an actual change for the worse is (see
+ * `hasRegressed`'s doc comment).
+ */
+function buildRegressionNotification(comparison: HistoryComparison, accountId: string): NotificationSummary | undefined {
+  if (comparison.domain === 'cloud-cost') {
+    if (!hasRegressed({ newFindingsCount: comparison.newFindings.length, deltaUsd: comparison.deltaUsd })) return undefined;
+    return {
+      title: `cloudrift history — spend increased by $${comparison.deltaUsd.toFixed(2)}/mo (account ${accountId})`,
+      domain: 'history',
+      accountId,
+      generatedAt: new Date(comparison.newerGeneratedAt),
+      lines: comparison.newFindings.map((f) => `new: ${f.kind} ($${f.monthlyCostUsd.toFixed(2)}/mo)`),
+    };
+  }
+
+  if (!hasRegressed({ newFindingsCount: comparison.newFindings.length })) return undefined;
+  return {
+    title: `cloudrift history (${comparison.domain}) — ${comparison.newFindings.length} new finding(s) since last run (account ${accountId})`,
+    domain: 'history',
+    accountId,
+    generatedAt: new Date(comparison.newerGeneratedAt),
+    lines: comparison.newFindings.map((f) => `new: ${f.kind} (${f.severity})`),
+  };
+}
+
+export interface HistoryCommandOptions extends NotifyFlags {
   accountId?: string;
   assumeRoleArn?: string;
   externalId?: string;
@@ -193,6 +228,11 @@ export async function historyCommand(
     }
     const comparison = buildComparison(domain, records[compareN], records[0]);
     console.log(format === 'json' ? formatHistoryComparisonAsJson(comparison) : formatHistoryComparisonAsTable(comparison));
+
+    const notification = buildRegressionNotification(comparison, accountId);
+    if (notification) {
+      await dispatchNotifications(options, notification, (msg) => console.error(msg));
+    }
   } else {
     const records = await deps.readSnapshots(accountId, {
       domain: options.domain as TrendDomain | undefined,

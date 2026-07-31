@@ -59,6 +59,9 @@
     },
     {
       "path": "./libs/shared/trend-store"
+    },
+    {
+      "path": "./libs/shared/notifications"
     }
   ]
 }

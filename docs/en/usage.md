@@ -43,6 +43,9 @@ node apps/cli/dist/main.js analyze [options]
 | `--json [filename]`          | Also write a JSON report to disk (defaults to `cloudrift-reports/AWS_report_YYYY_MM_DD.json`)                            | —                  |
 | `--csv [filename]`           | Also write a CSV report to disk (defaults to `cloudrift-reports/AWS_report_YYYY_MM_DD.csv`)                              | —                  |
 | `--silent`                   | Suppress all stdout output (banner, report, confirmations) — use with `--pdf`/`--json`/`--csv` for file-only output | off                |
+| `--notify-slack`             | Send a Slack notification if waste exceeds `costAlertThresholdUsd` (or any waste, if unset). Reads `SLACK_WEBHOOK_URL` from env | off |
+| `--notify-webhook`           | POST a JSON summary to a webhook, same condition as `--notify-slack`. Reads `CLOUDRIFT_WEBHOOK_URL` from env  | off                |
+| `--notify-email <address>`   | Email a summary to this address, same condition as `--notify-slack`. Reads `CLOUDRIFT_SMTP_HOST`/`PORT`/`USER`/`PASSWORD`/`FROM` from env | off |
 | `-h, --help`                 | Show help                                                                                                      | —                  |
 
 > **stdout vs. file artifacts:** `--format` controls what goes to **stdout** (the report itself). `--json` / `--pdf` / `--csv` write **additional files** to disk and are independent of `--format` — by default the chosen `--format` still prints to stdout *in addition to* writing those files (so e.g. `--pdf` alone still shows the table by default). Add `--silent` for file-only output with nothing printed to the terminal. In machine-readable formats (`json`, `markdown`, `csv`) all human messages are routed to stderr, so stdout carries only the report — ideal for piping. Errors and the cost-gate alert always surface on stderr, even with `--silent`.
@@ -206,6 +209,9 @@ node apps/cli/dist/main.js dead-resources [options]
 | `--pdf [filename]`           | Also write a PDF report to disk (defaults to `cloudrift-reports/cloudrift-dead-resources-YYYY_MM_DD.pdf`)                | —                  |
 | `--csv [filename]`           | Also write a CSV report to disk (defaults to `cloudrift-reports/cloudrift-dead-resources-YYYY_MM_DD.csv`)                | —                  |
 | `--silent`                   | Suppress all stdout output (banner, report). Errors still surface.                                              | off                |
+| `--notify-slack`             | Send a Slack notification if the scan has critical/warning findings. Reads `SLACK_WEBHOOK_URL` from env        | off                |
+| `--notify-webhook`           | POST a JSON summary to a webhook, same condition as `--notify-slack`. Reads `CLOUDRIFT_WEBHOOK_URL` from env   | off                |
+| `--notify-email <address>`   | Email a summary to this address, same condition as `--notify-slack`. Reads `CLOUDRIFT_SMTP_HOST`/`PORT`/`USER`/`PASSWORD`/`FROM` from env | off |
 | `-h, --help`                 | Show help                                                                                                       | —                  |
 
 **Checks:**
@@ -274,6 +280,9 @@ node apps/cli/dist/main.js resource-security [options]
 | `--pdf [filename]`           | Also write a PDF report to disk (defaults to `cloudrift-reports/cloudrift-resource-security-YYYY_MM_DD.pdf`)             | —                  |
 | `--csv [filename]`           | Also write a CSV report to disk (defaults to `cloudrift-reports/cloudrift-resource-security-YYYY_MM_DD.csv`)             | —                  |
 | `--silent`                   | Suppress all stdout output (banner, report). Errors still surface.                                              | off                |
+| `--notify-slack`             | Send a Slack notification if the scan has critical/warning findings. Reads `SLACK_WEBHOOK_URL` from env        | off                |
+| `--notify-webhook`           | POST a JSON summary to a webhook, same condition as `--notify-slack`. Reads `CLOUDRIFT_WEBHOOK_URL` from env   | off                |
+| `--notify-email <address>`   | Email a summary to this address, same condition as `--notify-slack`. Reads `CLOUDRIFT_SMTP_HOST`/`PORT`/`USER`/`PASSWORD`/`FROM` from env | off |
 | `-h, --help`                 | Show help                                                                                                       | —                  |
 
 **Checks:**
@@ -361,7 +370,12 @@ node apps/cli/dist/main.js history [options]
 | `--compare <n>`           | Compare the latest run against the one `n` runs back instead of listing (requires `--domain`) | —               |
 | `--html [filename]`       | Also write a self-contained HTML report with a trend chart. With `--domain`, charts just that domain (defaults to `cloudrift-reports/cloudrift-history-<domain>-YYYY_MM_DD.html`); without it, stacks all three domains on one page (defaults to `cloudrift-reports/cloudrift-history-YYYY_MM_DD.html`) | —               |
 | `--format <format>`      | stdout output format: `table` or `json`                                            | `table`         |
+| `--notify-slack`          | With `--compare`, send a Slack notification if the comparison shows a regression (worse trend). Reads `SLACK_WEBHOOK_URL` from env | off |
+| `--notify-webhook`        | With `--compare`, POST a JSON summary to a webhook, same condition as `--notify-slack`. Reads `CLOUDRIFT_WEBHOOK_URL` from env | off |
+| `--notify-email <address>` | With `--compare`, email a summary to this address, same condition as `--notify-slack`. Reads `CLOUDRIFT_SMTP_HOST`/`PORT`/`USER`/`PASSWORD`/`FROM` from env | off |
 | `-h, --help`              | Show help                                                                          | —               |
+
+> **Notifications (`analyze`/`dead-resources`/`resource-security`/`history --compare`):** `--notify-slack`/`--notify-webhook`/`--notify-email` are best-effort and never fail the scan — a broken webhook or SMTP config logs a warning and moves on. Every credential (`SLACK_WEBHOOK_URL`, `CLOUDRIFT_WEBHOOK_URL`, `CLOUDRIFT_SMTP_*`) comes from the environment, never a flag, so it never lands in shell history or `ps aux` — set them in your shell profile or as CI secrets (e.g. GitHub Actions `secrets.*`), never in a committed file. The interactive wizard offers to email the report too (only when SMTP is already configured), but never asks about Slack/webhook — those are meant for CI/scripts, not a one-off terminal run.
 
 **Examples:**
 

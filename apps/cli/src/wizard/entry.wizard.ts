@@ -23,6 +23,7 @@ import {
   playHandoffTransition,
   delegateToCloudriftIacDetector,
 } from './terraform-handoff.wizard';
+import { promptEmailNotification } from './notification.wizard';
 
 type Outro = (message?: string) => void;
 
@@ -76,6 +77,8 @@ async function runWasteMode(outro: Outro): Promise<void> {
   const output = await promptWasteOutput();
   if (output === undefined) return;
 
+  const notifyEmail = await promptEmailNotification();
+
   outro('Starting scan...');
   await analyzeWasteCommand({
     regions,
@@ -84,6 +87,8 @@ async function runWasteMode(outro: Outro): Promise<void> {
     pdf: output.savePdf ? true : undefined,
     json: output.saveJson ? true : undefined,
     csv: output.saveCsv ? true : undefined,
+    notifyEmail,
+    notifyEmailIgnoresGate: true,
   });
 }
 
@@ -97,6 +102,8 @@ async function runDeadResourcesMode(outro: Outro): Promise<void> {
   const output = await promptDeadResourcesOutput();
   if (output === undefined) return;
 
+  const notifyEmail = await promptEmailNotification();
+
   outro('Starting scan...');
   await deadResourcesCommand({
     regions,
@@ -104,6 +111,8 @@ async function runDeadResourcesMode(outro: Outro): Promise<void> {
     format: output.format,
     pdf: output.savePdf ? true : undefined,
     csv: output.saveCsv ? true : undefined,
+    notifyEmail,
+    notifyEmailIgnoresGate: true,
   });
 }
 
@@ -117,6 +126,8 @@ async function runResourceSecurityMode(outro: Outro): Promise<void> {
   const output = await promptResourceSecurityOutput();
   if (output === undefined) return;
 
+  const notifyEmail = await promptEmailNotification();
+
   outro('Starting scan...');
   await resourceSecurityCommand({
     regions,
@@ -124,6 +135,8 @@ async function runResourceSecurityMode(outro: Outro): Promise<void> {
     format: output.format,
     pdf: output.savePdf ? true : undefined,
     csv: output.saveCsv ? true : undefined,
+    notifyEmail,
+    notifyEmailIgnoresGate: true,
   });
 }
 
