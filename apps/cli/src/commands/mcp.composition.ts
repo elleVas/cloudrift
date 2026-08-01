@@ -17,7 +17,7 @@ import { defaultDeadResourcesDeps } from './dead-resources.composition';
 import { defaultResourceSecurityDeps } from './resource-security.composition';
 import { defaultCostAnalyticsDeps } from './cost-analytics.composition';
 
-const DEFAULT_CLOUDWATCH_WINDOW_HOURS = 48;
+const DEFAULT_CLOUDWATCH_WINDOW_HOURS = 336;
 const DEFAULT_UTILIZATION_WINDOW_HOURS = 168;
 
 /** Maps 1:1 to `analyze_cloudrift`'s Zod input schema in `mcp.command.ts`. */

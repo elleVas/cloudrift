@@ -147,7 +147,7 @@ export const ALWAYS_ON_SCANNERS: ScannerRegistration<ScannerBuildContext>[] = [
   {
     kind: 's3-no-lifecycle',
     create: (ctx) =>
-      new AwsS3NoLifecycleScanner(ctx.pricing, ctx.accountId, ctx.credentials, new S3NoLifecyclePolicy(ctx.policyOptions)),
+      new AwsS3NoLifecycleScanner(ctx.accountId, ctx.credentials, new S3NoLifecyclePolicy(ctx.policyOptions)),
   },
   {
     kind: 'lambda-underutilized',
@@ -268,13 +268,13 @@ export const ALWAYS_ON_SCANNERS: ScannerRegistration<ScannerBuildContext>[] = [
         ctx.credentials,
       ),
   },
-  // Phase 6.3 (ADR-0065): SageMaker vertical. A model's own cost is $0; the
-  // static S3-storage estimate keeps this always-on, like lambda-loggroup-orphaned.
+  // Phase 6.3 (ADR-0065): SageMaker vertical. A model's own cost is $0 and
+  // stays $0 (no basis for a dollar estimate — see entity doc); always-on
+  // like lambda-loggroup-orphaned, a pure namespace-hygiene flag.
   {
     kind: 'sagemaker-training-orphaned',
     create: (ctx) =>
       new AwsSageMakerTrainingOrphanedScanner(
-        ctx.pricing,
         ctx.accountId,
         ctx.credentials,
         new SageMakerTrainingOrphanedPolicy(ctx.policyOptions),

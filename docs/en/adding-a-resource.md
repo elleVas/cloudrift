@@ -12,7 +12,8 @@ As an example we will use the hypothetical case of **CloudWatch Log Groups witho
 
 - **kind** — the discriminant string identifying a resource type (e.g. `'nat-gateway'`); drives the `ResourceKind` union and every registry derived from it (`RESOURCE_KIND_META`, `ResourceKindMap`, presenters).
 - **category** (`'waste'` | `'optimization'`) — `waste` is a certain, eliminable cost that counts toward `totalWasteMonthlyUsd` and the CI gate; `optimization` is a savings opportunity that keeps the resource (e.g. gp2→gp3).
-- **estimated** — marks a finding as a heuristic figure needing human verification (currently only `ec2-underutilized`/`rds-underutilized`), as opposed to a directly-measured cost.
+- **estimated** — marks a finding as needing human verification before acting (independent of how the dollar figure itself was derived — see **confidence** below).
+- **confidence** (`'measured'` | `'derived'` | `'heuristic'`, computed by `confidenceOf(kind)`, not stored per-kind) — how defensible `monthlyCostUsd` is: `measured` for every `waste` kind (real price × observed quantity); `derived` for an `optimization` kind priced from a real price *difference* (add the kind to `DERIVED_OPTIMIZATION_KINDS` in `wasted-resource.ts` if yours qualifies — see [ADR-0101](../adr/0101-finding-confidence-real-price-differences.md)); `heuristic` otherwise, which must report `monthlyCostUsd: 0` — **never invent a percentage-of-something-real number with no basis**, that was exactly the mistake ADR-0101 fixed.
 - **policy** — a `WastePolicy<T>` subclass: pure judgment logic (`judge()`) deciding if a resource is waste, given grace period and exclusion tags from config. No AWS calls.
 - **scanner** — a `WasteScannerPort` implementation: calls the AWS SDK, builds entities, applies the policy, returns only the findings that are waste.
 
@@ -45,7 +46,7 @@ export const RESOURCE_KIND_META: Record<ResourceKind, ResourceKindMeta> = {
 };
 ```
 
-`category` is `'waste'` (eliminable cost, counts in `totalWasteMonthlyUsd` and the CI gate) or `'optimization'` (a saving that keeps the resource, e.g. gp2→gp3 — see [architecture.md](./architecture.md#waste-vs-optimization--findingcategory)). `estimated: true` marks a heuristic figure that needs verification (only `ec2-underutilized` today). `RESOURCE_KIND_LABELS` is derived automatically from `RESOURCE_KIND_META` — do not add a separate entry there.
+`category` is `'waste'` (eliminable cost, counts in `totalWasteMonthlyUsd` and the CI gate) or `'optimization'` (a saving that keeps the resource, e.g. gp2→gp3 — see [architecture.md](./architecture.md#waste-vs-optimization--findingcategory)). `estimated: true` marks a figure that needs verification before acting. `RESOURCE_KIND_LABELS` is derived automatically from `RESOURCE_KIND_META` — do not add a separate entry there. If your new kind is `category: 'optimization'`, decide its `confidence` too (see Glossary above): a real price difference goes in `DERIVED_OPTIMIZATION_KINDS`; if there's no real dollar basis, `monthlyCostUsd` must be `0`, not a guess.
 
 Also add the row in `ResourceKindMap` (`group-by-kind.ts`):
 
@@ -307,6 +308,7 @@ Add the permission the new scanner requires to the README. For log groups:
 ## Summary checklist
 
 - [ ] `ResourceKind` + `RESOURCE_KIND_META` (label, category, estimated) + `ResourceKindMap` updated
+- [ ] If `category: 'optimization'`: `confidence` decided — add to `DERIVED_OPTIMIZATION_KINDS` in `wasted-resource.ts` if the saving is a real price difference, otherwise `monthlyCostUsd: 0` (never an invented percentage — see [ADR-0101](../adr/0101-finding-confidence-real-price-differences.md))
 - [ ] Entity in `domain/src/entities/` implementing `WastedResource` (facts, not decisions)
 - [ ] Waste policy in `domain/src/policies/` + tests
 - [ ] `domain/src/index.ts` updated (entity + policy)

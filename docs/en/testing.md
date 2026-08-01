@@ -170,11 +170,11 @@ Create these in the sandbox account before running the script (any region, defau
 | --- | --- | --- |
 | EBS volume | one **unattached** volume, older than 7 days | `ebs-volume` |
 | Elastic IP | one **unassociated** EIP | `elastic-ip` |
-| NAT Gateway | one gateway with **no traffic** for 48h | `nat-gateway` |
+| NAT Gateway | one gateway with **no traffic** for 14d | `nat-gateway` |
 | EC2 instance | one instance **stopped** for more than 7 days | `ec2-instance` |
 | EC2 instance | one **running** instance with low CPU for 14+ days | `ec2-underutilized` |
 | EBS volume (gp2) | one **attached** gp2 volume | `ebs-gp2-upgrade` |
-| EBS volume | one **attached** volume with zero I/O for 48h | `ebs-idle` |
+| EBS volume | one **attached** volume with zero I/O for 14d | `ebs-idle` |
 | EBS snapshot | one snapshot whose source volume was deleted | `ebs-snapshot` |
 | RDS instance | one instance **stopped** | `rds-instance` |
 | RDS instance | one **available** instance with low CPU for 14+ days | `rds-underutilized` |

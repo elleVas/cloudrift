@@ -17,3 +17,5 @@ Tag every `ResourceKind` in `RESOURCE_KIND_META` with `category: 'waste' | 'opti
 ## Consequences
 
 Reports show two distinct totals. `estimated: true` further flags numbers that need human judgment before acting (e.g. low CPU alone doesn't prove RAM/network or storage I/O are equally idle for `ec2-underutilized`/`rds-underutilized`).
+
+**Update (2026-08-01):** `estimated` says a finding needs verifying but doesn't say *how defensible the number itself is* — a real price difference and a blind percentage were both just `estimated: true`. [ADR-0101](0101-finding-confidence-real-price-differences.md) adds an orthogonal `FindingConfidence` axis (`measured`/`derived`/`heuristic`) for that; `category`/`estimated` are unchanged here and still drive the CI gate.

@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
-import { RESOURCE_KIND_META, groupByKind } from 'cloud-cost-domain';
+import { RESOURCE_KIND_META, groupByKind, confidenceOf } from 'cloud-cost-domain';
 import type {
   FindingCategory,
+  FindingConfidence,
   ResourceKind,
   WastedResource,
   WastedResourcesSummary,
@@ -18,6 +19,12 @@ import { isPricesStale } from '../pricing-staleness';
  * Findings are split into two categories: `waste` (waste, counts toward the
  * waste total / CI gate) and `optimization` (savings opportunity, separate). The
  * `estimated` entries are estimates (rightsizing) to be verified.
+ * `confidence` is a finer-grained, display-oriented axis (see
+ * `FindingConfidence` in the domain): `measured` (real price × observed
+ * quantity, always `category: 'waste'`), `derived` (real price
+ * *difference*, e.g. a rightsizing step-down — still `optimization`,
+ * advisory), or `heuristic` (no real dollar basis, `monthlyCostUsd` is
+ * always 0).
  */
 export interface WasteReportDto {
   meta: {
@@ -39,6 +46,7 @@ export interface WasteReportDto {
     label: string;
     category: FindingCategory;
     estimated: boolean;
+    confidence: FindingConfidence;
     count: number;
     monthlyCostUsd: number;
   }>;
@@ -47,6 +55,7 @@ export interface WasteReportDto {
     kind: ResourceKind;
     category: FindingCategory;
     estimated: boolean;
+    confidence: FindingConfidence;
     region: string;
     accountId: string;
     detectedAt: string;
@@ -90,6 +99,7 @@ export function toWasteReportDto(
       label: RESOURCE_KIND_META[kind].label,
       category: RESOURCE_KIND_META[kind].category,
       estimated: RESOURCE_KIND_META[kind].estimated,
+      confidence: confidenceOf(kind),
       count: grouped[kind].length,
       monthlyCostUsd: round2(
         grouped[kind].reduce((sum, r) => sum + r.costEstimate.monthlyCostUsd, 0),
@@ -124,6 +134,7 @@ export function toWasteReportDto(
       kind: finding.kind,
       category: RESOURCE_KIND_META[finding.kind].category,
       estimated: RESOURCE_KIND_META[finding.kind].estimated,
+      confidence: confidenceOf(finding.kind),
       region: finding.region.code,
       accountId: finding.accountId,
       detectedAt: finding.detectedAt.toISOString(),

@@ -38,15 +38,15 @@ describe('SageMakerTrainingOrphaned', () => {
     expect(model.wasteReason).toBe('model created 2026-03-15, not referenced by any endpoint config');
   });
 
-  it('costEstimate returns the estimated S3 storage cost passed in, not a hardcoded value', () => {
-    expect(makeModel({ monthlyCostUsd: 0.5 }).costEstimate.monthlyCostUsd).toBe(0.5);
+  it('costEstimate returns whatever monthlyCostUsd is passed in, not a hardcoded value (the entity trusts its constructor, the scanner always passes 0)', () => {
+    expect(makeModel({ monthlyCostUsd: 0 }).costEstimate.monthlyCostUsd).toBe(0);
     expect(makeModel({ monthlyCostUsd: 2.1 }).costEstimate.monthlyCostUsd).toBe(2.1);
   });
 
-  it('costEstimate description references the model name and the S3 storage estimate caveat', () => {
+  it('costEstimate description references the model name and the no-dollar-basis caveat', () => {
     const description = makeModel({ modelName: 'my-model' }).costEstimate.description;
     expect(description).toContain('my-model');
-    expect(description).toContain('estimated S3 storage cost');
+    expect(description).toContain('no dollar estimate');
   });
 
   it('exposes the remaining props', () => {

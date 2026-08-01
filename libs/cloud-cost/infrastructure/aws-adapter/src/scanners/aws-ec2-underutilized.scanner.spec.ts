@@ -32,7 +32,11 @@ beforeEach(() => {
     send: mockCwSend,
     destroy: mockCwDestroy,
   }));
-  mockGetEc2InstancePrice.mockResolvedValue(70); // $/mo
+  // m5.large -> m5.medium (one size down): distinct real prices per type,
+  // so the scanner's price-subtraction logic has something real to subtract.
+  mockGetEc2InstancePrice.mockImplementation(async (_region: unknown, instanceType: string) =>
+    instanceType === 'm5.medium' ? 35 : 70,
+  );
 });
 
 const region = AwsRegion.create('us-east-1');
@@ -56,7 +60,7 @@ describe('AwsEc2UnderutilizedScanner', () => {
     expect(scanner.kind).toBe('ec2-underutilized');
   });
 
-  it('reports an old running instance with low max CPU and costs it at half the instance price', async () => {
+  it('reports an old running instance with low max CPU and costs it at the real one-size-down price difference', async () => {
     mockEc2Send.mockResolvedValueOnce({ Reservations: [{ Instances: [runningInstance()] }] });
     mockCwSend.mockResolvedValue({ Datapoints: [{ Average: 1.2, Maximum: 2.5 }] });
 
@@ -69,7 +73,24 @@ describe('AwsEc2UnderutilizedScanner', () => {
     expect(inst.kind).toBe('ec2-underutilized');
     expect(inst.avgCpuPercent).toBe(1.2);
     expect(inst.maxCpuPercent).toBe(2.5);
-    expect(inst.costEstimate.monthlyCostUsd).toBeCloseTo(35, 2); // 70 * 0.5
+    expect(inst.recommendedInstanceType).toBe('m5.medium');
+    expect(inst.costEstimate.monthlyCostUsd).toBeCloseTo(35, 2); // 70 - 35
+  });
+
+  it('reports $0 and no recommendation when the stepped-down type has no resolvable price', async () => {
+    mockEc2Send.mockResolvedValueOnce({
+      Reservations: [{ Instances: [runningInstance({ InstanceType: 'm5.nano' })] }],
+    });
+    mockCwSend.mockResolvedValue({ Datapoints: [{ Average: 1, Maximum: 2 }] });
+    mockGetEc2InstancePrice.mockResolvedValue(5); // m5.nano is already the smallest tier
+
+    const result = await scanner.scan(region);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const inst = result.value[0] as UnderutilizedEc2Instance;
+    expect(inst.recommendedInstanceType).toBeUndefined();
+    expect(inst.costEstimate.monthlyCostUsd).toBe(0);
   });
 
   it('does not report an instance with CPU above the threshold', async () => {
@@ -127,7 +148,7 @@ describe('AwsEc2UnderutilizedScanner', () => {
     expect(args.Dimensions).toEqual([{ Name: 'InstanceId', Value: 'i-1' }]);
   });
 
-  it('fetches the instance price only once per distinct instance type', async () => {
+  it('fetches the instance price only once per distinct instance type (current + one-size-down each)', async () => {
     mockEc2Send.mockResolvedValueOnce({
       Reservations: [
         {
@@ -142,7 +163,8 @@ describe('AwsEc2UnderutilizedScanner', () => {
 
     await scanner.scan(region);
 
-    expect(mockGetEc2InstancePrice).toHaveBeenCalledTimes(1);
+    // m5.large (current, shared by both instances) + m5.medium (step-down) = 2 distinct types.
+    expect(mockGetEc2InstancePrice).toHaveBeenCalledTimes(2);
   });
 
   it('returns Result.fail wrapping AwsAdapterError and destroys both clients on error', async () => {

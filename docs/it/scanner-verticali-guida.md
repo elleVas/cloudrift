@@ -36,7 +36,7 @@ Tre scanner, pensati per essere letti insieme — una vista sul ciclo di vita de
 
 **`sagemaker-endpoint-idle`** (richiede `--live-pricing`) — un endpoint `InService` con zero `Invocations` sommate in una finestra di 7 giorni. Il costo è il costo pieno instance-hour su tutte le istanze di ogni production variant.
 
-**`sagemaker-training-orphaned`** — un Model SageMaker registrato non referenziato da nessuna Endpoint Config (`sagemaker:ListModels` incrociato con `sagemaker:ListEndpointConfigs`). È igiene del namespace, non un costo SageMaker diretto (la risorsa Model in sé è gratuita) — il costo stimato è lo storage S3 Standard di `ModelDataUrl`, valorizzato con la chiave esistente `s3-standard`.
+**`sagemaker-training-orphaned`** — un Model SageMaker registrato non referenziato da nessuna Endpoint Config (`sagemaker:ListModels` incrociato con `sagemaker:ListEndpointConfigs`). È igiene del namespace, non un costo SageMaker diretto (la risorsa Model in sé è gratuita) — `monthlyCostUsd` è sempre `0` ([ADR-0101](../adr/0101-finding-confidence-real-price-differences.md)): la dimensione dell'artifact non è restituita da `ListModels`/`DescribeModel`, quindi non c'è una base reale per una cifra (un'assunzione flat in GB era stata provata e poi scartata perché indifendibile).
 
 **Rischio:** un modello tenuto deliberatamente per rollback/backup appare identico a uno davvero abbandonato dal punto di vista AWS-API-only; il periodo di grazia (`--min-age-days`) è l'unica mitigazione.
 

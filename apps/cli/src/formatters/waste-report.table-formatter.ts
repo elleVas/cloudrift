@@ -6,6 +6,7 @@ import {
   RESOURCE_KIND_LABELS,
   RESOURCE_KIND_META,
   groupByKind,
+  confidenceOf,
 } from 'cloud-cost-domain';
 import type { FindingCategory, WastedResourcesSummary } from 'cloud-cost-domain';
 import { REPORT_CONTACT, isPricesStale, PRICES_STALE_AFTER_DAYS } from 'cloud-cost-application';
@@ -32,13 +33,20 @@ export function formatWasteReportAsTable(
       rendered = true;
 
       const presenter = presenterFor(kind);
+      const confidence = confidenceOf(kind);
       lines.push(chalk.bold.yellow(`\n  ${presenter.title}`));
       const table = new Table({
-        head: [...presenter.head, 'Est. Cost'],
+        head: [...presenter.head, confidence === 'heuristic' ? 'Cost' : 'Est. Cost'],
         style: { head: ['cyan'] },
       });
       for (const finding of findings) {
-        table.push([...rowFor(finding), chalk.red(finding.costEstimate.format())]);
+        // Heuristic kinds always cost $0 by construction (see entity docs):
+        // showing "$0.00/mo" would read as "confirmed no waste" instead of
+        // "we chose not to guess" — say so explicitly instead.
+        const costCell = confidence === 'heuristic'
+          ? chalk.gray('no $ basis')
+          : chalk.red(finding.costEstimate.format());
+        table.push([...rowFor(finding), costCell]);
       }
       lines.push(table.toString());
     }
@@ -52,7 +60,9 @@ export function formatWasteReportAsTable(
     RESOURCE_KINDS.some((k) => RESOURCE_KIND_META[k].category === 'optimization' && grouped[k].length > 0);
   if (hasOptimizations) {
     lines.push(
-      chalk.bold.cyan('\n  ── Optimization opportunities (savings — verify before acting) ──'),
+      chalk.bold.cyan(
+        '\n  ── Optimization opportunities (derived from real prices where possible, or hygiene-only — verify before acting) ──',
+      ),
     );
     renderKindTables('optimization');
   }
@@ -79,14 +89,13 @@ export function formatWasteReportAsTable(
     : '';
   lines.push(
     chalk.bold(
-      `\n  Total waste: ${chalk.red(`$${summary.totalWasteMonthlyUsd.toFixed(2)}/month`)}${incomplete}`,
+      `\n  Total waste (measured): ${chalk.red(`$${summary.totalWasteMonthlyUsd.toFixed(2)}/month`)}${incomplete}`,
     ),
   );
   if (summary.totalOptimizationMonthlyUsd > 0) {
     lines.push(
       chalk.cyan(
-        `  Optimization opportunities: $${summary.totalOptimizationMonthlyUsd.toFixed(2)}/month ` +
-          `(savings, not counted in the waste total)`,
+        `  + $${summary.totalOptimizationMonthlyUsd.toFixed(2)}/month derived (real price differences, not included in the total above — verify before acting)`,
       ),
     );
   }

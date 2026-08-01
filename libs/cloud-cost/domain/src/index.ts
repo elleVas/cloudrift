@@ -7,11 +7,13 @@ export {
   categoryOf,
   isEstimated,
   effortOf,
+  confidenceOf,
 } from './wasted-resource';
 export type {
   ResourceKind,
   WastedResource,
   FindingCategory,
+  FindingConfidence,
   ResourceKindMeta,
   RemediationEffort,
 } from './wasted-resource';

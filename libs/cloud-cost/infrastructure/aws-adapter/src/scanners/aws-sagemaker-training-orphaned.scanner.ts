@@ -10,7 +10,7 @@ import {
 } from '@aws-sdk/client-sagemaker';
 import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { Result, createLogger } from 'shared-kernel';
-import type { AwsRegion, PricingPort, WasteScannerPort, WastedResource } from 'cloud-cost-domain';
+import type { AwsRegion, WasteScannerPort, WastedResource } from 'cloud-cost-domain';
 import { SageMakerTrainingOrphaned, SageMakerTrainingOrphanedPolicy } from 'cloud-cost-domain';
 import { AwsAdapterError, paginate, mapWithConcurrency, createAwsClientConfig } from 'shared-aws-infra-utils';
 
@@ -19,17 +19,6 @@ const ENDPOINT_CONFIG_CONCURRENCY = 5;
 // larger) set of models referenced by an endpoint config never does.
 const DESCRIBE_MODEL_CONCURRENCY = 5;
 const logger = createLogger('cloudrift:scanner');
-
-/**
- * Flat per-model artifact size assumption, priced via the static S3
- * Standard rate. `ListModels`/`DescribeModel` don't report artifact size —
- * measuring it would require a `HeadObject` per model on whatever bucket
- * `ModelDataUrl` points at (extra IAM permission, cross-account risk if the
- * bucket isn't the caller's). Documented caveat (ADR-0065): the dollar
- * figure is a rough estimate, the real value of this finding is namespace
- * hygiene (orphaned models), not the saving itself.
- */
-const ASSUMED_MODEL_ARTIFACT_GB = 5;
 
 type ModelWithName = ModelSummary & { ModelName: string };
 type EndpointConfigWithName = EndpointConfigSummary & { EndpointConfigName: string };
@@ -43,7 +32,6 @@ export class AwsSageMakerTrainingOrphanedScanner implements WasteScannerPort {
   readonly kind = 'sagemaker-training-orphaned' as const;
 
   constructor(
-    private readonly pricing: PricingPort,
     private readonly accountId = 'unknown',
     private readonly credentials?: AwsCredentialIdentityProvider,
     private readonly policy = new SageMakerTrainingOrphanedPolicy(),
@@ -81,7 +69,6 @@ export class AwsSageMakerTrainingOrphanedScanner implements WasteScannerPort {
 
       const orphanCandidates = models.filter((m) => !referencedModelNames.has(m.ModelName));
 
-      const pricePerGb = this.pricing.getPrice(region, 's3-standard');
       const now = new Date();
       const entities = await mapWithConcurrency(orphanCandidates, DESCRIBE_MODEL_CONCURRENCY, async (model) => {
         const detail = await client.send(new DescribeModelCommand({ ModelName: model.ModelName }));
@@ -97,7 +84,11 @@ export class AwsSageMakerTrainingOrphanedScanner implements WasteScannerPort {
           detectedAt: now,
           // ListModels/DescribeModel don't return tags.
           tags: {},
-          monthlyCostUsd: +(ASSUMED_MODEL_ARTIFACT_GB * pricePerGb).toFixed(4),
+          // No dollar estimate: artifact size isn't returned by any
+          // ListModels/DescribeModel field, and measuring it would need a
+          // HeadObject per model on a bucket cloudrift may not own. This is
+          // a namespace-hygiene flag, not a costed finding (see entity doc).
+          monthlyCostUsd: 0,
         });
       });
 

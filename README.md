@@ -135,35 +135,35 @@ The account ID is auto-detected via STS. If everything is configured correctly y
 | **Load Balancers** | No registered targets (ALB/NLB)             | ~$16.20/month fixed                                     |
 | **EC2 Instances**  | Stopped — attached EBS volumes keep billing | Sum of attached EBS volumes                             |
 | **EBS Snapshots**  | Source volume deleted (orphan snapshots)    | $0.05/GB-month                                          |
-| **NAT Gateways**   | Zero outbound traffic in the last 48h       | ~$32.40/month fixed                                     |
+| **NAT Gateways**   | Zero outbound traffic in the last 14 days       | ~$32.40/month fixed                                     |
 | **EBS gp2→gp3**    | In-use gp2 volume upgradeable to gp3 (savings, not waste) | Saving: gp2 − gp3 price × GB (≈ $0.02/GB-mo) |
-| **EBS Volumes (idle)** | Attached (in-use) but zero I/O in the last 48h | gp3: $0.08/GB-mo · gp2: $0.10/GB-mo · io1: $0.125/GB-mo |
-| **EC2 Instances (underutilized)** | Running, max CPU ≤ 5% over 14 days — rightsizing candidate, requires `--live-pricing` | Saving: ~50% of the instance's monthly cost (estimate — verify RAM/network before acting) |
-| **RDS Instances (underutilized)** | Available, max CPU ≤ 5% over 14 days — rightsizing candidate, requires `--live-pricing` | Saving: ~50% of the instance's monthly cost (estimate — verify storage I/O/connections before acting) |
+| **EBS Volumes (idle)** | Attached (in-use) but zero I/O in the last 14 days | gp3: $0.08/GB-mo · gp2: $0.10/GB-mo · io1: $0.125/GB-mo |
+| **EC2 Instances (underutilized)** | Running, max CPU ≤ 5% over 14 days — rightsizing candidate, requires `--live-pricing` | Saving: real price difference to one size down in the same family (e.g. `m5.2xlarge`→`m5.xlarge`), $0 if not derivable — verify RAM/network before acting |
+| **RDS Instances (underutilized)** | Available, max CPU ≤ 5% over 14 days — rightsizing candidate, requires `--live-pricing` | Saving: real price difference to one size down in the same family, $0 if not derivable — verify storage I/O/connections before acting |
 | **CloudWatch Log Groups** | No retention policy configured (logs grow forever) | $0.03/GB-month |
 | **Orphaned ENIs** | `Status: available` (not attached to any instance) | $0 (hygiene flag, not a direct cost) |
-| **S3 Buckets (no lifecycle)** | No lifecycle configuration — rightsizing candidate | Saving: ~40% of Standard storage cost (estimate — verify access patterns before acting) |
+| **S3 Buckets (no lifecycle)** | No lifecycle configuration — rightsizing candidate | $0 (hygiene flag, no dollar basis — check object age / S3 Storage Lens before acting) |
 | **Lambda Functions (underutilized)** | (Near-)zero invocations over 7 days | $0 (hygiene flag — pay-per-use Lambda has no direct cost when unused) |
-| **EFS File Systems (unused)** | No mount targets, or mounted with zero I/O in the last 48h | $0.30/GB-month (Standard storage) |
-| **DynamoDB Tables (overprovisioned)** | PROVISIONED mode, read/write capacity utilization < 10% over 7 days — rightsizing candidate | Saving: ~50% of the provisioned RCU/WCU monthly cost (estimate — verify traffic spikes before acting) |
-| **ElastiCache Clusters (idle)** | Zero client connections in the last 48h, requires `--live-pricing` | Full node-hour cost (node billed regardless of usage) |
-| **Redshift Clusters (idle)** | Zero database connections in the last 48h, requires `--live-pricing` | Full node-hour cost × number of nodes |
-| **OpenSearch Domains (idle)** | Near-zero search/indexing requests in the last 48h (below the internal cluster-chatter threshold — health checks/ISM polling never hit literal zero), requires `--live-pricing` | Full instance-hour cost × instance count |
-| **MSK Clusters (idle)** | Provisioned mode, zero broker traffic in the last 48h, requires `--live-pricing` | Full broker-hour cost × number of brokers |
-| **FSx File Systems (idle)** | Zero read/write I/O in the last 48h | $0.093–$0.14/GB-month depending on file system type |
-| **DocumentDB Instances (idle)** | Zero database connections in the last 48h, requires `--live-pricing` | Full instance-hour cost |
-| **Neptune Instances (idle)** | Zero query traffic in the last 48h, requires `--live-pricing` | Full instance-hour cost |
-| **Amazon MQ Brokers (idle)** | Zero network traffic in the last 48h, requires `--live-pricing` | Full broker-hour cost (×2 for ACTIVE_STANDBY_MULTI_AZ) |
+| **EFS File Systems (unused)** | No mount targets, or mounted with zero I/O in the last 14 days | $0.30/GB-month (Standard storage) |
+| **DynamoDB Tables (overprovisioned)** | PROVISIONED mode, read/write capacity utilization < 10% over 7 days — rightsizing candidate | Saving: (current − recommended RCU/WCU) × real unit price; recommended = avg consumed rate × 3x headroom (no peak datapoints available), floored at 1 unit — verify traffic spikes before acting |
+| **ElastiCache Clusters (idle)** | Zero client connections in the last 14 days, requires `--live-pricing` | Full node-hour cost (node billed regardless of usage) |
+| **Redshift Clusters (idle)** | Zero database connections in the last 14 days, requires `--live-pricing` | Full node-hour cost × number of nodes |
+| **OpenSearch Domains (idle)** | Near-zero search/indexing requests in the last 14 days (below the internal cluster-chatter threshold — health checks/ISM polling never hit literal zero), requires `--live-pricing` | Full instance-hour cost × instance count |
+| **MSK Clusters (idle)** | Provisioned mode, zero broker traffic in the last 14 days, requires `--live-pricing` | Full broker-hour cost × number of brokers |
+| **FSx File Systems (idle)** | Zero read/write I/O in the last 14 days | $0.093–$0.14/GB-month depending on file system type |
+| **DocumentDB Instances (idle)** | Zero database connections in the last 14 days, requires `--live-pricing` | Full instance-hour cost |
+| **Neptune Instances (idle)** | Zero query traffic in the last 14 days, requires `--live-pricing` | Full instance-hour cost |
+| **Amazon MQ Brokers (idle)** | Zero network traffic in the last 14 days, requires `--live-pricing` | Full broker-hour cost (×2 for ACTIVE_STANDBY_MULTI_AZ) |
 | **WorkSpaces (idle)** | AlwaysOn, no user connection in the last 30 days, requires `--live-pricing` | Full bundle monthly cost |
-| **Site-to-Site VPN Connections (idle)** | Zero tunnel traffic in the last 48h | ~$36.50/month fixed |
-| **Transit Gateway Attachments (idle)** | Zero traffic in the last 48h | ~$36.50/month fixed |
-| **Kinesis Streams (idle, Provisioned mode)** | Zero incoming records in the last 48h (On-Demand mode out of scope — pay-per-use) | ~$10.95/month per shard |
+| **Site-to-Site VPN Connections (idle)** | Zero tunnel traffic in the last 14 days | ~$36.50/month fixed |
+| **Transit Gateway Attachments (idle)** | Zero traffic in the last 14 days | ~$36.50/month fixed |
+| **Kinesis Streams (idle, Provisioned mode)** | Zero incoming records in the last 14 days (On-Demand mode out of scope — pay-per-use) | ~$10.95/month per shard |
 | **SQS Dead Letter Queues (abandoned)** | Identified as a DLQ (RedrivePolicy/naming), oldest unconsumed message older than 14 days | $0 (hygiene flag — SQS has no storage cost) |
 | **CloudWatch Log Groups (orphaned Lambda)** | `/aws/lambda/*` log group whose function no longer exists | $0.03/GB-month (stored log data) |
 | **Aurora Serverless v2 (overprovisioned Min ACU)** | Min ACU floor set well above the observed peak ACU over 7 days — rightsizing candidate | Saving: (Min ACU − suggested Min ACU) × $87.60/ACU-month |
 | **SageMaker Notebook Instances (idle)** | `InService`, max CPU ≤ 2% over 7 days, requires `--live-pricing` | Full instance-hour cost |
 | **SageMaker Endpoints (idle)** | `InService`, zero invocations over 7 days, requires `--live-pricing` | Full instance-hour cost × instance count |
-| **SageMaker Models (orphaned, no endpoint)** | Not referenced by any endpoint config — model-namespace hygiene | Estimated S3 Standard storage cost |
+| **SageMaker Models (orphaned, no endpoint)** | Not referenced by any endpoint config — model-namespace hygiene | $0 (no dollar basis — artifact size isn't returned by any `DescribeModel`/`ListModels` field) |
 | **Dev/PR Environments (ghost, all resources inactive)** | Resources grouped by tag or naming pattern, all inactive for 7+ days | Estimated total cost of the resource group |
 | **EKS Node Groups (overprovisioned)** | CPU requested < 30% of allocatable per Container Insights, requires `--live-pricing` | Saving: (nodes − suggested nodes) × instance price |
 | **EKS Orphaned PVC Volumes** | Kubernetes-provisioned EBS volume unattached, or its owning cluster no longer exists | gp3: $0.08/GB-mo · gp2: $0.10/GB-mo (same table as EBS Volumes) |
@@ -174,7 +174,7 @@ The account ID is auto-detected via STS. If everything is configured correctly y
 | **Secrets Manager Secrets (unused)** | Never accessed, or not accessed in the last 30 days | $0.40/secret/month fixed |
 | **CodePipeline Pipelines (stale)** | No execution within the grace period (or never executed since creation) | $1.00/month fixed per pipeline |
 
-Every finding is also tagged `waste` or `optimization`: `waste` is money being spent now and feeds the headline total and the CI gate; `optimization` (gp2→gp3, EC2/RDS underutilized, S3 no-lifecycle, Lambda underutilized, DynamoDB overprovisioned, Aurora Serverless overprovisioned, SageMaker Models orphaned, EKS Node Groups overprovisioned) is a saving opportunity that keeps the resource, shown separately and never gated. `EC2/RDS Instances (underutilized)`, `S3 Buckets (no lifecycle)`, `DynamoDB Tables (overprovisioned)`, `Aurora Serverless v2 (overprovisioned Min ACU)`, `SageMaker Models (orphaned)` and `EKS Node Groups (overprovisioned)` are additionally *estimates* — verify before acting.
+Every finding is also tagged `waste` or `optimization`: `waste` is money being spent now and feeds the headline total and the CI gate; `optimization` (gp2→gp3, EC2/RDS underutilized, S3 no-lifecycle, Lambda underutilized, DynamoDB overprovisioned, Aurora Serverless overprovisioned, SageMaker Models orphaned, EKS Node Groups overprovisioned) is a saving opportunity that keeps the resource, shown separately and never gated. Within `optimization`, a finer `confidence` axis says how defensible the dollar figure is: `measured` (every `waste` kind — a real price × an observed quantity), `derived` (gp2→gp3, EC2/RDS underutilized, DynamoDB/Aurora Serverless/EKS Node Groups overprovisioned — a real price *difference*, still advisory, needs verifying) or `heuristic` (S3 no-lifecycle, Lambda underutilized, SageMaker Models orphaned — no real dollar basis at all, these always report $0 rather than a guess).
 
 > **Honest caveat (Lambda):** we only check invocation count over the lookback window, nothing else. We do **not** rightsize memory allocation — that requires Lambda Insights (extra cost, must be enabled per-function), which isn't part of a zero-extra-IAM read-only scan. A function with zero invocations has, by definition, $0 direct cost (pay-per-use); the value of this finding is hygiene (dead code, unnecessary IAM roles/event sources), not a dollar saving. It also won't catch idle **Provisioned Concurrency**, which *is* billed regardless of invocations — out of scope for now.
 

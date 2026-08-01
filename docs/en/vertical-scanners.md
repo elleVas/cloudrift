@@ -36,7 +36,7 @@ Three scanners, meant to be read together — a model lifecycle view (notebook �
 
 **`sagemaker-endpoint-idle`** (gated on `--live-pricing`) — an endpoint `InService` with zero `Invocations` summed over a 7-day window. Cost is the full instance-hour cost across every production variant's instance count.
 
-**`sagemaker-training-orphaned`** — a registered SageMaker Model not referenced by any Endpoint Config (`sagemaker:ListModels` cross-referenced against `sagemaker:ListEndpointConfigs`). This is namespace hygiene, not a direct SageMaker cost (a Model resource itself is free) — the estimated cost is the S3 Standard storage of `ModelDataUrl`, priced via the existing `s3-standard` key.
+**`sagemaker-training-orphaned`** — a registered SageMaker Model not referenced by any Endpoint Config (`sagemaker:ListModels` cross-referenced against `sagemaker:ListEndpointConfigs`). This is namespace hygiene, not a direct SageMaker cost (a Model resource itself is free) — `monthlyCostUsd` is always `0` ([ADR-0101](../adr/0101-finding-confidence-real-price-differences.md)): artifact size isn't returned by `ListModels`/`DescribeModel`, so there's no real basis for a dollar figure (a flat GB assumption was tried and dropped as indefensible).
 
 **Risk:** a model kept around deliberately for rollback/backup looks identical to a truly abandoned one from the AWS-API-only view; the grace period (`--min-age-days`) is the only mitigation.
 

@@ -27,7 +27,7 @@ import { dispatchNotifications, type NotifyFlags } from './notifications';
 
 export type { AnalyzeDeps };
 
-const DEFAULT_CLOUDWATCH_WINDOW_HOURS = 48;
+const DEFAULT_CLOUDWATCH_WINDOW_HOURS = 336;
 const DEFAULT_UTILIZATION_WINDOW_HOURS = 168;
 
 export interface AnalyzeWasteOptions extends NotifyFlags {

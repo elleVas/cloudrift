@@ -1,6 +1,6 @@
 {
   "kind": "sagemaker-training-orphaned",
-  "source": "transcribed from the AWS API reference, 2026-07-14 — expected cost = 5 GB assumed artifact size x static s3-standard price 0.023",
+  "source": "transcribed from the AWS API reference, 2026-07-14 — expected cost updated 2026-08-01: the flat 5GB artifact-size assumption was dropped (no real basis, same issue as the old S3 no-lifecycle heuristic), monthlyCostUsd is now always 0",
   "region": "us-east-1",
   "accountId": "000000000000",
   "pages": {
@@ -35,7 +35,7 @@
   },
   "expected": {
     "findings": [
-      { "id": "orphan-model-1", "monthlyCostUsd": 0.115 }
+      { "id": "orphan-model-1", "monthlyCostUsd": 0 }
     ]
   }
 }

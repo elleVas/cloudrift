@@ -13,16 +13,19 @@ export interface S3BucketProps {
   creationDate: Date;
   detectedAt: Date;
   tags: Record<string, string>;
-  /** Heuristic estimate of the monthly saving from enabling a lifecycle policy. */
+  /** Always 0 — see class doc. */
   monthlyCostUsd: number;
   wasteReason: string;
 }
 
 /**
- * S3 bucket with no lifecycle policy configured. Category
- * `optimization` + `estimated: true`: we don't know how much of the data is
- * actually "cold", so the saving is a heuristic estimate to verify,
- * not a definite value as for `ebs-gp2-upgrade`.
+ * S3 bucket with no lifecycle policy configured. Category `optimization` +
+ * `estimated: true`, but `monthlyCostUsd` is always 0: unlike a CPU-based
+ * rightsizing signal, there is no basis at all for a dollar figure here —
+ * the saving depends entirely on the object-age distribution inside the
+ * bucket, which cloudrift doesn't have (would need S3 Storage Lens or
+ * Storage Class Analysis). This is a hygiene flag to verify, not a costed
+ * finding, and deliberately reads $0 rather than a plausible-looking number.
  */
 export class S3Bucket extends Entity<string> implements WastedResource {
   private readonly props: Readonly<S3BucketProps>;
@@ -50,7 +53,7 @@ export class S3Bucket extends Entity<string> implements WastedResource {
     const sizeGb = (this.props.sizeBytes / 1024 ** 3).toFixed(2);
     return CostEstimate.of(
       this.props.monthlyCostUsd,
-      `${sizeGb} GB without lifecycle policy (estimated saving)`,
+      `${sizeGb} GB without lifecycle policy (no dollar estimate — depends on object age)`,
     );
   }
 }

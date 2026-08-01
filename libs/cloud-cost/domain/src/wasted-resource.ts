@@ -61,6 +61,42 @@ export type ResourceKind = (typeof RESOURCE_KINDS)[number];
 export type FindingCategory = 'waste' | 'optimization';
 
 /**
+ * How defensible a finding's `monthlyCostUsd` is, independent of `category`
+ * (which drives the CI gate) — this drives *display*, not gating:
+ * - `measured`: a real AWS price × an observed quantity (an unattached
+ *   volume's GB, an idle NAT gateway's fixed hourly rate). This is every
+ *   `category: 'waste'` kind — that category's whole definition is "money
+ *   spent now, at a real price", so the two always coincide.
+ * - `derived`: a real price *difference* between two real prices (gp2→gp3,
+ *   a rightsizing step-down, a DynamoDB/Aurora/EKS downsize) — not a blind
+ *   percentage of the bill, but still `category: 'optimization'` (advisory,
+ *   not gated) because the recommendation itself needs verifying.
+ * - `heuristic`: no real basis for a dollar figure at all (e.g. S3 lifecycle
+ *   savings depend on an object-age distribution cloudrift doesn't have).
+ *   These kinds report `monthlyCostUsd: 0` by construction — see each
+ *   entity's doc for why a number would be worse than none.
+ */
+export type FindingConfidence = 'measured' | 'derived' | 'heuristic';
+
+/**
+ * The `optimization`-category kinds whose saving is a real price
+ * subtraction (`derived`), not a heuristic. Every other `optimization` kind
+ * is `heuristic` (and reports $0 — see `FindingConfidence` doc). Kept as an
+ * explicit list rather than a per-kind meta field: only 9 of 44 kinds are
+ * `optimization` at all, so one well-commented exception list is easier to
+ * keep honest than a 44-entry field where 35 entries would all just repeat
+ * "measured".
+ */
+const DERIVED_OPTIMIZATION_KINDS = new Set<ResourceKind>([
+  'ebs-gp2-upgrade', // real gp2 vs gp3 $/GB difference
+  'ec2-underutilized', // real one-size-down instance price difference
+  'rds-underutilized', // real one-size-down instance class price difference
+  'dynamodb-overprovisioned', // real RCU/WCU price difference (current vs. avg-usage-derived recommendation)
+  'aurora-serverless-overprovisioned', // real ACU-hour price × (current Min ACU − peak-derived recommendation)
+  'eks-node-overprovisioned', // real per-instance-type price × (current − usage-derived node count)
+]);
+
+/**
  * How much work remediating a finding of this kind takes, independent of its
  * dollar cost — see docs/en/remediation-effort.md for the full per-kind
  * rationale. Feeds the PDF "quick wins" ranking (ADR-0093): a cheap-to-fix
@@ -285,6 +321,11 @@ export function isEstimated(kind: ResourceKind): boolean {
 
 export function effortOf(kind: ResourceKind): RemediationEffort {
   return RESOURCE_KIND_META[kind].effort;
+}
+
+export function confidenceOf(kind: ResourceKind): FindingConfidence {
+  if (RESOURCE_KIND_META[kind].category === 'waste') return 'measured';
+  return DERIVED_OPTIMIZATION_KINDS.has(kind) ? 'derived' : 'heuristic';
 }
 
 /**

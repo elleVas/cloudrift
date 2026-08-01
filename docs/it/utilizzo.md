@@ -117,7 +117,7 @@ Il flag `--pdf` genera un PDF in aggiunta all'output console (aggiungi `--silent
   │ vol-0abc123def456  │ us-east-1 │ 500 GB │ gp3  │ 2025-01-15 │ $40.00/mo  │
   └────────────────────┴───────────┴────────┴──────┴────────────┴────────────┘
 
-  Total estimated waste: $40.00/month
+  Total waste (measured): $40.00/month
 ```
 
 **Comportamento in caso di errori parziali:**
@@ -132,7 +132,7 @@ Se la scansione di un tipo di risorsa fallisce (es. permessi mancanti su CloudWa
   ⚠ Scan Warnings
   • NAT Gateways: Access denied to CloudWatch metrics
 
-  Total estimated waste: $56.20/month (incomplete — see warnings above)
+  Total waste (measured): $56.20/month (incomplete — see warnings above)
 ```
 
 **Prezzi per regione:**

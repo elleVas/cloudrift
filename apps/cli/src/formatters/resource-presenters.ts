@@ -152,7 +152,9 @@ export const presenters: PresenterMap = {
       `${inst.windowDays}d`,
     ],
     recommend: (inst) =>
-      `Review EC2 ${inst.id} (${inst.instanceType}) in ${inst.region.code} for rightsizing — max CPU ${inst.maxCpuPercent.toFixed(1)}% over ${inst.windowDays}d (verify RAM/network first)`,
+      inst.recommendedInstanceType
+        ? `${inst.id} in ${inst.region.code}: ${inst.instanceType} → ${inst.recommendedInstanceType} (-$${inst.costEstimate.monthlyCostUsd.toFixed(2)}/mo) — max CPU ${inst.maxCpuPercent.toFixed(1)}% over ${inst.windowDays}d (verify RAM/network before acting)`
+        : `Review EC2 ${inst.id} (${inst.instanceType}) in ${inst.region.code} for rightsizing — max CPU ${inst.maxCpuPercent.toFixed(1)}% over ${inst.windowDays}d (no derivable price, verify RAM/network manually)`,
   },
   'rds-underutilized': {
     title: 'RDS Instances — Underutilized (rightsizing candidate, verify before acting)',
@@ -168,7 +170,9 @@ export const presenters: PresenterMap = {
       `${db.windowDays}d`,
     ],
     recommend: (db) =>
-      `Review RDS ${db.id} (${db.dbInstanceClass} ${db.engine}) in ${db.region.code} for rightsizing — max CPU ${db.maxCpuPercent.toFixed(1)}% over ${db.windowDays}d (verify storage I/O/connections first)`,
+      db.recommendedInstanceClass
+        ? `${db.id} in ${db.region.code}: ${db.dbInstanceClass} → ${db.recommendedInstanceClass} ${db.engine} (-$${db.costEstimate.monthlyCostUsd.toFixed(2)}/mo) — max CPU ${db.maxCpuPercent.toFixed(1)}% over ${db.windowDays}d (verify storage I/O/connections before acting)`
+        : `Review RDS ${db.id} (${db.dbInstanceClass} ${db.engine}) in ${db.region.code} for rightsizing — max CPU ${db.maxCpuPercent.toFixed(1)}% over ${db.windowDays}d (no derivable price, verify storage I/O/connections manually)`,
   },
   'log-group': {
     title: 'CloudWatch Log Groups — No retention policy',
@@ -250,7 +254,7 @@ export const presenters: PresenterMap = {
       `${t.windowDays}d`,
     ],
     recommend: (t) =>
-      `Review DynamoDB table ${t.id} in ${t.region.code} for rightsizing — ${t.wasteReason}`,
+      `${t.id} in ${t.region.code}: ${t.readCapacityUnits} RCU / ${t.writeCapacityUnits} WCU → ${t.recommendedReadCapacityUnits} RCU / ${t.recommendedWriteCapacityUnits} WCU (-$${t.costEstimate.monthlyCostUsd.toFixed(2)}/mo) — ${t.wasteReason}`,
   },
   'elasticache-idle': {
     title: 'ElastiCache Clusters — Idle (zero connections)',
@@ -427,7 +431,7 @@ export const presenters: PresenterMap = {
       `Delete idle SageMaker endpoint ${e.id} (${e.instanceCount}x ${e.instanceType}) in ${e.region.code} — zero invocations over ${e.windowHours}h`,
   },
   'sagemaker-training-orphaned': {
-    title: 'SageMaker Models — Orphaned (not deployed to any endpoint, estimated storage cost)',
+    title: 'SageMaker Models — Orphaned (not deployed to any endpoint, hygiene, no dollar estimate)',
     head: ['Model', 'Region', 'Created', 'Model Data URL'],
     colWidths: [130, 72, 84, 200, 80],
     row: (m) => [m.id, m.region.code, day(m.creationTime), m.modelDataUrl],

@@ -9,8 +9,8 @@ import { DomainError, Result } from 'shared-kernel';
  */
 const CONFIG_FILENAMES = ['cloudrift.config.json', '.cloudriftrc'] as const;
 
-/** Maximum allowed CloudWatch window (7 days). */
-export const MAX_CLOUDWATCH_WINDOW_HOURS = 168;
+/** Maximum allowed CloudWatch window (14 days). */
+export const MAX_CLOUDWATCH_WINDOW_HOURS = 336;
 
 /** Maximum allowed window for CPU utilization checks (14 days). */
 export const MAX_UTILIZATION_WINDOW_HOURS = 336;

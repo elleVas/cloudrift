@@ -101,7 +101,7 @@ describe('formatWasteReportAsMarkdown', () => {
     expect(md).toContain('across 2 resource(s)');
     expect(md).toContain('account `123456789012`');
     expect(md).toContain('us-east-1, eu-west-1');
-    expect(md).toContain('| **Total waste** | **2** | **$12.00** |');
+    expect(md).toContain('| **Total waste (measured)** | **2** | **$12.00** |');
     expect(md).toContain('<details>');
     expect(md).toContain('vol-aaa');
     expect(md).toContain('| vol-aaa | — | us-east-1 | 100 GB | gp3 | 2025-01-01 | $8.00 |');
@@ -126,7 +126,7 @@ describe('formatWasteReportAsMarkdown', () => {
     expect(md).toContain('across 1 resource(s)');
     // optimization is a separate section with its own total
     expect(md).toContain('### Optimization opportunities');
-    expect(md).toContain('| **Total optimization** | **1** | **$4.00** |');
+    expect(md).toContain('| **Total optimization (derived)** | **1** | **$4.00** |');
     expect(md).toContain('without deleting');
   });
 

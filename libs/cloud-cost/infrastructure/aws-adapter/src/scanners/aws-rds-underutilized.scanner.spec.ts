@@ -32,7 +32,12 @@ beforeEach(() => {
     send: mockCwSend,
     destroy: mockCwDestroy,
   }));
-  mockGetRdsInstancePrice.mockResolvedValue(140); // $/mo
+  // db.t3.medium -> db.t3.small (one size down): distinct real prices per
+  // class, so the scanner's price-subtraction logic has something real to
+  // subtract.
+  mockGetRdsInstancePrice.mockImplementation(async (_region: unknown, dbInstanceClass: string) =>
+    dbInstanceClass === 'db.t3.small' ? 70 : 140,
+  );
 });
 
 const region = AwsRegion.create('us-east-1');
@@ -64,7 +69,7 @@ describe('AwsRdsUnderutilizedScanner', () => {
     expect(scanner.kind).toBe('rds-underutilized');
   });
 
-  it('reports an old available instance with low max CPU and costs it at half the instance price', async () => {
+  it('reports an old available instance with low max CPU and costs it at the real one-size-down price difference', async () => {
     mockRdsSend.mockResolvedValueOnce({ DBInstances: [availableInstance()] });
     mockCwSend.mockResolvedValue({ Datapoints: [{ Average: 1.2, Maximum: 2.5 }] });
 
@@ -77,7 +82,24 @@ describe('AwsRdsUnderutilizedScanner', () => {
     expect(inst.kind).toBe('rds-underutilized');
     expect(inst.avgCpuPercent).toBe(1.2);
     expect(inst.maxCpuPercent).toBe(2.5);
-    expect(inst.costEstimate.monthlyCostUsd).toBeCloseTo(70, 2); // 140 * 0.5
+    expect(inst.recommendedInstanceClass).toBe('db.t3.small');
+    expect(inst.costEstimate.monthlyCostUsd).toBeCloseTo(70, 2); // 140 - 70
+  });
+
+  it('reports $0 and no recommendation when the stepped-down class has no resolvable price', async () => {
+    mockRdsSend.mockResolvedValueOnce({
+      DBInstances: [availableInstance({ DBInstanceClass: 'db.t3.micro' })],
+    });
+    mockCwSend.mockResolvedValue({ Datapoints: [{ Average: 1, Maximum: 2 }] });
+    mockGetRdsInstancePrice.mockResolvedValue(10); // db.t3.micro's step-down (nano) isn't stubbed above
+
+    const result = await scanner.scan(region);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const inst = result.value[0] as RdsUnderutilizedInstance;
+    expect(inst.recommendedInstanceClass).toBeUndefined();
+    expect(inst.costEstimate.monthlyCostUsd).toBe(0);
   });
 
   it('does not report an instance with CPU above the threshold', async () => {
@@ -167,7 +189,7 @@ describe('AwsRdsUnderutilizedScanner', () => {
     expect(args.Dimensions).toEqual([{ Name: 'DBInstanceIdentifier', Value: 'db-1' }]);
   });
 
-  it('fetches the instance price only once per distinct class/engine/multiAZ combination', async () => {
+  it('fetches the instance price only once per distinct class/engine/multiAZ combination (current + one-size-down each)', async () => {
     mockRdsSend.mockResolvedValueOnce({
       DBInstances: [
         availableInstance({ DBInstanceIdentifier: 'db-1' }),
@@ -178,8 +200,10 @@ describe('AwsRdsUnderutilizedScanner', () => {
 
     await scanner.scan(region);
 
-    expect(mockGetRdsInstancePrice).toHaveBeenCalledTimes(1);
+    // db.t3.medium (current, shared by both instances) + db.t3.small (step-down) = 2 distinct combinations.
+    expect(mockGetRdsInstancePrice).toHaveBeenCalledTimes(2);
     expect(mockGetRdsInstancePrice).toHaveBeenCalledWith(region, 'db.t3.medium', 'postgres', false);
+    expect(mockGetRdsInstancePrice).toHaveBeenCalledWith(region, 'db.t3.small', 'postgres', false);
   });
 
   it('returns Result.fail wrapping AwsAdapterError and destroys both clients on error', async () => {

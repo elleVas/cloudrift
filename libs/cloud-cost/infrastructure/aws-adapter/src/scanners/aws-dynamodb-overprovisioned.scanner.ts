@@ -17,8 +17,17 @@ import { CloudWatchIdleScanner } from './cloudwatch-idle.scanner';
 const DEFAULT_WINDOW_HOURS = 168;
 const logger = createLogger('cloudrift:scanner');
 const DESCRIBE_CONCURRENCY = 5;
-/** Estimated saving from downsizing the provisioned capacity (advisory, to be verified). */
-const RIGHTSIZE_SAVING_FRACTION = 0.5;
+/** DynamoDB provisioned mode requires at least 1 RCU/WCU — never recommend 0. */
+const MIN_RECOMMENDED_CAPACITY_UNITS = 1;
+/**
+ * CloudWatch is queried for a single aggregate Sum over the whole window
+ * (see `fetchMetric`/`sumMetric`), not per-period datapoints, so there's no
+ * true peak signal here — only an average consumed rate. This multiplier is
+ * a conservative stand-in headroom over that average, applied before
+ * recommending a downsize, to avoid under-provisioning a table with bursty
+ * traffic the average alone wouldn't show.
+ */
+const AVERAGE_TO_HEADROOM_MULTIPLIER = 3;
 
 interface ConsumedCapacity {
   read: number;
@@ -99,6 +108,13 @@ export class AwsDynamoDbOverprovisionedScanner extends CloudWatchIdleScanner<
     return { read, write };
   }
 
+  /** Recommended capacity: average consumed rate × headroom, floored at the minimum, capped at the current allocation (never recommends an increase). */
+  private recommendCapacity(consumedUnits: number, currentUnits: number, windowSeconds: number): number {
+    const avgPerSecond = consumedUnits / windowSeconds;
+    const recommended = Math.ceil(avgPerSecond * AVERAGE_TO_HEADROOM_MULTIPLIER);
+    return Math.min(currentUnits, Math.max(MIN_RECOMMENDED_CAPACITY_UNITS, recommended));
+  }
+
   protected toEntity(
     table: TableWithName,
     consumed: ConsumedCapacity,
@@ -110,7 +126,10 @@ export class AwsDynamoDbOverprovisionedScanner extends CloudWatchIdleScanner<
     const wcu = table.ProvisionedThroughput?.WriteCapacityUnits ?? 0;
     const rcuPrice = this.pricing.getPrice(region, 'dynamodb-rcu');
     const wcuPrice = this.pricing.getPrice(region, 'dynamodb-wcu');
-    const monthlyProvisionedCost = (rcu * rcuPrice + wcu * wcuPrice) * 730;
+    const windowSeconds = this.windowHours * 3600;
+    const recommendedRcu = this.recommendCapacity(consumed.read, rcu, windowSeconds);
+    const recommendedWcu = this.recommendCapacity(consumed.write, wcu, windowSeconds);
+    const monthlySaving = (rcu - recommendedRcu) * rcuPrice * 730 + (wcu - recommendedWcu) * wcuPrice * 730;
     return new OverprovisionedDynamoDbTable({
       tableName: table.TableName,
       region,
@@ -119,11 +138,13 @@ export class AwsDynamoDbOverprovisionedScanner extends CloudWatchIdleScanner<
       writeCapacityUnits: wcu,
       consumedReadCapacityUnits: consumed.read,
       consumedWriteCapacityUnits: consumed.write,
+      recommendedReadCapacityUnits: recommendedRcu,
+      recommendedWriteCapacityUnits: recommendedWcu,
       windowDays: +(this.windowHours / 24).toFixed(1),
       creationDateTime: table.CreationDateTime ?? new Date(0),
       detectedAt: now,
       tags: {},
-      monthlyCostUsd: +(monthlyProvisionedCost * RIGHTSIZE_SAVING_FRACTION).toFixed(4),
+      monthlyCostUsd: +Math.max(0, monthlySaving).toFixed(4),
     });
   }
 }

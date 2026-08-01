@@ -182,7 +182,7 @@ Each concrete policy adds the type-specific criterion:
 | `LoadBalancerWastePolicy` | zero registered targets                   | grace on `createdTime`                                                          |
 | `Ec2InstanceWastePolicy`  | `state === 'stopped'`                     | grace on `stoppedSince` (from `StateTransitionReason`), fallback `launchTime`   |
 | `EbsSnapshotWastePolicy`  | source volume deleted                     | snapshots referenced by AMIs excluded (not deletable); grace on `startTime`     |
-| `NatGatewayWastePolicy`   | zero outbound bytes in the window (48h)   | grace on `createTime` (freshly created environments)                            |
+| `NatGatewayWastePolicy`   | zero outbound bytes in the window (14d)   | grace on `createTime` (freshly created environments)                            |
 | `EbsIdlePolicy`           | attached (`in-use`) volume, total I/O ops ≤ `ebsIdleMaxOps` (default 0) over the window | grace on `createTime` (no I/O yet ≠ idle) |
 | `Ec2UnderutilizedPolicy`  | running instance, max CPU% ≤ `ec2CpuPercent` (default 5) over the window | grace on `launchTime`; only registered when `--live-pricing` is on (needs a per-instance-type price) |
 | `RdsUnderutilizedPolicy`  | available instance, max CPU% ≤ `rdsCpuPercent` (default 5) over the window | grace on `instanceCreateTime`; only registered when `--live-pricing` is on (needs a per-instance-class price) |

@@ -4,7 +4,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
-import { RESOURCE_KINDS, RESOURCE_KIND_META } from 'cloud-cost-domain';
+import { RESOURCE_KINDS, RESOURCE_KIND_META, confidenceOf } from 'cloud-cost-domain';
 import { DEAD_RESOURCE_KINDS, DEAD_RESOURCE_KIND_META } from 'dead-resources-domain';
 import { RESOURCE_SECURITY_KINDS, RESOURCE_SECURITY_KIND_META } from 'resource-security-domain';
 import { PDF_LOGO_PNG_BASE64 } from '../pdf-logo-data';
@@ -65,6 +65,7 @@ function buildResourceTypesCatalog() {
       label: RESOURCE_KIND_META[kind].label,
       category: RESOURCE_KIND_META[kind].category,
       estimated: RESOURCE_KIND_META[kind].estimated,
+      confidence: confidenceOf(kind),
     })),
     ...DEAD_RESOURCE_KINDS.map((kind) => ({
       domain: 'deadResources' as const,
