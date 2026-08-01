@@ -50,8 +50,14 @@ describe('UnderutilizedEc2Instance', () => {
     expect(makeInstance().costEstimate.monthlyCostUsd).toBe(40);
   });
 
-  it('costEstimate description references rightsizing saving', () => {
-    expect(makeInstance().costEstimate.description).toContain('rightsizing saving');
+  it('costEstimate description shows the real step-down when recommendedInstanceType is set', () => {
+    const instance = makeInstance({ recommendedInstanceType: 'm5.large' });
+    expect(instance.recommendedInstanceType).toBe('m5.large');
+    expect(instance.costEstimate.description).toContain('m5.xlarge → m5.large');
+  });
+
+  it('costEstimate description falls back to a manual-verification note with no recommendation', () => {
+    expect(makeInstance().costEstimate.description).toContain('no derivable rightsizing price');
   });
 
   it('exposes the remaining props', () => {

@@ -12,13 +12,12 @@ import type { AwsRegion } from 'cloud-cost-domain';
 import { UnderutilizedEc2Instance, Ec2UnderutilizedPolicy, type WastePolicy } from 'cloud-cost-domain';
 import { paginate, mapWithConcurrency, createAwsClientConfig } from 'shared-aws-infra-utils';
 import { avgMaxMetric, type MetricWindow } from '../utils/cloudwatch-metrics';
+import { stepDownOneSize } from '../utils/instance-step-down';
 import { CloudWatchIdleScanner } from './cloudwatch-idle.scanner';
 
 const DEFAULT_WINDOW_HOURS = 168;
 const PRICING_CONCURRENCY = 5;
 const logger = createLogger('cloudrift:scanner');
-/** Estimated saving from downsizing a tier (advisory, to be verified). */
-const RIGHTSIZE_SAVING_FRACTION = 0.5;
 
 /**
  * The per-instance-type price is resolved on demand from the Pricing API
@@ -90,7 +89,12 @@ export class AwsEc2UnderutilizedScanner extends CloudWatchIdleScanner<
   }
 
   protected override async resolvePrices(raw: InstanceWithId[], region: AwsRegion): Promise<Map<string, number>> {
-    const instanceTypes = [...new Set(raw.map((i) => i.InstanceType ?? 'unknown'))];
+    // Resolve both the current type and its one-size-down neighbor (if any):
+    // the saving is a real price subtraction, so both prices must come from
+    // the Pricing API, not just the current one.
+    const currentTypes = raw.map((i) => i.InstanceType ?? 'unknown');
+    const stepDownTypes = currentTypes.map(stepDownOneSize).filter((t): t is string => t !== null);
+    const instanceTypes = [...new Set([...currentTypes, ...stepDownTypes])];
     const entries = await mapWithConcurrency(instanceTypes, PRICING_CONCURRENCY, async (instanceType) => ({
       instanceType,
       price: (await this.pricing.getEc2InstancePricePerMonth(region, instanceType)) ?? 0,
@@ -106,19 +110,27 @@ export class AwsEc2UnderutilizedScanner extends CloudWatchIdleScanner<
     now: Date,
   ): UnderutilizedEc2Instance {
     const instanceType = inst.InstanceType ?? 'unknown';
-    const monthlyPrice = prices.get(instanceType) ?? 0;
+    const currentPrice = prices.get(instanceType) ?? 0;
+    const stepDownType = stepDownOneSize(instanceType);
+    const stepDownPrice = stepDownType ? (prices.get(stepDownType) ?? 0) : 0;
+    // Both prices must have actually resolved (0 means "unpriced" here, no
+    // EC2 instance is genuinely free), and the smaller type must be cheaper
+    // — otherwise there's no derivable number, so this reports $0 rather
+    // than a guess (see class doc).
+    const hasRealSaving = stepDownType !== null && currentPrice > 0 && stepDownPrice > 0 && currentPrice > stepDownPrice;
     return new UnderutilizedEc2Instance({
       instanceId: inst.InstanceId,
       region,
       accountId: this.accountId,
       instanceType,
+      recommendedInstanceType: hasRealSaving ? (stepDownType ?? undefined) : undefined,
       avgCpuPercent: cpu.avg,
       maxCpuPercent: cpu.max,
       windowDays: +(this.windowHours / 24).toFixed(1),
       launchTime: inst.LaunchTime ?? new Date(),
       detectedAt: now,
       tags: Object.fromEntries((inst.Tags ?? []).map((t) => [t.Key ?? '', t.Value ?? ''])),
-      monthlyCostUsd: +(monthlyPrice * RIGHTSIZE_SAVING_FRACTION).toFixed(4),
+      monthlyCostUsd: hasRealSaving ? +(currentPrice - stepDownPrice).toFixed(4) : 0,
     });
   }
 }

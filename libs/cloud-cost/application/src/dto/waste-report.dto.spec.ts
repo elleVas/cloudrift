@@ -74,8 +74,8 @@ describe('toWasteReportDto', () => {
   it('builds the per-kind breakdown only for kinds with findings', () => {
     const dto = toWasteReportDto(summary, meta);
     expect(dto.breakdown).toEqual([
-      { kind: 'ebs-volume', label: 'EBS Volumes', category: 'waste', estimated: false, count: 1, monthlyCostUsd: 8 },
-      { kind: 'elastic-ip', label: 'Elastic IPs', category: 'waste', estimated: false, count: 1, monthlyCostUsd: 3.6 },
+      { kind: 'ebs-volume', label: 'EBS Volumes', category: 'waste', estimated: false, confidence: 'measured', count: 1, monthlyCostUsd: 8 },
+      { kind: 'elastic-ip', label: 'Elastic IPs', category: 'waste', estimated: false, confidence: 'measured', count: 1, monthlyCostUsd: 3.6 },
     ]);
   });
 
@@ -87,6 +87,7 @@ describe('toWasteReportDto', () => {
       kind: 'ebs-volume',
       category: 'waste',
       estimated: false,
+      confidence: 'measured',
       region: 'us-east-1',
       accountId: '123456789012',
       detectedAt: '2026-06-09T00:00:00.000Z',
@@ -119,6 +120,7 @@ describe('toWasteReportDto', () => {
     expect(dto.optimizationCount).toBe(1);
     const gp2Dto = dto.findings.find((f) => f.id === 'vol-gp2');
     expect(gp2Dto?.category).toBe('optimization');
+    expect(gp2Dto?.confidence).toBe('derived');
   });
 
   it('includes userName only for workspaces-idle findings', () => {

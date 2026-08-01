@@ -4,6 +4,7 @@ import {
   RESOURCE_KIND_LABELS,
   RESOURCE_KIND_META,
   groupByKind,
+  confidenceOf,
 } from 'cloud-cost-domain';
 import type {
   FindingCategory,
@@ -119,7 +120,7 @@ export function formatWasteReportAsMarkdown(
     );
   }
   lines.push(
-    `| **Total waste** | **${countOf('waste')}** | **${money(waste)}** |`,
+    `| **Total waste (measured)** | **${countOf('waste')}** | **${money(waste)}** |`,
   );
   lines.push('');
 
@@ -130,8 +131,10 @@ export function formatWasteReportAsMarkdown(
     lines.push('### Optimization opportunities');
     lines.push('');
     lines.push(
-      '> Savings you can capture **without deleting** the resource. ' +
-        'Not counted in the waste total; items marked _estimated_ need verification.',
+      '> Savings you can capture **without deleting** the resource, derived from real price ' +
+        'differences (not counted in the waste total above, and not a blind percentage). ' +
+        'Items marked _derived_ still need verification; items marked _no $ estimate_ are ' +
+        'namespace-hygiene flags with no real dollar basis to report.',
     );
     lines.push('');
     lines.push('| Resource type | Count | $/month |');
@@ -141,13 +144,17 @@ export function formatWasteReportAsMarkdown(
         (s, r) => s + r.costEstimate.monthlyCostUsd,
         0,
       );
-      const label = RESOURCE_KIND_META[kind].estimated
-        ? `${RESOURCE_KIND_LABELS[kind]} _(estimated)_`
-        : RESOURCE_KIND_LABELS[kind];
-      lines.push(`| ${label} | ${grouped[kind].length} | ${money(subtotal)} |`);
+      const confidence = confidenceOf(kind);
+      const label = confidence === 'derived'
+        ? `${RESOURCE_KIND_LABELS[kind]} _(derived)_`
+        : confidence === 'heuristic'
+          ? `${RESOURCE_KIND_LABELS[kind]} _(no $ estimate)_`
+          : RESOURCE_KIND_LABELS[kind];
+      const costCell = confidence === 'heuristic' ? 'no $ basis' : money(subtotal);
+      lines.push(`| ${label} | ${grouped[kind].length} | ${costCell} |`);
     }
     lines.push(
-      `| **Total optimization** | **${countOf('optimization')}** | **${money(summary.totalOptimizationMonthlyUsd)}** |`,
+      `| **Total optimization (derived)** | **${countOf('optimization')}** | **${money(summary.totalOptimizationMonthlyUsd)}** |`,
     );
     lines.push('');
     renderDetails('optimization');

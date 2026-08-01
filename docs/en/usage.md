@@ -117,7 +117,7 @@ If scanning a resource type fails (e.g. missing CloudWatch permissions for NAT G
   ⚠ Scan Warnings
   • NAT Gateways: Access denied to CloudWatch metrics
 
-  Total estimated waste: $56.20/month (incomplete — see warnings above)
+  Total waste (measured): $56.20/month (incomplete — see warnings above)
 ```
 
 **Per-region pricing:**

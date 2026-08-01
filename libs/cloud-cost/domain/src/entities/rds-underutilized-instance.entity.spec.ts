@@ -51,8 +51,14 @@ describe('RdsUnderutilizedInstance', () => {
     expect(makeInstance().costEstimate.monthlyCostUsd).toBe(60);
   });
 
-  it('costEstimate description references rightsizing saving', () => {
-    expect(makeInstance().costEstimate.description).toContain('rightsizing saving');
+  it('costEstimate description shows the real step-down when recommendedInstanceClass is set', () => {
+    const instance = makeInstance({ recommendedInstanceClass: 'db.m5.medium' });
+    expect(instance.recommendedInstanceClass).toBe('db.m5.medium');
+    expect(instance.costEstimate.description).toContain('db.m5.large → db.m5.medium');
+  });
+
+  it('costEstimate description falls back to a manual-verification note with no recommendation', () => {
+    expect(makeInstance().costEstimate.description).toContain('no derivable rightsizing price');
   });
 
   it('exposes the remaining props', () => {

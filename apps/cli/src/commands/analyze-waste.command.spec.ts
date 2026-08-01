@@ -97,7 +97,7 @@ describe('analyzeWasteCommand (CLI end-to-end)', () => {
       summary: summaryOf([wasteVolume('vol-1', 8)], 8),
     }));
     expect(stdout).toContain('Scanning us-east-1');
-    expect(stdout).toContain('Total waste:');
+    expect(stdout).toContain('Total waste (measured):');
     expect(stdout).toContain('$8.00/month');
   });
 

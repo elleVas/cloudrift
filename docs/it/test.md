@@ -169,11 +169,11 @@ Crea questi elementi nell'account sandbox prima di lanciare lo script (qualsiasi
 | --- | --- | --- |
 | Volume EBS | un volume **non attaccato**, più vecchio di 7 giorni | `ebs-volume` |
 | Elastic IP | un EIP **non associato** | `elastic-ip` |
-| NAT Gateway | un gateway con **zero traffico** per 48h | `nat-gateway` |
+| NAT Gateway | un gateway con **zero traffico** per 14gg | `nat-gateway` |
 | Istanza EC2 | un'istanza **ferma** da più di 7 giorni | `ec2-instance` |
 | Istanza EC2 | un'istanza **running** con CPU bassa per 14+ giorni | `ec2-underutilized` |
 | Volume EBS (gp2) | un volume gp2 **attaccato** | `ebs-gp2-upgrade` |
-| Volume EBS | un volume **attaccato** con zero I/O per 48h | `ebs-idle` |
+| Volume EBS | un volume **attaccato** con zero I/O per 14gg | `ebs-idle` |
 | Snapshot EBS | uno snapshot il cui volume sorgente è stato cancellato | `ebs-snapshot` |
 | Istanza RDS | un'istanza **ferma** | `rds-instance` |
 | Istanza RDS | un'istanza **available** con CPU bassa per 14+ giorni | `rds-underutilized` |

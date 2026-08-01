@@ -159,8 +159,8 @@ describe('parseConfig', () => {
     if (!result.ok) expect(result.error.message).toContain('must be a JSON object');
   });
 
-  it('rejects a cloudwatchWindowHours above the 7-day cap', () => {
-    const result = parseConfig(JSON.stringify({ cloudwatchWindowHours: 200 }));
+  it('rejects a cloudwatchWindowHours above the 14-day cap', () => {
+    const result = parseConfig(JSON.stringify({ cloudwatchWindowHours: 400 }));
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error.message).toContain('cloudwatchWindowHours');
   });

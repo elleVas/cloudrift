@@ -16,6 +16,8 @@ function makeTable(overrides: Partial<OverprovisionedDynamoDbTableProps> = {}): 
     writeCapacityUnits: 100,
     consumedReadCapacityUnits: 0,
     consumedWriteCapacityUnits: 0,
+    recommendedReadCapacityUnits: 1,
+    recommendedWriteCapacityUnits: 1,
     windowDays: WINDOW_DAYS,
     creationDateTime: new Date('2024-03-01'),
     detectedAt: new Date('2026-06-09'),
@@ -55,6 +57,13 @@ describe('OverprovisionedDynamoDbTable', () => {
 
   it('costEstimate returns the stored monthlyCostUsd', () => {
     expect(makeTable().costEstimate.monthlyCostUsd).toBe(12.5);
+  });
+
+  it('exposes the recommended capacity and reflects it in the costEstimate description', () => {
+    const table = makeTable({ recommendedReadCapacityUnits: 5, recommendedWriteCapacityUnits: 3 });
+    expect(table.recommendedReadCapacityUnits).toBe(5);
+    expect(table.recommendedWriteCapacityUnits).toBe(3);
+    expect(table.costEstimate.description).toContain('100 RCU / 100 WCU → 5 RCU / 3 WCU');
   });
 
   it('exposes the remaining props', () => {

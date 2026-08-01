@@ -9,14 +9,18 @@ import type { WastedResource } from '../wasted-resource';
  * observation window: likely oversized. Advisory, not definite waste —
  * low CPU does not guarantee storage I/O or connections are equally
  * underutilized, must be verified before a rightsizing.
- * `monthlyCostUsd` here is the *saving* estimated from a tier downsize,
- * not the cost of the instance.
+ * `monthlyCostUsd` is a real price subtraction (current class's monthly
+ * price minus one-size-down's), not a heuristic fraction:
+ * `recommendedInstanceClass` is set only when both prices resolved from the
+ * Pricing API and the smaller class is actually cheaper. When it's
+ * `undefined`, `monthlyCostUsd` is `0` rather than a guess.
  */
 export interface RdsUnderutilizedInstanceProps {
   dbInstanceIdentifier: string;
   region: AwsRegion;
   accountId: string;
   dbInstanceClass: string;
+  recommendedInstanceClass?: string;
   engine: string;
   avgCpuPercent: number;
   maxCpuPercent: number;
@@ -38,6 +42,7 @@ export class RdsUnderutilizedInstance extends Entity<string> implements WastedRe
   get region(): AwsRegion { return this.props.region; }
   get accountId(): string { return this.props.accountId; }
   get dbInstanceClass(): string { return this.props.dbInstanceClass; }
+  get recommendedInstanceClass(): string | undefined { return this.props.recommendedInstanceClass; }
   get engine(): string { return this.props.engine; }
   get avgCpuPercent(): number { return this.props.avgCpuPercent; }
   get maxCpuPercent(): number { return this.props.maxCpuPercent; }
@@ -53,9 +58,9 @@ export class RdsUnderutilizedInstance extends Entity<string> implements WastedRe
   }
 
   get costEstimate(): CostEstimate {
-    return CostEstimate.of(
-      this.props.monthlyCostUsd,
-      `${this.props.dbInstanceClass} ${this.props.engine} underutilized — estimated rightsizing saving`,
-    );
+    const description = this.props.recommendedInstanceClass
+      ? `${this.props.dbInstanceClass} → ${this.props.recommendedInstanceClass} ${this.props.engine} (one size down, real price difference)`
+      : `${this.props.dbInstanceClass} ${this.props.engine} underutilized — no derivable rightsizing price, verify manually`;
+    return CostEstimate.of(this.props.monthlyCostUsd, description);
   }
 }

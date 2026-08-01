@@ -181,7 +181,7 @@ Ogni policy concreta aggiunge il criterio specifico del tipo:
 | `LoadBalancerWastePolicy` | zero target registrati                    | grace su `createdTime`                                                         |
 | `Ec2InstanceWastePolicy`  | `state === 'stopped'`                     | grace su `stoppedSince` (da `StateTransitionReason`), fallback `launchTime`    |
 | `EbsSnapshotWastePolicy`  | volume sorgente cancellato                | esclusi snapshot referenziati da AMI (non cancellabili); grace su `startTime`  |
-| `NatGatewayWastePolicy`   | zero bytes in uscita nella finestra (48h) | grace su `createTime` (ambienti appena creati)                                 |
+| `NatGatewayWastePolicy`   | zero bytes in uscita nella finestra (14gg) | grace su `createTime` (ambienti appena creati)                                 |
 | `EbsIdlePolicy`           | volume attaccato (`in-use`), operazioni I/O totali ≤ `ebsIdleMaxOps` (default 0) nella finestra | grace su `createTime` (nessun I/O ancora ≠ idle) |
 | `Ec2UnderutilizedPolicy`  | istanza running, CPU massima ≤ `ec2CpuPercent` (default 5) nella finestra | grace su `launchTime`; registrata solo con `--live-pricing` attivo (serve un prezzo per instance type) |
 | `RdsUnderutilizedPolicy`  | istanza available, CPU massima ≤ `rdsCpuPercent` (default 5) nella finestra | grace su `instanceCreateTime`; registrata solo con `--live-pricing` attivo (serve un prezzo per instance class) |

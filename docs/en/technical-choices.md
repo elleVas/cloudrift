@@ -124,6 +124,8 @@ try {
 
 **Waste vs. optimization.** Not every detector finds deletable waste: `ebs-gp2-upgrade`, `ec2-underutilized` and `rds-underutilized` are savings opportunities that keep the resource (`FindingCategory: 'optimization'`), kept out of the headline waste total and the CI gate (see [architecture.md](./architecture.md#waste-vs-optimization--findingcategory)). `ec2-underutilized` and `rds-underutilized` are further marked `estimated: true`: CPU alone doesn't prove RAM/network (EC2) or storage I/O/connections (RDS) are equally idle.
 
+**Confidence, orthogonal to category.** `estimated: true` says a finding needs human verification, not how defensible its dollar figure is — a real price subtraction and a blind percentage were both just `estimated: true` before [ADR-0101](../adr/0101-finding-confidence-real-price-differences.md). `confidenceOf(kind)` now classifies every kind as `measured` (real price × observed quantity — every `waste` kind), `derived` (real price *difference* — `ebs-gp2-upgrade`, `ec2-underutilized`/`rds-underutilized`/`dynamodb-overprovisioned`/`aurora-serverless-overprovisioned`/`eks-node-overprovisioned`), or `heuristic` (no real dollar basis — `s3-no-lifecycle`, `lambda-underutilized`, `sagemaker-training-orphaned`, always `$0`). Formatters use it to show "no $ basis" instead of a misleading "$0.00/mo" on heuristic rows.
+
 ---
 
 ## ts-jest for tests

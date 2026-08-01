@@ -124,6 +124,8 @@ try {
 
 **Spreco vs. ottimizzazione.** Non ogni detector trova spreco cancellabile: `ebs-gp2-upgrade`, `ec2-underutilized` e `rds-underutilized` sono opportunità di risparmio che mantengono la risorsa (`FindingCategory: 'optimization'`), escluse dal totale waste principale e dal gate CI (vedi [architettura.md](./architettura.md#spreco-vs-ottimizzazione--findingcategory)). `ec2-underutilized` e `rds-underutilized` sono inoltre marcate `estimated: true`: la sola CPU non dimostra che anche RAM/rete (EC2) o storage I/O/connessioni (RDS) siano altrettanto inutilizzati.
 
+**Confidence, ortogonale alla categoria.** `estimated: true` dice che un finding va verificato a mano, non quanto sia difendibile la sua cifra in dollari — una sottrazione di prezzo reale e una percentuale inventata erano entrambe solo `estimated: true` prima di [ADR-0101](../adr/0101-finding-confidence-real-price-differences.md). `confidenceOf(kind)` ora classifica ogni kind come `measured` (prezzo reale × quantità osservata — ogni kind `waste`), `derived` (differenza di prezzo reale — `ebs-gp2-upgrade`, `ec2-underutilized`/`rds-underutilized`/`dynamodb-overprovisioned`/`aurora-serverless-overprovisioned`/`eks-node-overprovisioned`) oppure `heuristic` (nessuna base reale per una cifra — `s3-no-lifecycle`, `lambda-underutilized`, `sagemaker-training-orphaned`, sempre $0). I formatter la usano per mostrare "no $ basis" invece di un fuorviante "$0.00/mo" sulle righe heuristic.
+
 ---
 
 ## ts-jest per i test

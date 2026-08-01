@@ -176,8 +176,15 @@ const pricing = new StaticPriceTableAdapter();
 // sources (satisfied by AwsPricingApiAdapter in production). Fixed stub
 // prices here; the fixtures' expected costs are derived from these.
 const livePrices = {
-  getEc2InstancePricePerMonth: async () => 70,
-  getRdsInstancePricePerMonth: async () => 100,
+  // ec2-underutilized/rds-underutilized also price the one-size-down type
+  // (m5.large -> m5.medium, db.r5.large -> db.r5.medium) to compute a real
+  // price difference — half the current stub price, same as the old
+  // 0.5 heuristic fraction gave, so the fixtures' expected costs (35, 50)
+  // don't need to change even though the derivation now does.
+  getEc2InstancePricePerMonth: async (_region: unknown, instanceType: string) =>
+    instanceType === 'm5.medium' ? 35 : 70,
+  getRdsInstancePricePerMonth: async (_region: unknown, dbInstanceClass: string) =>
+    dbInstanceClass === 'db.r5.medium' ? 50 : 100,
   getElastiCacheNodePricePerMonth: async () => 50,
   getRedshiftNodePricePerMonth: async () => 180,
   getOpenSearchInstancePricePerMonth: async () => 120,
@@ -217,7 +224,7 @@ const scannerFactories: Record<ResourceKind, () => WasteScannerPort> = {
   'ebs-idle': () => new AwsEbsIdleScanner(pricing, ACCOUNT, new EbsIdlePolicy(po, 0)),
   'log-group': () => new AwsLogGroupScanner(pricing, ACCOUNT, undefined, new LogGroupWastePolicy(po)),
   'eni-orphaned': () => new AwsEniOrphanedScanner(ACCOUNT, undefined, new OrphanedEniWastePolicy(po)),
-  's3-no-lifecycle': () => new AwsS3NoLifecycleScanner(pricing, ACCOUNT, undefined, new S3NoLifecyclePolicy(po)),
+  's3-no-lifecycle': () => new AwsS3NoLifecycleScanner(ACCOUNT, undefined, new S3NoLifecyclePolicy(po)),
   'lambda-underutilized': () => new AwsLambdaUnderutilizedScanner(ACCOUNT, new LambdaUnderutilizedPolicy(po, 0)),
   'efs-unused': () => new AwsEfsUnusedScanner(pricing, ACCOUNT, new EfsUnusedPolicy(po, 0)),
   'dynamodb-overprovisioned': () =>
@@ -249,7 +256,7 @@ const scannerFactories: Record<ResourceKind, () => WasteScannerPort> = {
   'sagemaker-endpoint-idle': () =>
     new AwsSageMakerEndpointIdleScanner(livePrices, ACCOUNT, new SageMakerEndpointIdlePolicy(po)),
   'sagemaker-training-orphaned': () =>
-    new AwsSageMakerTrainingOrphanedScanner(pricing, ACCOUNT, undefined, new SageMakerTrainingOrphanedPolicy(po)),
+    new AwsSageMakerTrainingOrphanedScanner(ACCOUNT, undefined, new SageMakerTrainingOrphanedPolicy(po)),
   'environment-ghost': () =>
     new AwsEnvironmentGhostScanner(ACCOUNT, undefined, new EnvironmentGhostPolicy(po, 7), undefined, undefined, 7),
   'eks-node-overprovisioned': () =>

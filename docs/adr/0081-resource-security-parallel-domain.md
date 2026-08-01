@@ -8,6 +8,8 @@
 
 A follow-up scoping pass (2026-07-23) confirmed and expanded this: 14 read-only security-posture checks across five categories — IAM/account-level (root MFA, user MFA, access-key rotation, root access keys, password policy), network exposure (open ingress, permissive default security groups), public storage (S3 buckets, EBS snapshots), encryption at rest (EBS, RDS, S3), and visibility/audit (RDS public accessibility, CloudTrail multi-region coverage). All read-only (`Describe*`/`Get*`/`List*` IAM actions only), consistent with the project's "never deletes/modifies/stops" disclaimer.
 
+**Update (2026-07-31):** a v2 pass (PR #101) added 15 more checks on top of this domain's structure — no new ADR, same model/policy shape described below. Current total is **29 checks**, 11 of them global-scope. This ADR's "14"/"8 of the 14" figures below describe the day-1 scope only; see the README for the current count.
+
 ## Decision
 
 **Three new Nx libraries**, mirroring `dead-resources-{domain,application,infrastructure/aws-adapter}`'s exact layout and hexagonal layering ([ADR-0013](0013-ddd-hexagonal-plugin-model.md), [ADR-0078](0078-dead-resources-parallel-domain.md)):

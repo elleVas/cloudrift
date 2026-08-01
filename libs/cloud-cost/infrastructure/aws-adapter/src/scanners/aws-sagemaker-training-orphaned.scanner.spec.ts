@@ -21,8 +21,7 @@ beforeEach(() => {
 });
 
 const region = AwsRegion.create('us-east-1');
-const mockPricing = { getPrice: jest.fn().mockReturnValue(0.023), getPricesAsOf: jest.fn().mockReturnValue('2024-01-01') };
-const scanner = new AwsSageMakerTrainingOrphanedScanner(mockPricing);
+const scanner = new AwsSageMakerTrainingOrphanedScanner();
 const OLD_DATE = new Date('2024-03-01');
 
 describe('AwsSageMakerTrainingOrphanedScanner', () => {

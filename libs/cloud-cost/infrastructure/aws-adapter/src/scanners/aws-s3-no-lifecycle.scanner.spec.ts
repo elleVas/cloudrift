@@ -4,7 +4,6 @@ import { CloudWatchClient, GetMetricStatisticsCommand } from '@aws-sdk/client-cl
 import { AwsS3NoLifecycleScanner } from './aws-s3-no-lifecycle.scanner';
 import { AwsRegion } from 'cloud-cost-domain';
 import { AwsAdapterError } from 'shared-aws-infra-utils';
-import { mockPricing } from '../testing/mock-pricing';
 
 jest.mock('@aws-sdk/client-s3');
 jest.mock('@aws-sdk/client-cloudwatch');
@@ -33,7 +32,7 @@ beforeEach(() => {
 });
 
 const region = AwsRegion.create('us-east-1');
-const scanner = new AwsS3NoLifecycleScanner(mockPricing);
+const scanner = new AwsS3NoLifecycleScanner();
 const OLD_DATE = new Date('2024-03-01');
 
 describe('AwsS3NoLifecycleScanner', () => {

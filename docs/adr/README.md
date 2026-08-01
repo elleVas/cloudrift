@@ -60,7 +60,7 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 |---|---|---|
 | [0013](0013-ddd-hexagonal-plugin-model.md) | DDD + Hexagonal architecture with a plugin model | Accepted |
 | [0014](0014-wastedresource-inbound-boundary.md) | `WastedResource` as the sole inbound-boundary type | Accepted |
-| [0015](0015-findingcategory-waste-vs-optimization.md) | `FindingCategory` split: waste vs. optimization | Accepted |
+| [0015](0015-findingcategory-waste-vs-optimization.md) | `FindingCategory` split: waste vs. optimization | Accepted, confidence axis added by [ADR-0101](0101-finding-confidence-real-price-differences.md) |
 | [0016](0016-waste-rules-in-domain.md) | Waste rules live in the domain, not in AWS API filters | Accepted |
 | [0017](0017-policy-cross-cutting-rules.md) | Two cross-cutting rules in every `WastePolicy` | Accepted |
 | [0018](0018-scan-errors-per-scanner-region.md) | Scan errors collected per (scanner, region) pair | Accepted |
@@ -85,6 +85,7 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 | [0086](0086-mcp-tool-handlers-error-boundary.md) | MCP tool handlers wrapped in a shared error boundary | Accepted |
 | [0094](0094-wastereason-derived-from-policy-verdict.md) | `wasteReason` derived from the policy's `WasteVerdict`, not hardcoded on the entity | Accepted |
 | [0095](0095-scan-coordinator-use-case-shared-base-class.md) | `ScanCoordinatorUseCase` — shared base class for scan orchestration across cloud-cost/dead-resources/resource-security | Accepted |
+| [0101](0101-finding-confidence-real-price-differences.md) | `FindingConfidence` — real price differences replace heuristic fractions for rightsizing scanners | Accepted |
 
 ## Stack
 

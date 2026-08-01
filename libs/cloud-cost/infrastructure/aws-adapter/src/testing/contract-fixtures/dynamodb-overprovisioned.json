@@ -1,6 +1,6 @@
 {
   "kind": "dynamodb-overprovisioned",
-  "source": "localstack capture, 2026-07-10, scripts/capture-contract-fixtures.mjs",
+  "source": "localstack capture, 2026-07-10, scripts/capture-contract-fixtures.mjs — expected cost recomputed 2026-08-01: consumed=0 -> recommended 1 RCU/1 WCU (floor), saving = (10-1)*0.00013*730 + (10-1)*0.00065*730",
   "region": "us-east-1",
   "accountId": "000000000000",
   "pages": {
@@ -88,7 +88,7 @@
     "findings": [
       {
         "id": "cloudrift-e2e-1783659811817",
-        "monthlyCostUsd": 2.847
+        "monthlyCostUsd": 5.1246
       }
     ]
   }

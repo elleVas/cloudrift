@@ -9,14 +9,20 @@ import type { WastedResource } from '../wasted-resource';
  * observation window: likely oversized. Advisory, not definite waste —
  * low CPU does not guarantee RAM/network are equally underutilized,
  * must be verified before a rightsizing (e.g. AWS Compute Optimizer).
- * `monthlyCostUsd` here is the *saving* estimated from a tier downsize,
- * not the cost of the instance.
+ * `monthlyCostUsd` is a real price subtraction (current type's monthly price
+ * minus one-size-down's), not a heuristic fraction: `recommendedInstanceType`
+ * is set only when both prices resolved from the Pricing API and the smaller
+ * type is actually cheaper. When it's `undefined` (no CloudWatch memory
+ * signal to justify more than one step, unparseable type, already the
+ * smallest tier, or the Pricing API has no price for the stepped-down type),
+ * `monthlyCostUsd` is `0` rather than a guess.
  */
 export interface UnderutilizedEc2InstanceProps {
   instanceId: string;
   region: AwsRegion;
   accountId: string;
   instanceType: string;
+  recommendedInstanceType?: string;
   avgCpuPercent: number;
   maxCpuPercent: number;
   windowDays: number;
@@ -37,6 +43,7 @@ export class UnderutilizedEc2Instance extends Entity<string> implements WastedRe
   get region(): AwsRegion { return this.props.region; }
   get accountId(): string { return this.props.accountId; }
   get instanceType(): string { return this.props.instanceType; }
+  get recommendedInstanceType(): string | undefined { return this.props.recommendedInstanceType; }
   get avgCpuPercent(): number { return this.props.avgCpuPercent; }
   get maxCpuPercent(): number { return this.props.maxCpuPercent; }
   get windowDays(): number { return this.props.windowDays; }
@@ -51,9 +58,9 @@ export class UnderutilizedEc2Instance extends Entity<string> implements WastedRe
   }
 
   get costEstimate(): CostEstimate {
-    return CostEstimate.of(
-      this.props.monthlyCostUsd,
-      `${this.props.instanceType} underutilized — estimated rightsizing saving`,
-    );
+    const description = this.props.recommendedInstanceType
+      ? `${this.props.instanceType} → ${this.props.recommendedInstanceType} (one size down, real price difference)`
+      : `${this.props.instanceType} underutilized — no derivable rightsizing price, verify manually`;
+    return CostEstimate.of(this.props.monthlyCostUsd, description);
   }
 }

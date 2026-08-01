@@ -9,10 +9,10 @@ import type { WastedResource } from '../wasted-resource';
  * variants — a training artifact never deployed (or deployed once, then
  * the endpoint deleted). Its own cost is $0 (a `Model` resource itself
  * isn't billed); the value here is namespace hygiene, not a dollar saving.
- * `monthlyCostUsd` is a rough estimate of the S3 storage its artifact
- * occupies (see ADR-0065's caveat: artifact size isn't returned by any
- * `DescribeModel`/`ListModels` field, so it's a flat assumption, not a
- * measured `HeadObject` size).
+ * `monthlyCostUsd` is always 0: artifact size isn't returned by any
+ * `DescribeModel`/`ListModels` field, so there's no basis for a dollar
+ * figure (a flat per-model GB assumption would be exactly as unfounded as
+ * the S3 no-lifecycle scanner's old flat percentage — see its entity doc).
  */
 export interface SageMakerTrainingOrphanedProps {
   modelName: string;
@@ -56,7 +56,7 @@ export class SageMakerTrainingOrphaned extends Entity<string> implements WastedR
   get costEstimate(): CostEstimate {
     return CostEstimate.of(
       this.props.monthlyCostUsd,
-      `SageMaker model ${this.props.modelName} — orphaned, estimated S3 storage cost`,
+      `SageMaker model ${this.props.modelName} — orphaned, no dollar estimate (artifact size unknown)`,
     );
   }
 }

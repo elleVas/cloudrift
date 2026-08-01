@@ -5,6 +5,7 @@ import {
   RESOURCE_KIND_LABELS,
   RESOURCE_KIND_META,
   groupByKind,
+  confidenceOf,
 } from 'cloud-cost-domain';
 import type {
   FindingCategory,
@@ -150,7 +151,7 @@ function drawSummaryPage(
     y += 14;
     doc.font('Helvetica').fontSize(8).fillColor(C.muted)
       .text(
-        `Savings without deleting the resource — $${summary.totalOptimizationMonthlyUsd.toFixed(2)}/mo, not counted in the waste total. Items marked (estimated) need verification.`,
+        `Savings without deleting the resource — $${summary.totalOptimizationMonthlyUsd.toFixed(2)}/mo derived from real price differences (rightsizing, gp2→gp3, ...), not counted in the waste total above and not a blind percentage. Items marked (derived) still need verification before acting; items marked (no $ estimate) are namespace-hygiene flags with no real dollar basis to report.`,
         MARGIN, y, { width: CONTENT_W },
       );
     y += 18;
@@ -430,11 +431,17 @@ function buildBreakdownRows(
     .map((kind) => {
       const findings: WastedResource[] = grouped[kind];
       const cost = findings.reduce((sum, f) => sum + f.costEstimate.monthlyCostUsd, 0);
-      const estimatedSuffix = RESOURCE_KIND_META[kind].estimated ? ' (estimated)' : '';
+      const confidence = confidenceOf(kind);
+      // measured (all 'waste' kinds): no suffix, same as before. derived:
+      // a real price difference, still needs verifying. heuristic: always
+      // $0 by construction (see entity docs) — say so instead of showing a
+      // misleadingly-precise "$0.00/mo".
+      const suffix = confidence === 'derived' ? ' (derived)' : confidence === 'heuristic' ? ' (no $ estimate)' : '';
+      const costCell = confidence === 'heuristic' ? 'no $ basis' : `$${cost.toFixed(2)}/mo`;
       return [
-        `${RESOURCE_KIND_LABELS[kind]} (${findings[0].wasteReason})${estimatedSuffix}`,
+        `${RESOURCE_KIND_LABELS[kind]} (${findings[0].wasteReason})${suffix}`,
         String(findings.length),
-        `$${cost.toFixed(2)}/mo`,
+        costCell,
       ];
     });
 }

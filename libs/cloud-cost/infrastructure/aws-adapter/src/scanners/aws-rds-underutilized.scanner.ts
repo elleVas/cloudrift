@@ -12,13 +12,12 @@ import { RdsUnderutilizedInstance, RdsUnderutilizedPolicy, type WastePolicy } fr
 import { paginate, mapWithConcurrency, createAwsClientConfig } from 'shared-aws-infra-utils';
 import { NON_RDS_ENGINES } from '../utils/non-rds-engines';
 import { avgMaxMetric, type MetricWindow } from '../utils/cloudwatch-metrics';
+import { stepDownOneSize } from '../utils/instance-step-down';
 import { CloudWatchIdleScanner } from './cloudwatch-idle.scanner';
 
 const DEFAULT_WINDOW_HOURS = 168;
 const PRICING_CONCURRENCY = 5;
 const logger = createLogger('cloudrift:scanner');
-/** Estimated saving from downsizing a tier (advisory, to be verified). */
-const RIGHTSIZE_SAVING_FRACTION = 0.5;
 
 /**
  * The price per RDS instance class is resolved on demand from the Pricing
@@ -122,7 +121,17 @@ export class AwsRdsUnderutilizedScanner extends CloudWatchIdleScanner<
   }
 
   protected override async resolvePrices(raw: DbInstanceWithId[], region: AwsRegion): Promise<Map<string, number>> {
-    const uniqueSpecs = [...new Map(raw.map((db) => [priceSpecKey(priceSpecOf(db)), priceSpecOf(db)])).values()];
+    // Resolve both the current spec and its one-size-down neighbor (if any):
+    // the saving is a real price subtraction, so both prices must come from
+    // the Pricing API, not just the current one.
+    const currentSpecs = raw.map(priceSpecOf);
+    const stepDownSpecs = currentSpecs
+      .map((spec) => {
+        const smaller = stepDownOneSize(spec.dbInstanceClass);
+        return smaller ? { ...spec, dbInstanceClass: smaller } : null;
+      })
+      .filter((s): s is RdsPriceSpec => s !== null);
+    const uniqueSpecs = [...new Map([...currentSpecs, ...stepDownSpecs].map((s) => [priceSpecKey(s), s])).values()];
     const entries = await mapWithConcurrency(uniqueSpecs, PRICING_CONCURRENCY, async (spec) => ({
       key: priceSpecKey(spec),
       price: (await this.pricing.getRdsInstancePricePerMonth(region, spec.dbInstanceClass, spec.engine, spec.multiAZ)) ?? 0,
@@ -137,12 +146,23 @@ export class AwsRdsUnderutilizedScanner extends CloudWatchIdleScanner<
     region: AwsRegion,
     now: Date,
   ): RdsUnderutilizedInstance {
-    const monthlyPrice = prices.get(priceSpecKey(priceSpecOf(db))) ?? 0;
+    const spec = priceSpecOf(db);
+    const currentPrice = prices.get(priceSpecKey(spec)) ?? 0;
+    const stepDownClass = stepDownOneSize(spec.dbInstanceClass);
+    const stepDownPrice = stepDownClass
+      ? (prices.get(priceSpecKey({ ...spec, dbInstanceClass: stepDownClass })) ?? 0)
+      : 0;
+    // Both prices must have actually resolved (0 means "unpriced" here, no
+    // RDS instance is genuinely free), and the smaller class must be
+    // cheaper — otherwise there's no derivable number, so this reports $0
+    // rather than a guess (see class doc).
+    const hasRealSaving = stepDownClass !== null && currentPrice > 0 && stepDownPrice > 0 && currentPrice > stepDownPrice;
     return new RdsUnderutilizedInstance({
       dbInstanceIdentifier: db.DBInstanceIdentifier,
       region,
       accountId: this.accountId,
-      dbInstanceClass: db.DBInstanceClass ?? 'unknown',
+      dbInstanceClass: spec.dbInstanceClass,
+      recommendedInstanceClass: hasRealSaving ? (stepDownClass ?? undefined) : undefined,
       engine: db.Engine ?? 'unknown',
       avgCpuPercent: cpu.avg,
       maxCpuPercent: cpu.max,
@@ -150,7 +170,7 @@ export class AwsRdsUnderutilizedScanner extends CloudWatchIdleScanner<
       instanceCreateTime: db.InstanceCreateTime ?? new Date(),
       detectedAt: now,
       tags: Object.fromEntries((db.TagList ?? []).map((t) => [t.Key ?? '', t.Value ?? ''])),
-      monthlyCostUsd: +(monthlyPrice * RIGHTSIZE_SAVING_FRACTION).toFixed(4),
+      monthlyCostUsd: hasRealSaving ? +(currentPrice - stepDownPrice).toFixed(4) : 0,
     });
   }
 }

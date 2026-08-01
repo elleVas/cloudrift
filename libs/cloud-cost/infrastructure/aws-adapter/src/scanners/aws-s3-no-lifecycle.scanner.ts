@@ -8,7 +8,7 @@ import {
 import { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
 import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { Result, createLogger } from 'shared-kernel';
-import type { AwsRegion, PricingPort, WasteScannerPort, WastedResource } from 'cloud-cost-domain';
+import type { AwsRegion, WasteScannerPort, WastedResource } from 'cloud-cost-domain';
 import { S3Bucket, S3NoLifecyclePolicy } from 'cloud-cost-domain';
 import { AwsAdapterError, paginate, mapWithConcurrency, createAwsClientConfig } from 'shared-aws-infra-utils';
 import { avgMetric } from '../utils/cloudwatch-metrics';
@@ -16,8 +16,6 @@ import { avgMetric } from '../utils/cloudwatch-metrics';
 const logger = createLogger('cloudrift:scanner');
 const METRIC_CONCURRENCY = 5;
 const METRIC_LOOKBACK_DAYS = 2;
-/** Fraction of the Standard storage cost considered a potential saving by enabling a lifecycle policy (heuristic estimate). */
-const ESTIMATED_SAVING_FRACTION = 0.4;
 
 type BucketWithName = Bucket & { Name: string };
 
@@ -30,7 +28,6 @@ export class AwsS3NoLifecycleScanner implements WasteScannerPort {
   readonly kind = 's3-no-lifecycle' as const;
 
   constructor(
-    private readonly pricing: PricingPort,
     private readonly accountId = 'unknown',
     private readonly credentials?: AwsCredentialIdentityProvider,
     private readonly policy = new S3NoLifecyclePolicy(),
@@ -57,7 +54,6 @@ export class AwsS3NoLifecycleScanner implements WasteScannerPort {
 
       if (rawBuckets.length === 0) return Result.ok([]);
 
-      const pricePerGb = this.pricing.getPrice(region, 's3-standard');
       const now = new Date();
 
       const details = await mapWithConcurrency(rawBuckets, METRIC_CONCURRENCY, async (b) => {
@@ -72,7 +68,6 @@ export class AwsS3NoLifecycleScanner implements WasteScannerPort {
       const buckets = rawBuckets
         .map((b, index) => {
           const { hasLifecyclePolicy, sizeBytes } = details[index];
-          const sizeGb = sizeBytes / 1024 ** 3;
           const props = {
             bucketName: b.Name,
             region,
@@ -82,7 +77,11 @@ export class AwsS3NoLifecycleScanner implements WasteScannerPort {
             creationDate: b.CreationDate ?? new Date(0),
             detectedAt: now,
             tags: {},
-            monthlyCostUsd: +(sizeGb * pricePerGb * ESTIMATED_SAVING_FRACTION).toFixed(4),
+            // No dollar estimate: the saving depends on the age distribution of
+            // objects inside the bucket, which we don't have (see S3Bucket entity
+            // doc). This is a hygiene flag, not a costed finding — get the real
+            // number from S3 Storage Lens / Storage Class Analysis if you need one.
+            monthlyCostUsd: 0,
           };
           const verdict = this.policy.evaluate(new S3Bucket({ ...props, wasteReason: '' }), now);
           return verdict.isWaste ? new S3Bucket({ ...props, wasteReason: verdict.reason }) : null;
