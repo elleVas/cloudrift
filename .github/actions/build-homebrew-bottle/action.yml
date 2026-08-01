@@ -10,10 +10,19 @@ inputs:
 runs:
   using: composite
   steps:
+    # `path:` is required here: without it, checkout replaces the *entire*
+    # job workspace with elleVas/homebrew-cloudrift's content — including
+    # this composite action's own `action.yml`, since it lives in the
+    # cloudrift checkout that would get overwritten. That leaves nothing
+    # for actions/checkout's own end-of-job cleanup step to find when it
+    # goes looking for the composite action definition, and the job fails
+    # with a confusing "Can't find action.yml" error long after every
+    # visible step already reported success.
     - name: Checkout tap repository
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
       with:
         repository: elleVas/homebrew-cloudrift
+        path: homebrew-tap
 
     - name: Download bare formula
       uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -22,7 +31,7 @@ runs:
 
     - name: Install formula into tap checkout
       shell: bash
-      run: mv bare-formula.rb Formula/cloudrift.rb
+      run: mv bare-formula.rb homebrew-tap/Formula/cloudrift.rb
 
     # `brew tap NAME "$PWD"` below does a real `git clone` of this checkout —
     # it only ever sees committed history, so without this commit it would
@@ -31,6 +40,7 @@ runs:
     # Local-only: never pushed, just makes the upcoming clone see the bump.
     - name: Commit the formula locally so the tap clone sees it
       shell: bash
+      working-directory: homebrew-tap
       run: |
         git config user.name "cloudrift-release-bot"
         git config user.email "actions@users.noreply.github.com"
@@ -52,6 +62,7 @@ runs:
     # working on GitHub-hosted runners in the tap's own test-formula.yml.
     - name: Tap and trust the local formula
       shell: bash
+      working-directory: homebrew-tap
       run: |
         brew tap elleVas/cloudrift "$PWD"
         brew trust ellevas/cloudrift
