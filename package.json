@@ -36,7 +36,7 @@
     "@nx/js": "23.1.0",
     "@nx/node": "22.7.5",
     "@swc-node/register": "1.11.1",
-    "@swc/core": "1.15.8",
+    "@swc/core": "1.15.47",
     "@swc/helpers": "0.5.18",
     "@types/jest": "^30.0.0",
     "@types/node": "^22.20.1",
