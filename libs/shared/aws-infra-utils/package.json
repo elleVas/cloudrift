@@ -71,8 +71,8 @@
     }
   },
   "dependencies": {
-    "@aws-sdk/credential-providers": "^3.1095.0",
-    "@smithy/node-http-handler": "^4.9.11",
+    "@aws-sdk/credential-providers": "^3.1098.0",
+    "@smithy/node-http-handler": "^4.9.13",
     "@smithy/types": "^4.9.0",
     "shared-kernel": "workspace:*",
     "tslib": "^2.8.1"
