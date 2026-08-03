@@ -13,6 +13,7 @@ import { startScanSpinner } from '../wizard/scan-spinner';
 import { defaultDeadResourcesDeps, type DeadResourcesDeps } from './dead-resources.composition';
 import { reportCliError as fail } from './report-cli-error';
 import { OUTPUT_FORMATS, isOutputFormat } from '../output-format';
+import { isOneOf } from '../type-guards';
 import { resolveCredentials } from './resolve-options';
 import { persistTrendSnapshot } from 'shared-trend-store';
 import { shouldNotifyOnSeverity } from 'shared-notifications';
@@ -38,7 +39,7 @@ export interface DeadResourcesCommandOptions extends NotifyFlags {
 }
 
 function isDeadResourceKind(kind: string): kind is DeadResourceKind {
-  return (DEAD_RESOURCE_KINDS as readonly string[]).includes(kind);
+  return isOneOf(DEAD_RESOURCE_KINDS, kind);
 }
 
 /** `--scanners`: Result-free validation against the known DEAD_RESOURCE_KINDS (mirrors `resolveExplicitScanners` for `analyze`). */

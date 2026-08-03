@@ -3,6 +3,7 @@ import { Result } from 'shared-kernel';
 import { AwsRegion, DEFAULT_MIN_AGE_DAYS, RESOURCE_KINDS } from 'cloud-cost-domain';
 import type { ResourceKind } from 'cloud-cost-domain';
 import { assumeRole } from 'shared-aws-infra-utils';
+import { isOneOf } from '../type-guards';
 import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import type { CloudriftConfig } from '../config/cloudrift.config';
 import type { AnalyzeWasteOptions } from './analyze-waste.command';
@@ -43,7 +44,7 @@ export function resolveMinAgeDays(
 }
 
 function isResourceKind(kind: string): kind is ResourceKind {
-  return (RESOURCE_KINDS as readonly string[]).includes(kind);
+  return isOneOf(RESOURCE_KINDS, kind);
 }
 
 /** --scanners: Result-based validation against the known RESOURCE_KINDS (no throw on bad input). */

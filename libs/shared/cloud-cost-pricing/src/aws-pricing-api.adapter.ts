@@ -234,7 +234,7 @@ export class AwsPricingApiAdapter {
 function parseProductItem(item: unknown): unknown {
   if (typeof item === 'string' || item instanceof String) {
     try {
-      return JSON.parse(item as string);
+      return JSON.parse(String(item));
     } catch {
       return undefined;
     }

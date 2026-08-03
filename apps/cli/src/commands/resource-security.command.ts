@@ -13,6 +13,7 @@ import { startScanSpinner } from '../wizard/scan-spinner';
 import { defaultResourceSecurityDeps, type ResourceSecurityDeps } from './resource-security.composition';
 import { reportCliError as fail } from './report-cli-error';
 import { OUTPUT_FORMATS, isOutputFormat } from '../output-format';
+import { isOneOf } from '../type-guards';
 import { resolveCredentials } from './resolve-options';
 import { persistTrendSnapshot } from 'shared-trend-store';
 import { shouldNotifyOnSeverity } from 'shared-notifications';
@@ -37,7 +38,7 @@ export interface ResourceSecurityCommandOptions extends NotifyFlags {
 }
 
 function isResourceSecurityKind(kind: string): kind is ResourceSecurityKind {
-  return (RESOURCE_SECURITY_KINDS as readonly string[]).includes(kind);
+  return isOneOf(RESOURCE_SECURITY_KINDS, kind);
 }
 
 /** `--scanners`: Result-free validation against the known RESOURCE_SECURITY_KINDS. */

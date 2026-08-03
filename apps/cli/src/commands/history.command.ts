@@ -15,6 +15,7 @@ import { formatHistoryComparisonAsJson } from '../formatters/history-comparison.
 import { generateHistoryReportHtml, generateCombinedHistoryReportHtml } from '../formatters/history-report.html-formatter';
 import { compareCloudCostSnapshots, compareHygieneSnapshots, type HistoryComparison } from './history-comparison';
 import { isOutputFormat } from '../output-format';
+import { isOneOf } from '../type-guards';
 import { resolveCredentials } from './resolve-options';
 import { reportCliError as fail } from './report-cli-error';
 import { hasRegressed, type NotificationSummary } from 'shared-notifications';
@@ -24,7 +25,7 @@ export const HISTORY_FORMATS = ['table', 'json'] as const;
 const HISTORY_DOMAINS = ['cloud-cost', 'dead-resources', 'resource-security'] as const;
 
 function isTrendDomain(value: string): value is TrendDomain {
-  return (HISTORY_DOMAINS as readonly string[]).includes(value);
+  return isOneOf(HISTORY_DOMAINS, value);
 }
 
 type ParsedOption = { ok: true; value: number | undefined } | { ok: false; message: string };
