@@ -160,6 +160,7 @@ export abstract class SeverityReportFormatter<
       const contentBottom = PAGE_H - MARGIN - footerReservedHeight(disclaimerH);
       doc.on('pageAdded', () => drawFooter(doc, this.disclaimer, disclaimerH));
       doc.addPage();
+      doc.outline.addItem('Summary');
 
       this.drawSummaryPage(doc, summary, meta, contentBottom);
       this.drawDetailPages(doc, summary, contentBottom);
@@ -240,6 +241,7 @@ export abstract class SeverityReportFormatter<
 
       const presenter = this.presenterFor(kind);
       doc.addPage();
+      doc.outline.addItem(presenter.title);
       const y = this.sectionHeader(doc, presenter.title);
       const links = findings.map((finding) =>
         buildConsoleUrl({ kind: finding.kind, id: finding.id, region: finding.region?.code }),

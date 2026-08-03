@@ -59,6 +59,7 @@ export async function generateWasteReportPdf(
     // its footer drawn here, right when it's created — see drawFooter above.
     doc.on('pageAdded', () => drawFooter(doc, REPORT_DISCLAIMER, disclaimerH));
     doc.addPage();
+    doc.outline.addItem('Summary');
 
     drawSummaryPage(doc, summary, meta, contentBottom);
     drawDetailPages(doc, summary, contentBottom);
@@ -207,6 +208,7 @@ function drawDetailPages(
 
     const presenter = presenterFor(kind);
     doc.addPage();
+    doc.outline.addItem(presenter.title);
     const y = sectionHeader(doc, presenter.title);
     const links = findings.map((finding) =>
       buildConsoleUrl({ kind: finding.kind, id: finding.id, region: finding.region.code }),
