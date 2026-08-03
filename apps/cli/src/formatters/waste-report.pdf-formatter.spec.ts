@@ -126,6 +126,16 @@ describe('generateWasteReportPdf', () => {
       const written = await readFile(file);
       expect(written.subarray(0, 5).toString('latin1')).toBe('%PDF-');
       expect(written.length).toBeGreaterThan(1000);
+
+      // Section titles contain an em dash, so PDFKit encodes them as
+      // UTF-16BE — only the plain-ASCII "Summary" bookmark survives a
+      // latin1 substring match; the per-section count below covers the rest.
+      const asText = written.toString('latin1');
+      expect(asText).toContain('/Outlines');
+      expect(asText).toContain('/PageMode /UseOutlines');
+      expect(asText).toContain('(Summary)');
+      const distinctKinds = new Set(findings.map((f) => f.kind)).size;
+      expect(asText.match(/\/Title \(/g)?.length).toBe(1 + distinctKinds);
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

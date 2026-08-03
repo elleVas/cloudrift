@@ -174,6 +174,12 @@ describe('SeverityReportFormatter.toPdf', () => {
     );
     expect(written.subarray(0, 5).toString('latin1')).toBe('%PDF-');
     expect(written.length).toBeGreaterThan(1000);
+
+    const asText = written.toString('latin1');
+    expect(asText).toContain('/Outlines');
+    expect(asText).toContain('(Summary)');
+    expect(asText).toContain('(Alpha Section)');
+    expect(asText).toContain('(Beta Section)');
   });
 
   it('writes a valid PDF when there are no findings', async () => {
