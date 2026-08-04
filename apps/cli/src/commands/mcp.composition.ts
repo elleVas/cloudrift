@@ -12,6 +12,7 @@ import { CostTrendUseCase, toCostTrendDto, type CostTrendDto } from 'cost-analyt
 import { AggregateAnalysisUseCase } from 'mcp-server-application';
 import type { AggregateAnalysisDomain } from 'mcp-server-application';
 import { loadConfig, type CloudriftConfig } from '../config/cloudrift.config';
+import { resolveServiceNames } from '../config/cost-explorer-service-names';
 import { defaultAnalyzeDeps } from './analyze-waste.composition';
 import { defaultDeadResourcesDeps } from './dead-resources.composition';
 import { defaultResourceSecurityDeps } from './resource-security.composition';
@@ -47,12 +48,87 @@ export interface AggregateAnalysisReportDto {
   domainErrors: Array<{ domain: AggregateAnalysisDomain; message: string }>;
 }
 
+/** Maps 1:1 to `get_cost_trend`'s Zod input schema in `mcp.command.ts`. */
+export interface McpCostTrendInput {
+  months?: number;
+  services?: string[];
+  accountId?: string;
+  refreshCache?: boolean;
+}
+
+/** Maps 1:1 to `analyze_cloud_waste`'s Zod input schema in `mcp.command.ts`. */
+export interface McpCloudWasteInput {
+  regions?: string[];
+  livePricing?: boolean;
+  minAgeDays?: number;
+  ignoreTag?: string;
+  configPath?: string;
+}
+
+/** Maps 1:1 to `analyze_dead_resources`'s Zod input schema in `mcp.command.ts`. */
+export interface McpDeadResourcesInput {
+  regions?: string[];
+  minAgeDays?: number;
+  ignoreTag?: string;
+  configPath?: string;
+}
+
+/**
+ * Maps 1:1 to `analyze_resource_security`'s Zod input schema in
+ * `mcp.command.ts`. No `minAgeDays`: resource-security checks don't take a
+ * grace period, same as the `resourceSecurity` branch of
+ * `defaultRunAggregateAnalysis` below.
+ */
+export interface McpResourceSecurityInput {
+  regions?: string[];
+  ignoreTag?: string;
+  configPath?: string;
+}
+
 /**
  * Injection seam for `mcp.command.ts`, mirroring `AnalyzeDeps`/`DeadResourcesDeps`:
  * everything that touches AWS or the filesystem passes through here.
  */
 export interface McpDeps {
   runAggregateAnalysis(input: McpAnalyzeInput): Promise<Result<AggregateAnalysisReportDto, Error>>;
+  runCostTrend(input: McpCostTrendInput): Promise<Result<CostTrendDto, Error>>;
+  runCloudWaste(input: McpCloudWasteInput): Promise<Result<WasteReportDto, Error>>;
+  runDeadResources(input: McpDeadResourcesInput): Promise<Result<DeadResourcesReportDto, Error>>;
+  runResourceSecurity(input: McpResourceSecurityInput): Promise<Result<ResourceSecurityReportDto, Error>>;
+}
+
+/** Shape shared by every per-domain and aggregate analysis tool's input. */
+interface McpScanScope {
+  regions?: string[];
+  configPath?: string;
+}
+
+interface ResolvedMcpScope {
+  config: CloudriftConfig;
+  regions: AwsRegion[];
+  accountId: string;
+}
+
+/**
+ * Config loading, region parsing, and account resolution — the preamble
+ * every analysis tool needs before it can build its own domain-specific
+ * `policyOptions`. Factored out once four tools (`analyze_cloudrift` plus
+ * the three per-domain tools below) needed the exact same steps.
+ */
+async function resolveMcpScope(input: McpScanScope): Promise<Result<ResolvedMcpScope, Error>> {
+  const configResult = await loadConfig(process.cwd(), input.configPath);
+  if (!configResult.ok) return configResult;
+  const config: CloudriftConfig = configResult.value;
+
+  const regions: AwsRegion[] = [];
+  for (const code of input.regions ?? ['us-east-1']) {
+    const parsed = AwsRegion.parse(code);
+    if (!parsed.ok) return parsed;
+    regions.push(parsed.value);
+  }
+
+  const accountId = (await resolveAwsAccountId()) ?? 'unknown';
+  return Result.ok({ config, regions, accountId });
 }
 
 /**
@@ -67,18 +143,9 @@ export interface McpDeps {
 async function defaultRunAggregateAnalysis(
   input: McpAnalyzeInput,
 ): Promise<Result<AggregateAnalysisReportDto, Error>> {
-  const configResult = await loadConfig(process.cwd(), input.configPath);
-  if (!configResult.ok) return configResult;
-  const config: CloudriftConfig = configResult.value;
-
-  const regions: AwsRegion[] = [];
-  for (const code of input.regions ?? ['us-east-1']) {
-    const parsed = AwsRegion.parse(code);
-    if (!parsed.ok) return parsed;
-    regions.push(parsed.value);
-  }
-
-  const accountId = (await resolveAwsAccountId()) ?? 'unknown';
+  const scope = await resolveMcpScope(input);
+  if (!scope.ok) return scope;
+  const { config, regions, accountId } = scope.value;
   const minAgeDays = input.minAgeDays ?? config.minAgeDays;
   const ignoreTag = input.ignoreTag ?? config.ignoreTag;
 
@@ -142,6 +209,114 @@ async function defaultRunAggregateAnalysis(
   });
 }
 
+/**
+ * Wires the same `defaultCostAnalyticsDeps`/`CostTrendUseCase` the `trend`
+ * command uses, skipping the interactive `confirmCostExplorerCharge` prompt
+ * — there's no terminal to confirm against over MCP, same reasoning that
+ * already applies to `costTrend` inside `defaultRunAggregateAnalysis`.
+ */
+async function defaultRunCostTrend(input: McpCostTrendInput): Promise<Result<CostTrendDto, Error>> {
+  const services = input.services ? resolveServiceNames(input.services) : undefined;
+  const accountId = input.accountId ?? (await resolveAwsAccountId()) ?? 'unknown';
+  const costExplorer = defaultCostAnalyticsDeps.createCostExplorer(accountId, input.refreshCache === true);
+
+  const result = await new CostTrendUseCase(costExplorer).execute({ months: input.months, services });
+  if (!result.ok) return result;
+
+  return Result.ok(toCostTrendDto(result.value, { accountId, generatedAt: new Date() }));
+}
+
+/**
+ * Single-domain sibling of `defaultRunAggregateAnalysis` for `analyze_cloud_waste`
+ * — same `defaultAnalyzeDeps` composition root, minus the other three domains.
+ */
+async function defaultRunCloudWaste(input: McpCloudWasteInput): Promise<Result<WasteReportDto, Error>> {
+  const scope = await resolveMcpScope(input);
+  if (!scope.ok) return scope;
+  const { config, regions, accountId } = scope.value;
+  const minAgeDays = input.minAgeDays ?? config.minAgeDays;
+  const ignoreTag = input.ignoreTag ?? config.ignoreTag;
+
+  const analysis = await defaultAnalyzeDeps.createAnalysis({
+    regions,
+    config,
+    accountId,
+    livePricing: input.livePricing === true,
+    policyOptions: { minAgeDays, ignoreTag, excludeTagValues: config.excludeTagValues },
+    cloudwatchWindowHours: config.cloudwatchWindowHours ?? DEFAULT_CLOUDWATCH_WINDOW_HOURS,
+    utilizationWindowHours: config.utilizationWindowHours ?? DEFAULT_UTILIZATION_WINDOW_HOURS,
+    info: () => undefined,
+  });
+
+  const result = await analysis.useCase.execute({ regions });
+  analysis.dispose?.();
+  if (!result.ok) return result;
+
+  return Result.ok(
+    toWasteReportDto(result.value, {
+      accountId,
+      regions: regions.map((r) => r.code),
+      generatedAt: new Date(),
+      pricesAsOf: analysis.pricesAsOf,
+    }),
+  );
+}
+
+/**
+ * Single-domain sibling of `defaultRunAggregateAnalysis` for `analyze_dead_resources`
+ * — same `defaultDeadResourcesDeps` composition root, minus the other three domains.
+ */
+async function defaultRunDeadResources(input: McpDeadResourcesInput): Promise<Result<DeadResourcesReportDto, Error>> {
+  const scope = await resolveMcpScope(input);
+  if (!scope.ok) return scope;
+  const { config, regions, accountId } = scope.value;
+  const minAgeDays = input.minAgeDays ?? config.minAgeDays;
+  const ignoreTag = input.ignoreTag ?? config.ignoreTag;
+
+  const analysis = await defaultDeadResourcesDeps.createAnalysis({
+    regions,
+    accountId,
+    policyOptions: { minAgeDays, ignoreTag, excludeTagValues: config.excludeTagValues },
+  });
+
+  const result = await analysis.useCase.execute({ regions });
+  if (!result.ok) return result;
+
+  return Result.ok(
+    toDeadResourceReportDto(result.value, { accountId, regions: regions.map((r) => r.code), generatedAt: new Date() }),
+  );
+}
+
+/**
+ * Single-domain sibling of `defaultRunAggregateAnalysis` for `analyze_resource_security`
+ * — same `defaultResourceSecurityDeps` composition root, minus the other three domains.
+ */
+async function defaultRunResourceSecurity(
+  input: McpResourceSecurityInput,
+): Promise<Result<ResourceSecurityReportDto, Error>> {
+  const scope = await resolveMcpScope(input);
+  if (!scope.ok) return scope;
+  const { config, regions, accountId } = scope.value;
+  const ignoreTag = input.ignoreTag ?? config.ignoreTag;
+
+  const analysis = await defaultResourceSecurityDeps.createAnalysis({
+    regions,
+    accountId,
+    policyOptions: { ignoreTag, excludeTagValues: config.excludeTagValues },
+  });
+
+  const result = await analysis.useCase.execute({ regions });
+  if (!result.ok) return result;
+
+  return Result.ok(
+    toResourceSecurityReportDto(result.value, { accountId, regions: regions.map((r) => r.code), generatedAt: new Date() }),
+  );
+}
+
 export const defaultMcpDeps: McpDeps = {
   runAggregateAnalysis: defaultRunAggregateAnalysis,
+  runCostTrend: defaultRunCostTrend,
+  runCloudWaste: defaultRunCloudWaste,
+  runDeadResources: defaultRunDeadResources,
+  runResourceSecurity: defaultRunResourceSecurity,
 };

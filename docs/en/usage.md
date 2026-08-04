@@ -332,7 +332,7 @@ node apps/cli/dist/main.js resource-security --csv ./security.csv --silent
 
 ## `mcp` — run cloudrift as a local MCP server
 
-Exposes cloudrift over stdio as an [MCP](https://modelcontextprotocol.io) server, so any MCP-compatible AI agent (Claude Desktop/Code, Kiro, VS Code Copilot Chat in Agent mode, ...) can call `analyze_cloudrift`, `get_resource_types`, and `get_required_iam_permissions` directly instead of you running the CLI by hand. It inherits the **same AWS credentials** as every other command — an agent with access to this server can see everything those credentials can see, not just waste/dead-resource/security findings.
+Exposes cloudrift over stdio as an [MCP](https://modelcontextprotocol.io) server, so any MCP-compatible AI agent (Claude Desktop/Code, Kiro, VS Code Copilot Chat in Agent mode, ...) can call `analyze_cloudrift` (or the narrower `analyze_cloud_waste`/`analyze_dead_resources`/`analyze_resource_security`/`get_cost_trend`), `get_resource_types`, and `get_required_iam_permissions` directly instead of you running the CLI by hand. It inherits the **same AWS credentials** as every other command — an agent with access to this server can see everything those credentials can see, not just waste/dead-resource/security findings. See [docs/en/mcp-server.md](mcp-server.md) for the full tool list and client setup.
 
 ```sh
 node apps/cli/dist/main.js mcp

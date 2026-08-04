@@ -3,7 +3,7 @@
 // with a real MCP client instead of `cloudrift analyze --format json`.
 // Reuses the same LocalStack container, seed data, and cloud-cost coverage
 // expectations (EXPECTED_KINDS/SOFT_KINDS) as that script — this one adds
-// the MCP-protocol layer on top: tools/list, then each of the three tools
+// the MCP-protocol layer on top: tools/list, then each of the seven tools
 // through a real @modelcontextprotocol/sdk Client over StdioClientTransport.
 //
 // Not wired into lint/test/build/typecheck — opt-in via:
@@ -29,7 +29,15 @@ const composeFile = resolve(workspaceRoot, 'docker-compose.localstack.yml');
 const cliEntry = resolve(workspaceRoot, 'apps/cli/dist/main.js');
 
 const MIN_AGE_DAYS = 0;
-const EXPECTED_TOOLS = ['analyze_cloudrift', 'get_required_iam_permissions', 'get_resource_types'];
+const EXPECTED_TOOLS = [
+  'analyze_cloud_waste',
+  'analyze_cloudrift',
+  'analyze_dead_resources',
+  'analyze_resource_security',
+  'get_cost_trend',
+  'get_required_iam_permissions',
+  'get_resource_types',
+];
 
 function dockerCompose(...args) {
   const r = spawnSync('docker', ['compose', '-f', composeFile, ...args], {
@@ -115,6 +123,54 @@ async function main() {
       throw new Error('get_required_iam_permissions: policy missing sts:GetCallerIdentity');
     }
     console.log(`OK: get_required_iam_permissions returned ${iamPolicy.Statement[0].Action.length} actions, no AWS call needed`);
+
+    // Same LocalStack Community limitation as analyze_cloudrift's costTrend
+    // branch below: Cost Explorer isn't emulated, so isError here is the
+    // expected outcome, not a failure of this tool.
+    console.log('\nCalling get_cost_trend against LocalStack (Cost Explorer is not emulated by LocalStack Community)...');
+    const costTrendResult = await client.callTool({ name: 'get_cost_trend', arguments: { months: 1 } });
+    if (costTrendResult.isError) {
+      console.log(`OK: get_cost_trend failed gracefully as expected: ${costTrendResult.content[0].text}`);
+    } else {
+      const costTrend = JSON.parse(toolText(costTrendResult));
+      if (!Array.isArray(costTrend.months)) throw new Error('get_cost_trend: response missing months[]');
+      console.log('OK: get_cost_trend succeeded (unexpected against LocalStack Community, but not a failure)');
+    }
+
+    console.log('\nCalling analyze_cloud_waste against LocalStack (this is the real, credentialed call)...');
+    const cloudWaste = JSON.parse(
+      toolText(
+        await client.callTool({
+          name: 'analyze_cloud_waste',
+          arguments: { regions: [REGION], minAgeDays: MIN_AGE_DAYS },
+        }),
+      ),
+    );
+    const cloudWasteFoundKinds = new Set(cloudWaste.findings.map((f) => f.kind));
+    const cloudWasteMissing = EXPECTED_KINDS.filter((kind) => !cloudWasteFoundKinds.has(kind));
+    const cloudWasteHardMissing = cloudWasteMissing.filter((kind) => !SOFT_KINDS.has(kind));
+    if (cloudWasteHardMissing.length > 0) {
+      console.error('cloudWaste.scanErrors:', JSON.stringify(cloudWaste.scanErrors, null, 2));
+      throw new Error(`analyze_cloud_waste: no finding for ${cloudWasteHardMissing.join(', ')}`);
+    }
+    console.log(
+      `OK: analyze_cloud_waste found ${EXPECTED_KINDS.length - cloudWasteMissing.length}/${EXPECTED_KINDS.length} expected kinds` +
+        (cloudWasteMissing.length > 0 ? ` (${cloudWasteMissing.length} soft-missing: ${cloudWasteMissing.join(', ')})` : ''),
+    );
+
+    // No fixtures are seeded for these two domains (seed-localstack.mjs is
+    // cloud-cost-only) — just assert the call completes without isError.
+    // Zero findings here is expected, not a failure.
+    console.log('\nCalling analyze_dead_resources and analyze_resource_security against LocalStack...');
+    const deadResources = JSON.parse(
+      toolText(await client.callTool({ name: 'analyze_dead_resources', arguments: { regions: [REGION], minAgeDays: MIN_AGE_DAYS } })),
+    );
+    const resourceSecurity = JSON.parse(
+      toolText(await client.callTool({ name: 'analyze_resource_security', arguments: { regions: [REGION] } })),
+    );
+    if (!Array.isArray(deadResources.findings)) throw new Error('analyze_dead_resources: response missing findings[]');
+    if (!Array.isArray(resourceSecurity.findings)) throw new Error('analyze_resource_security: response missing findings[]');
+    console.log('OK: analyze_dead_resources and analyze_resource_security both completed (no fixtures seeded, findings incidental)');
 
     console.log('\nCalling analyze_cloudrift against LocalStack (this is the real, credentialed call)...');
     const report = JSON.parse(
