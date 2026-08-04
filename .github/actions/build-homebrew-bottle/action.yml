@@ -77,11 +77,16 @@ runs:
         VERSION="${GITHUB_REF_NAME#v}"
         brew bottle --json --root-url="https://github.com/elleVas/homebrew-cloudrift/releases/download/cloudrift-${VERSION}" cloudrift
 
+    # Globs use `*.bottle*` (not `*.bottle.tar.gz`) because `brew bottle`
+    # inserts a rebuild number into the tarball filename whenever `rebuild`
+    # is nonzero (e.g. `cloudrift--0.10.0.arm64_sonoma.bottle.1.tar.gz`) —
+    # a plain `*.bottle.tar.gz` silently matches nothing on any rebuild,
+    # which any retried release run can trigger.
     - name: Upload bottle artifact
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: bottle-${{ inputs.platform }}
         path: |
-          *.bottle.tar.gz
-          *.bottle.json
+          *.bottle*.tar.gz
+          *.bottle*.json
         if-no-files-found: error

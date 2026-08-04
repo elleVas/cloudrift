@@ -213,7 +213,7 @@ jobs:
           brew trust ellevas/cloudrift
 
       - name: Merge bottle specs into the formula
-        run: brew bottle --merge --write --no-commit *.bottle.json
+        run: brew bottle --merge --write --no-commit *.bottle*.json
 
       # `--write` edits the formula inside brew's own tap clone
       # ($(brew --repository elleVas/cloudrift)/Formula/cloudrift.rb), a
@@ -232,7 +232,7 @@ jobs:
           GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          gh release create "cloudrift-${VERSION}" *.bottle.tar.gz \
+          gh release create "cloudrift-${VERSION}" *.bottle*.tar.gz \
             --repo elleVas/homebrew-cloudrift \
             --title "cloudrift ${VERSION} bottles" \
             --notes "Precompiled Homebrew bottles for cloudrift ${VERSION} (macOS arm64, Linux)."
