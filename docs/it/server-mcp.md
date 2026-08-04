@@ -11,10 +11,14 @@ Questa pagina copre solo il **collegamento di un client**. Per il comando `cloud
 | Tool | Fa chiamate AWS? | Cosa restituisce |
 | --- | --- | --- |
 | `analyze_cloudrift` | **Sì** — chiamate reali, con credenziali | Un report JSON aggregato sui quattro domini (spreco cloud-cost, risorse morte, sicurezza delle risorse, trend di spesa). Accetta `regions`, `livePricing`, `minAgeDays`, `ignoreTag`, `configPath` — le stesse leve di `cloudrift.config.json`. |
+| `analyze_cloud_waste` | **Sì** — chiamate reali, con credenziali | Solo spreco cloud-cost — un'alternativa più mirata ed economica ad `analyze_cloudrift` quando non servono gli altri tre domini. Stesse opzioni della fetta di `analyze_cloudrift` relativa a questo dominio. |
+| `analyze_dead_resources` | **Sì** — chiamate reali, con credenziali | Solo risorse morte/inutilizzate. Accetta `regions`, `minAgeDays`, `ignoreTag`, `configPath`. |
+| `analyze_resource_security` | **Sì** — chiamate reali, con credenziali | Solo risorse configurate in modo insicuro. Accetta `regions`, `ignoreTag`, `configPath` (nessun `minAgeDays` — i check di resource-security non hanno un periodo di grazia). |
+| `get_cost_trend` | **Sì** — chiamate reali, con credenziali (Cost Explorer, un'API a pagamento) | Spesa AWS mensile sugli ultimi N mesi solari, opzionalmente filtrata per servizio. Accetta `months`, `services`, `accountId`, `refreshCache`. |
 | `get_resource_types` | No — statico | Il catalogo completo dei tipi di risorsa che cloudrift può rilevare, con etichette. |
-| `get_required_iam_permissions` | No — statico | La policy IAM in sola lettura di cui ha bisogno il principal AWS per `analyze_cloudrift`. |
+| `get_required_iam_permissions` | No — statico | La policy IAM in sola lettura di cui ha bisogno ogni tool sopra che fa chiamate AWS (la condividono tutti — nessuno ne richiede una più ristretta). |
 
-`analyze_cloudrift` eredita le **stesse credenziali AWS** di ogni altro comando `cloudrift` — un agente con accesso a questo server vede tutto ciò che quelle credenziali possono vedere, non solo i finding di spreco/risorse morte/sicurezza. Tienilo presente quando decidi se auto-approvarlo (vedi la sezione di ciascun client qui sotto).
+`analyze_cloudrift`, i tre tool per-dominio `analyze_*`, e `get_cost_trend` ereditano tutti le **stesse credenziali AWS** di ogni altro comando `cloudrift` — un agente con accesso a questo server vede tutto ciò che quelle credenziali possono vedere, non solo i finding di spreco/risorse morte/sicurezza. Tienilo presente quando decidi se auto-approvarne uno qualsiasi (vedi la sezione di ciascun client qui sotto).
 
 ## Collegare un client
 
@@ -37,7 +41,7 @@ Kiro, VS Code e Claude Code usano ciascuno un **formato di configurazione divers
 }
 ```
 
-`analyze_cloudrift` è deliberatamente escluso da `autoApprove` sopra: è l'unico tool che fa chiamate AWS reali e con credenziali — gli altri due sono statici. Aggiungilo tu stesso quando ti senti a tuo agio con questo.
+`analyze_cloudrift`, `analyze_cloud_waste`, `analyze_dead_resources`, `analyze_resource_security` e `get_cost_trend` sono deliberatamente esclusi da `autoApprove` sopra: sono i cinque tool che fanno chiamate AWS reali e con credenziali — gli altri due sono statici. Aggiungili tu stesso quando ti senti a tuo agio con questo.
 
 ### VS Code (GitHub Copilot Chat, Agent mode)
 

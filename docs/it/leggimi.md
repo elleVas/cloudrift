@@ -314,7 +314,7 @@ Ogni credenziale (`SLACK_WEBHOOK_URL`, `CLOUDRIFT_WEBHOOK_URL`, `CLOUDRIFT_SMTP_
 
 ### Usalo come server MCP (`mcp`)
 
-Esegui cloudrift come server [MCP](https://modelcontextprotocol.io) locale via stdio, così un agente AI — Claude Code, Kiro, VS Code Copilot Chat (Agent mode) — può chiamare direttamente `analyze_cloudrift`, `get_resource_types` e `get_required_iam_permissions` invece che tu lanci la CLI a mano. Eredita le stesse credenziali AWS di ogni altro comando; vedi [ADR-0082](../adr/0082-mcp-server-second-input-adapter.md).
+Esegui cloudrift come server [MCP](https://modelcontextprotocol.io) locale via stdio, così un agente AI — Claude Code, Kiro, VS Code Copilot Chat (Agent mode) — può chiamare direttamente `analyze_cloudrift` (o le versioni più mirate `analyze_cloud_waste`/`analyze_dead_resources`/`analyze_resource_security`/`get_cost_trend`), `get_resource_types` e `get_required_iam_permissions` invece che tu lanci la CLI a mano. Eredita le stesse credenziali AWS di ogni altro comando; vedi [ADR-0082](../adr/0082-mcp-server-second-input-adapter.md).
 
 ```sh
 cloudrift mcp

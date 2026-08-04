@@ -11,10 +11,14 @@ This page only covers **connecting a client**. For the `cloudrift mcp` command i
 | Tool | Makes AWS calls? | What it returns |
 | --- | --- | --- |
 | `analyze_cloudrift` | **Yes** — real, credentialed calls | One aggregated JSON report across all four domains (cloud-cost waste, dead resources, resource security, cost trend). Accepts `regions`, `livePricing`, `minAgeDays`, `ignoreTag`, `configPath` — the same knobs as `cloudrift.config.json`. |
+| `analyze_cloud_waste` | **Yes** — real, credentialed calls | Cloud-cost waste only — a narrower, cheaper alternative to `analyze_cloudrift` when you don't need the other three domains. Same options as that domain's slice of `analyze_cloudrift`. |
+| `analyze_dead_resources` | **Yes** — real, credentialed calls | Dead/unused resources only. Accepts `regions`, `minAgeDays`, `ignoreTag`, `configPath`. |
+| `analyze_resource_security` | **Yes** — real, credentialed calls | Insecurely-configured resources only. Accepts `regions`, `ignoreTag`, `configPath` (no `minAgeDays` — resource-security checks don't take a grace period). |
+| `get_cost_trend` | **Yes** — real, credentialed calls (Cost Explorer, a paid API) | Monthly AWS spend over the last N calendar months, optionally filtered to specific services. Accepts `months`, `services`, `accountId`, `refreshCache`. |
 | `get_resource_types` | No — static | The full catalog of resource kinds cloudrift can detect, with labels. |
-| `get_required_iam_permissions` | No — static | The read-only IAM policy the AWS principal needs for `analyze_cloudrift`. |
+| `get_required_iam_permissions` | No — static | The read-only IAM policy the AWS principal needs for every AWS-calling tool above (they all share one policy — none needs a narrower one of its own). |
 
-`analyze_cloudrift` inherits the **same AWS credentials** as every other `cloudrift` command — an agent with access to this server can see everything those credentials can see, not just waste/dead-resource/security findings. Keep that in mind when deciding whether to auto-approve it (see each client's section below).
+`analyze_cloudrift`, the three per-domain `analyze_*` tools, and `get_cost_trend` all inherit the **same AWS credentials** as every other `cloudrift` command — an agent with access to this server can see everything those credentials can see, not just waste/dead-resource/security findings. Keep that in mind when deciding whether to auto-approve any of them (see each client's section below).
 
 ## Connecting a client
 
@@ -37,7 +41,7 @@ Kiro, VS Code, and Claude Code each use a **different config format** — a file
 }
 ```
 
-`analyze_cloudrift` is deliberately left out of `autoApprove` above: it is the one tool that makes real, credentialed AWS calls — the other two are static. Add it yourself once you're comfortable with that.
+`analyze_cloudrift`, `analyze_cloud_waste`, `analyze_dead_resources`, `analyze_resource_security`, and `get_cost_trend` are deliberately left out of `autoApprove` above: they're the five tools that make real, credentialed AWS calls — the other two are static. Add them yourself once you're comfortable with that.
 
 ### VS Code (GitHub Copilot Chat, Agent mode)
 

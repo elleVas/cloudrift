@@ -135,6 +135,152 @@ export function buildMcpServer(deps: McpDeps): McpServer {
   );
 
   server.registerTool(
+    'analyze_cloud_waste',
+    {
+      title: 'Find wasted AWS spend',
+      description:
+        'Scans the AWS account (same credentials as the CLI) for wasted/over-provisioned resources — the ' +
+        'cloud-cost domain only. A narrower, cheaper alternative to analyze_cloudrift when you only need ' +
+        'this one domain. Read-only: makes no write/delete AWS API calls.',
+      inputSchema: {
+        regions: z
+          .array(z.string())
+          .optional()
+          .describe('AWS regions to scan, e.g. ["us-east-1"]. Defaults to ["us-east-1"].'),
+        livePricing: z
+          .boolean()
+          .optional()
+          .describe('Fetch current list prices from the AWS Pricing API instead of the static table. Default false.'),
+        minAgeDays: z
+          .number()
+          .int()
+          .min(0)
+          .optional()
+          .describe('Grace period in days: resources younger than this are not reported. Default 7.'),
+        ignoreTag: z
+          .string()
+          .optional()
+          .describe('Resources carrying this tag are excluded from the report. Default "cloudrift:ignore".'),
+        configPath: z
+          .string()
+          .optional()
+          .describe('Path to a cloudrift.config.json/.cloudriftrc file, if not in the current directory.'),
+      },
+    },
+    withErrorBoundary(async (args) => {
+      const result = await deps.runCloudWaste(args);
+      if (!result.ok) return errorResult(result.error.message);
+      return jsonResult(result.value);
+    }),
+  );
+
+  server.registerTool(
+    'analyze_dead_resources',
+    {
+      title: 'Find dead/unused AWS resources',
+      description:
+        'Scans the AWS account (same credentials as the CLI) for dead/unused resources — the dead-resources ' +
+        'domain only. A narrower, cheaper alternative to analyze_cloudrift when you only need this one ' +
+        'domain. Read-only: makes no write/delete AWS API calls.',
+      inputSchema: {
+        regions: z
+          .array(z.string())
+          .optional()
+          .describe('AWS regions to scan, e.g. ["us-east-1"]. Defaults to ["us-east-1"].'),
+        minAgeDays: z
+          .number()
+          .int()
+          .min(0)
+          .optional()
+          .describe('Grace period in days: resources younger than this are not reported. Default 7.'),
+        ignoreTag: z
+          .string()
+          .optional()
+          .describe('Resources carrying this tag are excluded from the report. Default "cloudrift:ignore".'),
+        configPath: z
+          .string()
+          .optional()
+          .describe('Path to a cloudrift.config.json/.cloudriftrc file, if not in the current directory.'),
+      },
+    },
+    withErrorBoundary(async (args) => {
+      const result = await deps.runDeadResources(args);
+      if (!result.ok) return errorResult(result.error.message);
+      return jsonResult(result.value);
+    }),
+  );
+
+  server.registerTool(
+    'analyze_resource_security',
+    {
+      title: 'Find insecurely-configured AWS resources',
+      description:
+        'Scans the AWS account (same credentials as the CLI) for insecurely-configured resources — the ' +
+        'resource-security domain only. A narrower, cheaper alternative to analyze_cloudrift when you only ' +
+        'need this one domain. Read-only: makes no write/delete AWS API calls.',
+      inputSchema: {
+        regions: z
+          .array(z.string())
+          .optional()
+          .describe('AWS regions to scan, e.g. ["us-east-1"]. Defaults to ["us-east-1"].'),
+        ignoreTag: z
+          .string()
+          .optional()
+          .describe('Resources carrying this tag are excluded from the report. Default "cloudrift:ignore".'),
+        configPath: z
+          .string()
+          .optional()
+          .describe('Path to a cloudrift.config.json/.cloudriftrc file, if not in the current directory.'),
+      },
+    },
+    withErrorBoundary(async (args) => {
+      const result = await deps.runResourceSecurity(args);
+      if (!result.ok) return errorResult(result.error.message);
+      return jsonResult(result.value);
+    }),
+  );
+
+  server.registerTool(
+    'get_cost_trend',
+    {
+      title: 'Get AWS cost trend',
+      description:
+        'Returns monthly AWS spend over the last N calendar months (via Cost Explorer), optionally ' +
+        'restricted to specific services. Same credentials as the CLI. Each call queries the AWS Cost ' +
+        'Explorer API (a paid API, ~$0.01/request), cached locally once a month has closed.',
+      inputSchema: {
+        months: z
+          .number()
+          .int()
+          .min(1)
+          .max(36)
+          .optional()
+          .describe('Number of calendar months, including the current partial one. Default 6, max 36.'),
+        services: z
+          .array(z.string())
+          .optional()
+          .describe(
+            'Cost Explorer service names or shorthands (ec2, ebs, s3, rds, lambda, dynamodb, elasticache, ' +
+              'redshift, elb, sqs, sns, cloudfront) to restrict totals to. Default: every service.',
+          ),
+        accountId: z
+          .string()
+          .optional()
+          .describe('AWS account ID to key the local Cost Explorer cache under. Defaults to the account resolved via STS from ambient credentials.'),
+        refreshCache: z
+          .boolean()
+          .optional()
+          .describe('Bypass the local Cost Explorer response cache and refetch from AWS. Default false.'),
+      },
+    },
+    withErrorBoundary(async (args) => {
+      const result = await deps.runCostTrend(args);
+      if (!result.ok) return errorResult(result.error.message);
+      return jsonResult(result.value);
+    }),
+  );
+
+  server.registerTool(
     'get_resource_types',
     {
       title: 'List detectable resource types',
@@ -151,9 +297,11 @@ export function buildMcpServer(deps: McpDeps): McpServer {
     {
       title: 'Get required IAM permissions',
       description:
-        'Returns the read-only IAM policy the AWS principal needs for analyze_cloudrift (union of all four ' +
-        'domains). Static — no AWS calls. --live-pricing (pricing:GetProducts) is not included: pass ' +
-        'livePricing to analyze_cloudrift only if you also grant that action separately.',
+        'Returns the read-only IAM policy the AWS principal needs for analyze_cloudrift and every other ' +
+        'AWS-calling tool (analyze_cloud_waste, analyze_dead_resources, analyze_resource_security, ' +
+        'get_cost_trend) — the union of all four domains, since none of them need a narrower policy of ' +
+        'their own. Static — no AWS calls. --live-pricing (pricing:GetProducts) is not included: pass ' +
+        'livePricing to analyze_cloudrift/analyze_cloud_waste only if you also grant that action separately.',
       inputSchema: {},
     },
     withErrorBoundary(async () => jsonResult(REQUIRED_IAM_POLICY)),
