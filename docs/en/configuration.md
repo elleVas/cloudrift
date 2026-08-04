@@ -12,7 +12,7 @@ cloudrift reads `cloudrift.config.json` (or `.cloudriftrc`) from the current dir
 {
   "excludeRegions": ["us-gov-east-1"],
   "excludeTagValues": { "Environment": "Production" },
-  "cloudwatchWindowHours": 168,
+  "cloudwatchWindowHours": 336,
   "utilizationWindowHours": 168,
   "minAgeDays": 14,
   "ignoreTag": "cloudrift:ignore",
@@ -33,7 +33,7 @@ cloudrift reads `cloudrift.config.json` (or `.cloudriftrc`) from the current dir
 | ------------------------- | ------------------------------------------------------------------------------------------------ |
 | `excludeRegions`          | Regions skipped even if passed via `-r`                                                          |
 | `excludeTagValues`        | Exclude any resource carrying an exact `key: value` tag (e.g. don't touch `Environment: Production`) |
-| `cloudwatchWindowHours`   | CloudWatch lookback window for zero-activity checks (NAT Gateway, EBS idle) (default 48, max 168 = 7 days) |
+| `cloudwatchWindowHours`   | CloudWatch lookback window for zero-activity checks (NAT Gateway, EBS idle) (default 336 = 14 days, which is also the max — only narrowable) |
 | `utilizationWindowHours`  | CloudWatch lookback window for CPU utilization checks (EC2/RDS underutilized) (default 168 = 7 days, max 336 = 14 days) |
 | `minAgeDays`              | Grace period in days (same as `--min-age-days`)                                                  |
 | `ignoreTag`               | Exclusion tag (same as `--ignore-tag`)                                                           |
@@ -43,5 +43,5 @@ cloudrift reads `cloudrift.config.json` (or `.cloudriftrc`) from the current dir
 | `thresholds.ec2CpuPercent` | Max CPU% below which a running EC2 instance counts as underutilized (default `5`)             |
 | `thresholds.rdsCpuPercent` | Max CPU% below which an available RDS instance counts as underutilized (default `5`)          |
 
-> A staging NAT Gateway with no weekend traffic is a classic false positive: widen `cloudwatchWindowHours` to `168` so a quiet weekend doesn't flag it.
+> `cloudwatchWindowHours` already defaults to `336` (14 days) — the maximum allowed value, not a starting point to widen. It was deliberately raised from an old 48h default specifically to avoid false positives on a quiet weekend for a staging NAT Gateway, or on batch/DR workloads that only run occasionally. You can only narrow it (e.g. to `168` for more aggressive detection), never widen it past 14 days.
 > A batch workload that only spikes CPU once a week needs a wider `utilizationWindowHours` (up to `336`) so a quiet 7-day sample doesn't get flagged as underutilized.
