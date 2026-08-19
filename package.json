@@ -31,7 +31,7 @@
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@nx/esbuild": "22.7.5",
     "@nx/eslint": "22.7.5",
-    "@nx/eslint-plugin": "23.1.0",
+    "@nx/eslint-plugin": "23.1.1",
     "@nx/jest": "22.7.5",
     "@nx/js": "23.1.0",
     "@nx/node": "22.7.5",
