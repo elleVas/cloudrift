@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
 import chalk from 'chalk';
-import type { NotificationSummary, SmtpConfig } from 'shared-notifications';
-import { sendSlackNotification, sendWebhookNotification, sendEmailNotification } from 'shared-notifications';
+import { readFileSync } from 'node:fs';
+import type { GithubPrContext, NotificationSummary, SmtpConfig } from 'shared-notifications';
+import { sendSlackNotification, sendWebhookNotification, sendEmailNotification, sendGithubPrComment } from 'shared-notifications';
 
 export interface NotifyFlags {
   notifySlack?: boolean;
   notifyWebhook?: boolean;
   notifyEmail?: string;
+  notifyGithubComment?: boolean;
   /**
    * Set only by the interactive wizard: a human explicitly asked to email
    * *this* report, the same "want a PDF too?" kind of one-off choice — not
@@ -47,6 +49,37 @@ function resolveSmtpConfig(): SmtpConfig | undefined {
   const from = process.env.CLOUDRIFT_SMTP_FROM;
   if (!host || !port || !user || !password || !from) return undefined;
   return { host, port: Number(port), user, password, from };
+}
+
+/**
+ * `GITHUB_TOKEN`/`GITHUB_REPOSITORY` are only two of three needed pieces:
+ * unlike a Slack/webhook URL, the PR number isn't a static secret to put in
+ * an env var — it's read from the triggering event's own payload
+ * (`GITHUB_EVENT_PATH`, `pull_request.number`), the documented, stable
+ * source (as opposed to parsing `GITHUB_REF`'s `refs/pull/<n>/merge`, which
+ * happens to work but isn't the contract). Also `GITHUB_TOKEN` — unlike
+ * `GITHUB_REPOSITORY`/`GITHUB_EVENT_PATH` — is not exported by Actions by
+ * default; the workflow must forward it explicitly (`env: GITHUB_TOKEN:
+ * ${{ github.token }}`), so its absence commonly just means the user hasn't
+ * wired that up yet, not a broken environment.
+ */
+function resolveGithubPrContext(): GithubPrContext | undefined {
+  const token = process.env.GITHUB_TOKEN;
+  const repository = process.env.GITHUB_REPOSITORY;
+  const eventPath = process.env.GITHUB_EVENT_PATH;
+  if (!token || !repository || !eventPath) return undefined;
+
+  const [owner, repo] = repository.split('/');
+  if (!owner || !repo) return undefined;
+
+  try {
+    const event = JSON.parse(readFileSync(eventPath, 'utf8'));
+    const prNumber = event.pull_request?.number;
+    if (typeof prNumber !== 'number') return undefined;
+    return { token, owner, repo, prNumber };
+  } catch {
+    return undefined;
+  }
 }
 
 /**
@@ -97,6 +130,24 @@ export async function dispatchNotifications(flags: NotifyFlags, summary: Notific
         sendEmailNotification(smtp, to, summary).then((result) => {
           if (!result.ok) info(chalk.yellow(`  Email notification failed: ${result.error.message}`));
           else info(chalk.green(`  Email notification sent to ${to}.`));
+        }),
+      );
+    }
+  }
+
+  if (flags.notifyGithubComment) {
+    const context = resolveGithubPrContext();
+    if (!context) {
+      info(
+        chalk.yellow(
+          '  --notify-github-comment was set but GITHUB_TOKEN/GITHUB_REPOSITORY/GITHUB_EVENT_PATH are not all set, or this run is not a pull_request event — skipping the PR comment.',
+        ),
+      );
+    } else {
+      tasks.push(
+        sendGithubPrComment(context, summary).then((result) => {
+          if (!result.ok) info(chalk.yellow(`  GitHub PR comment failed: ${result.error.message}`));
+          else info(chalk.green('  GitHub PR comment posted.'));
         }),
       );
     }

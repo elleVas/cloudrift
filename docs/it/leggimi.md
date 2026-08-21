@@ -299,16 +299,17 @@ Vedi [ADR-0099](../adr/0099-local-trend-store.md)/[ADR-0100](../adr/0100-history
 
 ---
 
-### Notifiche (Slack / webhook / email)
+### Notifiche (Slack / webhook / email / commento PR GitHub)
 
-`analyze`, `dead-resources`, `resource-security` e `history --compare` possono inviare un riepilogo a Slack, un webhook generico o via email — `--notify-slack`, `--notify-webhook`, `--notify-email <indirizzo>`. Best-effort e mai bloccante: un webhook rotto logga un warning, lo scan resta inalterato. Scatta solo quando c'è qualcosa da segnalare (finding critical/warning, spreco sopra `costAlertThresholdUsd`, o un trend peggiorato su `history --compare`) — uno scan pulito resta silenzioso. **Su Slack arriva solo un alert** (titolo + conteggi, es. "3 critical, 14 warning, 0 info") — deliberatamente senza il dettaglio dei singoli finding, così una pipeline schedulata su più account non trasforma il canale in un muro di testo illeggibile; webhook ed email includono invece i finding principali, dato che un consumer automatico o una inbox personale possono gestire il dettaglio extra senza affollare un canale condiviso.
+`analyze`, `dead-resources`, `resource-security` e `history --compare` possono inviare un riepilogo a Slack, un webhook generico, via email o come commento su una PR GitHub — `--notify-slack`, `--notify-webhook`, `--notify-email <indirizzo>`, `--notify-github-comment`. Best-effort e mai bloccante: un webhook rotto logga un warning, lo scan resta inalterato. Scatta solo quando c'è qualcosa da segnalare (finding critical/warning, spreco sopra `costAlertThresholdUsd`, o un trend peggiorato su `history --compare`) — uno scan pulito resta silenzioso. **Su Slack arriva solo un alert** (titolo + conteggi, es. "3 critical, 14 warning, 0 info") — deliberatamente senza il dettaglio dei singoli finding, così una pipeline schedulata su più account non trasforma il canale in un muro di testo illeggibile; webhook, email e commento PR includono invece i finding principali, dato che un consumer automatico, una inbox personale o chi revisiona la PR possono gestire il dettaglio extra senza affollare un canale condiviso.
 
 ```sh
 cloudrift resource-security --notify-slack
 cloudrift analyze --notify-email team@esempio.com
+cloudrift analyze --notify-github-comment
 ```
 
-Ogni credenziale (`SLACK_WEBHOOK_URL`, `CLOUDRIFT_WEBHOOK_URL`, `CLOUDRIFT_SMTP_HOST`/`PORT`/`USER`/`PASSWORD`/`FROM`) viene letta dall'ambiente, mai da un flag — impostala nella tua shell o come secret di CI, mai in un file committato. Vedi [utilizzo.md](./utilizzo.md#history--storico-locale-delle-scansioni) per il riferimento completo.
+Ogni credenziale (`SLACK_WEBHOOK_URL`, `CLOUDRIFT_WEBHOOK_URL`, `CLOUDRIFT_SMTP_HOST`/`PORT`/`USER`/`PASSWORD`/`FROM`, `GITHUB_TOKEN`) viene letta dall'ambiente, mai da un flag — impostala nella tua shell o come secret di CI, mai in un file committato. `--notify-github-comment` richiede anche `GITHUB_REPOSITORY`/`GITHUB_EVENT_PATH` (impostate automaticamente da GitHub Actions) e posta solo su un trigger `pull_request`; vedi l'input `pr-comment` di [`action.yml`](../../action.yml) per il modo più rapido di attivarlo dalla Action riutilizzabile. Vedi [utilizzo.md](./utilizzo.md#history--storico-locale-delle-scansioni) per il riferimento completo.
 
 ---
 

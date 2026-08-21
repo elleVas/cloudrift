@@ -1,4 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
+import { writeFileSync, mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { dispatchNotifications, topFindingLines } from './notifications';
 import type { NotificationSummary } from 'shared-notifications';
 import * as notifiers from 'shared-notifications';
@@ -7,6 +10,7 @@ jest.mock('shared-notifications', () => ({
   sendSlackNotification: jest.fn(),
   sendWebhookNotification: jest.fn(),
   sendEmailNotification: jest.fn(),
+  sendGithubPrComment: jest.fn(),
 }));
 
 const summary: NotificationSummary = {
@@ -18,7 +22,24 @@ const summary: NotificationSummary = {
   lines: ['S3 bucket "my-bucket" is public'],
 };
 
-const ENV_KEYS = ['SLACK_WEBHOOK_URL', 'CLOUDRIFT_WEBHOOK_URL', 'CLOUDRIFT_SMTP_HOST', 'CLOUDRIFT_SMTP_PORT', 'CLOUDRIFT_SMTP_USER', 'CLOUDRIFT_SMTP_PASSWORD', 'CLOUDRIFT_SMTP_FROM'];
+const ENV_KEYS = [
+  'SLACK_WEBHOOK_URL',
+  'CLOUDRIFT_WEBHOOK_URL',
+  'CLOUDRIFT_SMTP_HOST',
+  'CLOUDRIFT_SMTP_PORT',
+  'CLOUDRIFT_SMTP_USER',
+  'CLOUDRIFT_SMTP_PASSWORD',
+  'CLOUDRIFT_SMTP_FROM',
+  'GITHUB_TOKEN',
+  'GITHUB_REPOSITORY',
+  'GITHUB_EVENT_PATH',
+];
+
+function writePullRequestEvent(prNumber: number): string {
+  const path = join(mkdtempSync(join(tmpdir(), 'cloudrift-notify-')), 'event.json');
+  writeFileSync(path, JSON.stringify({ pull_request: { number: prNumber } }));
+  return path;
+}
 
 describe('dispatchNotifications', () => {
   let info: jest.Mock;
@@ -105,6 +126,48 @@ describe('dispatchNotifications', () => {
 
     expect(notifiers.sendEmailNotification).not.toHaveBeenCalled();
     expect(info).toHaveBeenCalledWith(expect.stringContaining('CLOUDRIFT_SMTP_HOST/PORT/USER/PASSWORD/FROM'));
+  });
+
+  it('posts a GitHub PR comment when --notify-github-comment is set and the event is a pull_request', async () => {
+    process.env.GITHUB_TOKEN = 'ghs_x';
+    process.env.GITHUB_REPOSITORY = 'elleVas/cloudrift';
+    process.env.GITHUB_EVENT_PATH = writePullRequestEvent(42);
+    (notifiers.sendGithubPrComment as jest.Mock).mockResolvedValueOnce({ ok: true, value: undefined });
+
+    await dispatchNotifications({ notifyGithubComment: true }, summary, info);
+
+    expect(notifiers.sendGithubPrComment).toHaveBeenCalledWith({ token: 'ghs_x', owner: 'elleVas', repo: 'cloudrift', prNumber: 42 }, summary);
+    expect(info).toHaveBeenCalledWith(expect.stringContaining('posted'));
+  });
+
+  it('warns and skips the PR comment when GITHUB_TOKEN/GITHUB_REPOSITORY/GITHUB_EVENT_PATH are missing', async () => {
+    await dispatchNotifications({ notifyGithubComment: true }, summary, info);
+
+    expect(notifiers.sendGithubPrComment).not.toHaveBeenCalled();
+    expect(info).toHaveBeenCalledWith(expect.stringContaining('GITHUB_TOKEN'));
+  });
+
+  it('warns and skips the PR comment when the triggering event has no pull_request (e.g. a push/cron run)', async () => {
+    process.env.GITHUB_TOKEN = 'ghs_x';
+    process.env.GITHUB_REPOSITORY = 'elleVas/cloudrift';
+    const path = join(mkdtempSync(join(tmpdir(), 'cloudrift-notify-')), 'event.json');
+    writeFileSync(path, JSON.stringify({ ref: 'refs/heads/main' }));
+    process.env.GITHUB_EVENT_PATH = path;
+
+    await dispatchNotifications({ notifyGithubComment: true }, summary, info);
+
+    expect(notifiers.sendGithubPrComment).not.toHaveBeenCalled();
+  });
+
+  it('warns when the PR comment send itself fails', async () => {
+    process.env.GITHUB_TOKEN = 'ghs_x';
+    process.env.GITHUB_REPOSITORY = 'elleVas/cloudrift';
+    process.env.GITHUB_EVENT_PATH = writePullRequestEvent(42);
+    (notifiers.sendGithubPrComment as jest.Mock).mockResolvedValueOnce({ ok: false, error: new Error('boom') });
+
+    await dispatchNotifications({ notifyGithubComment: true }, summary, info);
+
+    expect(info).toHaveBeenCalledWith(expect.stringContaining('failed: boom'));
   });
 
   it('fans out to multiple channels at once', async () => {

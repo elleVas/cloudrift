@@ -46,6 +46,7 @@ node apps/cli/dist/main.js analyze [opzioni]
 | `--notify-slack`             | Invia una notifica Slack se lo spreco supera `costAlertThresholdUsd` (o qualsiasi spreco, se non impostato). Legge `SLACK_WEBHOOK_URL` dall'env | off |
 | `--notify-webhook`           | Invia via POST un riepilogo JSON a un webhook, stessa condizione di `--notify-slack`. Legge `CLOUDRIFT_WEBHOOK_URL` dall'env | off |
 | `--notify-email <indirizzo>` | Invia via email un riepilogo a questo indirizzo, stessa condizione di `--notify-slack`. Legge `CLOUDRIFT_SMTP_HOST`/`PORT`/`USER`/`PASSWORD`/`FROM` dall'env | off |
+| `--notify-github-comment`    | Posta un commento sulla PR, stessa condizione di `--notify-slack`. Richiede `GITHUB_TOKEN`/`GITHUB_REPOSITORY`/`GITHUB_EVENT_PATH` (impostate da GitHub Actions su un trigger `pull_request`) | off |
 | `-h, --help`                 | Mostra l'help                                                                                                        | —                  |
 
 > **stdout vs. file:** `--format` controlla cosa va su **stdout** (il report). `--json` / `--pdf` / `--csv` scrivono **file aggiuntivi** su disco, indipendenti da `--format` — di default il `--format` scelto continua comunque a essere stampato su stdout *in aggiunta* alla scrittura di quei file (quindi es. `--pdf` da solo mostra comunque la tabella). Aggiungi `--silent` per ottenere solo il file, senza nulla stampato a terminale. Nei formati machine-readable (`json`, `markdown`, `csv`) tutti i messaggi umani vanno su stderr, così su stdout resta solo il report — ideale per il piping. Errori e l'alert della soglia di costo vanno sempre su stderr, anche con `--silent`.
@@ -227,6 +228,7 @@ node apps/cli/dist/main.js dead-resources [opzioni]
 | `--notify-slack`             | Invia una notifica Slack se lo scan ha finding critical/warning. Legge `SLACK_WEBHOOK_URL` dall'env             | off                |
 | `--notify-webhook`           | Invia via POST un riepilogo JSON a un webhook, stessa condizione di `--notify-slack`. Legge `CLOUDRIFT_WEBHOOK_URL` dall'env | off |
 | `--notify-email <indirizzo>` | Invia via email un riepilogo a questo indirizzo, stessa condizione di `--notify-slack`. Legge `CLOUDRIFT_SMTP_HOST`/`PORT`/`USER`/`PASSWORD`/`FROM` dall'env | off |
+| `--notify-github-comment`    | Posta un commento sulla PR, stessa condizione di `--notify-slack`. Richiede `GITHUB_TOKEN`/`GITHUB_REPOSITORY`/`GITHUB_EVENT_PATH` (impostate da GitHub Actions su un trigger `pull_request`) | off |
 | `-h, --help`                 | Mostra l'help                                                                                                    | —                  |
 
 **Check:**
@@ -298,6 +300,7 @@ node apps/cli/dist/main.js resource-security [opzioni]
 | `--notify-slack`             | Invia una notifica Slack se lo scan ha finding critical/warning. Legge `SLACK_WEBHOOK_URL` dall'env             | off                |
 | `--notify-webhook`           | Invia via POST un riepilogo JSON a un webhook, stessa condizione di `--notify-slack`. Legge `CLOUDRIFT_WEBHOOK_URL` dall'env | off |
 | `--notify-email <indirizzo>` | Invia via email un riepilogo a questo indirizzo, stessa condizione di `--notify-slack`. Legge `CLOUDRIFT_SMTP_HOST`/`PORT`/`USER`/`PASSWORD`/`FROM` dall'env | off |
+| `--notify-github-comment`    | Posta un commento sulla PR, stessa condizione di `--notify-slack`. Richiede `GITHUB_TOKEN`/`GITHUB_REPOSITORY`/`GITHUB_EVENT_PATH` (impostate da GitHub Actions su un trigger `pull_request`) | off |
 | `-h, --help`                 | Mostra l'help                                                                                                   | —                  |
 
 **Check:**
@@ -388,9 +391,10 @@ node apps/cli/dist/main.js history [options]
 | `--notify-slack`          | Con `--compare`, invia una notifica Slack se il confronto mostra un peggioramento (trend peggiore). Legge `SLACK_WEBHOOK_URL` dall'env | off |
 | `--notify-webhook`        | Con `--compare`, invia via POST un riepilogo JSON a un webhook, stessa condizione di `--notify-slack`. Legge `CLOUDRIFT_WEBHOOK_URL` dall'env | off |
 | `--notify-email <indirizzo>` | Con `--compare`, invia via email un riepilogo a questo indirizzo, stessa condizione di `--notify-slack`. Legge `CLOUDRIFT_SMTP_HOST`/`PORT`/`USER`/`PASSWORD`/`FROM` dall'env | off |
+| `--notify-github-comment` | Con `--compare`, posta un commento sulla PR, stessa condizione di `--notify-slack`. Richiede `GITHUB_TOKEN`/`GITHUB_REPOSITORY`/`GITHUB_EVENT_PATH` (impostate da GitHub Actions su un trigger `pull_request`) | off |
 | `-h, --help`              | Mostra l'help                                                                       | —               |
 
-> **Notifiche (`analyze`/`dead-resources`/`resource-security`/`history --compare`):** `--notify-slack`/`--notify-webhook`/`--notify-email` sono best-effort e non fanno mai fallire lo scan — un webhook rotto o una config SMTP errata loggano un warning e proseguono. Ogni credenziale (`SLACK_WEBHOOK_URL`, `CLOUDRIFT_WEBHOOK_URL`, `CLOUDRIFT_SMTP_*`) viene letta dall'ambiente, mai da un flag, quindi non finisce mai nella shell history o in `ps aux` — impostale nel profilo della tua shell o come secret di CI (es. `secrets.*` di GitHub Actions), mai in un file committato. Il wizard interattivo offre anche di inviare il report via email (solo se l'SMTP è già configurato), ma non chiede mai di Slack/webhook — quelli sono pensati per CI/script, non per un'esecuzione interattiva occasionale.
+> **Notifiche (`analyze`/`dead-resources`/`resource-security`/`history --compare`):** `--notify-slack`/`--notify-webhook`/`--notify-email`/`--notify-github-comment` sono best-effort e non fanno mai fallire lo scan — un webhook rotto, una config SMTP errata o un token GitHub mancante loggano un warning e proseguono. Ogni credenziale (`SLACK_WEBHOOK_URL`, `CLOUDRIFT_WEBHOOK_URL`, `CLOUDRIFT_SMTP_*`, `GITHUB_TOKEN`) viene letta dall'ambiente, mai da un flag, quindi non finisce mai nella shell history o in `ps aux` — impostale nel profilo della tua shell o come secret di CI (es. `secrets.*` di GitHub Actions), mai in un file committato. `--notify-github-comment` richiede anche `GITHUB_REPOSITORY`/`GITHUB_EVENT_PATH` (esportate automaticamente da GitHub Actions) e posta solo su un trigger `pull_request` — su un run push/cron viene saltato silenziosamente, e il job necessita di `permissions: pull-requests: write`. Il wizard interattivo offre anche di inviare il report via email (solo se l'SMTP è già configurato), ma non chiede mai di Slack/webhook/commento GitHub — quelli sono pensati per CI/script, non per un'esecuzione interattiva occasionale.
 
 **Esempi:**
 

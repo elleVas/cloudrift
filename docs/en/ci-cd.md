@@ -39,6 +39,31 @@ jobs:
 
 With a `cloudrift.config.json` committed (`{"costAlertThresholdUsd": 500}`), the action fails the check automatically when waste exceeds the budget — the pipeline blocks when newly created resources push it over the threshold. See `action.yml` for every input (`live-pricing`, `scanners`, `min-age-days`, `ignore-tag`, `pdf`, `json`, `format`, `version`, …) and the `report`/`exit-code` outputs.
 
+**PR comment on budget overrun.** Set `pr-comment: true` to also post the report as a comment on the pull request, in addition to the job summary — the same condition that would fail the job (waste over `costAlertThresholdUsd`). Requires the job to grant `permissions: pull-requests: write` and to actually run on a `pull_request` trigger; it's a no-op (with a logged warning, never a failure) on a push/cron run.
+
+```yaml
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  cloudrift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - uses: elleVas/cloudrift@v0.5.1
+        with:
+          regions: us-east-1 eu-west-1
+          config: cloudrift.config.json
+          pr-comment: true
+```
+
 **GitHub Actions — building from source:** an alternative if you'd rather pin to an unreleased commit instead of a published version.
 
 ```yaml

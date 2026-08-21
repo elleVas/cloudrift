@@ -43,8 +43,8 @@ function parseLimitOption(options: HistoryCommandOptions): ParsedOption {
 /** See `parseLimitOption` — same flattening reason. */
 function parseCompareOption(options: HistoryCommandOptions): ParsedOption {
   if (options.compare === undefined) {
-    if (options.notifySlack || options.notifyWebhook || options.notifyEmail) {
-      return { ok: false, message: '--notify-slack/--notify-webhook/--notify-email require --compare (they notify on a regression, which only a comparison can detect).' };
+    if (options.notifySlack || options.notifyWebhook || options.notifyEmail || options.notifyGithubComment) {
+      return { ok: false, message: '--notify-slack/--notify-webhook/--notify-email/--notify-github-comment require --compare (they notify on a regression, which only a comparison can detect).' };
     }
     return { ok: true, value: undefined };
   }
