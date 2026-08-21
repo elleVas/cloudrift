@@ -47,6 +47,10 @@ inputs:
     description: 'Post the report as a PR comment when waste exceeds costAlertThresholdUsd (requires the job to grant `permissions: pull-requests: write` and to run on a pull_request trigger)'
     required: false
     default: 'false'
+  trend-summary:
+    description: 'Cache the local scan-history trend store across runs (via actions/cache) and append a compact Markdown trend table to $GITHUB_STEP_SUMMARY. No extra permissions needed beyond the default `contents: read` — a forked-repo PR can restore an existing cache but never persist a new one, which is GitHub Actions cache scoping, not something this input configures'
+    required: false
+    default: 'false'
   version:
     description: 'Version (or dist-tag) of @cloudrift/cli to install'
     required: false
@@ -66,6 +70,19 @@ runs:
     - name: Install @cloudrift/cli
       shell: bash
       run: npm install -g "@cloudrift/cli@${{ inputs.version }}"
+
+    - name: Restore trend cache
+      if: inputs.trend-summary == 'true'
+      uses: actions/cache/restore@v4
+      with:
+        path: ~/.cloudrift/trends
+        # `key` is deliberately unique per run (never matches on its own): a
+        # cache entry can never be overwritten once its exact key exists, so
+        # an ever-growing history relies on `restore-keys`' prefix match
+        # against the most recently *saved* entry instead.
+        key: cloudrift-trends-${{ inputs.account-id || 'default' }}-${{ github.run_id }}
+        restore-keys: |
+          cloudrift-trends-${{ inputs.account-id || 'default' }}-
 
     - name: Run cloudrift analyze
       id: analyze
@@ -120,3 +137,22 @@ runs:
         # Same semantics as running the CLI directly: 0 ok, 1 scan error, 2
         # waste over the configured budget — both non-zero codes fail the job.
         exit "$code"
+
+    - name: Append trend summary
+      if: always() && inputs.trend-summary == 'true'
+      shell: bash
+      env:
+        CLOUDRIFT_ACCOUNT_ID: ${{ inputs.account-id }}
+      run: |
+        args=(--domain cloud-cost --format markdown)
+        [ -n "$CLOUDRIFT_ACCOUNT_ID" ] && args+=(--account-id "$CLOUDRIFT_ACCOUNT_ID")
+        # Best-effort: a trend summary is a bonus on top of the main report
+        # above, never allowed to fail the job on its own.
+        cloudrift history "${args[@]}" >> "$GITHUB_STEP_SUMMARY" || true
+
+    - name: Save trend cache
+      if: always() && inputs.trend-summary == 'true'
+      uses: actions/cache/save@v4
+      with:
+        path: ~/.cloudrift/trends
+        key: cloudrift-trends-${{ inputs.account-id || 'default' }}-${{ github.run_id }}

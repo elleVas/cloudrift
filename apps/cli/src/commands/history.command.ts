@@ -10,6 +10,7 @@ import type { ResourceSecurityReportDto } from 'resource-security-application';
 import { readTrendSnapshots, type TrendDomain, type TrendSnapshotRecord } from 'shared-trend-store';
 import { formatTrendHistoryAsTable } from '../formatters/trend-history.table-formatter';
 import { formatTrendHistoryAsJson } from '../formatters/trend-history.json-formatter';
+import { formatTrendHistoryAsMarkdown } from '../formatters/trend-history.markdown-formatter';
 import { formatHistoryComparisonAsTable } from '../formatters/history-comparison.table-formatter';
 import { formatHistoryComparisonAsJson } from '../formatters/history-comparison.json-formatter';
 import { generateHistoryReportHtml, generateCombinedHistoryReportHtml } from '../formatters/history-report.html-formatter';
@@ -21,7 +22,7 @@ import { reportCliError as fail } from './report-cli-error';
 import { hasRegressed, type NotificationSummary } from 'shared-notifications';
 import { dispatchNotifications, type NotifyFlags } from './notifications';
 
-export const HISTORY_FORMATS = ['table', 'json'] as const;
+export const HISTORY_FORMATS = ['table', 'json', 'markdown'] as const;
 const HISTORY_DOMAINS = ['cloud-cost', 'dead-resources', 'resource-security'] as const;
 
 function isTrendDomain(value: string): value is TrendDomain {
@@ -190,6 +191,11 @@ async function writeHistoryHtmlReport(
  * artifact" convention as `--pdf`/`--csv` elsewhere. With `--domain`, charts
  * just that one metric; without it, stacks all three tracked domains as
  * separate cards on one page (see `generateCombinedHistoryReportHtml`).
+ *
+ * `--format markdown` (plain listing only, not with `--compare`) renders a
+ * Unicode-sparkline-plus-table trend summary instead — the shape a GitHub
+ * Actions job summary can actually render (unlike `--html`'s inline SVG,
+ * which a job summary's sanitizer would strip), see ADR-0104.
  */
 export async function historyCommand(
   options: HistoryCommandOptions,
@@ -211,6 +217,14 @@ export async function historyCommand(
   const compareResult = parseCompareOption(options);
   if (!compareResult.ok) return fail(compareResult.message);
   const compareN = compareResult.value;
+
+  // `markdown` only has a renderer for the plain listing (the job-summary
+  // trend table) — `--compare`'s two-run diff has no Markdown formatter yet,
+  // so reject the combination explicitly rather than silently falling back
+  // to the ANSI table formatter.
+  if (compareN !== undefined && format === 'markdown') {
+    return fail('--format markdown is not supported together with --compare; use --format table or json, or drop --compare for the Markdown trend listing.');
+  }
 
   const credentialsResult = await resolveCredentials(options);
   if (!credentialsResult.ok) return fail(credentialsResult.error.message);
@@ -239,7 +253,9 @@ export async function historyCommand(
       domain: options.domain as TrendDomain | undefined,
       limit,
     });
-    console.log(format === 'json' ? formatTrendHistoryAsJson(records) : formatTrendHistoryAsTable(records));
+    if (format === 'json') console.log(formatTrendHistoryAsJson(records));
+    else if (format === 'markdown') console.log(formatTrendHistoryAsMarkdown(records));
+    else console.log(formatTrendHistoryAsTable(records));
   }
 
   if (options.html !== undefined && options.html !== false) {

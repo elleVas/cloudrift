@@ -64,8 +64,8 @@ afterEach(() => {
 describe('historyCommand', () => {
   it('rejects an unknown --format', async () => {
     const deps = makeDeps();
-    await historyCommand({ format: 'markdown' } as HistoryCommandOptions, deps);
-    expect(stderr).toContain('--format must be one of: table, json');
+    await historyCommand({ format: 'csv' } as HistoryCommandOptions, deps);
+    expect(stderr).toContain('--format must be one of: table, json, markdown');
     expect(process.exitCode).toBe(1);
   });
 
@@ -108,6 +108,14 @@ describe('historyCommand', () => {
     expect(printed[0].payload).toEqual({ wasteCount: 3, optimizationCount: 1, totalWasteMonthlyUsd: 42.5 });
   });
 
+  it('prints a Markdown trend table when --format markdown is given', async () => {
+    const deps = makeDeps({ resolvedAccountId: '123456789012' });
+    await historyCommand({ format: 'markdown' }, deps);
+
+    expect(stdout).toContain('**Trend (last 2 runs)**');
+    expect(stdout).toContain('| Date | Domain | Findings | Monthly waste |');
+  });
+
   it('prints a friendly message when there is no history yet', async () => {
     const deps = makeDeps({ resolvedAccountId: '123456789012', records: [] });
     await historyCommand({}, deps);
@@ -140,6 +148,12 @@ describe('historyCommand', () => {
       const deps = makeDeps();
       await historyCommand({ compare: '0', domain: 'cloud-cost' }, deps);
       expect(stderr).toContain('--compare must be a positive integer');
+    });
+
+    it('rejects --format markdown together with --compare', async () => {
+      const deps = makeDeps({ resolvedAccountId: '123456789012', records: compareRecords });
+      await historyCommand({ compare: '1', domain: 'cloud-cost', format: 'markdown' }, deps);
+      expect(stderr).toContain('--format markdown is not supported together with --compare');
     });
 
     it('fails cleanly when there is not enough history to compare that far back', async () => {

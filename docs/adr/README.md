@@ -138,6 +138,7 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 | ADR | Title | Status |
 |---|---|---|
 | [0103](0103-github-pr-comment-notifier.md) | GitHub PR comment as a fifth notification channel | Accepted |
+| [0104](0104-trend-summary-actions-cache.md) | `history --format markdown` + `actions/cache` for a trend summary in CI | Accepted |
 
 ## Testing
 

@@ -372,7 +372,7 @@ node apps/cli/dist/main.js history [options]
 | `--limit <n>`             | Max snapshots to show, most recent first                                          | `100`           |
 | `--compare <n>`           | Compare the latest run against the one `n` runs back instead of listing (requires `--domain`) | —               |
 | `--html [filename]`       | Also write a self-contained HTML report with a trend chart. With `--domain`, charts just that domain (defaults to `cloudrift-reports/cloudrift-history-<domain>-YYYY_MM_DD.html`); without it, stacks all three domains on one page (defaults to `cloudrift-reports/cloudrift-history-YYYY_MM_DD.html`) | —               |
-| `--format <format>`      | stdout output format: `table` or `json`                                            | `table`         |
+| `--format <format>`      | stdout output format: `table`, `json`, or `markdown` (plain listing only, not with `--compare` — a compact sparkline + table, e.g. for `$GITHUB_STEP_SUMMARY`) | `table`         |
 | `--notify-slack`          | With `--compare`, send a Slack notification if the comparison shows a regression (worse trend). Reads `SLACK_WEBHOOK_URL` from env | off |
 | `--notify-webhook`        | With `--compare`, POST a JSON summary to a webhook, same condition as `--notify-slack`. Reads `CLOUDRIFT_WEBHOOK_URL` from env | off |
 | `--notify-email <address>` | With `--compare`, email a summary to this address, same condition as `--notify-slack`. Reads `CLOUDRIFT_SMTP_HOST`/`PORT`/`USER`/`PASSWORD`/`FROM` from env | off |
@@ -401,6 +401,9 @@ node apps/cli/dist/main.js history --domain cloud-cost --html
 
 # Combined HTML report: all three domains stacked on one page, one chart each
 node apps/cli/dist/main.js history --html
+
+# Compact sparkline + table, e.g. to append to a GitHub Actions job summary
+node apps/cli/dist/main.js history --domain cloud-cost --format markdown >> "$GITHUB_STEP_SUMMARY"
 ```
 
 **No new AWS permission needed:** `history` makes the same `sts:GetCallerIdentity` call every other command already makes to resolve the account ID (skipped entirely if `--account-id` is passed explicitly) — everything else is a local file read, no AWS API call.

@@ -3,7 +3,7 @@ import Table from 'cli-table3';
 import chalk from 'chalk';
 import type { TrendSnapshotRecord } from 'shared-trend-store';
 
-interface SnapshotSummary {
+export interface SnapshotSummary {
   count: number;
   monthlyWasteUsd?: number;
 }
@@ -12,9 +12,11 @@ interface SnapshotSummary {
  * The stored payload is each domain's exact `--format json` DTO (see
  * `persistTrendSnapshot` call sites) — parsed loosely here rather than typed
  * against all three domain DTOs, since this formatter only ever needs one
- * count and one optional dollar figure out of it.
+ * count and one optional dollar figure out of it. Exported for reuse by
+ * `trend-history.markdown-formatter.ts`, which needs the same numbers to
+ * drive its sparkline.
  */
-function summarize(record: TrendSnapshotRecord): SnapshotSummary {
+export function summarize(record: TrendSnapshotRecord): SnapshotSummary {
   try {
     const dto = JSON.parse(record.payload) as {
       findings?: unknown[];
