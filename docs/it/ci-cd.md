@@ -64,6 +64,18 @@ jobs:
           pr-comment: true
 ```
 
+**Trend nel tempo tra i run.** Imposta `trend-summary: true` per aggiungere al job summary uno sparkline compatto + una tabella degli sprechi degli ultimi run, subito dopo il report del run corrente. Dato che la home directory di un runner GitHub-hosted non sopravvive tra un job e l'altro, questo mette in cache `~/.cloudrift/trends` via `actions/cache` (chiave univoca per run, ripristinata per prefisso — l'idioma standard per una cache che deve continuare a crescere invece di essere solo riusata com'è) — nessun `permissions:` extra oltre il default `contents: read`, dato che il backend cache di GitHub isola già letture/scritture per branch e una PR da fork non può mai scrivere sulla cache del repo upstream. Vedi [ADR-0104](../adr/0104-trend-summary-actions-cache.md).
+
+```yaml
+      - uses: elleVas/cloudrift@v0.5.1
+        with:
+          regions: us-east-1 eu-west-1
+          config: cloudrift.config.json
+          trend-summary: true
+```
+
+Le voci di cache sono soggette alla normale evizione di GitHub (inutilizzata per 7 giorni, o evizione delle più vecchie oltre i 10GB totali di cache del repo) — lo storico trend in CI è una comodità best-effort sopra al report sempre presente del singolo run, non un log garantito per sempre.
+
 **GitHub Actions — compilando dai sorgenti:** alternativa se preferisci puntare a un commit non ancora rilasciato invece che a una versione pubblicata.
 
 ```yaml

@@ -64,6 +64,18 @@ jobs:
           pr-comment: true
 ```
 
+**Trend summary across runs.** Set `trend-summary: true` to append a compact sparkline + table of the last several runs' waste totals to the job summary, right after the current run's report. Since a GitHub-hosted runner's home directory doesn't survive between jobs, this caches `~/.cloudrift/trends` via `actions/cache` (unique key per run, restored by prefix match — the standard idiom for a cache that needs to keep growing rather than just being reused as-is) — no extra `permissions:` beyond the default `contents: read`, since GitHub's cache backend already scopes reads/writes per branch and a forked-repo PR can never write to the upstream cache. See [ADR-0104](../adr/0104-trend-summary-actions-cache.md).
+
+```yaml
+      - uses: elleVas/cloudrift@v0.5.1
+        with:
+          regions: us-east-1 eu-west-1
+          config: cloudrift.config.json
+          trend-summary: true
+```
+
+Cache entries are subject to GitHub's normal eviction (unused for 7 days, or oldest-evicted once the repo's total cache exceeds 10GB) — trend history in CI is a best-effort convenience on top of the always-present per-run report, not a guaranteed-forever log.
+
 **GitHub Actions — building from source:** an alternative if you'd rather pin to an unreleased commit instead of a published version.
 
 ```yaml

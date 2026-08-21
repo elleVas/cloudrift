@@ -246,7 +246,7 @@ program
     '--html [filename]',
     'Also write a self-contained HTML report with a trend chart (optional filename, defaults to reports/cloudrift-history-<domain>-YYYY_MM_DD.html). Without --domain, charts all three domains stacked on one page instead of just one',
   )
-  .option('--format <format>', 'stdout output format: table (default) or json', 'table')
+  .option('--format <format>', 'stdout output format: table (default), json, or markdown (plain listing only, not with --compare; a compact trend table + sparkline, e.g. for $GITHUB_STEP_SUMMARY)', 'table')
   .option('--notify-slack', 'with --compare, send a Slack notification if the comparison shows a regression (worse trend); reads SLACK_WEBHOOK_URL from env')
   .option('--notify-webhook', 'with --compare, POST a JSON summary to a webhook under the same condition as --notify-slack; reads CLOUDRIFT_WEBHOOK_URL from env')
   .option('--notify-email <address>', 'with --compare, email a summary to this address under the same condition as --notify-slack; reads CLOUDRIFT_SMTP_HOST/PORT/USER/PASSWORD/FROM from env')

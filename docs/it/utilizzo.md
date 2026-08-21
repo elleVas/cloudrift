@@ -387,7 +387,7 @@ node apps/cli/dist/main.js history [options]
 | `--limit <n>`             | Numero massimo di snapshot da mostrare, dal più recente                            | `100`           |
 | `--compare <n>`           | Confronta l'ultima esecuzione con quella di `n` esecuzioni fa invece di elencare (richiede `--domain`) | —               |
 | `--html [filename]`       | Scrive anche un report HTML autocontenuto con un grafico del trend. Con `--domain` grafica solo quel dominio (default `cloudrift-reports/cloudrift-history-<domain>-YYYY_MM_DD.html`); senza, impila tutti e tre i domini su un'unica pagina (default `cloudrift-reports/cloudrift-history-YYYY_MM_DD.html`) | —               |
-| `--format <format>`      | Formato di output su stdout: `table` o `json`                                       | `table`         |
+| `--format <format>`      | Formato di output su stdout: `table`, `json` o `markdown` (solo elenco semplice, non con `--compare` — uno sparkline compatto + tabella, es. per `$GITHUB_STEP_SUMMARY`) | `table`         |
 | `--notify-slack`          | Con `--compare`, invia una notifica Slack se il confronto mostra un peggioramento (trend peggiore). Legge `SLACK_WEBHOOK_URL` dall'env | off |
 | `--notify-webhook`        | Con `--compare`, invia via POST un riepilogo JSON a un webhook, stessa condizione di `--notify-slack`. Legge `CLOUDRIFT_WEBHOOK_URL` dall'env | off |
 | `--notify-email <indirizzo>` | Con `--compare`, invia via email un riepilogo a questo indirizzo, stessa condizione di `--notify-slack`. Legge `CLOUDRIFT_SMTP_HOST`/`PORT`/`USER`/`PASSWORD`/`FROM` dall'env | off |
@@ -416,6 +416,9 @@ node apps/cli/dist/main.js history --domain cloud-cost --html
 
 # Report HTML combinato: tutti e tre i domini impilati su una pagina, un grafico ciascuno
 node apps/cli/dist/main.js history --html
+
+# Sparkline compatto + tabella, es. da appendere a un job summary di GitHub Actions
+node apps/cli/dist/main.js history --domain cloud-cost --format markdown >> "$GITHUB_STEP_SUMMARY"
 ```
 
 **Nessun nuovo permesso AWS necessario:** `history` fa la stessa chiamata `sts:GetCallerIdentity` di ogni altro comando per risolvere l'ID account (saltata del tutto se passi `--account-id` esplicitamente) — il resto è solo lettura di un file locale, nessuna chiamata API AWS.
