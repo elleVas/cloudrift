@@ -43,6 +43,10 @@ inputs:
     description: 'Append the report to $GITHUB_STEP_SUMMARY when format is markdown'
     required: false
     default: 'true'
+  pr-comment:
+    description: 'Post the report as a PR comment when waste exceeds costAlertThresholdUsd (requires the job to grant `permissions: pull-requests: write` and to run on a pull_request trigger)'
+    required: false
+    default: 'false'
   version:
     description: 'Version (or dist-tag) of @cloudrift/cli to install'
     required: false
@@ -78,6 +82,11 @@ runs:
         CLOUDRIFT_PDF: ${{ inputs.pdf }}
         CLOUDRIFT_JSON: ${{ inputs.json }}
         CLOUDRIFT_STEP_SUMMARY: ${{ inputs.step-summary }}
+        CLOUDRIFT_PR_COMMENT: ${{ inputs.pr-comment }}
+        # Only forwarded when pr-comment is requested: Actions does not export
+        # GITHUB_TOKEN to shell steps by default (unlike GITHUB_REPOSITORY/
+        # GITHUB_EVENT_PATH, which always are), so it has to be set explicitly.
+        GITHUB_TOKEN: ${{ inputs.pr-comment == 'true' && github.token || '' }}
       run: |
         set +e
         args=(--regions $CLOUDRIFT_REGIONS --format "$CLOUDRIFT_FORMAT")
@@ -89,6 +98,7 @@ runs:
         [ -n "$CLOUDRIFT_IGNORE_TAG" ] && args+=(--ignore-tag "$CLOUDRIFT_IGNORE_TAG")
         [ -n "$CLOUDRIFT_PDF" ] && args+=(--pdf "$CLOUDRIFT_PDF")
         [ -n "$CLOUDRIFT_JSON" ] && args+=(--json "$CLOUDRIFT_JSON")
+        [ "$CLOUDRIFT_PR_COMMENT" = "true" ] && args+=(--notify-github-comment)
 
         output="$(cloudrift analyze "${args[@]}")"
         code=$?

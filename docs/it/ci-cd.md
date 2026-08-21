@@ -39,6 +39,31 @@ jobs:
 
 Con un `cloudrift.config.json` committato (`{"costAlertThresholdUsd": 500}`), l'azione fa fallire il check automaticamente quando lo spreco supera il budget — la pipeline si blocca quando nuove risorse lo spingono oltre la soglia. Vedi `action.yml` per tutti gli input (`live-pricing`, `scanners`, `min-age-days`, `ignore-tag`, `pdf`, `json`, `format`, `version`, …) e gli output `report`/`exit-code`.
 
+**Commento sulla PR quando si sfora il budget.** Imposta `pr-comment: true` per pubblicare il report anche come commento sulla pull request, oltre che nel job summary — stessa condizione che farebbe fallire il job (spreco oltre `costAlertThresholdUsd`). Richiede che il job conceda `permissions: pull-requests: write` e che giri effettivamente su un trigger `pull_request`; su un run push/cron è un no-op (con un warning loggato, mai un fallimento).
+
+```yaml
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  cloudrift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - uses: elleVas/cloudrift@v0.5.1
+        with:
+          regions: us-east-1 eu-west-1
+          config: cloudrift.config.json
+          pr-comment: true
+```
+
 **GitHub Actions — compilando dai sorgenti:** alternativa se preferisci puntare a un commit non ancora rilasciato invece che a una versione pubblicata.
 
 ```yaml

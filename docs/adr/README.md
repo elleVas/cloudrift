@@ -133,6 +133,12 @@ Each entry follows: Context → Decision → Alternatives Considered → Consequ
 | [0092](0092-csv-output-format.md) | `csv` output format, flat DTO schema, `OUTPUT_FORMATS` consolidated | Accepted |
 | [0093](0093-quick-wins-effort-and-category-bar-chart.md) | Quick-wins ranked by savings/effort, category bar chart in the waste PDF | Accepted |
 
+## Notifications
+
+| ADR | Title | Status |
+|---|---|---|
+| [0103](0103-github-pr-comment-notifier.md) | GitHub PR comment as a fifth notification channel | Accepted |
+
 ## Testing
 
 | ADR | Title | Status |

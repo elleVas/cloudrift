@@ -90,6 +90,7 @@ program
   .option('--notify-slack', 'send a Slack notification if waste exceeds --config\'s costAlertThresholdUsd (or any waste, if unset); reads SLACK_WEBHOOK_URL from env')
   .option('--notify-webhook', 'POST a JSON summary to a webhook under the same condition as --notify-slack; reads CLOUDRIFT_WEBHOOK_URL from env')
   .option('--notify-email <address>', 'email a summary to this address under the same condition as --notify-slack; reads CLOUDRIFT_SMTP_HOST/PORT/USER/PASSWORD/FROM from env')
+  .option('--notify-github-comment', 'post a PR comment under the same condition as --notify-slack; requires GITHUB_TOKEN/GITHUB_REPOSITORY/GITHUB_EVENT_PATH (set by GitHub Actions on a pull_request trigger)')
   .action((options) => analyzeWasteCommand(options));
 
 program
@@ -186,6 +187,7 @@ program
   .option('--notify-slack', 'send a Slack notification if the scan has critical/warning findings; reads SLACK_WEBHOOK_URL from env')
   .option('--notify-webhook', 'POST a JSON summary to a webhook under the same condition as --notify-slack; reads CLOUDRIFT_WEBHOOK_URL from env')
   .option('--notify-email <address>', 'email a summary to this address under the same condition as --notify-slack; reads CLOUDRIFT_SMTP_HOST/PORT/USER/PASSWORD/FROM from env')
+  .option('--notify-github-comment', 'post a PR comment under the same condition as --notify-slack; requires GITHUB_TOKEN/GITHUB_REPOSITORY/GITHUB_EVENT_PATH (set by GitHub Actions on a pull_request trigger)')
   .action((options) => deadResourcesCommand(options));
 
 program
@@ -223,6 +225,7 @@ program
   .option('--notify-slack', 'send a Slack notification if the scan has critical/warning findings; reads SLACK_WEBHOOK_URL from env')
   .option('--notify-webhook', 'POST a JSON summary to a webhook under the same condition as --notify-slack; reads CLOUDRIFT_WEBHOOK_URL from env')
   .option('--notify-email <address>', 'email a summary to this address under the same condition as --notify-slack; reads CLOUDRIFT_SMTP_HOST/PORT/USER/PASSWORD/FROM from env')
+  .option('--notify-github-comment', 'post a PR comment under the same condition as --notify-slack; requires GITHUB_TOKEN/GITHUB_REPOSITORY/GITHUB_EVENT_PATH (set by GitHub Actions on a pull_request trigger)')
   .action((options) => resourceSecurityCommand(options));
 
 program
@@ -247,6 +250,7 @@ program
   .option('--notify-slack', 'with --compare, send a Slack notification if the comparison shows a regression (worse trend); reads SLACK_WEBHOOK_URL from env')
   .option('--notify-webhook', 'with --compare, POST a JSON summary to a webhook under the same condition as --notify-slack; reads CLOUDRIFT_WEBHOOK_URL from env')
   .option('--notify-email <address>', 'with --compare, email a summary to this address under the same condition as --notify-slack; reads CLOUDRIFT_SMTP_HOST/PORT/USER/PASSWORD/FROM from env')
+  .option('--notify-github-comment', 'with --compare, post a PR comment under the same condition as --notify-slack; requires GITHUB_TOKEN/GITHUB_REPOSITORY/GITHUB_EVENT_PATH (set by GitHub Actions on a pull_request trigger)')
   .action((options) => historyCommand(options));
 
 program

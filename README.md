@@ -289,16 +289,17 @@ See [ADR-0099](https://github.com/elleVas/cloudrift/blob/main/docs/adr/0099-loca
 
 ---
 
-### Notifications (Slack / webhook / email)
+### Notifications (Slack / webhook / email / GitHub PR comment)
 
-`analyze`, `dead-resources`, `resource-security`, and `history --compare` can send a summary to Slack, a generic webhook, or email — `--notify-slack`, `--notify-webhook`, `--notify-email <address>`. Best-effort and never blocking: a broken webhook logs a warning, the scan itself is unaffected. Fires only when there's something worth reporting (critical/warning findings, waste over `costAlertThresholdUsd`, or a worsening trend on `history --compare`) — a clean run stays quiet. **Slack gets an alert only** (title + counts, e.g. "3 critical, 14 warning, 0 info") — deliberately no per-finding detail, so a scheduled pipeline scanning several accounts never turns the channel into an unreadable wall of text; the webhook and email payloads include the top findings, since a machine consumer or a personal inbox can handle the extra detail without cluttering a shared channel.
+`analyze`, `dead-resources`, `resource-security`, and `history --compare` can send a summary to Slack, a generic webhook, email, or a GitHub PR comment — `--notify-slack`, `--notify-webhook`, `--notify-email <address>`, `--notify-github-comment`. Best-effort and never blocking: a broken webhook logs a warning, the scan itself is unaffected. Fires only when there's something worth reporting (critical/warning findings, waste over `costAlertThresholdUsd`, or a worsening trend on `history --compare`) — a clean run stays quiet. **Slack gets an alert only** (title + counts, e.g. "3 critical, 14 warning, 0 info") — deliberately no per-finding detail, so a scheduled pipeline scanning several accounts never turns the channel into an unreadable wall of text; the webhook, email, and PR comment payloads include the top findings, since a machine consumer, a personal inbox, or a PR reviewer can handle the extra detail without cluttering a shared channel.
 
 ```sh
 cloudrift resource-security --notify-slack
 cloudrift analyze --notify-email team@example.com
+cloudrift analyze --notify-github-comment
 ```
 
-Every credential (`SLACK_WEBHOOK_URL`, `CLOUDRIFT_WEBHOOK_URL`, `CLOUDRIFT_SMTP_HOST`/`PORT`/`USER`/`PASSWORD`/`FROM`) comes from the environment, never a flag — set it in your shell or as a CI secret, never in a committed file. See [docs/en/usage.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/usage.md#history--local-scan-history) for the full reference.
+Every credential (`SLACK_WEBHOOK_URL`, `CLOUDRIFT_WEBHOOK_URL`, `CLOUDRIFT_SMTP_HOST`/`PORT`/`USER`/`PASSWORD`/`FROM`, `GITHUB_TOKEN`) comes from the environment, never a flag — set it in your shell or as a CI secret, never in a committed file. `--notify-github-comment` also needs `GITHUB_REPOSITORY`/`GITHUB_EVENT_PATH` (set automatically by GitHub Actions) and only posts on a `pull_request` trigger; see the [`action.yml`](./action.yml) `pr-comment` input for the one-flag way to enable it from the reusable Action. See [docs/en/usage.md](https://github.com/elleVas/cloudrift/blob/main/docs/en/usage.md#history--local-scan-history) for the full reference.
 
 ---
 
