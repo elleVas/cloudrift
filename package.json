@@ -41,7 +41,7 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^26.2.0",
     "@types/pdfkit": "^0.17.6",
-    "esbuild": "^0.27.7",
+    "esbuild": "^0.28.2",
     "eslint": "^9.39.5",
     "eslint-config-prettier": "^10.1.8",
     "husky": "^9.1.7",
