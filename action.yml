@@ -73,7 +73,7 @@ runs:
 
     - name: Restore trend cache
       if: inputs.trend-summary == 'true'
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v6
       with:
         path: ~/.cloudrift/trends
         # `key` is deliberately unique per run (never matches on its own): a
@@ -152,7 +152,7 @@ runs:
 
     - name: Save trend cache
       if: always() && inputs.trend-summary == 'true'
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@v6
       with:
         path: ~/.cloudrift/trends
         key: cloudrift-trends-${{ inputs.account-id || 'default' }}-${{ github.run_id }}
