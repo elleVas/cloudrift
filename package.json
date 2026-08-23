@@ -20,8 +20,8 @@
     "*.{ts,tsx,js,jsx}": "eslint --fix"
   },
   "devDependencies": {
-    "@aws-sdk/client-cloudwatch-logs": "^3.1109.0",
-    "@aws-sdk/client-dynamodb": "^3.1109.0",
+    "@aws-sdk/client-cloudwatch-logs": "^3.1114.0",
+    "@aws-sdk/client-dynamodb": "^3.1114.0",
     "@aws-sdk/client-ec2": "^3.1109.0",
     "@aws-sdk/client-elastic-load-balancing-v2": "^3.1109.0",
     "@aws-sdk/client-kinesis": "^3.1109.0",
