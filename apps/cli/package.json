@@ -216,7 +216,7 @@
     "dead-resources-domain": "workspace:*",
     "dead-resources-infrastructure-aws-adapter": "workspace:*",
     "mcp-server-application": "workspace:*",
-    "nodemailer": "^9.0.3",
+    "nodemailer": "^9.0.5",
     "pdfkit": "^0.19.1",
     "resource-security-application": "workspace:*",
     "resource-security-domain": "workspace:*",
