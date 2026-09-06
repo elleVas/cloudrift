@@ -33,7 +33,7 @@
     }
   },
   "dependencies": {
-    "nodemailer": "^9.0.5",
+    "nodemailer": "^9.1.1",
     "shared-kernel": "workspace:*",
     "tslib": "^2.8.1"
   },
