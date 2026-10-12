@@ -1,6 +1,6 @@
 {
   "_comment": "Monthly USD prices per region. 'default' is used as fallback for unlisted regions. Sources: AWS public pricing pages. Update 'pricesAsOf' whenever prices are re-verified.",
-  "pricesAsOf": "2026-07",
+  "pricesAsOf": "2026-10",
   "default": {
     "ebs-gp2":       0.100,
     "ebs-gp3":       0.080,
@@ -88,36 +88,36 @@
     "nat-gateway":   38.880,
     "cw-logs":       0.0324,
     "s3-standard":   0.0245,
-    "efs-standard":  0.330,
+    "efs-standard":  0.360,
     "dynamodb-rcu":  0.0001586,
     "dynamodb-wcu":  0.000793
   },
   "ap-southeast-1": {
     "ebs-gp2":       0.120,
     "ebs-gp3":       0.096,
-    "ebs-io1":       0.131,
-    "ebs-snapshot":  0.055,
+    "ebs-io1":       0.138,
+    "ebs-snapshot":  0.050,
     "elastic-ip":    3.960,
     "rds-gp2":       0.138,
     "load-balancer": 18.250,
     "nat-gateway":   36.792,
     "cw-logs":       0.030,
     "s3-standard":   0.025,
-    "efs-standard":  0.340,
+    "efs-standard":  0.360,
     "dynamodb-rcu":  0.000148,
     "dynamodb-wcu":  0.00074
   },
   "ap-northeast-1": {
     "ebs-gp2":       0.120,
     "ebs-gp3":       0.096,
-    "ebs-snapshot":  0.053,
+    "ebs-snapshot":  0.050,
     "elastic-ip":    3.960,
     "rds-gp2":       0.138,
     "load-balancer": 19.710,
     "nat-gateway":   38.880,
     "cw-logs":       0.033,
     "s3-standard":   0.025,
-    "efs-standard":  0.340,
+    "efs-standard":  0.360,
     "dynamodb-rcu":  0.0001484,
     "dynamodb-wcu":  0.000742
   }
