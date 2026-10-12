@@ -2,3 +2,10 @@ packages:
   - 'apps/*'
   - 'libs/*/*'
   - 'libs/*/*/*'
+
+# Dev-tooling only (not part of the published @cloudrift/cli).
+# nx@23.3.0 pins undici@7.29.0 exactly, which is affected by 7 advisories that
+# are fixed in 7.29.1. Drop this override once nx itself depends on
+# undici >= 7.29.1.
+overrides:
+  'nx>undici': 7.29.1

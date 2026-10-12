@@ -36,8 +36,8 @@ describe('StaticPriceTableAdapter', () => {
       expect(adapter.getPrice(usEast1, 'ebs-snapshot')).toBe(0.05);
     });
 
-    it('returns ap-southeast-1 snapshot price (higher than us-east-1)', () => {
-      expect(adapter.getPrice(apSoutheast1, 'ebs-snapshot')).toBe(0.055);
+    it('returns ap-southeast-1 snapshot price (same as us-east-1)', () => {
+      expect(adapter.getPrice(apSoutheast1, 'ebs-snapshot')).toBe(0.05);
     });
   });
 

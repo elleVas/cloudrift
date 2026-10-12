@@ -88,7 +88,7 @@
     "nat-gateway":   37.440,
     "cw-logs":       0.0324,
     "s3-standard":   0.0245,
-    "efs-standard":  0.330,
+    "efs-standard":  0.360,
     "dynamodb-rcu":  0.0001586,
     "dynamodb-wcu":  0.000793
   },
@@ -103,7 +103,7 @@
     "nat-gateway":   42.480,
     "cw-logs":       0.030,
     "s3-standard":   0.025,
-    "efs-standard":  0.340,
+    "efs-standard":  0.360,
     "dynamodb-rcu":  0.000148,
     "dynamodb-wcu":  0.00074
   },
@@ -117,7 +117,7 @@
     "nat-gateway":   44.640,
     "cw-logs":       0.033,
     "s3-standard":   0.025,
-    "efs-standard":  0.340,
+    "efs-standard":  0.360,
     "dynamodb-rcu":  0.0001484,
     "dynamodb-wcu":  0.000742
   }
