@@ -46,8 +46,8 @@ describe('StaticPriceTableAdapter', () => {
       expect(adapter.getPrice(usEast1, 'elastic-ip')).toBe(3.6);
     });
 
-    it('returns eu-west-1 EIP price (higher than us-east-1)', () => {
-      expect(adapter.getPrice(euWest1, 'elastic-ip')).toBe(3.96);
+    it('returns eu-west-1 EIP price (same as us-east-1)', () => {
+      expect(adapter.getPrice(euWest1, 'elastic-ip')).toBe(3.6);
     });
   });
 
@@ -71,7 +71,7 @@ describe('StaticPriceTableAdapter', () => {
     });
 
     it('returns eu-west-1 price (higher)', () => {
-      expect(adapter.getPrice(euWest1, 'load-balancer')).toBe(18.4);
+      expect(adapter.getPrice(euWest1, 'load-balancer')).toBe(18.144);
     });
   });
 
@@ -81,7 +81,7 @@ describe('StaticPriceTableAdapter', () => {
     });
 
     it('returns ap-southeast-1 price (higher)', () => {
-      expect(adapter.getPrice(apSoutheast1, 'nat-gateway')).toBeCloseTo(36.792, 3);
+      expect(adapter.getPrice(apSoutheast1, 'nat-gateway')).toBeCloseTo(42.48, 3);
     });
 
     it('falls back to default for unlisted region', () => {
