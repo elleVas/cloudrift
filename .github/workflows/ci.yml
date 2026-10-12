@@ -120,11 +120,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # Non-blocking for now (continue-on-error): the repo currently has a
-      # handful of moderate/high advisories in nx/@nx/jest's own transitive
-      # deps (not in the shipped @cloudrift/cli package). Surfacing them
-      # without failing the build until they're cleaned up; flip to blocking
-      # once `pnpm audit --audit-level moderate` is clean.
+      # Non-blocking for now (continue-on-error). This audit walks the whole
+      # workspace, dev tooling included (Nx, jest, eslint), which is not part
+      # of the published @cloudrift/cli; the shipped runtime dependencies
+      # (nodemailer, the MCP SDK, the AWS SDK, ...) are the ones that matter
+      # and are covered by `pnpm audit --prod`. When this was written the only
+      # open advisory was sprintf-js, in dev tooling, with no patched release
+      # upstream. Flip to blocking once the full audit is clean.
       - name: Run pnpm audit
         run: pnpm audit --audit-level moderate
         continue-on-error: true
