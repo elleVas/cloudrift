@@ -300,8 +300,8 @@ importers:
         specifier: workspace:*
         version: link:../../libs/mcp-server/application
       nodemailer:
-        specifier: ^10.1.0
-        version: 10.1.0
+        specifier: ^10.1.1
+        version: 10.1.1
       pdfkit:
         specifier: ^0.19.1
         version: 0.19.1
@@ -753,8 +753,8 @@ importers:
   libs/shared/notifications:
     dependencies:
       nodemailer:
-        specifier: ^10.1.0
-        version: 10.1.0
+        specifier: ^10.1.1
+        version: 10.1.1
       shared-kernel:
         specifier: workspace:*
         version: link:../kernel
@@ -4299,8 +4299,8 @@ packages:
     resolution: {integrity: sha512-YHs7BmmcsdAI5Ozuf8JZo6PT0mv2GIWC9vMfvUC3dp65M8hn7Ux8CPL+2oBI7juNuj9d0ndhTcznq2ODBps9cQ==}
     engines: {node: '>=18'}
 
-  nodemailer@10.1.0:
-    resolution: {integrity: sha512-fXW8AulB25aOTuwfRYV6lqHyfz2VM4rr4SGXH03mE7x5znEUpzL5mu6anARUpZN7744Ziwkmr4AxSLPJsBQspg==}
+  nodemailer@10.1.1:
+    resolution: {integrity: sha512-pbqZRoeYUO+1E8TJ/11WeY4D2EVujj1hsYjz3qff/vUFDtGnmi7p3iqzTFslYOfQ6PnjVcWxx/CIUSHCSrO/QA==}
     engines: {node: '>=20.0.0'}
 
   normalize-path@3.0.0:
@@ -9595,7 +9595,7 @@ snapshots:
 
   node-releases@2.0.54: {}
 
-  nodemailer@10.1.0: {}
+  nodemailer@10.1.1: {}
 
   normalize-path@3.0.0: {}
 
