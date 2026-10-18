@@ -73,8 +73,8 @@
   "dependencies": {
     "shared-kernel": "workspace:*",
     "shared-aws-infra-utils": "workspace:*",
-    "@aws-sdk/client-pricing": "^3.1149.0",
-    "@aws-sdk/credential-providers": "^3.1149.0",
+    "@aws-sdk/client-pricing": "^3.1152.0",
+    "@aws-sdk/credential-providers": "^3.1152.0",
     "@smithy/node-http-handler": "^4.12.1",
     "@smithy/types": "^4.19.0",
     "tslib": "^2.8.1"
