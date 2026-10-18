@@ -208,7 +208,7 @@
     "cloud-cost-application": "workspace:*",
     "cloud-cost-domain": "workspace:*",
     "cloud-cost-infrastructure-aws-adapter": "workspace:*",
-    "commander": "^13.1.0",
+    "commander": "^15.0.0",
     "cost-analytics-application": "workspace:*",
     "cost-analytics-domain": "workspace:*",
     "cost-analytics-infrastructure-aws-adapter": "workspace:*",
