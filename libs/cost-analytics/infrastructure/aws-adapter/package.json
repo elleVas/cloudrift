@@ -33,8 +33,8 @@
     }
   },
   "dependencies": {
-    "@aws-sdk/client-cost-explorer": "^3.1149.0",
-    "@smithy/types": "^4.19.0",
+    "@aws-sdk/client-cost-explorer": "^3.1162.0",
+    "@smithy/types": "^4.20.0",
     "cost-analytics-domain": "workspace:*",
     "shared-aws-infra-utils": "workspace:*",
     "shared-kernel": "workspace:*",
